@@ -1,4 +1,5 @@
 #include <iostream>
+#include <string>
 
 #include <SDL2/SDL.h>
 
@@ -9,6 +10,7 @@ static SDL_Renderer *renderer;
 static SDL_Texture *texture;
 
 static bool running;
+static std::string data_dir;
 
 static void
 print_usage()
@@ -22,6 +24,16 @@ static int
 parse_args(int argc, char **argv)
 {
 	return 0;
+}
+
+static void
+set_data_dir()
+{
+	auto path = SDL_GetPrefPath("", "twice");
+	if (path) {
+		data_dir = path;
+		SDL_free(path);
+	}
 }
 
 static int
@@ -116,6 +128,11 @@ main(int argc, char **argv)
 		return 1;
 	}
 
+	if (data_dir.empty()) {
+		set_data_dir();
+		std::cerr << "data dir: " << data_dir << '\n';
+	}
+
 	twice::Machine nds;
 
 	if (init()) {
@@ -124,7 +141,7 @@ main(int argc, char **argv)
 		return 1;
 	}
 
-	loop(nds);
+	// loop(nds);
 
 	destroy();
 	return 0;
