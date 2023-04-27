@@ -11,6 +11,7 @@ static SDL_Texture *texture;
 
 static bool running;
 static std::string data_dir;
+static std::string cartridge_pathname;
 
 static void
 print_usage()
@@ -23,6 +24,12 @@ print_usage()
 static int
 parse_args(int argc, char **argv)
 {
+	if (argc - 1 < 1) {
+		return 1;
+	}
+
+	cartridge_pathname = argv[1];
+
 	return 0;
 }
 
@@ -135,6 +142,10 @@ main(int argc, char **argv)
 
 	twice::Config config{ data_dir };
 	twice::Machine nds(config);
+
+	if (nds.load_cartridge(cartridge_pathname)) {
+		return 1;
+	}
 
 	if (init()) {
 		std::cerr << "sdl init failed\n";

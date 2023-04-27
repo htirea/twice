@@ -21,6 +21,13 @@ struct TwiceException : public std::exception {
 	std::string msg;
 };
 
+struct TwiceFileError : TwiceException {
+	TwiceFileError(const std::string& msg)
+		: TwiceException(msg)
+	{
+	}
+};
+
 } // namespace twice
 
 #endif
