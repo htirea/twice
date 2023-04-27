@@ -15,6 +15,8 @@ Machine::Machine(Config& config)
 {
 }
 
+Machine::~Machine() = default;
+
 int
 Machine::load_cartridge(const std::string& pathname)
 {
@@ -26,6 +28,26 @@ Machine::load_cartridge(const std::string& pathname)
 		fprintf(stderr, "%s\n", e.what());
 		return 1;
 	}
+}
+
+int
+Machine::direct_boot()
+{
+	if (!cartridge) {
+		fprintf(stderr, "no cartridge loaded\n");
+		return 1;
+	}
+
+	nds = std::make_unique<NDS>(arm7_bios.get_data(), arm9_bios.get_data(),
+			firmware.get_data(), cartridge.get_data(),
+			cartridge.get_size());
+
+	if (nds->direct_boot()) {
+		fprintf(stderr, "direct boot failed\n");
+		return 1;
+	}
+
+	return 0;
 }
 
 void

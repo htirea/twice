@@ -40,6 +40,8 @@ struct FileMap {
 		return *this;
 	}
 
+	explicit operator bool() { return data; }
+
 	unsigned char *get_data() { return data; }
 
 	size_t get_size() { return size; }

@@ -147,6 +147,10 @@ main(int argc, char **argv)
 		return 1;
 	}
 
+	if (nds.direct_boot()) {
+		return 1;
+	}
+
 	if (init()) {
 		std::cerr << "sdl init failed\n";
 		destroy();

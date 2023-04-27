@@ -1,6 +1,7 @@
 add_library(twice STATIC
 	filemap.cc
 	machine.cc
+	nds.cc
 )
 
 target_include_directories(twice
