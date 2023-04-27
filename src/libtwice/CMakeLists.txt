@@ -1,4 +1,5 @@
 add_library(twice STATIC
+	filemap.cc
 	machine.cc
 )
 

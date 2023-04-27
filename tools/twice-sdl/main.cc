@@ -133,7 +133,8 @@ main(int argc, char **argv)
 		std::cerr << "data dir: " << data_dir << '\n';
 	}
 
-	twice::Machine nds;
+	twice::Config config{ data_dir };
+	twice::Machine nds(config);
 
 	if (init()) {
 		std::cerr << "sdl init failed\n";
