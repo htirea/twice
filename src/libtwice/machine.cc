@@ -17,37 +17,24 @@ Machine::Machine(Config& config)
 
 Machine::~Machine() = default;
 
-int
+void
 Machine::load_cartridge(const std::string& pathname)
 {
-	try {
-		cartridge = { pathname, NDS_MAX_CART_SIZE,
-			FileMap::MAP_MAX_SIZE };
-		return 0;
-	} catch (TwiceFileError& e) {
-		fprintf(stderr, "%s\n", e.what());
-		return 1;
-	}
+	cartridge = { pathname, NDS_MAX_CART_SIZE, FileMap::MAP_MAX_SIZE };
 }
 
-int
+void
 Machine::direct_boot()
 {
 	if (!cartridge) {
-		fprintf(stderr, "no cartridge loaded\n");
-		return 1;
+		throw TwiceError("cartridge not loaded");
 	}
 
 	nds = std::make_unique<NDS>(arm7_bios.get_data(), arm9_bios.get_data(),
 			firmware.get_data(), cartridge.get_data(),
 			cartridge.get_size());
 
-	if (nds->direct_boot()) {
-		fprintf(stderr, "direct boot failed\n");
-		return 1;
-	}
-
-	return 0;
+	nds->direct_boot();
 }
 
 void

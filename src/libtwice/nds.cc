@@ -14,8 +14,7 @@ NDS::NDS(u8 *arm7_bios, u8 *arm9_bios, u8 *firmware, u8 *cartridge,
 
 NDS::~NDS() = default;
 
-int
+void
 NDS::direct_boot()
 {
-	return 1;
 }

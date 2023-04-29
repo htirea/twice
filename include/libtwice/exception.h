@@ -21,8 +21,15 @@ struct TwiceException : public std::exception {
 	std::string msg;
 };
 
-struct TwiceFileError : TwiceException {
-	TwiceFileError(const std::string& msg)
+struct TwiceError : TwiceException {
+	TwiceError(const std::string& msg)
+		: TwiceException(msg)
+	{
+	}
+};
+
+struct FileError : TwiceException {
+	FileError(const std::string& msg)
 		: TwiceException(msg)
 	{
 	}

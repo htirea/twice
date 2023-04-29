@@ -20,8 +20,8 @@ struct Machine {
 	Machine(Config& config);
 	~Machine();
 
-	int load_cartridge(const std::string& pathname);
-	int direct_boot();
+	void load_cartridge(const std::string& pathname);
+	void direct_boot();
 	void run_frame();
 
       private:

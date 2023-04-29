@@ -14,7 +14,7 @@ struct NDS {
 	NDS(u8 *, u8 *, u8 *, u8 *, size_t);
 	~NDS();
 
-	int direct_boot();
+	void direct_boot();
 
 	u8 *arm7_bios{};
 	u8 *arm9_bios{};

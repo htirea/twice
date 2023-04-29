@@ -1,15 +1,13 @@
+#include <exception>
 #include <iostream>
+#include <memory>
 #include <string>
 
 #include <SDL2/SDL.h>
 
+#include <libtwice/exception.h>
 #include <libtwice/machine.h>
 
-static SDL_Window *window;
-static SDL_Renderer *renderer;
-static SDL_Texture *texture;
-
-static bool running;
 static std::string data_dir;
 static std::string cartridge_pathname;
 
@@ -43,49 +41,69 @@ set_data_dir()
 	}
 }
 
-static int
-init()
+struct sdl_exception : public std::exception {
+	sdl_exception(const std::string& msg)
+		: msg(msg)
+	{
+	}
+
+	virtual const char *what() const noexcept override
+	{
+		return msg.c_str();
+	}
+
+      private:
+	std::string msg;
+};
+
+struct Platform {
+	SDL_Window *window;
+	SDL_Renderer *renderer;
+	SDL_Texture *texture;
+
+	bool running;
+
+	Platform();
+	~Platform();
+	void render();
+	void handle_events();
+	void loop(twice::Machine& nds);
+};
+
+Platform::Platform()
 {
 	using namespace twice;
 
 	if (SDL_Init(SDL_INIT_VIDEO)) {
-		fprintf(stderr, "sdl: init failed\n");
-		return 1;
+		throw sdl_exception("init failed\n");
 	}
 
 	window = SDL_CreateWindow("Twice", SDL_WINDOWPOS_UNDEFINED,
 			SDL_WINDOWPOS_UNDEFINED, NDS_FB_W * 2, NDS_FB_H * 2,
 			SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
 	if (!window) {
-		fprintf(stderr, "sdl: create window failed\n");
-		return 1;
+		throw sdl_exception("create window failed\n");
 	}
 
 	SDL_SetWindowResizable(window, SDL_TRUE);
 
 	renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 	if (!renderer) {
-		fprintf(stderr, "sdl: create renderer failed\n");
-		return 1;
+		throw sdl_exception("create renderer failed\n");
 	}
 
 	if (SDL_RenderSetLogicalSize(renderer, NDS_FB_W, NDS_FB_H)) {
-		fprintf(stderr, "sdl: renderer set logical size failed\n");
-		return 1;
+		throw sdl_exception("renderer set logical size failed\n");
 	}
 
 	texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ABGR8888,
 			SDL_TEXTUREACCESS_STREAMING, NDS_FB_W, NDS_FB_H);
 	if (!texture) {
-		fprintf(stderr, "sdl: create texture failed\n");
-		return 1;
+		throw sdl_exception("create texture failed\n");
 	}
-
-	return 0;
 }
 
-static void
-destroy()
+Platform::~Platform()
 {
 	SDL_DestroyTexture(texture);
 	SDL_DestroyRenderer(renderer);
@@ -93,16 +111,16 @@ destroy()
 	SDL_Quit();
 }
 
-static void
-render()
+void
+Platform::render()
 {
 	SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0xFF);
 	SDL_RenderClear(renderer);
 	SDL_RenderPresent(renderer);
 }
 
-static void
-handle_events()
+void
+Platform::handle_events()
 {
 	SDL_Event e;
 
@@ -115,8 +133,8 @@ handle_events()
 	}
 }
 
-static void
-loop(twice::Machine& nds)
+void
+Platform::loop(twice::Machine& nds)
 {
 	running = true;
 
@@ -143,22 +161,12 @@ main(int argc, char **argv)
 	twice::Config config{ data_dir };
 	twice::Machine nds(config);
 
-	if (nds.load_cartridge(cartridge_pathname)) {
-		return 1;
-	}
+	nds.load_cartridge(cartridge_pathname);
+	nds.direct_boot();
 
-	if (nds.direct_boot()) {
-		return 1;
-	}
+	Platform platform;
 
-	if (init()) {
-		std::cerr << "sdl init failed\n";
-		destroy();
-		return 1;
-	}
+	// platform.loop(nds);
 
-	// loop(nds);
-
-	destroy();
 	return 0;
 }
