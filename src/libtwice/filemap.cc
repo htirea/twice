@@ -38,8 +38,9 @@ FileMap::FileMap(const std::string& pathname, std::size_t limit, int mode)
 		throw TwiceFileError("mmap failed: " + pathname);
 	}
 
-	this->data = (unsigned char *)addr;
-	this->size = actual_size;
+	close(fd);
+	data = (unsigned char *)addr;
+	size = actual_size;
 }
 
 void
