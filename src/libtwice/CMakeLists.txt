@@ -1,4 +1,5 @@
 add_library(twice STATIC
+	bus.cc
 	filemap.cc
 	machine.cc
 	nds.cc
