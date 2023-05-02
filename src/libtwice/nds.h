@@ -35,9 +35,15 @@ struct NDS {
 	NDS(u8 *, u8 *, u8 *, u8 *, size_t);
 	~NDS();
 
+	/*
+	 * HW
+	 */
 	std::unique_ptr<Arm9> arm9;
 	std::unique_ptr<Arm7> arm7;
 
+	/*
+	 * Memory
+	 */
 	u8 main_ram[MAIN_RAM_SIZE]{};
 	u8 shared_wram[SHARED_WRAM_SIZE]{};
 	u8 palette[PALETTE_SIZE]{};
@@ -46,6 +52,7 @@ struct NDS {
 
 	u8 *shared_wram_p[2]{};
 	u32 shared_wram_mask[2]{};
+	u8 shared_wram_null[4]{};
 
 	u8 *arm7_bios{};
 	u8 *arm9_bios{};
@@ -53,6 +60,14 @@ struct NDS {
 	u8 *cartridge{};
 	size_t cartridge_size{};
 
+	/*
+	 * IO
+	 */
+	u8 wramcnt{};
+
+	/*
+	 * Functions
+	 */
 	void direct_boot();
 };
 
