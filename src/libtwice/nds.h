@@ -28,18 +28,23 @@ enum MemorySizes : u32 {
 	MAX_CART_SIZE = 512_MiB,
 };
 
-struct NDS {
+struct Arm9;
+struct Arm7;
 
+struct NDS {
 	NDS(u8 *, u8 *, u8 *, u8 *, size_t);
 	~NDS();
 
-	void direct_boot();
+	std::unique_ptr<Arm9> arm9;
+	std::unique_ptr<Arm7> arm7;
 
 	u8 *arm7_bios{};
 	u8 *arm9_bios{};
 	u8 *firmware{};
 	u8 *cartridge{};
 	size_t cartridge_size{};
+
+	void direct_boot();
 };
 
 } // namespace twice

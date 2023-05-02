@@ -1,4 +1,5 @@
 #include "libtwice/nds.h"
+#include "libtwice/arm/arm.h"
 #include "libtwice/bus.h"
 #include "libtwice/exception.h"
 #include "libtwice/util.h"
@@ -7,7 +8,9 @@ using namespace twice;
 
 NDS::NDS(u8 *arm7_bios, u8 *arm9_bios, u8 *firmware, u8 *cartridge,
 		size_t cartridge_size)
-	: arm7_bios(arm7_bios),
+	: arm9(std::make_unique<Arm9>(this)),
+	  arm7(std::make_unique<Arm7>(this)),
+	  arm7_bios(arm7_bios),
 	  arm9_bios(arm9_bios),
 	  firmware(firmware),
 	  cartridge(cartridge),
@@ -84,4 +87,24 @@ NDS::direct_boot()
 	u32 entry_addr[2];
 
 	parse_header(this, entry_addr);
+
+	arm9->cp15_write(0x100, 0x00012078);
+	arm9->cp15_write(0x910, 0x3000000A);
+	arm9->cp15_write(0x911, 0x00000020);
+
+	arm9->gpr[12] = entry_addr[0];
+	arm9->gpr[13] = 0x03002F7C;
+	arm9->gpr[14] = entry_addr[0];
+	arm9->bankedr[MODE_IRQ][0] = 0x03003F80;
+	arm9->bankedr[MODE_SVC][0] = 0x03003FC0;
+	arm9->jump(entry_addr[0]);
+
+	arm7->gpr[12] = entry_addr[1];
+	arm7->gpr[13] = 0x0380FD80;
+	arm7->gpr[14] = entry_addr[1];
+	arm7->bankedr[MODE_IRQ][0] = 0x0380FF80;
+	arm7->bankedr[MODE_SVC][0] = 0x0380FFC0;
+	arm7->jump(entry_addr[1]);
+
+	/* TODO: more stuff for direct booting */
 }
