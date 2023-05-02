@@ -38,6 +38,15 @@ struct NDS {
 	std::unique_ptr<Arm9> arm9;
 	std::unique_ptr<Arm7> arm7;
 
+	u8 main_ram[MAIN_RAM_SIZE]{};
+	u8 shared_wram[SHARED_WRAM_SIZE]{};
+	u8 palette[PALETTE_SIZE]{};
+	u8 oam[OAM_SIZE]{};
+	u8 arm7_wram[ARM7_WRAM_SIZE]{};
+
+	u8 *shared_wram_p[2]{};
+	u32 shared_wram_mask[2]{};
+
 	u8 *arm7_bios{};
 	u8 *arm9_bios{};
 	u8 *firmware{};

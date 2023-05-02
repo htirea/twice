@@ -2,6 +2,7 @@ add_library(twice STATIC
 	arm/arm.cc
 	bus.cc
 	filemap.cc
+	io.cc
 	machine.cc
 	nds.cc
 )

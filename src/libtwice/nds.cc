@@ -2,6 +2,7 @@
 #include "libtwice/arm/arm.h"
 #include "libtwice/bus.h"
 #include "libtwice/exception.h"
+#include "libtwice/io.h"
 #include "libtwice/util.h"
 
 using namespace twice;
@@ -16,6 +17,7 @@ NDS::NDS(u8 *arm7_bios, u8 *arm9_bios, u8 *firmware, u8 *cartridge,
 	  cartridge(cartridge),
 	  cartridge_size(cartridge_size)
 {
+	wramcnt_write(this, 0x0);
 }
 
 NDS::~NDS() = default;
