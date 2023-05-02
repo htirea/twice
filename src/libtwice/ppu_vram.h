@@ -9,6 +9,8 @@ template <typename T>
 T
 vram_read(NDS *nds, u32 addr)
 {
+	(void)nds;
+
 	fprintf(stderr, "vram read at %08X\n", addr);
 	return 0;
 }
@@ -17,6 +19,9 @@ template <typename T>
 void
 vram_write(NDS *nds, u32 addr, T value)
 {
+	(void)nds;
+	(void)value;
+
 	fprintf(stderr, "vram write to %08X\n", addr);
 }
 
@@ -24,6 +29,8 @@ template <typename T>
 T
 vram_arm7_read(NDS *nds, u32 addr)
 {
+	(void)nds;
+
 	fprintf(stderr, "vram arm7 read at %08X\n", addr);
 	return 0;
 }
@@ -32,6 +39,8 @@ template <typename T>
 void
 vram_arm7_write(NDS *nds, u32 addr, T value)
 {
+	(void)nds;
+	(void)value;
 	fprintf(stderr, "vram arm7 write to %08X\n", addr);
 }
 

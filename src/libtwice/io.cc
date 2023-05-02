@@ -38,6 +38,8 @@ wramcnt_write(NDS *nds, u8 value)
 u32
 io9_read32(NDS *nds, u32 addr)
 {
+	(void)nds;
+
 	fprintf(stderr, "nds9 io read 32 at %08X\n", addr);
 	return 0;
 }
@@ -45,6 +47,8 @@ io9_read32(NDS *nds, u32 addr)
 u16
 io9_read16(NDS *nds, u32 addr)
 {
+	(void)nds;
+
 	fprintf(stderr, "nds9 io read 16 at %08X\n", addr);
 	return 0;
 }
@@ -52,6 +56,8 @@ io9_read16(NDS *nds, u32 addr)
 u8
 io9_read8(NDS *nds, u32 addr)
 {
+	(void)nds;
+
 	fprintf(stderr, "nds9 io read 8 at %08X\n", addr);
 	return 0;
 }
@@ -59,24 +65,35 @@ io9_read8(NDS *nds, u32 addr)
 void
 io9_write32(NDS *nds, u32 addr, u32 value)
 {
+	(void)nds;
+	(void)value;
+
 	fprintf(stderr, "nds9 io write 32 to %08X\n", addr);
 }
 
 void
 io9_write16(NDS *nds, u32 addr, u16 value)
 {
+	(void)nds;
+	(void)value;
+
 	fprintf(stderr, "nds9 io write 16 to %08X\n", addr);
 }
 
 void
 io9_write8(NDS *nds, u32 addr, u8 value)
 {
+	(void)nds;
+	(void)value;
+
 	fprintf(stderr, "nds9 io write 16 to %08X\n", addr);
 }
 
 u32
 io7_read32(NDS *nds, u32 addr)
 {
+	(void)nds;
+
 	fprintf(stderr, "nds7 io read 32 at %08X\n", addr);
 	return 0;
 }
@@ -84,6 +101,8 @@ io7_read32(NDS *nds, u32 addr)
 u16
 io7_read16(NDS *nds, u32 addr)
 {
+	(void)nds;
+
 	fprintf(stderr, "nds7 io read 16 at %08X\n", addr);
 	return 0;
 }
@@ -91,6 +110,8 @@ io7_read16(NDS *nds, u32 addr)
 u8
 io7_read8(NDS *nds, u32 addr)
 {
+	(void)nds;
+
 	fprintf(stderr, "nds7 io read 8 at %08X\n", addr);
 	return 0;
 }
@@ -98,18 +119,27 @@ io7_read8(NDS *nds, u32 addr)
 void
 io7_write32(NDS *nds, u32 addr, u32 value)
 {
+	(void)nds;
+	(void)value;
+
 	fprintf(stderr, "nds7 io write 32 to %08X\n", addr);
 }
 
 void
 io7_write16(NDS *nds, u32 addr, u16 value)
 {
+	(void)nds;
+	(void)value;
+
 	fprintf(stderr, "nds7 io write 16 to %08X\n", addr);
 }
 
 void
 io7_write8(NDS *nds, u32 addr, u8 value)
 {
+	(void)nds;
+	(void)value;
+
 	fprintf(stderr, "nds7 io write 16 to %08X\n", addr);
 }
 

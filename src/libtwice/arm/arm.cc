@@ -20,14 +20,18 @@ Arm7::Arm7(NDS *nds)
 void
 Arm9::jump(u32 addr)
 {
+	(void)addr;
 }
 
 void
 Arm7::jump(u32 addr)
 {
+	(void)addr;
 }
 
 void
 Arm9::cp15_write(u32 reg, u32 value)
 {
+	(void)reg;
+	(void)value;
 }
