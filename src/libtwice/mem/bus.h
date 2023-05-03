@@ -1,8 +1,10 @@
-#include "libtwice/bus.h"
+#ifndef LIBTWICE_BUS_H
+#define LIBTWICE_BUS_H
+
 #include "libtwice/arm/arm.h"
-#include "libtwice/io.h"
+#include "libtwice/mem/io.h"
+#include "libtwice/mem/vram.h"
 #include "libtwice/nds.h"
-#include "libtwice/ppu_vram.h"
 #include "libtwice/util.h"
 
 namespace twice {
@@ -26,7 +28,7 @@ bus9_read(NDS *nds, u32 addr)
 		}
 		break;
 	case 0x4:
-		value = bus_io_read<T, 0>(nds, addr);
+		value = io9_read<T>(nds, addr);
 		break;
 	case 0x5:
 		value = readarr<T>(nds->palette, addr & PALETTE_MASK);
@@ -76,7 +78,7 @@ bus9_write(NDS *nds, u32 addr, T value)
 		}
 		break;
 	case 0x4:
-		bus_io_write<T, 0>(nds, addr, value);
+		io9_write<T>(nds, addr, value);
 		break;
 	case 0x5:
 		writearr<T>(nds->palette, addr & PALETTE_MASK, value);
@@ -132,7 +134,7 @@ bus7_read(NDS *nds, u32 addr)
 		value = readarr<T>(nds->arm7_wram, addr & ARM7_WRAM_MASK);
 		break;
 	case 0x40 >> 3:
-		value = bus_io_read<T, 1>(nds, addr);
+		value = io7_read<T>(nds, addr);
 		break;
 	case 0x60 >> 3:
 	case 0x68 >> 3:
@@ -173,7 +175,7 @@ bus7_write(NDS *nds, u32 addr, T value)
 		writearr<T>(nds->arm7_wram, addr & ARM7_WRAM_MASK, value);
 		break;
 	case 0x40 >> 3:
-		bus_io_write<T, 1>(nds, addr, value);
+		io7_write<T>(nds, addr, value);
 		break;
 	case 0x60 >> 3:
 	case 0x68 >> 3:
@@ -188,18 +190,6 @@ bus7_write(NDS *nds, u32 addr, T value)
 	}
 }
 
-template u32 bus9_read<u32>(NDS *nds, u32 addr);
-template u16 bus9_read<u16>(NDS *nds, u32 addr);
-template u8 bus9_read<u8>(NDS *nds, u32 addr);
-template void bus9_write<u32>(NDS *nds, u32 addr, u32 value);
-template void bus9_write<u16>(NDS *nds, u32 addr, u16 value);
-template void bus9_write<u8>(NDS *nds, u32 addr, u8 value);
-
-template u32 bus7_read<u32>(NDS *nds, u32 addr);
-template u16 bus7_read<u16>(NDS *nds, u32 addr);
-template u8 bus7_read<u8>(NDS *nds, u32 addr);
-template void bus7_write<u32>(NDS *nds, u32 addr, u32 value);
-template void bus7_write<u16>(NDS *nds, u32 addr, u16 value);
-template void bus7_write<u8>(NDS *nds, u32 addr, u8 value);
-
 } // namespace twice
+
+#endif

@@ -1,5 +1,5 @@
-#ifndef LIBTWICE_PPU_VRAM_H
-#define LIBTWICE_PPU_VRAM_H
+#ifndef LIBTWICE_VRAM_H
+#define LIBTWICE_VRAM_H
 
 #include "libtwice/nds.h"
 

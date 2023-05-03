@@ -1,8 +1,8 @@
 #include "libtwice/nds.h"
 #include "libtwice/arm/arm.h"
-#include "libtwice/bus.h"
 #include "libtwice/exception.h"
-#include "libtwice/io.h"
+#include "libtwice/mem/bus.h"
+#include "libtwice/mem/io.h"
 #include "libtwice/util.h"
 
 using namespace twice;
