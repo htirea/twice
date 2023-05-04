@@ -32,15 +32,15 @@ struct Arm9 final : Arm {
 	bool read_dtcm{};
 	bool write_dtcm{};
 
-	void jump(u32 addr);
-	u32 fetch32(u32 addr);
-	u16 fetch16(u32 addr);
-	u32 load32(u32 addr);
-	u16 load16(u32 addr);
-	u8 load8(u32 addr);
-	void store32(u32 addr, u32 value);
-	void store16(u32 addr, u16 value);
-	void store8(u32 addr, u8 value);
+	void jump(u32 addr) override;
+	u32 fetch32(u32 addr) override;
+	u16 fetch16(u32 addr) override;
+	u32 load32(u32 addr) override;
+	u16 load16(u32 addr) override;
+	u8 load8(u32 addr) override;
+	void store32(u32 addr, u32 value) override;
+	void store16(u32 addr, u16 value) override;
+	void store8(u32 addr, u8 value) override;
 
 	void cp15_write(u32 reg, u32 value);
 
