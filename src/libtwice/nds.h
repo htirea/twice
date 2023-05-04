@@ -6,10 +6,6 @@
 namespace twice {
 
 enum MemorySizes : u32 {
-	ITCM_SIZE = 32_KiB,
-	ITCM_MASK = 32_KiB - 1,
-	DTCM_SIZE = 16_KiB,
-	DTCM_MASK = 16_KiB - 1,
 	MAIN_RAM_SIZE = 4_MiB,
 	MAIN_RAM_MASK = 4_MiB - 1,
 	SHARED_WRAM_SIZE = 32_KiB,
@@ -28,6 +24,7 @@ enum MemorySizes : u32 {
 	MAX_CART_SIZE = 512_MiB,
 };
 
+struct Arm;
 struct Arm9;
 struct Arm7;
 
@@ -38,6 +35,7 @@ struct NDS {
 	/*
 	 * HW
 	 */
+	Arm *cpu[2]{};
 	std::unique_ptr<Arm9> arm9;
 	std::unique_ptr<Arm7> arm7;
 

@@ -1,5 +1,6 @@
 add_library(twice STATIC
-	arm/arm.cc
+	arm/arm7.cc
+	arm/arm9.cc
 	filemap.cc
 	machine.cc
 	mem/io.cc

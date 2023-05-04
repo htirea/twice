@@ -113,7 +113,7 @@ bus7_read(NDS *nds, u32 addr)
 	switch (addr >> 23) {
 	case 0x0:
 		if (addr < ARM7_BIOS_SIZE) {
-			if (nds->arm7->gpr[15] >= ARM7_BIOS_SIZE) {
+			if (nds->cpu[1]->gpr[15] >= ARM7_BIOS_SIZE) {
 				value = -1;
 			} else {
 				value = readarr<T>(nds->arm7_bios, addr);

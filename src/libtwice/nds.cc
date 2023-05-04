@@ -1,5 +1,7 @@
 #include "libtwice/nds.h"
 #include "libtwice/arm/arm.h"
+#include "libtwice/arm/arm7.h"
+#include "libtwice/arm/arm9.h"
 #include "libtwice/exception.h"
 #include "libtwice/mem/bus.h"
 #include "libtwice/mem/io.h"
@@ -17,6 +19,8 @@ NDS::NDS(u8 *arm7_bios, u8 *arm9_bios, u8 *firmware, u8 *cartridge,
 	  cartridge(cartridge),
 	  cartridge_size(cartridge_size)
 {
+	cpu[0] = arm9.get();
+	cpu[1] = arm7.get();
 	wramcnt_write(this, 0x0);
 }
 

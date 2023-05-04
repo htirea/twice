@@ -28,28 +28,32 @@ enum CpuModeBits {
 struct NDS;
 
 struct Arm {
-	Arm(NDS *nds);
+	Arm(NDS *nds)
+		: nds(nds)
+	{
+	}
 
 	u32 gpr[16]{};
 	u32 bankedr[6][3]{};
 	u32 fiqr[5]{};
+	u32 cpsr = (1 << 7) | (1 << 6) | SYS_MODE_BITS;
+	u32 pipeline[2]{};
 
 	NDS *nds{};
 
+	u32& pc() { return gpr[15]; }
+
+	bool in_thumb() { return cpsr & (1 << 5); }
+
 	virtual void jump(u32 addr) = 0;
-};
-
-struct Arm9 final : Arm {
-	Arm9(NDS *nds);
-
-	void jump(u32 addr);
-	void cp15_write(u32 reg, u32 value);
-};
-
-struct Arm7 final : Arm {
-	Arm7(NDS *nds);
-
-	void jump(u32 addr);
+	virtual u32 fetch32(u32 addr) = 0;
+	virtual u16 fetch16(u32 addr) = 0;
+	virtual u32 load32(u32 addr) = 0;
+	virtual u16 load16(u32 addr) = 0;
+	virtual u8 load8(u32 addr) = 0;
+	virtual void store32(u32 addr, u32 value) = 0;
+	virtual void store16(u32 addr, u16 value) = 0;
+	virtual void store8(u32 addr, u8 value) = 0;
 };
 
 } // namespace twice
