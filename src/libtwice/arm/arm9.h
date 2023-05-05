@@ -21,16 +21,20 @@ struct Arm9 final : Arm {
 	u8 itcm[ITCM_SIZE]{};
 	u8 dtcm[DTCM_SIZE]{};
 
-	u32 itcm_virtual_size{};
-	u32 itcm_mask{};
+	u32 itcm_addr_mask{};
+	u32 itcm_array_mask{};
 	u32 dtcm_base{};
-	u32 dtcm_virtual_size{};
-	u32 dtcm_mask{};
+	u32 dtcm_addr_mask{};
+	u32 dtcm_array_mask{};
 
 	bool read_itcm{};
 	bool write_itcm{};
 	bool read_dtcm{};
 	bool write_dtcm{};
+
+	u32 ctrl_reg{ 0x78 };
+	u32 dtcm_reg{};
+	u32 itcm_reg{};
 
 	void jump(u32 addr) override;
 	u32 fetch32(u32 addr) override;

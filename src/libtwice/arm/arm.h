@@ -38,6 +38,7 @@ struct Arm {
 	u32 fiqr[5]{};
 	u32 cpsr = (1 << 7) | (1 << 6) | SYS_MODE_BITS;
 	u32 pipeline[2]{};
+	u32 exception_base{};
 
 	NDS *nds{};
 
