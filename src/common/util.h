@@ -1,7 +1,7 @@
-#ifndef LIBTWICE_UTIL_H
-#define LIBTWICE_UTIL_H
+#ifndef TWICE_UTIL_H
+#define TWICE_UTIL_H
 
-#include "libtwice/types.h"
+#include "common/types.h"
 
 template <typename T>
 T

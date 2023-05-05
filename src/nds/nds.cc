@@ -1,11 +1,13 @@
-#include "libtwice/nds.h"
-#include "libtwice/arm/arm.h"
-#include "libtwice/arm/arm7.h"
-#include "libtwice/arm/arm9.h"
+#include "nds/nds.h"
+#include "nds/arm/arm.h"
+#include "nds/arm/arm7.h"
+#include "nds/arm/arm9.h"
+#include "nds/mem/bus.h"
+#include "nds/mem/io.h"
+
+#include "common/util.h"
+
 #include "libtwice/exception.h"
-#include "libtwice/mem/bus.h"
-#include "libtwice/mem/io.h"
-#include "libtwice/util.h"
 
 using namespace twice;
 

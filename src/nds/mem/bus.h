@@ -1,11 +1,12 @@
-#ifndef LIBTWICE_BUS_H
-#define LIBTWICE_BUS_H
+#ifndef TWICE_BUS_H
+#define TWICE_BUS_H
 
-#include "libtwice/arm/arm.h"
-#include "libtwice/mem/io.h"
-#include "libtwice/mem/vram.h"
-#include "libtwice/nds.h"
-#include "libtwice/util.h"
+#include "nds/arm/arm.h"
+#include "nds/mem/io.h"
+#include "nds/mem/vram.h"
+#include "nds/nds.h"
+
+#include "common/util.h"
 
 namespace twice {
 

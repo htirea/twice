@@ -1,7 +1,7 @@
-#ifndef LIBTWICE_NDS_H
-#define LIBTWICE_NDS_H
+#ifndef TWICE_NDS_H
+#define TWICE_NDS_H
 
-#include "libtwice/types.h"
+#include "common/types.h"
 
 namespace twice {
 

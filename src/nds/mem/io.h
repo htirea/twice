@@ -1,7 +1,7 @@
-#ifndef LIBTWICE_IO_H
-#define LIBTWICE_IO_H
+#ifndef TWICE_IO_H
+#define TWICE_IO_H
 
-#include "libtwice/nds.h"
+#include "nds/nds.h"
 
 namespace twice {
 

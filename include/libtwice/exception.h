@@ -1,5 +1,5 @@
-#ifndef LIBTWICE_EXCEPTION_H
-#define LIBTWICE_EXCEPTION_H
+#ifndef TWICE_EXCEPTION_H
+#define TWICE_EXCEPTION_H
 
 #include <exception>
 #include <string>

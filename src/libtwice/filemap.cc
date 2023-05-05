@@ -1,6 +1,7 @@
 #include "libtwice/filemap.h"
 #include "libtwice/exception.h"
-#include "libtwice/types.h"
+
+#include "common/types.h"
 
 #include <fcntl.h>
 #include <sys/mman.h>

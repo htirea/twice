@@ -1,5 +1,5 @@
-#ifndef LIBTWICE_CONFIG_H
-#define LIBTWICE_CONFIG_H
+#ifndef TWICE_CONFIG_H
+#define TWICE_CONFIG_H
 
 #include <string>
 

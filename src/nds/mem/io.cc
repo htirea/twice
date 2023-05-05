@@ -1,5 +1,4 @@
-#include "libtwice/mem/io.h"
-#include "libtwice/nds.h"
+#include "nds/mem/io.h"
 
 namespace twice {
 

@@ -1,6 +1,7 @@
 #include "libtwice/machine.h"
 #include "libtwice/exception.h"
-#include "libtwice/nds.h"
+
+#include "nds/nds.h"
 
 using namespace twice;
 

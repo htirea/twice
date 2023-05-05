@@ -1,5 +1,5 @@
-#ifndef LIBTWICE_FILEMAP_H
-#define LIBTWICE_FILEMAP_H
+#ifndef TWICE_FILEMAP_H
+#define TWICE_FILEMAP_H
 
 #include <cstddef>
 #include <string>

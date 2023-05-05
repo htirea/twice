@@ -1,7 +1,7 @@
-#ifndef LIBTWICE_VRAM_H
-#define LIBTWICE_VRAM_H
+#ifndef TWICE_VRAM_H
+#define TWICE_VRAM_H
 
-#include "libtwice/nds.h"
+#include "nds/nds.h"
 
 namespace twice {
 

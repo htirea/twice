@@ -1,7 +1,7 @@
-#ifndef LIBTWICE_ARM_H
-#define LIBTWICE_ARM_H
+#ifndef TWICE_ARM_H
+#define TWICE_ARM_H
 
-#include "libtwice/types.h"
+#include "common/types.h"
 
 namespace twice {
 

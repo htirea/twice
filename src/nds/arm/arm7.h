@@ -1,7 +1,7 @@
-#ifndef LIBTWICE_ARM7_H
-#define LIBTWICE_ARM7_H
+#ifndef TWICE_ARM7_H
+#define TWICE_ARM7_H
 
-#include "libtwice/arm/arm.h"
+#include "nds/arm/arm.h"
 
 namespace twice {
 

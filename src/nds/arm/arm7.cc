@@ -1,5 +1,5 @@
-#include "libtwice/arm/arm7.h"
-#include "libtwice/mem/bus.h"
+#include "nds/arm/arm7.h"
+#include "nds/mem/bus.h"
 
 using namespace twice;
 
