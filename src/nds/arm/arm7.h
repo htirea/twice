@@ -6,12 +6,11 @@
 namespace twice {
 
 struct Arm7 final : Arm {
-	Arm7(NDS *nds)
-		: Arm(nds)
-	{
-	}
+	Arm7(NDS *nds);
 
 	void jump(u32 addr) override;
+	void arm_jump(u32 addr) override;
+	void thumb_jump(u32 addr) override;
 	u32 fetch32(u32 addr) override;
 	u16 fetch16(u32 addr) override;
 	u32 load32(u32 addr) override;

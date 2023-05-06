@@ -21,6 +21,16 @@ generate_arm_lut(FILE *f)
 			WRITE("arm_undefined");
 		}
 
+		/* branch instructions */
+		else if ((i & 0xE00) == 0xA00) {
+			int L = i >> 8 & 1;
+			WRITE("arm_b<%d>", L);
+		} else if (i == 0x123) {
+			WRITE("arm_blx2");
+		} else if (i == 0x121) {
+			WRITE("arm_bx");
+		}
+
 		/* everything else */
 		else {
 			WRITE("arm_undefined");

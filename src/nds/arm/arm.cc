@@ -7,6 +7,18 @@
 
 namespace twice {
 
+Arm9::Arm9(NDS *nds)
+	: Arm(nds)
+{
+	cpuid = 0;
+}
+
+Arm7::Arm7(NDS *nds)
+	: Arm(nds)
+{
+	cpuid = 1;
+}
+
 static bool
 check_cond(u32 cpsr, u32 cond)
 {
@@ -59,21 +71,21 @@ Arm9::step()
 {
 	if (in_thumb()) {
 		pc() += 2;
-		opcode.word = pipeline[0];
+		opcode = pipeline[0];
 		pipeline[0] = pipeline[1];
 		pipeline[1] = fetch16(pc());
-		thumb_inst_lut[opcode.word >> 6 & 0x3FF](this);
+		thumb_inst_lut[opcode >> 6 & 0x3FF](this);
 	} else {
 		pc() += 4;
-		opcode.word = pipeline[0];
+		opcode = pipeline[0];
 		pipeline[0] = pipeline[1];
 		pipeline[1] = fetch32(pc());
 
-		if (check_cond(cpsr, opcode.word >> 28)) {
-			u32 op1 = opcode.word >> 20 & 0xFF;
-			u32 op2 = opcode.word >> 4 & 0xF;
+		if (check_cond(cpsr, opcode >> 28)) {
+			u32 op1 = opcode >> 20 & 0xFF;
+			u32 op2 = opcode >> 4 & 0xF;
 			arm_inst_lut[op1 << 4 | op2](this);
-		} else if ((opcode.word & 0xFE000000) == 0xFA000000) {
+		} else if ((opcode & 0xFE000000) == 0xFA000000) {
 			throw TwiceError("unimplemented blx1\n");
 		}
 	}
@@ -86,19 +98,19 @@ Arm7::step()
 {
 	if (in_thumb()) {
 		pc() += 2;
-		opcode.word = pipeline[0];
+		opcode = pipeline[0];
 		pipeline[0] = pipeline[1];
 		pipeline[1] = fetch16(pc());
-		thumb_inst_lut[opcode.word >> 6 & 0x3FF](this);
+		thumb_inst_lut[opcode >> 6 & 0x3FF](this);
 	} else {
 		pc() += 4;
-		opcode.word = pipeline[0];
+		opcode = pipeline[0];
 		pipeline[0] = pipeline[1];
 		pipeline[1] = fetch32(pc());
 
-		if (check_cond(cpsr, opcode.word >> 28)) {
-			u32 op1 = opcode.word >> 20 & 0xFF;
-			u32 op2 = opcode.word >> 4 & 0xF;
+		if (check_cond(cpsr, opcode >> 28)) {
+			u32 op1 = opcode >> 20 & 0xFF;
+			u32 op2 = opcode >> 4 & 0xF;
 			arm_inst_lut[op1 << 4 | op2](this);
 		}
 	}
@@ -108,28 +120,52 @@ void
 Arm9::jump(u32 addr)
 {
 	if (in_thumb()) {
-		pc() = addr + 2;
-		pipeline[0] = fetch16(addr);
-		pipeline[1] = fetch16(addr + 2);
+		thumb_jump(addr);
 	} else {
-		pc() = addr + 4;
-		pipeline[0] = fetch32(addr);
-		pipeline[1] = fetch32(addr + 4);
+		arm_jump(addr);
 	}
+}
+
+void
+Arm9::arm_jump(u32 addr)
+{
+	pc() = addr + 4;
+	pipeline[0] = fetch32(addr);
+	pipeline[1] = fetch32(addr + 4);
+}
+
+void
+Arm9::thumb_jump(u32 addr)
+{
+	pc() = addr + 2;
+	pipeline[0] = fetch16(addr);
+	pipeline[1] = fetch16(addr + 2);
 }
 
 void
 Arm7::jump(u32 addr)
 {
 	if (in_thumb()) {
-		pc() = addr + 2;
-		pipeline[0] = fetch16(addr);
-		pipeline[1] = fetch16(addr + 2);
+		thumb_jump(addr);
 	} else {
-		pc() = addr + 4;
-		pipeline[0] = fetch32(addr);
-		pipeline[1] = fetch32(addr + 4);
+		arm_jump(addr);
 	}
+}
+
+void
+Arm7::arm_jump(u32 addr)
+{
+	pc() = addr + 4;
+	pipeline[0] = fetch32(addr);
+	pipeline[1] = fetch32(addr + 4);
+}
+
+void
+Arm7::thumb_jump(u32 addr)
+{
+	pc() = addr + 2;
+	pipeline[0] = fetch16(addr);
+	pipeline[1] = fetch16(addr + 2);
 }
 
 template <typename T>

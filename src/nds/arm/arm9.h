@@ -13,10 +13,7 @@ enum TcmSizes {
 };
 
 struct Arm9 final : Arm {
-	Arm9(NDS *nds)
-		: Arm(nds)
-	{
-	}
+	Arm9(NDS *nds);
 
 	u8 itcm[ITCM_SIZE]{};
 	u8 dtcm[DTCM_SIZE]{};
@@ -37,6 +34,8 @@ struct Arm9 final : Arm {
 	u32 itcm_reg{};
 
 	void jump(u32 addr) override;
+	void arm_jump(u32 addr) override;
+	void thumb_jump(u32 addr) override;
 	u32 fetch32(u32 addr) override;
 	u16 fetch16(u32 addr) override;
 	u32 load32(u32 addr) override;

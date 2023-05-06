@@ -37,20 +37,24 @@ struct Arm {
 	u32 bankedr[6][3]{};
 	u32 fiqr[5]{};
 	u32 cpsr = (1 << 7) | (1 << 6) | SYS_MODE_BITS;
+	u32 opcode;
 	u32 pipeline[2]{};
 	u32 exception_base{};
 
-	struct Opcode {
-		u32 word{};
-	} opcode;
-
 	NDS *nds{};
+	int cpuid{};
 
 	u32& pc() { return gpr[15]; }
 
 	bool in_thumb() { return cpsr & (1 << 5); }
 
+	void set_t(bool x) { cpsr = (cpsr & ~(1 << 5)) | (x << 5); }
+
+	bool is_arm7() { return cpuid; }
+
 	virtual void jump(u32 addr) = 0;
+	virtual void arm_jump(u32 addr) = 0;
+	virtual void thumb_jump(u32 addr) = 0;
 	virtual u32 fetch32(u32 addr) = 0;
 	virtual u16 fetch16(u32 addr) = 0;
 	virtual u32 load32(u32 addr) = 0;
