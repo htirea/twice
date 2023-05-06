@@ -60,6 +60,13 @@ generate_arm_lut(FILE *f)
 			WRITE("arm_msr<0, %d>", R);
 		}
 
+		/* exception generating instructions */
+		else if ((i & 0xF00) == 0xF00) {
+			WRITE("arm_swi");
+		} else if (i == 0x127) {
+			WRITE("arm_bkpt");
+		}
+
 		/* everything else */
 		else {
 			WRITE("arm_undefined");

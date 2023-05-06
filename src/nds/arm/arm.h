@@ -84,6 +84,7 @@ struct Arm {
 	virtual void store8(u32 addr, u8 value) = 0;
 
 	void on_cpsr_write();
+	void switch_mode(u32 new_mode);
 	void swap_registers(u32 old_mode, u32 new_mode);
 };
 

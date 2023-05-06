@@ -69,16 +69,21 @@ Arm::swap_registers(u32 old_mode, u32 new_mode)
 }
 
 void
-Arm::on_cpsr_write()
+Arm::switch_mode(u32 new_mode)
 {
-	u32 new_mode = mode_bits_to_mode(cpsr & 0x1F);
-	u32 old_mode = mode;
-
-	if (new_mode != old_mode) {
-		swap_registers(old_mode, new_mode);
+	if (new_mode != mode) {
+		swap_registers(mode, new_mode);
 	}
 
 	mode = new_mode;
+}
+
+void
+Arm::on_cpsr_write()
+{
+	u32 new_mode = mode_bits_to_mode(cpsr & 0x1F);
+
+	switch_mode(new_mode);
 }
 
 static bool
