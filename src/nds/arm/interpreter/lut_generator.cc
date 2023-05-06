@@ -13,7 +13,19 @@ generate_arm_lut(FILE *f)
 
 	for (unsigned int i = 0; i < 4096; i++) {
 		WRITE("\t");
-		WRITE("arm_noop");
+
+		/* undefined instructions */
+		if ((i & 0xFB0) == 0x300) {
+			WRITE("arm_undefined");
+		} else if ((i & 0xE01) == 0x601) {
+			WRITE("arm_undefined");
+		}
+
+		/* everything else */
+		else {
+			WRITE("arm_undefined");
+		}
+
 		WRITE(",\n");
 	}
 
