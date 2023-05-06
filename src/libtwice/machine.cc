@@ -41,5 +41,5 @@ Machine::direct_boot()
 void
 Machine::run_frame()
 {
-	std::cerr << "run frame\n";
+	nds->run_frame();
 }

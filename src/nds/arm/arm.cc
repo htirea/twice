@@ -1,8 +1,108 @@
 #include "nds/arm/arm7.h"
 #include "nds/arm/arm9.h"
+#include "nds/arm/interpreter/lut.h"
 #include "nds/mem/bus.h"
 
+#include "libtwice/exception.h"
+
 using namespace twice;
+
+static bool
+check_cond(u32 cpsr, u32 cond)
+{
+	if (cond == 0xE) {
+		return true;
+	}
+
+	bool N = cpsr & (1 << 31);
+	bool Z = cpsr & (1 << 30);
+	bool C = cpsr & (1 << 29);
+	bool V = cpsr & (1 << 28);
+
+	switch (cond) {
+	case 0x0:
+		return Z;
+	case 0x1:
+		return !Z;
+	case 0x2:
+		return C;
+	case 0x3:
+		return !C;
+	case 0x4:
+		return N;
+	case 0x5:
+		return !N;
+	case 0x6:
+		return V;
+	case 0x7:
+		return !V;
+	case 0x8:
+		return C && !Z;
+	case 0x9:
+		return !C || Z;
+	case 0xA:
+		return N == V;
+	case 0xB:
+		return N != V;
+	case 0xC:
+		return !Z && N == V;
+	case 0xD:
+		return Z || N != V;
+	}
+
+	fprintf(stderr, "unknown cond\n");
+	return false;
+}
+
+void
+Arm9::step()
+{
+	if (in_thumb()) {
+		pc() += 2;
+		opcode.word = pipeline[0];
+		pipeline[0] = pipeline[1];
+		pipeline[1] = fetch16(pc());
+		thumb_inst_lut[opcode.word >> 6 & 0x3FF](this);
+	} else {
+		pc() += 4;
+		opcode.word = pipeline[0];
+		pipeline[0] = pipeline[1];
+		pipeline[1] = fetch32(pc());
+
+		if (check_cond(cpsr, opcode.word >> 28)) {
+			u32 op1 = opcode.word >> 20 & 0xFF;
+			u32 op2 = opcode.word >> 4 & 0xF;
+			arm_inst_lut[op1 << 4 | op2](this);
+		} else if ((opcode.word & 0xFE000000) == 0xFA000000) {
+			throw TwiceError("unimplemented blx1\n");
+		}
+	}
+
+	nds->cycles += 1;
+}
+
+void
+Arm7::step()
+{
+	if (in_thumb()) {
+		pc() += 2;
+		opcode.word = pipeline[0];
+		pipeline[0] = pipeline[1];
+		pipeline[1] = fetch16(pc());
+		thumb_inst_lut[opcode.word >> 6 & 0x3FF](this);
+	} else {
+		pc() += 4;
+		opcode.word = pipeline[0];
+		pipeline[0] = pipeline[1];
+		pipeline[1] = fetch32(pc());
+
+		if (check_cond(cpsr, opcode.word >> 28)) {
+			u32 op1 = opcode.word >> 20 & 0xFF;
+			u32 op2 = opcode.word >> 4 & 0xF;
+			arm_inst_lut[op1 << 4 | op2](this);
+		}
+	}
+}
 
 void
 Arm9::jump(u32 addr)

@@ -38,6 +38,7 @@ struct NDS {
 	Arm *cpu[2]{};
 	std::unique_ptr<Arm9> arm9;
 	std::unique_ptr<Arm7> arm7;
+	u64 cycles{};
 
 	/*
 	 * Memory
@@ -67,6 +68,7 @@ struct NDS {
 	 * Functions
 	 */
 	void direct_boot();
+	void run_frame();
 };
 
 } // namespace twice

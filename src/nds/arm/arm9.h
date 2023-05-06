@@ -46,6 +46,7 @@ struct Arm9 final : Arm {
 	void store16(u32 addr, u16 value) override;
 	void store8(u32 addr, u8 value) override;
 
+	void step();
 	void cp15_write(u32 reg, u32 value);
 
 	template <typename T> T fetch(u32 addr);

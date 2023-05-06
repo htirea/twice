@@ -40,6 +40,10 @@ struct Arm {
 	u32 pipeline[2]{};
 	u32 exception_base{};
 
+	struct Opcode {
+		u32 word{};
+	} opcode;
+
 	NDS *nds{};
 
 	u32& pc() { return gpr[15]; }

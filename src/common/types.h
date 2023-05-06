@@ -2,6 +2,7 @@
 #define TWICE_TYPES_H
 
 #include <algorithm>
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>

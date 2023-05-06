@@ -116,3 +116,14 @@ NDS::direct_boot()
 
 	/* TODO: more stuff for direct booting */
 }
+
+void
+NDS::run_frame()
+{
+	cycles = 0;
+	while (cycles < 500000) {
+		arm9->step();
+		arm9->step();
+		arm7->step();
+	}
+}
