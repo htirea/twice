@@ -5,7 +5,7 @@
 
 #include "libtwice/exception.h"
 
-using namespace twice;
+namespace twice {
 
 static bool
 check_cond(u32 cpsr, u32 cond)
@@ -325,3 +325,5 @@ Arm9::cp15_write(u32 reg, u32 value)
 		fprintf(stderr, "unhandled cp15 write to %03X\n", reg);
 	}
 }
+
+} // namespace twice

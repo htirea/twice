@@ -8,7 +8,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-using namespace twice;
+namespace twice {
 
 FileMap::FileMap(const std::string& pathname, std::size_t limit, int mode)
 {
@@ -51,3 +51,5 @@ FileMap::destroy()
 		munmap(data, size);
 	}
 }
+
+} // namespace twice

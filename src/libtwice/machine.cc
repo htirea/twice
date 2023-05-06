@@ -3,7 +3,7 @@
 
 #include "nds/nds.h"
 
-using namespace twice;
+namespace twice {
 
 Machine::Machine(Config& config)
 	: config(config),
@@ -43,3 +43,5 @@ Machine::run_frame()
 {
 	nds->run_frame();
 }
+
+} // namespace twice

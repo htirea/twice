@@ -9,7 +9,7 @@
 
 #include "libtwice/exception.h"
 
-using namespace twice;
+namespace twice {
 
 NDS::NDS(u8 *arm7_bios, u8 *arm9_bios, u8 *firmware, u8 *cartridge,
 		size_t cartridge_size)
@@ -127,3 +127,5 @@ NDS::run_frame()
 		arm7->step();
 	}
 }
+
+} // namespace twice
