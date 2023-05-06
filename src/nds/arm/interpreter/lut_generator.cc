@@ -31,6 +31,18 @@ generate_arm_lut(FILE *f)
 			WRITE("arm_bx");
 		}
 
+		/* multiply instructions */
+		else if ((i & 0xFCF) == 0x009) {
+			int A = i >> 5 & 1;
+			int S = i >> 4 & 1;
+			WRITE("arm_multiply<%d, %d>", A, S);
+		} else if ((i & 0xF8F) == 0x089) {
+			int U = i >> 6 & 1;
+			int A = i >> 5 & 1;
+			int S = i >> 4 & 1;
+			WRITE("arm_multiply_long<%d, %d, %d>", U, A, S);
+		}
+
 		/* everything else */
 		else {
 			WRITE("arm_undefined");

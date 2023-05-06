@@ -48,7 +48,14 @@ struct Arm {
 
 	bool in_thumb() { return cpsr & (1 << 5); }
 
-	void set_t(bool x) { cpsr = (cpsr & ~(1 << 5)) | (x << 5); }
+	void set_t(bool t) { cpsr = (cpsr & ~(1 << 5)) | (t << 5); }
+
+	void set_nz(bool n, bool z)
+	{
+		cpsr &= ~0xC0000000;
+		cpsr |= n << 31;
+		cpsr |= z << 30;
+	}
 
 	bool is_arm7() { return cpuid; }
 
