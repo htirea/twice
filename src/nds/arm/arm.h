@@ -43,8 +43,20 @@ struct Arm {
 
 	NDS *nds{};
 	int cpuid{};
+	u32 mode{ MODE_SYS };
 
 	u32& pc() { return gpr[15]; }
+
+	u32& spsr() { return bankedr[0][2]; }
+
+	bool in_privileged_mode() { return mode != MODE_USR; }
+
+	bool in_sys_or_usr_mode()
+	{
+		return mode == MODE_SYS || mode == MODE_USR;
+	}
+
+	bool current_mode_has_spsr() { return !in_sys_or_usr_mode(); }
 
 	bool in_thumb() { return cpsr & (1 << 5); }
 
@@ -70,6 +82,9 @@ struct Arm {
 	virtual void store32(u32 addr, u32 value) = 0;
 	virtual void store16(u32 addr, u16 value) = 0;
 	virtual void store8(u32 addr, u8 value) = 0;
+
+	void on_cpsr_write();
+	void swap_registers(u32 old_mode, u32 new_mode);
 };
 
 } // namespace twice

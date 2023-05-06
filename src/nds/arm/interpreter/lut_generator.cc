@@ -48,6 +48,18 @@ generate_arm_lut(FILE *f)
 			WRITE("arm_clz");
 		}
 
+		/* status register access instructions */
+		else if ((i & 0xFBF) == 0x100) {
+			int R = i >> 6 & 1;
+			WRITE("arm_mrs<%d>", R);
+		} else if ((i & 0xFB0) == 0x320) {
+			int R = i >> 6 & 1;
+			WRITE("arm_msr<1, %d>", R);
+		} else if ((i & 0xFBF) == 0x120) {
+			int R = i >> 6 & 1;
+			WRITE("arm_msr<0, %d>", R);
+		}
+
 		/* everything else */
 		else {
 			WRITE("arm_undefined");
