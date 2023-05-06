@@ -67,6 +67,12 @@ generate_arm_lut(FILE *f)
 			WRITE("arm_bkpt");
 		}
 
+		/* saturated addition and subtraction instructions */
+		else if ((i & 0xF9F) == 0x105) {
+			int OP = i >> 5 & 3;
+			WRITE("arm_sat_add_sub<%d>", OP);
+		}
+
 		/* everything else */
 		else {
 			WRITE("arm_undefined");

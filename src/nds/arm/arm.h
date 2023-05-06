@@ -60,6 +60,8 @@ struct Arm {
 
 	bool in_thumb() { return cpsr & (1 << 5); }
 
+	void set_q(bool q) { cpsr = (cpsr & ~(1 << 27)) | (q << 27); }
+
 	void set_t(bool t) { cpsr = (cpsr & ~(1 << 5)) | (t << 5); }
 
 	void set_nz(bool n, bool z)

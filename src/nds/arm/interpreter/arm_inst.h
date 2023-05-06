@@ -210,6 +210,67 @@ arm_bkpt(Arm *cpu)
 	throw TwiceError("arm bkpt not implemented");
 }
 
+inline u32
+saturated_add(Arm *cpu, u32 a, u32 b)
+{
+	u32 r = a + b;
+
+	if (((a ^ r) & (b ^ r)) >> 31) {
+		r = r >> 31 ? 0x7FFFFFFF : 0x80000000;
+		cpu->set_q(1);
+	}
+
+	return r;
+}
+
+inline u32
+saturated_sub(Arm *cpu, u32 a, u32 b)
+{
+	u32 r = a - b;
+
+	if (((a ^ b) & (a ^ r)) >> 31) {
+		r = r >> 31 ? 0x7FFFFFFF : 0x80000000;
+		cpu->set_q(1);
+	}
+
+	return r;
+}
+
+template <int OP>
+void
+arm_sat_add_sub(Arm *cpu)
+{
+	if (cpu->is_arm7()) {
+		arm_undefined(cpu);
+		return;
+	}
+
+	u32 rn = cpu->opcode >> 16 & 0xF;
+	u32 rd = cpu->opcode >> 12 & 0xF;
+	u32 rm = cpu->opcode & 0xF;
+
+	switch (OP) {
+	case 0:
+		cpu->gpr[rd] = saturated_add(cpu, cpu->gpr[rm], cpu->gpr[rn]);
+		break;
+	case 1:
+		cpu->gpr[rd] = saturated_sub(cpu, cpu->gpr[rm], cpu->gpr[rn]);
+		break;
+	case 2:
+	{
+		u32 double_rn = saturated_add(cpu, cpu->gpr[rn], cpu->gpr[rn]);
+		cpu->gpr[rd] = saturated_add(cpu, cpu->gpr[rm], double_rn);
+		break;
+	}
+	case 3:
+	{
+		u32 double_rn = saturated_add(cpu, cpu->gpr[rn], cpu->gpr[rn]);
+		cpu->gpr[rd] = saturated_sub(cpu, cpu->gpr[rm], double_rn);
+		break;
+	}
+	}
+}
+
 } // namespace twice
 
 #endif
