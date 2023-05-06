@@ -73,6 +73,14 @@ generate_arm_lut(FILE *f)
 			WRITE("arm_sat_add_sub<%d>", OP);
 		}
 
+		/* dsp integer multiply and multiply accumulate instructions */
+		else if ((i & 0xF99) == 0x108) {
+			int OP = i >> 5 & 3;
+			int Y = i >> 2 & 1;
+			int X = i >> 1 & 1;
+			WRITE("arm_dsp_multiply<%d, %d, %d>", OP, Y, X);
+		}
+
 		/* everything else */
 		else {
 			WRITE("arm_undefined");
