@@ -43,6 +43,11 @@ generate_arm_lut(FILE *f)
 			WRITE("arm_multiply_long<%d, %d, %d>", U, A, S);
 		}
 
+		/* misc arithmetic instructions */
+		else if (i == 0x161) {
+			WRITE("arm_clz");
+		}
+
 		/* everything else */
 		else {
 			WRITE("arm_undefined");
