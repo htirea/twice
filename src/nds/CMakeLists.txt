@@ -1,7 +1,6 @@
 target_sources(twice
 	PRIVATE
-	arm/arm7.cc
-	arm/arm9.cc
+	arm/arm.cc
 	mem/io.cc
 	nds.cc
 )
