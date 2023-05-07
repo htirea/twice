@@ -27,7 +27,7 @@ arm_b(Arm *cpu)
 	}
 
 	s32 offset = (s32)(cpu->opcode << 8) >> 6;
-	cpu->arm_jump(offset);
+	cpu->arm_jump(cpu->pc() + offset);
 }
 
 inline void
