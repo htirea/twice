@@ -100,6 +100,21 @@ generate_arm_lut(FILE *f)
 					I, W, L, S, H);
 		}
 
+		else if (i >> 10 == 0x1) {
+			int R = i >> 9 & 1;
+			int P = i >> 8 & 1;
+			int U = i >> 7 & 1;
+			int B = i >> 6 & 1;
+			int W = i >> 5 & 1;
+			int L = i >> 4 & 1;
+			int SHIFT = i >> 5 & 3;
+			if (R == 0) {
+				SHIFT = 4;
+			}
+			WRITE("arm_sdt<%d, %d, %d, %d, %d, %d>", P, U, B, W, L,
+					SHIFT);
+		}
+
 		/* everything else */
 		else {
 			WRITE("arm_undefined");
