@@ -81,6 +81,12 @@ generate_arm_lut(FILE *f)
 			WRITE("arm_dsp_multiply<%d, %d, %d>", OP, Y, X);
 		}
 
+		/* semaphore instructions */
+		else if ((i & 0xFBF) == 0x109) {
+			int B = i >> 6 & 1;
+			WRITE("arm_swap<%d>", B);
+		}
+
 		/* everything else */
 		else {
 			WRITE("arm_undefined");

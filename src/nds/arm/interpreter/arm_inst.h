@@ -330,6 +330,49 @@ arm_dsp_multiply(Arm *cpu)
 	}
 }
 
+inline u32
+arm_do_ldr(Arm *cpu, u32 addr)
+{
+	return std::rotr(cpu->load32(addr & ~3), (addr & 3) << 3);
+}
+
+inline void
+arm_do_str(Arm *cpu, u32 addr, u32 value)
+{
+	cpu->store32(addr & ~3, value);
+}
+
+inline u8
+arm_do_ldrb(Arm *cpu, u32 addr)
+{
+	return cpu->load8(addr);
+}
+
+inline void
+arm_do_strb(Arm *cpu, u32 addr, u8 value)
+{
+	cpu->store8(addr, value);
+}
+
+template <int B>
+void
+arm_swap(Arm *cpu)
+{
+	u32 rn = cpu->opcode >> 16 & 0xF;
+	u32 rd = cpu->opcode >> 12 & 0xF;
+	u32 rm = cpu->opcode & 0xF;
+
+	if (B) {
+		u8 temp = arm_do_ldrb(cpu, cpu->gpr[rn]);
+		arm_do_strb(cpu, cpu->gpr[rn], cpu->gpr[rm]);
+		cpu->gpr[rd] = temp;
+	} else {
+		u32 temp = arm_do_ldr(cpu, cpu->gpr[rn]);
+		arm_do_str(cpu, cpu->gpr[rn], cpu->gpr[rm]);
+		cpu->gpr[rd] = temp;
+	}
+}
+
 } // namespace twice
 
 #endif
