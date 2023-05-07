@@ -100,6 +100,7 @@ generate_arm_lut(FILE *f)
 					I, W, L, S, H);
 		}
 
+		/* load and store word or unsigned byte instructions */
 		else if (i >> 10 == 0x1) {
 			int R = i >> 9 & 1;
 			int P = i >> 8 & 1;
@@ -113,6 +114,17 @@ generate_arm_lut(FILE *f)
 			}
 			WRITE("arm_sdt<%d, %d, %d, %d, %d, %d>", P, U, B, W, L,
 					SHIFT);
+		}
+
+		/* load and store multiple instructions */
+		else if (i >> 9 == 0x4) {
+			int P = i >> 8 & 1;
+			int U = i >> 7 & 1;
+			int S = i >> 6 & 1;
+			int W = i >> 5 & 1;
+			int L = i >> 4 & 1;
+			WRITE("arm_block_dt<%d, %d, %d, %d, %d>", P, U, S, W,
+					L);
 		}
 
 		/* everything else */

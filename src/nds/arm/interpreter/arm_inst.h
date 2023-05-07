@@ -7,6 +7,7 @@
 #include "nds/arm/interpreter/arm/exception.h"
 #include "nds/arm/interpreter/arm/load_store.h"
 #include "nds/arm/interpreter/arm/load_store_misc.h"
+#include "nds/arm/interpreter/arm/load_store_multiple.h"
 #include "nds/arm/interpreter/arm/multiply.h"
 #include "nds/arm/interpreter/arm/semaphore.h"
 #include "nds/arm/interpreter/arm/status_reg.h"

@@ -56,6 +56,8 @@ struct Arm {
 		return mode == MODE_SYS || mode == MODE_USR;
 	}
 
+	bool in_fiq_mode() { return mode == MODE_FIQ; }
+
 	bool current_mode_has_spsr() { return !in_sys_or_usr_mode(); }
 
 	bool in_thumb() { return cpsr & (1 << 5); }
@@ -72,6 +74,8 @@ struct Arm {
 	}
 
 	bool is_arm7() { return cpuid; }
+
+	bool is_arm9() { return !is_arm7(); }
 
 	virtual void jump(u32 addr) = 0;
 	virtual void arm_jump(u32 addr) = 0;
