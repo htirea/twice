@@ -44,6 +44,8 @@ struct Arm9 final : Arm {
 	void store32(u32 addr, u32 value) override;
 	void store16(u32 addr, u16 value) override;
 	void store8(u32 addr, u8 value) override;
+	u16 ldrh(u32 addr) override;
+	s16 ldrsh(u32 addr) override;
 
 	void step();
 	void cp15_write(u32 reg, u32 value);

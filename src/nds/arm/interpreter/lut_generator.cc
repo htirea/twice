@@ -87,6 +87,19 @@ generate_arm_lut(FILE *f)
 			WRITE("arm_swap<%d>", B);
 		}
 
+		/* misc load and store instructions */
+		else if ((i & 0xE09) == 0x009 && (i & 0xF) != 0x9) {
+			int P = i >> 8 & 1;
+			int U = i >> 7 & 1;
+			int I = i >> 6 & 1;
+			int W = i >> 5 & 1;
+			int L = i >> 4 & 1;
+			int S = i >> 2 & 1;
+			int H = i >> 1 & 1;
+			WRITE("arm_misc_dt<%d, %d, %d, %d, %d, %d, %d>", P, U,
+					I, W, L, S, H);
+		}
+
 		/* everything else */
 		else {
 			WRITE("arm_undefined");

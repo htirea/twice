@@ -372,6 +372,34 @@ Arm7::store8(u32 addr, u8 value)
 	bus7_write<u8>(nds, addr, value);
 }
 
+u16
+Arm9::ldrh(u32 addr)
+{
+	return load16(addr & ~1);
+}
+
+u16
+Arm7::ldrh(u32 addr)
+{
+	return std::rotr(load16(addr & ~1), (addr & 1) << 3);
+}
+
+s16
+Arm9::ldrsh(u32 addr)
+{
+	return load16(addr & ~1);
+}
+
+s16
+Arm7::ldrsh(u32 addr)
+{
+	if (addr & 1) {
+		return (s8)load8(addr);
+	} else {
+		return load16(addr);
+	}
+}
+
 static void
 ctrl_reg_write(Arm9 *cpu, u32 value)
 {
