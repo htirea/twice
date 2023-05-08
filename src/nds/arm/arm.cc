@@ -293,10 +293,12 @@ Arm9::store(u32 addr, T value)
 {
 	if (write_itcm && 0 == (addr & itcm_addr_mask)) {
 		writearr<T>(itcm, addr & itcm_array_mask, value);
+		return;
 	}
 
 	if (write_dtcm && dtcm_base == (addr & dtcm_addr_mask)) {
 		writearr<T>(dtcm, addr & dtcm_array_mask, value);
+		return;
 	}
 
 	bus9_write<T>(nds, addr, value);
