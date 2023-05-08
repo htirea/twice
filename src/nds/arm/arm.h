@@ -62,6 +62,8 @@ struct Arm {
 
 	bool in_thumb() { return cpsr & (1 << 5); }
 
+	bool get_c() { return cpsr & (1 << 29); }
+
 	void set_q(bool q) { cpsr = (cpsr & ~(1 << 27)) | (q << 27); }
 
 	void set_t(bool t) { cpsr = (cpsr & ~(1 << 5)) | (t << 5); }
@@ -73,6 +75,23 @@ struct Arm {
 		cpsr |= z << 30;
 	}
 
+	void set_nzc(bool n, bool z, bool c)
+	{
+		cpsr &= ~0xE0000000;
+		cpsr |= n << 31;
+		cpsr |= z << 30;
+		cpsr |= c << 29;
+	}
+
+	void set_nzcv(bool n, bool z, bool c, bool v)
+	{
+		cpsr &= ~0xF0000000;
+		cpsr |= n << 31;
+		cpsr |= z << 30;
+		cpsr |= c << 29;
+		cpsr |= v << 28;
+	}
+
 	bool is_arm7() { return cpuid; }
 
 	bool is_arm9() { return !is_arm7(); }
@@ -80,6 +99,7 @@ struct Arm {
 	virtual void jump(u32 addr) = 0;
 	virtual void arm_jump(u32 addr) = 0;
 	virtual void thumb_jump(u32 addr) = 0;
+	virtual void jump_cpsr(u32 addr) = 0;
 	virtual u32 fetch32(u32 addr) = 0;
 	virtual u16 fetch16(u32 addr) = 0;
 	virtual u32 load32(u32 addr) = 0;

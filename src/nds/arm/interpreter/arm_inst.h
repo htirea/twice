@@ -1,6 +1,7 @@
 #ifndef TWICE_ARM_INST_H
 #define TWICE_ARM_INST_H
 
+#include "nds/arm/interpreter/arm/alu.h"
 #include "nds/arm/interpreter/arm/branch.h"
 #include "nds/arm/interpreter/arm/clz.h"
 #include "nds/arm/interpreter/arm/cop.h"

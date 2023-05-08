@@ -11,6 +11,7 @@ struct Arm7 final : Arm {
 	void jump(u32 addr) override;
 	void arm_jump(u32 addr) override;
 	void thumb_jump(u32 addr) override;
+	void jump_cpsr(u32 addr) override;
 	u32 fetch32(u32 addr) override;
 	u16 fetch16(u32 addr) override;
 	u32 load32(u32 addr) override;

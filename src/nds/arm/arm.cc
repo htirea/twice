@@ -210,6 +210,19 @@ Arm9::thumb_jump(u32 addr)
 }
 
 void
+Arm9::jump_cpsr(u32 addr)
+{
+	cpsr = spsr();
+	on_cpsr_write();
+
+	if (in_thumb()) {
+		thumb_jump(addr & ~1);
+	} else {
+		arm_jump(addr & ~3);
+	}
+}
+
+void
 Arm7::jump(u32 addr)
 {
 	if (in_thumb()) {
@@ -233,6 +246,19 @@ Arm7::thumb_jump(u32 addr)
 	pc() = addr + 2;
 	pipeline[0] = fetch16(addr);
 	pipeline[1] = fetch16(addr + 2);
+}
+
+void
+Arm7::jump_cpsr(u32 addr)
+{
+	cpsr = spsr();
+	on_cpsr_write();
+
+	if (in_thumb()) {
+		thumb_jump(addr & ~1);
+	} else {
+		arm_jump(addr & ~3);
+	}
 }
 
 template <typename T>

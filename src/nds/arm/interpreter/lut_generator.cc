@@ -145,6 +145,26 @@ generate_arm_lut(FILE *f)
 			WRITE("arm_cop_reg<%d, %d, %d>", OP1, L, OP2);
 		}
 
+		/* data processing instructions */
+		else if ((i & 0xE00) == 0x200) {
+			int OP = i >> 5 & 0xF;
+			int S = i >> 4 & 1;
+			int MODE = 0;
+			WRITE("arm_alu<%d, %d, %d, %d>", OP, S, 0, MODE);
+		} else if ((i & 0xE01) == 0x0) {
+			int OP = i >> 5 & 0xF;
+			int S = i >> 4 & 1;
+			int SHIFT = i >> 1 & 3;
+			int MODE = 1;
+			WRITE("arm_alu<%d, %d, %d, %d>", OP, S, SHIFT, MODE);
+		} else if ((i & 0xE09) == 0x1) {
+			int OP = i >> 5 & 0xF;
+			int S = i >> 4 & 1;
+			int SHIFT = i >> 1 & 3;
+			int MODE = 2;
+			WRITE("arm_alu<%d, %d, %d, %d>", OP, S, SHIFT, MODE);
+		}
+
 		/* everything else */
 		else {
 			WRITE("arm_undefined");

@@ -44,7 +44,7 @@ arm_sdt(Arm *cpu)
 			break;
 		default: /* case 3 */
 			if (shift_imm == 0) {
-				offset = (cpu->cpsr & (1 << 29)) << 2 |
+				offset = cpu->get_c() << 31 |
 						cpu->gpr[rm] >> 1;
 			} else {
 				offset = std::rotr(cpu->gpr[rm], shift_imm);

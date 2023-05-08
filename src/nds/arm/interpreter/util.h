@@ -55,6 +55,30 @@ arm_do_ldrsb(Arm *cpu, u32 addr)
 	return cpu->load8(addr);
 }
 
+#define SUB_FLAGS_(a_, b_)                                                    \
+	do {                                                                  \
+		carry = !((a_) < (b_));                                       \
+		overflow = (((a_) ^ (b_)) & ((a_) ^ r)) >> 31;                \
+	} while (0)
+
+#define SBC_FLAGS_(a_, b_)                                                    \
+	do {                                                                  \
+		carry = !(r64 < 0);                                           \
+		overflow = (((a_) ^ (b_)) & ((a_) ^ r)) >> 31;                \
+	} while (0)
+
+#define ADD_FLAGS_(a_, b_)                                                    \
+	do {                                                                  \
+		carry = r < (a_);                                             \
+		overflow = (((a_) ^ r) & ((b_) ^ r)) >> 31;                   \
+	} while (0)
+
+#define ADC_FLAGS_(a_, b_)                                                    \
+	do {                                                                  \
+		carry = r64 >> 32;                                            \
+		overflow = (((a_) ^ r) & ((b_) ^ r)) >> 31;                   \
+	} while (0)
+
 } // namespace twice
 
 #endif
