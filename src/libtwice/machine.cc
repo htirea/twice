@@ -44,4 +44,10 @@ Machine::run_frame()
 	nds->run_frame();
 }
 
+void *
+Machine::get_framebuffer()
+{
+	return nds->fb;
+}
+
 } // namespace twice

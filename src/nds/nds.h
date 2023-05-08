@@ -59,10 +59,15 @@ struct NDS {
 	u8 *cartridge{};
 	size_t cartridge_size{};
 
+	u32 fb[NDS_FB_SZ_BYTES]{};
+	u8 vram[512_KiB]{};
+
 	/*
 	 * IO
 	 */
 	u8 wramcnt{};
+	u16 dispstat[2]{};
+	u16 keyinput{ 0x3FF };
 
 	/*
 	 * Functions

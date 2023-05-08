@@ -1,3 +1,4 @@
+#include <cstring>
 #include <exception>
 #include <iostream>
 #include <memory>
@@ -7,6 +8,7 @@
 
 #include <libtwice/exception.h>
 #include <libtwice/machine.h>
+#include <libtwice/types.h>
 
 static std::string data_dir;
 static std::string cartridge_pathname;
@@ -65,7 +67,7 @@ struct Platform {
 
 	Platform();
 	~Platform();
-	void render();
+	void render(void *fb);
 	void handle_events();
 	void loop(twice::Machine& nds);
 };
@@ -112,10 +114,18 @@ Platform::~Platform()
 }
 
 void
-Platform::render()
+Platform::render(void *fb)
 {
 	SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0xFF);
 	SDL_RenderClear(renderer);
+
+	int pitch;
+	void *p;
+	SDL_LockTexture(texture, NULL, &p, &pitch);
+	std::memcpy(p, fb, twice::NDS_FB_SZ_BYTES);
+	SDL_UnlockTexture(texture);
+
+	SDL_RenderCopy(renderer, texture, NULL, NULL);
 	SDL_RenderPresent(renderer);
 }
 
@@ -141,7 +151,7 @@ Platform::loop(twice::Machine& nds)
 	while (running) {
 		handle_events();
 		nds.run_frame();
-		render();
+		render(nds.get_framebuffer());
 	}
 }
 
@@ -166,7 +176,7 @@ main(int argc, char **argv)
 
 	Platform platform;
 
-	// platform.loop(nds);
+	platform.loop(nds);
 
 	return 0;
 }

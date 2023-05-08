@@ -3,6 +3,8 @@
 
 #include "nds/nds.h"
 
+#include "common/util.h"
+
 namespace twice {
 
 template <typename T>
@@ -19,10 +21,7 @@ template <typename T>
 void
 vram_write(NDS *nds, u32 addr, T value)
 {
-	(void)nds;
-	(void)value;
-
-	fprintf(stderr, "vram write to %08X\n", addr);
+	writearr<T>(nds->vram, addr - 0x6800000, value);
 }
 
 template <typename T>

@@ -10,10 +10,6 @@
 
 namespace twice {
 
-constexpr std::size_t NDS_FB_W = 256;
-constexpr std::size_t NDS_FB_H = 384;
-constexpr std::size_t NDS_FB_SZ = NDS_FB_W * NDS_FB_H;
-
 struct NDS;
 
 struct Machine {
@@ -23,6 +19,7 @@ struct Machine {
 	void load_cartridge(const std::string& pathname);
 	void direct_boot();
 	void run_frame();
+	void *get_framebuffer();
 
       private:
 	Config config;

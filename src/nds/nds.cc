@@ -100,6 +100,9 @@ NDS::direct_boot()
 	arm9->cp15_write(0x910, 0x3000000A);
 	arm9->cp15_write(0x911, 0x00000020);
 
+	/* TODO: remove this later */
+	arm9->cp15_write(0x910, 0x0080000A);
+
 	arm9->gpr[12] = entry_addr[0];
 	arm9->gpr[13] = 0x03002F7C;
 	arm9->gpr[14] = entry_addr[0];
@@ -117,11 +120,50 @@ NDS::direct_boot()
 	/* TODO: more stuff for direct booting */
 }
 
+u32
+ABGR1555_TO_ABGR8888(u16 color)
+{
+	u8 r = color & 0x1F;
+	u8 g = color >> 5 & 0x1F;
+	u8 b = color >> 10 & 0x1F;
+	u8 a = color >> 15;
+
+	r = (r << 3) | (r >> 2);
+	g = (g << 3) | (g >> 2);
+	b = (b << 3) | (b >> 2);
+	a = a * 0xFF;
+
+	return (a << 24) | (b << 16) | (g << 8) | r;
+}
+
 void
 NDS::run_frame()
 {
 	cycles = 0;
-	while (cycles < 500000) {
+
+	while (cycles < 408960) {
+		arm9->step();
+		arm9->step();
+		arm7->step();
+	}
+
+	dispstat[0] |= 1;
+	dispstat[1] |= 1;
+
+	for (u32 i = 0; i < NDS_FB_SZ; i++) {
+		fb[i] = ABGR1555_TO_ABGR8888(readarr<u16>(vram, i * 2));
+	}
+
+	while (cycles < 558060) {
+		arm9->step();
+		arm9->step();
+		arm7->step();
+	}
+
+	dispstat[0] &= ~1;
+	dispstat[1] &= ~1;
+
+	while (cycles < 560190) {
 		arm9->step();
 		arm9->step();
 		arm7->step();
