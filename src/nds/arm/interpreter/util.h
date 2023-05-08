@@ -19,6 +19,17 @@ arm_do_bx(Arm *cpu, u32 addr)
 	}
 }
 
+inline void
+thumb_do_bx(Arm *cpu, u32 addr)
+{
+	if (!(addr & 1)) {
+		cpu->set_t(0);
+		cpu->arm_jump(addr & ~3);
+	} else {
+		cpu->thumb_jump(addr & ~1);
+	}
+}
+
 inline u32
 arm_do_ldr(Arm *cpu, u32 addr)
 {

@@ -201,6 +201,21 @@ generate_thumb_lut(FILE *f)
 			WRITE("thumb_bkpt");
 		}
 
+		/* branch instructions */
+		else if (i >> 6 == 0xD) {
+			int COND = i >> 2 & 0xF;
+			WRITE("thumb_b1<%d>", COND);
+		} else if (i >> 5 == 0x1C) {
+			WRITE("thumb_b2");
+		} else if (i >> 7 == 0x7) {
+			int H = i >> 5 & 3;
+			WRITE("thumb_b_pair<%d>", H);
+		} else if (i >> 1 == 0x8E) {
+			WRITE("thumb_bx");
+		} else if (i >> 1 == 0x8F) {
+			WRITE("thumb_blx2");
+		}
+
 		/* everything else */
 		else {
 			WRITE("thumb_undefined");
