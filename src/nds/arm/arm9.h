@@ -48,6 +48,7 @@ struct Arm9 final : Arm {
 	s16 ldrsh(u32 addr) override;
 
 	void step();
+	u32 cp15_read(u32 reg);
 	void cp15_write(u32 reg, u32 value);
 
 	template <typename T> T fetch(u32 addr);

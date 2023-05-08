@@ -3,6 +3,7 @@
 
 #include "nds/arm/interpreter/arm/branch.h"
 #include "nds/arm/interpreter/arm/clz.h"
+#include "nds/arm/interpreter/arm/cop.h"
 #include "nds/arm/interpreter/arm/dsp_math.h"
 #include "nds/arm/interpreter/arm/exception.h"
 #include "nds/arm/interpreter/arm/load_store.h"

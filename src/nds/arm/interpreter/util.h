@@ -2,6 +2,7 @@
 #define TWICE_INTERPRETER_UTIL_H
 
 #include "nds/arm/arm.h"
+#include "nds/arm/arm9.h"
 
 #include "libtwice/exception.h"
 

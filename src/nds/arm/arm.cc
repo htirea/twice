@@ -400,6 +400,43 @@ Arm7::ldrsh(u32 addr)
 	}
 }
 
+u32
+Arm9::cp15_read(u32 reg)
+{
+	switch (reg) {
+	/* cache type register */
+	case 0x001:
+		return 0x0F0D2112;
+	case 0x100:
+		return ctrl_reg;
+	/* protection unit */
+	case 0x200:
+	case 0x201:
+	case 0x300:
+	case 0x500:
+	case 0x501:
+	case 0x502:
+	case 0x503:
+	case 0x600:
+	case 0x610:
+	case 0x620:
+	case 0x630:
+	case 0x640:
+	case 0x650:
+	case 0x660:
+	case 0x670:
+		fprintf(stderr, "cp15 read %03X\n", reg);
+		return 0;
+	case 0x910:
+		return dtcm_reg;
+	case 0x911:
+		return itcm_reg;
+	default:
+		fprintf(stderr, "cp15 read %03X\n", reg);
+		throw TwiceError("unhandled cp15 read");
+	}
+}
+
 static void
 ctrl_reg_write(Arm9 *cpu, u32 value)
 {

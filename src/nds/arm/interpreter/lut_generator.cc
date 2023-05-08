@@ -127,6 +127,24 @@ generate_arm_lut(FILE *f)
 					L);
 		}
 
+		/* coprocessor instructions */
+		else if ((i & 0xFF0) == 0xC40) {
+			WRITE("arm_mcrr");
+		} else if ((i & 0xFF0) == 0xC50) {
+			WRITE("arm_mrrc");
+		} else if ((i & 0xE10) == 0xC10) {
+			WRITE("arm_ldc");
+		} else if ((i & 0xE10) == 0xC00) {
+			WRITE("arm_stc");
+		} else if ((i & 0xF01) == 0xE00) {
+			WRITE("arm_cdp");
+		} else if ((i & 0xF01) == 0xE01) {
+			int OP1 = i >> 5 & 7;
+			int L = i >> 4 & 1;
+			int OP2 = i >> 1 & 7;
+			WRITE("arm_cop_reg<%d, %d, %d>", OP1, L, OP2);
+		}
+
 		/* everything else */
 		else {
 			WRITE("arm_undefined");
