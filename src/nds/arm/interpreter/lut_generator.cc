@@ -244,6 +244,24 @@ generate_thumb_lut(FILE *f)
 			WRITE("thumb_alu8<%d>", OP);
 		}
 
+		/* load / store instructions */
+		else if (i >> 7 == 0x3 || i >> 6 == 0x8) {
+			int OP = i >> 5 & 0x1F;
+			int OFFSET = i & 0x1F;
+			WRITE("thumb_load_store_imm<%d, %d>", OP, OFFSET);
+		} else if (i >> 6 == 0x5) {
+			int OP = i >> 3;
+			int RM = i & 7;
+			WRITE("thumb_load_store_reg<%d, %d>", OP, RM);
+		} else if (i >> 5 == 0x9) {
+			int RD = i >> 2 & 7;
+			WRITE("thumb_load_pc_relative<%d>", RD);
+		} else if (i >> 6 == 0x9) {
+			int L = i >> 5 & 1;
+			int RD = i >> 2 & 7;
+			WRITE("thumb_load_store_sp_relative<%d, %d>", L, RD);
+		}
+
 		/* everything else */
 		else {
 			WRITE("thumb_undefined");
