@@ -8,6 +8,7 @@ namespace twice {
 inline void
 arm_undefined(Arm *cpu)
 {
+	(void)cpu;
 	throw TwiceError("arm undefined instruction");
 }
 
@@ -30,6 +31,7 @@ arm_swi(Arm *cpu)
 inline void
 arm_bkpt(Arm *cpu)
 {
+	(void)cpu;
 	throw TwiceError("arm bkpt not implemented");
 }
 

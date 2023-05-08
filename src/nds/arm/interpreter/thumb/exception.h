@@ -8,6 +8,7 @@ namespace twice {
 inline void
 thumb_noop(Arm *cpu)
 {
+	(void)cpu;
 }
 
 } // namespace twice
