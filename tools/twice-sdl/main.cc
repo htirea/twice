@@ -68,7 +68,7 @@ struct Platform {
 	Platform();
 	~Platform();
 	void render(void *fb);
-	void handle_events();
+	void handle_events(twice::Machine& nds);
 	void loop(twice::Machine& nds);
 };
 
@@ -129,8 +129,43 @@ Platform::render(void *fb)
 	SDL_RenderPresent(renderer);
 }
 
+static twice::NdsButton
+get_nds_button(SDL_Keycode key)
+{
+	using enum twice::NdsButton;
+
+	switch (key) {
+	case SDLK_x:
+		return A;
+	case SDLK_z:
+		return B;
+	case SDLK_s:
+		return X;
+	case SDLK_a:
+		return Y;
+	case SDLK_w:
+		return R;
+	case SDLK_q:
+		return L;
+	case SDLK_1:
+		return START;
+	case SDLK_2:
+		return SELECT;
+	case SDLK_LEFT:
+		return LEFT;
+	case SDLK_RIGHT:
+		return RIGHT;
+	case SDLK_UP:
+		return UP;
+	case SDLK_DOWN:
+		return DOWN;
+	default:
+		return NONE;
+	}
+}
+
 void
-Platform::handle_events()
+Platform::handle_events(twice::Machine& nds)
 {
 	SDL_Event e;
 
@@ -138,6 +173,12 @@ Platform::handle_events()
 		switch (e.type) {
 		case SDL_QUIT:
 			running = false;
+			break;
+		case SDL_KEYDOWN:
+			nds.button_event(get_nds_button(e.key.keysym.sym), 1);
+			break;
+		case SDL_KEYUP:
+			nds.button_event(get_nds_button(e.key.keysym.sym), 0);
 			break;
 		}
 	}
@@ -149,7 +190,7 @@ Platform::loop(twice::Machine& nds)
 	running = true;
 
 	while (running) {
-		handle_events();
+		handle_events(nds);
 		nds.run_frame();
 		render(nds.get_framebuffer());
 	}

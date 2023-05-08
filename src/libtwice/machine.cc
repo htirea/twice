@@ -50,4 +50,38 @@ Machine::get_framebuffer()
 	return nds->fb;
 }
 
+void
+Machine::button_event(NdsButton button, bool down)
+{
+	if (!nds) {
+		return;
+	}
+
+	using enum NdsButton;
+
+	if (button == NONE) {
+		return;
+	}
+
+	switch (button) {
+	case A:
+	case B:
+	case SELECT:
+	case START:
+	case RIGHT:
+	case LEFT:
+	case UP:
+	case DOWN:
+	case R:
+	case L:
+		if (down) {
+			nds->keyinput &= ~(1 << (int)button);
+		} else {
+			nds->keyinput |= 1 << (int)button;
+		}
+		break;
+	default:;
+	}
+}
+
 } // namespace twice

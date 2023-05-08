@@ -10,6 +10,22 @@
 
 namespace twice {
 
+enum class NdsButton {
+	A,
+	B,
+	SELECT,
+	START,
+	RIGHT,
+	LEFT,
+	UP,
+	DOWN,
+	R,
+	L,
+	X,
+	Y,
+	NONE,
+};
+
 struct NDS;
 
 struct Machine {
@@ -20,6 +36,7 @@ struct Machine {
 	void direct_boot();
 	void run_frame();
 	void *get_framebuffer();
+	void button_event(NdsButton button, bool down);
 
       private:
 	Config config;
