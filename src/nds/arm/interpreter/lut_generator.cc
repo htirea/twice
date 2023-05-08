@@ -216,6 +216,34 @@ generate_thumb_lut(FILE *f)
 			WRITE("thumb_blx2");
 		}
 
+		/* data processing instructions */
+		else if (i >> 5 == 0x3) {
+			int OP = i >> 3 & 3;
+			int IMM = i & 7;
+			WRITE("thumb_alu1_2<%d, %d>", OP, IMM);
+		} else if (i >> 7 == 1) {
+			int OP = i >> 5 & 3;
+			int RD = i >> 2 & 7;
+			WRITE("thumb_alu3<%d, %d>", OP, RD);
+		} else if (i >> 7 == 0) {
+			int OP = i >> 5 & 3;
+			int IMM = i & 0x1F;
+			WRITE("thumb_alu4<%d, %d>", OP, IMM);
+		} else if (i >> 4 == 0x10) {
+			int OP = i & 0xF;
+			WRITE("thumb_alu5<%d>", OP);
+		} else if (i >> 6 == 0xA) {
+			int R = i >> 5 & 1;
+			int RD = i >> 2 & 7;
+			WRITE("thumb_alu6<%d, %d>", R, RD);
+		} else if (i >> 2 == 0xB0) {
+			int OP = i >> 1 & 1;
+			WRITE("thumb_alu7<%d>", OP);
+		} else if (i >> 4 == 0x11) {
+			int OP = i >> 2 & 3;
+			WRITE("thumb_alu8<%d>", OP);
+		}
+
 		/* everything else */
 		else {
 			WRITE("thumb_undefined");
