@@ -262,6 +262,17 @@ generate_thumb_lut(FILE *f)
 			WRITE("thumb_load_store_sp_relative<%d, %d>", L, RD);
 		}
 
+		/* load / store multiple instructions */
+		else if (i >> 6 == 0xC) {
+			int L = i >> 5 & 1;
+			int RN = i >> 2 & 7;
+			WRITE("thumb_ldm_stm<%d, %d>", L, RN);
+		} else if ((i & 0x3D8) == 0x2D0) {
+			int L = i >> 5 & 1;
+			int R = i >> 2 & 1;
+			WRITE("thumb_push_pop<%d, %d>", L, R);
+		}
+
 		/* everything else */
 		else {
 			WRITE("thumb_undefined");

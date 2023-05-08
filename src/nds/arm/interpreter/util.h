@@ -66,6 +66,26 @@ arm_do_ldrsb(Arm *cpu, u32 addr)
 	return cpu->load8(addr);
 }
 
+#define TWICE_ARM_LDM_(start_, end_, arr_, off_)                              \
+	do {                                                                  \
+		for (int i = (start_); i <= (end_); i++) {                    \
+			if (register_list & (1 << i)) {                       \
+				(arr_)[i + (off_)] = cpu->load32(addr);       \
+				addr += 4;                                    \
+			}                                                     \
+		}                                                             \
+	} while (0)
+
+#define TWICE_ARM_STM_(start_, end_, arr_, off_)                              \
+	do {                                                                  \
+		for (int i = (start_); i <= (end_); i++) {                    \
+			if (register_list & (1 << i)) {                       \
+				cpu->store32(addr, (arr_)[i + (off_)]);       \
+				addr += 4;                                    \
+			}                                                     \
+		}                                                             \
+	} while (0)
+
 #define SUB_FLAGS_(a_, b_)                                                    \
 	do {                                                                  \
 		carry = !((a_) < (b_));                                       \
