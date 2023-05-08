@@ -41,12 +41,20 @@ Machine::direct_boot()
 void
 Machine::run_frame()
 {
+	if (!nds) {
+		return;
+	}
+
 	nds->run_frame();
 }
 
 void *
 Machine::get_framebuffer()
 {
+	if (!nds) {
+		return nullptr;
+	}
+
 	return nds->fb;
 }
 
