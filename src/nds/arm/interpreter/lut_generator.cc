@@ -108,7 +108,7 @@ generate_arm_lut(FILE *f)
 			int B = i >> 6 & 1;
 			int W = i >> 5 & 1;
 			int L = i >> 4 & 1;
-			int SHIFT = i >> 5 & 3;
+			int SHIFT = i >> 1 & 3;
 			if (R == 0) {
 				SHIFT = 4;
 			}
