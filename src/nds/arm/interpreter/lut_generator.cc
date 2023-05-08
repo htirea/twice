@@ -188,7 +188,24 @@ generate_thumb_lut(FILE *f)
 
 	for (unsigned int i = 0; i < 1024; i++) {
 		WRITE("\t");
-		WRITE("thumb_noop");
+
+		/* undefined instructions */
+		if (i >> 2 == 0xDE) {
+			WRITE("thumb_undefined");
+		}
+
+		/* exception generating instructions */
+		else if (i >> 2 == 0xDF) {
+			WRITE("thumb_swi");
+		} else if (i >> 2 == 0xBE) {
+			WRITE("thumb_bkpt");
+		}
+
+		/* everything else */
+		else {
+			WRITE("thumb_undefined");
+		}
+
 		WRITE(",\n");
 	}
 
