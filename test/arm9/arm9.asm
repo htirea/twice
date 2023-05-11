@@ -25,10 +25,10 @@ _arm9_start:
 
 	@ Paint whole screen black
 	mov r1, #0x0
-	mov r2, #0xC000
+	mov r2, #0x6000
 
 0:
-	strh r1, [r0], #2
+	str r1, [r0], #4
 	subs r2, #1
 	bne 0b
 
