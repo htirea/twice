@@ -18,7 +18,7 @@ _arm9_start:
 
 	@ VRAMCNT_A: enable bank A and set to LCDC
 	mov r1, #0x80
-	str r1, [r0, #0x240]
+	strb r1, [r0, #0x240]
 
 	@ LCDC offset
 	mov r0, #0x6800000
