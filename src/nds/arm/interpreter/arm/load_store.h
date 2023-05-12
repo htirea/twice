@@ -77,7 +77,7 @@ arm_sdt(Arm *cpu)
 		}
 
 		if (rd == 15) {
-			if (!cpu->is_arm7()) {
+			if (cpu->is_arm9()) {
 				arm_do_bx(cpu, value);
 			} else {
 				cpu->arm_jump(value & ~3);
