@@ -64,12 +64,34 @@ struct Platform {
 	SDL_Texture *texture;
 
 	bool running;
+	uint64_t tstart;
+	uint64_t tframe;
+	uint64_t tfreq;
+	uint64_t ticks_elapsed{};
+
+	struct FpsCounter {
+		static constexpr unsigned BUF_SIZE = 64;
+		int buffer[BUF_SIZE]{};
+		int sum{};
+		int index{};
+
+		void add(int fps)
+		{
+			sum += fps;
+			sum -= buffer[index];
+			buffer[index] = fps;
+			index = (index + 1) % BUF_SIZE;
+		}
+
+		int get_average_fps() { return sum / BUF_SIZE; }
+	} fpscounter;
 
 	Platform();
 	~Platform();
 	void render(void *fb);
 	void handle_events(twice::Machine& nds);
 	void loop(twice::Machine& nds);
+	void set_title_fps(int fps);
 };
 
 Platform::Platform()
@@ -127,6 +149,13 @@ Platform::render(void *fb)
 
 	SDL_RenderCopy(renderer, texture, NULL, NULL);
 	SDL_RenderPresent(renderer);
+}
+
+void
+Platform::set_title_fps(int fps)
+{
+	std::string title = "Twice [" + std::to_string(fps) + "]";
+	SDL_SetWindowTitle(window, title.c_str());
 }
 
 static twice::NdsButton
@@ -187,12 +216,28 @@ Platform::handle_events(twice::Machine& nds)
 void
 Platform::loop(twice::Machine& nds)
 {
+	tfreq = SDL_GetPerformanceFrequency();
+	tframe = tfreq / 60;
+	tstart = SDL_GetPerformanceCounter();
+
 	running = true;
 
 	while (running) {
 		handle_events(nds);
 		nds.run_frame();
 		render(nds.get_framebuffer());
+
+		uint64_t elapsed = SDL_GetPerformanceCounter() - tstart;
+		int fps = (double)tfreq / elapsed;
+		fpscounter.add(fps);
+
+		ticks_elapsed += elapsed;
+		if (ticks_elapsed >= tfreq) {
+			ticks_elapsed -= tfreq;
+			set_title_fps(fpscounter.get_average_fps());
+		}
+
+		tstart = SDL_GetPerformanceCounter();
 	}
 }
 
