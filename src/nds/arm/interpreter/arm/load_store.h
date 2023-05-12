@@ -97,7 +97,7 @@ arm_sdt(Arm *cpu)
 			arm_do_str(cpu, address, value);
 		}
 
-		if (writeback) {
+		if (writeback && rn != 15) {
 			cpu->gpr[rn] += offset;
 		}
 	}

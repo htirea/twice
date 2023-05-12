@@ -50,11 +50,40 @@ t1:
 	cmp r4, #0xFF
         bne fail_test
 
-	@ Print hello world
+@ Test 2: str: writeback with pc as base register
+t2:
+	mov r11, #0x2
+
+	mov r4, #0x1
+	ldr r0, =0xE3844008
+	@ str r0, [pc, #4]!
+	.int 0xE5AF0004
+	orr r4, #0x2
+	orr r4, #0x4
+	nop
+	orr r4, #0x10
+	orr r4, #0x20
+	orr r4, #0x40
+	orr r4, #0x80
+
+	cmp r4, #0xFF
+	bne fail_test
+
+	@ Print success message
 	ldr r0, =success_message
 	mov r1, #0
 	mov r2, #0
 	bl print_string
+
+	ldr r0, =num_tests
+	mov r1, #8
+	mov r2, #0
+	bl print_string
+
+	mov r0, r11
+	mov r1, #8
+	mov r2, #160
+	bl print_hex
 
 forever:
 	b forever
@@ -191,5 +220,6 @@ font:
 .incbin "font8x8.bin"
 
 success_message: .asciz "All tests passed!"
+num_tests: .asciz "Number of tests: "
 
 .end
