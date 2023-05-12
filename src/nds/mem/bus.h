@@ -2,7 +2,8 @@
 #define TWICE_BUS_H
 
 #include "nds/arm/arm.h"
-#include "nds/mem/io.h"
+#include "nds/mem/io7.h"
+#include "nds/mem/io9.h"
 #include "nds/mem/vram.h"
 #include "nds/nds.h"
 

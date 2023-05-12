@@ -10,6 +10,8 @@ add_library(twice STATIC
 	libtwice/filemap.cc
 	libtwice/machine.cc
 	nds/arm/arm.cc
+	nds/arm/arm7.cc
+	nds/arm/arm9.cc
 	nds/arm/interpreter/lut.cc
 	nds/mem/io.cc
 	nds/nds.cc
