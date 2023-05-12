@@ -170,7 +170,12 @@ Arm9::step()
 			u32 op2 = opcode >> 4 & 0xF;
 			arm_inst_lut[op1 << 4 | op2](this);
 		} else if ((opcode & 0xFE000000) == 0xFA000000) {
-			throw TwiceError("unimplemented blx1\n");
+			bool H = opcode & (1 << 24);
+			s32 offset = ((s32)(opcode << 8) >> 6) + (H << 1);
+
+			gpr[14] = pc() - 4;
+			set_t(1);
+			thumb_jump(pc() + offset);
 		}
 	}
 
