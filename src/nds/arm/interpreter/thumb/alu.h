@@ -310,6 +310,12 @@ thumb_alu8(Arm *cpu)
 	u32 rd = H1 << 3 | (cpu->opcode & 0x7);
 
 	if (OP == 0) {
+		u32 r = cpu->gpr[rd] + rm;
+		if (rd == 15) {
+			cpu->thumb_jump(r & ~1);
+		} else {
+			cpu->gpr[rd] = r;
+		}
 		cpu->gpr[rd] += rm;
 	} else if (OP == 1) {
 		u32 rn = cpu->gpr[rd];
@@ -319,7 +325,11 @@ thumb_alu8(Arm *cpu)
 		SUB_FLAGS_(rn, rm);
 		cpu->set_nzcv(r >> 31, r == 0, carry, overflow);
 	} else {
-		cpu->gpr[rd] = rm;
+		if (rd == 15) {
+			cpu->thumb_jump(rm & ~1);
+		} else {
+			cpu->gpr[rd] = rm;
+		}
 	}
 }
 
