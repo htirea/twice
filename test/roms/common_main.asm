@@ -1,74 +1,3 @@
-@ vim:ft=armv5
-
-.text
-.global _arm9_start
-
-_arm9_start:
-	@ IO offset
-	mov r0, #0x4000000
-
-	@ POWCNT1: turn screens on, enable engine A, send A to top screen
-	mov r1, #0x8000
-	add r1, #0x3
-	str r1, [r0, #0x304]
-
-	@ DISPCNT: set vram display mode
-	mov r1, #0x20000
-	str r1, [r0]
-
-	@ VRAMCNT_A: enable bank A and set to LCDC
-	mov r1, #0x80
-	strb r1, [r0, #0x240]
-
-	@ LCDC offset
-	mov r0, #0x6800000
-
-	@ Paint whole screen black
-	mov r1, #0x0
-	mov r2, #0x6000
-
-0:
-	str r1, [r0], #4
-	subs r2, #1
-	bne 0b
-
-@ Test 1: ldr: writeback with pc as base register
-t1:
-        mov r11, #0x1
-
-        mov r4, #0x1
-        @ ldr r0, [pc, #4]!
-        .int 0xE5BF0004
-	orr r4, #0x2
-	orr r4, #0x4
-	orr r4, #0x8
-	orr r4, #0x10
-	orr r4, #0x20
-	orr r4, #0x40
-	orr r4, #0x80
-
-	cmp r4, #0xFF
-        bne fail_test
-
-@ Test 2: str: writeback with pc as base register
-t2:
-	mov r11, #0x2
-
-	mov r4, #0x1
-	ldr r0, =0xE3844008
-	@ str r0, [pc, #4]!
-	.int 0xE5AF0004
-	orr r4, #0x2
-	orr r4, #0x4
-	nop
-	orr r4, #0x10
-	orr r4, #0x20
-	orr r4, #0x40
-	orr r4, #0x80
-
-	cmp r4, #0xFF
-	bne fail_test
-
 	@ Print success message
 	ldr r0, =success_message
 	mov r1, #0
@@ -217,9 +146,7 @@ print_char:
 @ The bitmap font to use: should be 128 * 8 = 1024 bytes
 @ You can use any bitmap font
 font:
-.incbin "font8x8.bin"
+.incbin "../font8x8.bin"
 
 success_message: .asciz "All tests passed!"
 num_tests: .asciz "Number of tests: "
-
-.end

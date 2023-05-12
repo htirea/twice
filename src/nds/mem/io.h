@@ -34,7 +34,7 @@ io9_read8(NDS *nds, u32 addr)
 {
 	switch (addr) {
 	case 0x4000208:
-		IO_READ8_FROM_32(0x4000208, nds->cpu[0]->IME);
+		return nds->cpu[0]->IME;
 	case 0x4000210:
 		IO_READ8_FROM_32(0x4000210, nds->cpu[0]->IE);
 	case 0x4000214:
@@ -56,7 +56,7 @@ io9_read16(NDS *nds, u32 addr)
 	case 0x4000180:
 		return nds->ipcsync[0];
 	case 0x4000208:
-		IO_READ16_FROM_32(0x4000208, nds->cpu[0]->IME);
+		return nds->cpu[0]->IME;
 	case 0x4000210:
 		IO_READ16_FROM_32(0x4000210, nds->cpu[0]->IE);
 	case 0x4000214:
@@ -88,7 +88,7 @@ io9_write8(NDS *nds, u32 addr, u8 value)
 {
 	switch (addr) {
 	case 0x4000208:
-		nds->cpu[0]->IME = (nds->cpu[0]->IME & ~0xF) | value;
+		nds->cpu[0]->IME = value & 1;
 		nds->cpu[0]->check_interrupt();
 		break;
 	default:
@@ -110,6 +110,10 @@ io9_write16(NDS *nds, u32 addr, u16 value)
 			nds->cpu[1]->request_interrupt(16);
 		}
 		break;
+	case 0x4000208:
+		nds->cpu[0]->IME = value & 1;
+		nds->cpu[0]->check_interrupt();
+		break;
 	default:
 		fprintf(stderr, "nds9 io write 16 to %08X\n", addr);
 	}
@@ -120,7 +124,7 @@ io9_write32(NDS *nds, u32 addr, u32 value)
 {
 	switch (addr) {
 	case 0x4000208:
-		nds->cpu[0]->IME = value;
+		nds->cpu[0]->IME = value & 1;
 		nds->cpu[0]->check_interrupt();
 		break;
 	case 0x4000210:
@@ -141,7 +145,7 @@ io7_read8(NDS *nds, u32 addr)
 {
 	switch (addr) {
 	case 0x4000208:
-		IO_READ8_FROM_32(0x4000208, nds->cpu[1]->IME);
+		return nds->cpu[1]->IME;
 	case 0x4000210:
 		IO_READ8_FROM_32(0x4000210, nds->cpu[1]->IE);
 	case 0x4000214:
@@ -163,7 +167,7 @@ io7_read16(NDS *nds, u32 addr)
 	case 0x4000180:
 		return nds->ipcsync[1];
 	case 0x4000208:
-		IO_READ16_FROM_32(0x4000208, nds->cpu[1]->IME);
+		return nds->cpu[1]->IME;
 	case 0x4000210:
 		IO_READ16_FROM_32(0x4000210, nds->cpu[1]->IE);
 	case 0x4000214:
@@ -195,7 +199,7 @@ io7_write8(NDS *nds, u32 addr, u8 value)
 {
 	switch (addr) {
 	case 0x4000208:
-		nds->cpu[1]->IME = (nds->cpu[1]->IME & ~0xF) | value;
+		nds->cpu[1]->IME = value & 1;
 		nds->cpu[1]->check_interrupt();
 		break;
 	default:
@@ -217,6 +221,10 @@ io7_write16(NDS *nds, u32 addr, u16 value)
 			nds->cpu[0]->request_interrupt(16);
 		}
 		break;
+	case 0x4000208:
+		nds->cpu[1]->IME = value & 1;
+		nds->cpu[1]->check_interrupt();
+		break;
 	default:
 		fprintf(stderr, "nds7 io write 16 to %08X\n", addr);
 	}
@@ -227,7 +235,7 @@ io7_write32(NDS *nds, u32 addr, u32 value)
 {
 	switch (addr) {
 	case 0x4000208:
-		nds->cpu[1]->IME = value;
+		nds->cpu[1]->IME = value & 1;
 		nds->cpu[1]->check_interrupt();
 		break;
 	case 0x4000210:
