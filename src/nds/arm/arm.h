@@ -28,10 +28,7 @@ enum CpuModeBits {
 struct NDS;
 
 struct Arm {
-	Arm(NDS *nds)
-		: nds(nds)
-	{
-	}
+	Arm(NDS *nds);
 
 	u32 gpr[16]{};
 	u32 bankedr[6][3]{};
@@ -49,8 +46,6 @@ struct Arm {
 
 	NDS *nds{};
 	int cpuid{};
-
-	void do_irq();
 
 	void check_interrupt()
 	{
@@ -113,6 +108,65 @@ struct Arm {
 	bool is_arm7() { return cpuid; }
 
 	bool is_arm9() { return !is_arm7(); }
+
+	void do_irq()
+	{
+		u32 old_cpsr = cpsr;
+
+		cpsr &= ~0xBF;
+		cpsr |= 0x92;
+		switch_mode(MODE_IRQ);
+		interrupt = false;
+
+		gpr[14] = pc() - (in_thumb() ? 2 : 4) + 4;
+		spsr() = old_cpsr;
+		arm_jump(exception_base + 0x18);
+	}
+
+	bool check_cond(u32 cond)
+	{
+		if (cond == 0xE) {
+			return true;
+		}
+
+		bool N = cpsr & (1 << 31);
+		bool Z = cpsr & (1 << 30);
+		bool C = cpsr & (1 << 29);
+		bool V = cpsr & (1 << 28);
+
+		switch (cond) {
+		case 0x0:
+			return Z;
+		case 0x1:
+			return !Z;
+		case 0x2:
+			return C;
+		case 0x3:
+			return !C;
+		case 0x4:
+			return N;
+		case 0x5:
+			return !N;
+		case 0x6:
+			return V;
+		case 0x7:
+			return !V;
+		case 0x8:
+			return C && !Z;
+		case 0x9:
+			return !C || Z;
+		case 0xA:
+			return N == V;
+		case 0xB:
+			return N != V;
+		case 0xC:
+			return !Z && N == V;
+		case 0xD:
+			return Z || N != V;
+		}
+
+		return false;
+	}
 
 	virtual void jump(u32 addr) = 0;
 	virtual void arm_jump(u32 addr) = 0;

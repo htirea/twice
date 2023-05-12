@@ -13,6 +13,33 @@ Arm7::Arm7(NDS *nds)
 }
 
 void
+Arm7::step()
+{
+	if (in_thumb()) {
+		pc() += 2;
+		opcode = pipeline[0];
+		pipeline[0] = pipeline[1];
+		pipeline[1] = fetch16(pc());
+		thumb_inst_lut[opcode >> 6 & 0x3FF](this);
+	} else {
+		pc() += 4;
+		opcode = pipeline[0];
+		pipeline[0] = pipeline[1];
+		pipeline[1] = fetch32(pc());
+
+		if (check_cond(opcode >> 28)) {
+			u32 op1 = opcode >> 20 & 0xFF;
+			u32 op2 = opcode >> 4 & 0xF;
+			arm_inst_lut[op1 << 4 | op2](this);
+		}
+	}
+
+	if (interrupt) {
+		do_irq();
+	}
+}
+
+void
 Arm7::jump(u32 addr)
 {
 	if (in_thumb()) {
