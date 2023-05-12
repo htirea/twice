@@ -316,7 +316,6 @@ thumb_alu8(Arm *cpu)
 		} else {
 			cpu->gpr[rd] = r;
 		}
-		cpu->gpr[rd] += rm;
 	} else if (OP == 1) {
 		u32 rn = cpu->gpr[rd];
 		u32 r = rn - rm;
