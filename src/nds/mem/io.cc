@@ -1,4 +1,4 @@
-#include "nds/mem/io9.h"
+#include "nds/mem/io.h"
 
 namespace twice {
 
