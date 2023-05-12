@@ -20,8 +20,7 @@ thumb_swi(Arm *cpu)
 	cpu->cpsr &= ~0xBF;
 	cpu->cpsr |= 0x93;
 	cpu->switch_mode(MODE_SVC);
-
-	/* TODO: disable interrupts */
+	cpu->interrupt = false;
 
 	cpu->gpr[14] = cpu->pc() - 2;
 	cpu->spsr() = old_cpsr;

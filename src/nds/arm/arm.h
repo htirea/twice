@@ -40,10 +40,28 @@ struct Arm {
 	u32 opcode;
 	u32 pipeline[2]{};
 	u32 exception_base{};
+	u32 mode{ MODE_SYS };
+
+	u32 IME{};
+	u32 IF{};
+	u32 IE{};
+	bool interrupt{};
 
 	NDS *nds{};
 	int cpuid{};
-	u32 mode{ MODE_SYS };
+
+	void do_irq();
+
+	void check_interrupt()
+	{
+		interrupt = !(cpsr & (1 << 7)) && (IME & 1) && (IE & IF);
+	}
+
+	void request_interrupt(int bit)
+	{
+		IF |= (1 << bit);
+		check_interrupt();
+	}
 
 	u32& pc() { return gpr[15]; }
 

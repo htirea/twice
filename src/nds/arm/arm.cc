@@ -84,6 +84,8 @@ Arm::on_cpsr_write()
 	u32 new_mode = mode_bits_to_mode(cpsr & 0x1F);
 
 	switch_mode(new_mode);
+
+	check_interrupt();
 }
 
 static bool
@@ -134,6 +136,21 @@ check_cond(u32 cpsr, u32 cond)
 }
 
 void
+Arm::do_irq()
+{
+	u32 old_cpsr = cpsr;
+
+	cpsr &= ~0xBF;
+	cpsr |= 0x92;
+	switch_mode(MODE_IRQ);
+	interrupt = false;
+
+	gpr[14] = pc() - (in_thumb() ? 2 : 4) + 4;
+	spsr() = old_cpsr;
+	arm_jump(exception_base + 0x18);
+}
+
+void
 Arm9::step()
 {
 	if (in_thumb()) {
@@ -155,6 +172,10 @@ Arm9::step()
 		} else if ((opcode & 0xFE000000) == 0xFA000000) {
 			throw TwiceError("unimplemented blx1\n");
 		}
+	}
+
+	if (interrupt) {
+		do_irq();
 	}
 
 	nds->cycles += 1;
@@ -180,6 +201,10 @@ Arm7::step()
 			u32 op2 = opcode >> 4 & 0xF;
 			arm_inst_lut[op1 << 4 | op2](this);
 		}
+	}
+
+	if (interrupt) {
+		do_irq();
 	}
 }
 

@@ -1,6 +1,8 @@
 #ifndef TWICE_NDS_H
 #define TWICE_NDS_H
 
+#include "nds/ipc.h"
+
 #include "common/types.h"
 
 namespace twice {
@@ -68,6 +70,8 @@ struct NDS {
 	u8 wramcnt{};
 	u16 dispstat[2]{};
 	u16 keyinput{ 0x3FF };
+	u16 ipcsync[2]{};
+	IpcFifo ipcfifo[2];
 
 	/*
 	 * Functions
