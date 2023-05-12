@@ -33,16 +33,10 @@ _arm9_start:
 	bne 0b
 
 	@ Print hello world
-	ldr r0, =hello_world
+	ldr r0, =success_message
 	mov r1, #0
 	mov r2, #0
 	bl print_string
-
-	@ Print hex number
-	ldr r0, =0xDEADBEEF
-	mov r1, #8
-	mov r2, #0
-	bl print_hex
 
 forever:
 	b forever
@@ -170,6 +164,6 @@ print_char:
 font:
 .incbin "font8x8.bin"
 
-hello_world: .asciz "Hello World!"
+success_message: .asciz "All tests passed!"
 
 .end
