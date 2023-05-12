@@ -241,13 +241,13 @@ arm_alu(Arm *cpu)
 		if (S && rd == 15) {
 			cpu->jump_cpsr(r);
 		} else if (rd == 15) {
-			cpu->arm_jump(r);
+			cpu->arm_jump(r & ~3);
 		} else {
 			cpu->gpr[rd] = r;
 		}
 	}
 
-	if (S) {
+	if (S && rd != 15) {
 		if (OP == AND || OP == EOR || OP == TST || OP == TEQ ||
 				OP == ORR || OP == MOV || OP == BIC ||
 				OP == MVN) {
