@@ -26,8 +26,8 @@ arm_blx2(Arm *cpu)
 		return;
 	}
 
-	cpu->gpr[14] = cpu->pc() - 4;
 	u32 addr = cpu->gpr[cpu->opcode & 0xF];
+	cpu->gpr[14] = cpu->pc() - 4;
 	arm_do_bx(cpu, addr);
 }
 

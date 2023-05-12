@@ -121,8 +121,8 @@ thumb_blx2(Arm *cpu)
 		return;
 	}
 
-	cpu->gpr[14] = (cpu->pc() - 2) | 1;
 	u32 addr = cpu->gpr[cpu->opcode >> 3 & 0xF];
+	cpu->gpr[14] = (cpu->pc() - 2) | 1;
 	thumb_do_bx(cpu, addr);
 }
 
