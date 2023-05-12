@@ -32,6 +32,24 @@ _arm9_start:
 	subs r2, #1
 	bne 0b
 
+@ Test 1: ldr: writeback with pc as base register
+t1:
+        mov r11, #0x1
+
+        mov r4, #0x1
+        @ ldr r0, [pc, #4]!
+        .int 0xE5BF0004
+	orr r4, #0x2
+	orr r4, #0x4
+	orr r4, #0x8
+	orr r4, #0x10
+	orr r4, #0x20
+	orr r4, #0x40
+	orr r4, #0x80
+
+	cmp r4, #0xFF
+        bne fail_test
+
 	@ Print hello world
 	ldr r0, =success_message
 	mov r1, #0
@@ -40,6 +58,14 @@ _arm9_start:
 
 forever:
 	b forever
+
+@ test_num in r11
+fail_test:
+        mov r0, r11
+        mov r1, #8
+        mov r2, #0
+        bl print_hex
+        b forever
 
 @ str, row, col
 print_string:

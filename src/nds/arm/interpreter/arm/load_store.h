@@ -65,7 +65,7 @@ arm_sdt(Arm *cpu)
 	constexpr bool writeback = W == 1 || P == 0;
 
 	if (L == 1) {
-		if (writeback) {
+		if (writeback && rn != 15) {
 			cpu->gpr[rn] += offset;
 		}
 
