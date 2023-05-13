@@ -11,6 +11,8 @@ io7_read8(NDS *nds, u32 addr)
 	switch (addr) {
 	default:
 		IO_READ8_COMMON(1);
+	case 0x4000241:
+		return nds->wramcnt;
 	}
 }
 

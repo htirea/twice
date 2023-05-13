@@ -13,6 +13,8 @@ io9_read8(NDS *nds, u32 addr)
 	switch (addr) {
 	default:
 		IO_READ8_COMMON(0);
+	case 0x4000247:
+		return nds->wramcnt;
 	}
 }
 
@@ -40,6 +42,9 @@ io9_write8(NDS *nds, u32 addr, u8 value)
 	switch (addr) {
 	default:
 		IO_WRITE8_COMMON(0);
+	case 0x4000247:
+		wramcnt_write(nds, value);
+		break;
 	}
 }
 
