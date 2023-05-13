@@ -55,6 +55,8 @@ io_read16(NDS *nds, u32 addr)
 		return nds->keyinput;
 	case 0x4000180:
 		return nds->ipcsync[cpuid];
+	case 0x4000184:
+		return nds->ipcfifo[cpuid].cnt;
 	case 0x4000208:
 		return nds->cpu[cpuid]->IME;
 	case 0x4000210:
@@ -78,6 +80,8 @@ io_read32(NDS *nds, u32 addr)
 		return nds->cpu[cpuid]->IE;
 	case 0x4000214:
 		return nds->cpu[cpuid]->IF;
+	case 0x4100000:
+		return ipc_fifo_recv(nds, cpuid);
 	}
 
 	fprintf(stderr, "nds %d io read 32 at %08X\n", cpuid, addr);
@@ -114,6 +118,9 @@ io_write16(NDS *nds, u32 addr, u16 value)
 			nds->cpu[cpuid ^ 1]->request_interrupt(16);
 		}
 		break;
+	case 0x4000184:
+		ipc_fifo_cnt_write(nds, cpuid, value);
+		break;
 	case 0x4000208:
 		nds->cpu[cpuid]->IME = value & 1;
 		nds->cpu[cpuid]->check_interrupt();
@@ -128,6 +135,9 @@ void
 io_write32(NDS *nds, u32 addr, u32 value)
 {
 	switch (addr) {
+	case 0x4000188:
+		ipc_fifo_send(nds, cpuid, value);
+		break;
 	case 0x4000208:
 		nds->cpu[cpuid]->IME = value & 1;
 		nds->cpu[cpuid]->check_interrupt();

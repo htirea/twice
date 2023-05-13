@@ -5,13 +5,19 @@
 
 namespace twice {
 
+struct NDS;
+
 struct IpcFifo {
-	u32 fifo[16]{};
+	std::array<u32, 16> fifo{};
 	u32 read{};
 	u32 write{};
 	u32 size{};
 	u32 cnt{ 1 | 1 << 8 };
 };
+
+u32 ipc_fifo_recv(NDS *nds, int cpuid);
+void ipc_fifo_send(NDS *nds, int cpuid, u32 value);
+void ipc_fifo_cnt_write(NDS *nds, int cpuid, u16 value);
 
 } // namespace twice
 
