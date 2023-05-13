@@ -72,6 +72,9 @@ struct NDS {
 	u16 keyinput{ 0x3FF };
 	u16 ipcsync[2]{};
 	IpcFifo ipcfifo[2];
+	u16 sqrtcnt{};
+	u32 sqrt_result{};
+	u32 sqrt_param[2]{};
 
 	/*
 	 * Functions

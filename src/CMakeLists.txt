@@ -14,6 +14,7 @@ add_library(twice STATIC
 	nds/arm/arm9.cc
 	nds/arm/interpreter/lut.cc
 	nds/ipc.cc
+	nds/math.cc
 	nds/mem/io.cc
 	nds/nds.cc
 	"${CMAKE_CURRENT_BINARY_DIR}/arm_lut.cc"
