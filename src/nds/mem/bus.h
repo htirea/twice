@@ -2,7 +2,8 @@
 #define TWICE_BUS_H
 
 #include "nds/arm/arm.h"
-#include "nds/mem/io.h"
+#include "nds/mem/io7.h"
+#include "nds/mem/io9.h"
 #include "nds/mem/vram.h"
 #include "nds/nds.h"
 
@@ -29,7 +30,13 @@ bus9_read(NDS *nds, u32 addr)
 		}
 		break;
 	case 0x4:
-		value = io_read<T, 0>(nds, addr);
+		if constexpr (sizeof(T) == 1) {
+			value = io9_read8(nds, addr);
+		} else if constexpr (sizeof(T) == 2) {
+			value = io9_read16(nds, addr);
+		} else {
+			value = io9_read32(nds, addr);
+		}
 		break;
 	case 0x5:
 		value = readarr<T>(nds->palette, addr & PALETTE_MASK);
@@ -79,7 +86,13 @@ bus9_write(NDS *nds, u32 addr, T value)
 		}
 		break;
 	case 0x4:
-		io_write<T, 0>(nds, addr, value);
+		if constexpr (sizeof(T) == 1) {
+			io9_write8(nds, addr, value);
+		} else if constexpr (sizeof(T) == 2) {
+			io9_write16(nds, addr, value);
+		} else {
+			io9_write32(nds, addr, value);
+		}
 		break;
 	case 0x5:
 		writearr<T>(nds->palette, addr & PALETTE_MASK, value);
@@ -135,7 +148,13 @@ bus7_read(NDS *nds, u32 addr)
 		value = readarr<T>(nds->arm7_wram, addr & ARM7_WRAM_MASK);
 		break;
 	case 0x40 >> 3:
-		value = io_read<T, 1>(nds, addr);
+		if constexpr (sizeof(T) == 1) {
+			value = io7_read8(nds, addr);
+		} else if constexpr (sizeof(T) == 2) {
+			value = io7_read16(nds, addr);
+		} else {
+			value = io7_read32(nds, addr);
+		}
 		break;
 	case 0x60 >> 3:
 	case 0x68 >> 3:
@@ -176,7 +195,13 @@ bus7_write(NDS *nds, u32 addr, T value)
 		writearr<T>(nds->arm7_wram, addr & ARM7_WRAM_MASK, value);
 		break;
 	case 0x40 >> 3:
-		io_write<T, 1>(nds, addr, value);
+		if constexpr (sizeof(T) == 1) {
+			io7_write8(nds, addr, value);
+		} else if constexpr (sizeof(T) == 2) {
+			io7_write16(nds, addr, value);
+		} else {
+			io7_write32(nds, addr, value);
+		}
 		break;
 	case 0x60 >> 3:
 	case 0x68 >> 3:
