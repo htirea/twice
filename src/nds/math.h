@@ -8,6 +8,7 @@ namespace twice {
 struct NDS;
 
 void nds_math_sqrt(NDS *nds);
+void nds_math_div(NDS *nds);
 
 } // namespace twice
 

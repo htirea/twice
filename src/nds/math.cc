@@ -31,4 +31,84 @@ nds_math_sqrt(NDS *nds)
 	}
 }
 
+static void
+div32(NDS *nds)
+{
+	s32 numer = nds->div_numer[0];
+	s32 denom = nds->div_denom[0];
+	s64 rem;
+
+	if (denom == 0) {
+		nds->div_result[0] = numer < 0 ? 1 : -1;
+		nds->div_result[1] = numer < 0 ? -1 : 0;
+		rem = numer;
+	} else if ((u32)numer == 0x80000000 && denom == -1) {
+		nds->div_result[0] = 0x80000000;
+		nds->div_result[1] = 0;
+		rem = 0;
+	} else {
+		s64 result = numer / denom;
+		rem = numer % denom;
+		nds->div_result[0] = result;
+		nds->div_result[1] = result >> 32;
+	}
+
+	nds->divrem_result[0] = rem;
+	nds->divrem_result[1] = rem >> 32;
+}
+
+static void
+div64(NDS *nds, bool denom_is_64_bits)
+{
+	s64 numer = (u64)nds->div_numer[1] << 32 | nds->div_numer[0];
+	s64 denom;
+	s64 result;
+	s64 rem;
+
+	if (denom_is_64_bits) {
+		denom = (u64)nds->div_denom[1] << 32 | nds->div_denom[0];
+	} else {
+		denom = (s32)nds->div_denom[0];
+	}
+
+	if (denom == 0) {
+		result = numer < 0 ? 1 : -1;
+		rem = numer;
+	} else if ((u64)numer == BIT(63) && denom == -1) {
+		result = BIT(63);
+		rem = 0;
+	} else {
+		result = numer / denom;
+		rem = numer % denom;
+	}
+
+	nds->div_result[0] = result;
+	nds->div_result[1] = result >> 32;
+	nds->divrem_result[0] = rem;
+	nds->divrem_result[1] = rem >> 32;
+}
+
+void
+nds_math_div(NDS *nds)
+{
+	switch (nds->divcnt & 0x3) {
+	case 0:
+		div32(nds);
+		break;
+	case 1:
+	case 3:
+		div64(nds, false);
+		break;
+	case 2:
+		div64(nds, true);
+		break;
+	}
+
+	if (nds->div_denom[0] == 0 && nds->div_denom[1] == 0) {
+		nds->divcnt |= BIT(14);
+	} else {
+		nds->divcnt &= ~BIT(14);
+	}
+}
+
 } // namespace twice

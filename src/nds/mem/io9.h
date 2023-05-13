@@ -25,6 +25,8 @@ io9_read16(NDS *nds, u32 addr)
 	switch (addr) {
 	default:
 		IO_READ16_COMMON(0);
+	case 0x4000280:
+		return nds->divcnt;
 	case 0x40002B0:
 		return nds->sqrtcnt;
 	}
@@ -36,6 +38,22 @@ io9_read32(NDS *nds, u32 addr)
 	switch (addr) {
 	default:
 		IO_READ32_COMMON(0);
+	case 0x4000290:
+		return nds->div_numer[0];
+	case 0x4000294:
+		return nds->div_numer[1];
+	case 0x4000298:
+		return nds->div_denom[0];
+	case 0x400029C:
+		return nds->div_denom[1];
+	case 0x40002A0:
+		return nds->div_result[0];
+	case 0x40002A4:
+		return nds->div_result[1];
+	case 0x40002A8:
+		return nds->divrem_result[0];
+	case 0x40002AC:
+		return nds->divrem_result[1];
 	case 0x40002B4:
 		return nds->sqrt_result;
 	case 0x40002B8:
@@ -63,6 +81,11 @@ io9_write16(NDS *nds, u32 addr, u16 value)
 	switch (addr) {
 	default:
 		IO_WRITE16_COMMON(0);
+	case 0x4000280:
+		/* TODO: div timings */
+		nds->divcnt = (nds->divcnt & 0x8000) | (value & ~0x8000);
+		nds_math_div(nds);
+		break;
 	case 0x40002B0:
 		/* TODO: sqrt timings */
 		nds->sqrtcnt = (nds->sqrtcnt & 0x8000) | (value & ~0x8000);
@@ -77,6 +100,22 @@ io9_write32(NDS *nds, u32 addr, u32 value)
 	switch (addr) {
 	default:
 		IO_WRITE32_COMMON(0);
+	case 0x4000290:
+		nds->div_numer[0] = value;
+		nds_math_div(nds);
+		break;
+	case 0x4000294:
+		nds->div_numer[1] = value;
+		nds_math_div(nds);
+		break;
+	case 0x4000298:
+		nds->div_denom[0] = value;
+		nds_math_div(nds);
+		break;
+	case 0x400029C:
+		nds->div_denom[1] = value;
+		nds_math_div(nds);
+		break;
 	case 0x40002B8:
 		nds->sqrt_param[0] = value;
 		nds_math_sqrt(nds);
