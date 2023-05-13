@@ -10,10 +10,10 @@ template <int COND>
 void
 thumb_b1(Arm *cpu)
 {
-	bool N = cpu->cpsr & (1 << 31);
-	bool Z = cpu->cpsr & (1 << 30);
-	bool C = cpu->cpsr & (1 << 29);
-	bool V = cpu->cpsr & (1 << 28);
+	bool N = cpu->cpsr & BIT(31);
+	bool Z = cpu->cpsr & BIT(30);
+	bool C = cpu->cpsr & BIT(29);
+	bool V = cpu->cpsr & BIT(28);
 
 	bool jump;
 

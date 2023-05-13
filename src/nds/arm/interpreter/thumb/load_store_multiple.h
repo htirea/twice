@@ -34,7 +34,7 @@ thumb_ldm_stm(Arm *cpu)
 		/* If rn is included in register list:
 		 * ARMv4 / ARMv5: no writeback
 		 */
-		if (!(register_list & (1 << RN))) {
+		if (!(register_list & BIT(RN))) {
 			cpu->gpr[RN] = writeback_value;
 		}
 	} else {
@@ -44,8 +44,8 @@ thumb_ldm_stm(Arm *cpu)
 		 * ARMv5: store old base
 		 * (same as arm stm)
 		 */
-		bool in_rlist = register_list & (1 << RN);
-		bool not_first = register_list & ((1 << RN) - 1);
+		bool in_rlist = register_list & BIT(RN);
+		bool not_first = register_list & MASK(RN);
 		if (in_rlist && cpu->is_arm7() && not_first) {
 			cpu->gpr[RN] = writeback_value;
 		}

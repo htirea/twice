@@ -91,8 +91,8 @@ arm_block_dt(Arm *cpu)
 			 * ARMv5: writeback if rn is only register,
 			 *        or not the last register
 			 */
-			if (register_list & (1 << rn)) {
-				bool only = register_list == 1 << rn;
+			if (register_list & BIT(rn)) {
+				bool only = register_list == BIT(rn);
 				bool last = register_list >> rn == 1;
 				if (cpu->is_arm9() && (only || !last)) {
 					cpu->gpr[rn] = writeback_value;
@@ -113,8 +113,8 @@ arm_block_dt(Arm *cpu)
 			 *        else store new base
 			 * ARMv5: store old base
 			 */
-			bool in_rlist = register_list & (1 << rn);
-			bool not_first = register_list & ((1 << rn) - 1);
+			bool in_rlist = register_list & BIT(rn);
+			bool not_first = register_list & MASK(rn);
 			if (in_rlist && cpu->is_arm7() && not_first) {
 				cpu->gpr[rn] = writeback_value;
 			}

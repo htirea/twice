@@ -83,7 +83,7 @@ thumb_alu4(Arm *cpu)
 			cpu->set_nz(r >> 31, r == 0);
 		} else {
 			r = rm << IMM;
-			cpu->set_nzc(r >> 31, r == 0, rm & (1 << (32 - IMM)));
+			cpu->set_nzc(r >> 31, r == 0, rm & BIT(32 - IMM));
 		}
 		break;
 	case 1:
@@ -92,7 +92,7 @@ thumb_alu4(Arm *cpu)
 			carry = rm >> 31;
 		} else {
 			r = rm >> IMM;
-			carry = rm & (1 << (IMM - 1));
+			carry = rm & BIT(IMM - 1);
 		}
 		cpu->set_nzc(r >> 31, r == 0, carry);
 		break;
@@ -106,7 +106,7 @@ thumb_alu4(Arm *cpu)
 			}
 		} else {
 			r = (s32)rm >> IMM;
-			carry = rm & (1 << (IMM - 1));
+			carry = rm & BIT(IMM - 1);
 		}
 		cpu->set_nzc(r >> 31, r == 0, carry);
 		break;
@@ -160,7 +160,7 @@ thumb_alu5(Arm *cpu)
 			r = operand;
 			cpu->set_nz(r >> 31, r == 0);
 		} else if (rm < 32) {
-			carry = operand & (1 << (32 - rm));
+			carry = operand & BIT(32 - rm);
 			r = cpu->gpr[rd] = operand << rm;
 			cpu->set_nzc(r >> 31, r == 0, carry);
 		} else if (rm == 32) {
@@ -179,7 +179,7 @@ thumb_alu5(Arm *cpu)
 			r = operand;
 			cpu->set_nz(r >> 31, r == 0);
 		} else if (rm < 32) {
-			carry = operand & (1 << (rm - 1));
+			carry = operand & BIT(rm - 1);
 			r = cpu->gpr[rd] = operand >> rm;
 			cpu->set_nzc(r >> 31, r == 0, carry);
 		} else if (rm == 32) {
@@ -198,7 +198,7 @@ thumb_alu5(Arm *cpu)
 			r = operand;
 			cpu->set_nz(r >> 31, r == 0);
 		} else if (rm < 32) {
-			carry = operand & (1 << (rm - 1));
+			carry = operand & BIT(rm - 1);
 			r = cpu->gpr[rd] = (s32)operand >> rm;
 			cpu->set_nzc(r >> 31, r == 0, carry);
 		} else {
@@ -237,7 +237,7 @@ thumb_alu5(Arm *cpu)
 			r = operand;
 			cpu->set_nzc(r >> 31, r == 0, carry);
 		} else {
-			carry = operand & (1 << ((rm & 0x1F) - 1));
+			carry = operand & BIT((rm & 0x1F) - 1);
 			r = cpu->gpr[rd] = std::rotr(operand, rm & 0x1F);
 			cpu->set_nzc(r >> 31, r == 0, carry);
 		}

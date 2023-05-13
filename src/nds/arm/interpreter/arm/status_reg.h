@@ -38,25 +38,25 @@ arm_msr(Arm *cpu)
 	if (R == 0) {
 		if (cpu->in_privileged_mode()) {
 			for (int i = 0; i < 3; i++) {
-				if (field_mask & (1 << i)) {
+				if (field_mask & BIT(i)) {
 					write_mask |= 0xFF << 8 * i;
 				}
 			}
 		}
-		if (field_mask & (1 << 3)) {
+		if (field_mask & BIT(3)) {
 			write_mask |= 0xFF << 24;
 		}
 
 		cpu->cpsr = (cpu->cpsr & ~write_mask) | (operand & write_mask);
 		cpu->on_cpsr_write();
 
-		if (operand & write_mask & (1 << 5)) {
+		if (operand & write_mask & BIT(5)) {
 			throw TwiceError("msr changed thumb bit");
 		}
 	} else {
 		if (cpu->current_mode_has_spsr()) {
 			for (int i = 0; i < 4; i++) {
-				if (field_mask & (1 << i)) {
+				if (field_mask & BIT(i)) {
 					write_mask |= 0xFF << 8 * i;
 				}
 			}

@@ -29,7 +29,7 @@ arm_alu(Arm *cpu)
 				carry = cpu->get_c();
 			} else {
 				operand = rm << shift_imm;
-				carry = rm & (1 << (32 - shift_imm));
+				carry = rm & BIT(32 - shift_imm);
 			}
 			break;
 		case 1:
@@ -38,7 +38,7 @@ arm_alu(Arm *cpu)
 				carry = rm >> 31;
 			} else {
 				operand = rm >> shift_imm;
-				carry = rm & (1 << (shift_imm - 1));
+				carry = rm & BIT(shift_imm - 1);
 			}
 			break;
 		case 2:
@@ -51,7 +51,7 @@ arm_alu(Arm *cpu)
 				carry = rm >> 31;
 			} else {
 				operand = (s32)rm >> shift_imm;
-				carry = rm & (1 << (shift_imm - 1));
+				carry = rm & BIT(shift_imm - 1);
 			}
 			break;
 		default:
@@ -60,7 +60,7 @@ arm_alu(Arm *cpu)
 				carry = rm & 1;
 			} else {
 				operand = std::rotr(rm, shift_imm);
-				carry = rm & (1 << (shift_imm - 1));
+				carry = rm & BIT(shift_imm - 1);
 			}
 		}
 	} else {
@@ -79,7 +79,7 @@ arm_alu(Arm *cpu)
 				carry = cpu->get_c();
 			} else if (rs < 32) {
 				operand = rm << rs;
-				carry = rm & (1 << (32 - rs));
+				carry = rm & BIT(32 - rs);
 			} else if (rs == 32) {
 				operand = 0;
 				carry = rm & 1;
@@ -94,7 +94,7 @@ arm_alu(Arm *cpu)
 				carry = cpu->get_c();
 			} else if (rs < 32) {
 				operand = rm >> rs;
-				carry = rm & (1 << (rs - 1));
+				carry = rm & BIT(rs - 1);
 			} else if (rs == 0) {
 				operand = 0;
 				carry = rm >> 31;
@@ -109,7 +109,7 @@ arm_alu(Arm *cpu)
 				carry = cpu->get_c();
 			} else if (rs < 32) {
 				operand = (s32)rm >> rs;
-				carry = rm & (1 << (rs - 1));
+				carry = rm & BIT(rs - 1);
 			} else {
 				if (rm >> 31 == 0) {
 					operand = 0;
@@ -128,7 +128,7 @@ arm_alu(Arm *cpu)
 				carry = rm >> 31;
 			} else {
 				operand = std::rotr(rm, rs & 0x1F);
-				carry = rm & (1 << ((rs & 0x1F) - 1));
+				carry = rm & BIT((rs & 0x1F) - 1);
 			}
 		}
 	}

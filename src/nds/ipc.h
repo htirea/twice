@@ -2,6 +2,7 @@
 #define TWICE_IPC_H
 
 #include "common/types.h"
+#include "common/util.h"
 
 namespace twice {
 
@@ -12,7 +13,7 @@ struct IpcFifo {
 	u32 read{};
 	u32 write{};
 	u32 size{};
-	u32 cnt{ 1 | 1 << 8 };
+	u32 cnt{ BIT(0) | BIT(8) };
 };
 
 u32 ipc_fifo_recv(NDS *nds, int cpuid);

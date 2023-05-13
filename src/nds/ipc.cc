@@ -1,8 +1,6 @@
 #include "nds/arm/arm.h"
 #include "nds/nds.h"
 
-#include "common/util.h"
-
 namespace twice {
 
 void

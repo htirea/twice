@@ -113,8 +113,7 @@ io_write16(NDS *nds, u32 addr, u16 value)
 		nds->ipcsync[cpuid] &= ~0x4F00;
 		nds->ipcsync[cpuid] |= value & 0x4F00;
 
-		if ((value & (1 << 13)) &&
-				(nds->ipcsync[cpuid ^ 1] & (1 << 14))) {
+		if ((value & BIT(13)) && (nds->ipcsync[cpuid ^ 1] & BIT(14))) {
 			nds->cpu[cpuid ^ 1]->request_interrupt(16);
 		}
 		break;

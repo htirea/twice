@@ -32,7 +32,7 @@ Arm9::step()
 			u32 op2 = opcode >> 4 & 0xF;
 			arm_inst_lut[op1 << 4 | op2](this);
 		} else if ((opcode & 0xFE000000) == 0xFA000000) {
-			bool H = opcode & (1 << 24);
+			bool H = opcode & BIT(24);
 			s32 offset = ((s32)(opcode << 8) >> 6) + (H << 1);
 
 			gpr[14] = pc() - 4;
@@ -231,23 +231,22 @@ static void
 ctrl_reg_write(Arm9 *cpu, u32 value)
 {
 	u32 diff = cpu->ctrl_reg ^ value;
-	u32 unhandled = (1 << 0) | (1 << 2) | (1 << 7) | (1 << 12) |
-			(1 << 14) | (1 << 15);
+	u32 unhandled = BIT(0) | BIT(2) | BIT(7) | BIT(12) | BIT(14) | BIT(15);
 
 	if (diff & unhandled) {
 		fprintf(stderr, "unhandled bits in cp15 write %08X\n", value);
 	}
 
-	cpu->exception_base = value & (1 << 13) ? 0xFFFF0000 : 0;
+	cpu->exception_base = value & BIT(13) ? 0xFFFF0000 : 0;
 
-	if (diff & (1 << 16 | 1 << 17)) {
-		cpu->read_dtcm = (value & 1 << 16) && !(value & 1 << 17);
-		cpu->write_dtcm = value & 1 << 16;
+	if (diff & (BIT(16) | BIT(17))) {
+		cpu->read_dtcm = (value & BIT(16)) && !(value & BIT(17));
+		cpu->write_dtcm = value & BIT(16);
 	}
 
-	if (diff & (1 << 18 | 1 << 19)) {
-		cpu->read_itcm = (value & 1 << 18) && !(value & 1 << 19);
-		cpu->write_itcm = value & 1 << 18;
+	if (diff & (BIT(18) | BIT(19))) {
+		cpu->read_itcm = (value & BIT(18)) && !(value & BIT(19));
+		cpu->write_itcm = value & BIT(18);
 	}
 
 	cpu->ctrl_reg = (cpu->ctrl_reg & ~0xFF085) | (value & 0xFF085);

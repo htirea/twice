@@ -83,9 +83,9 @@ Machine::button_event(NdsButton button, bool down)
 	case R:
 	case L:
 		if (down) {
-			nds->keyinput &= ~(1 << (int)button);
+			nds->keyinput &= ~BIT((int)button);
 		} else {
-			nds->keyinput |= 1 << (int)button;
+			nds->keyinput |= BIT((int)button);
 		}
 		break;
 	default:;

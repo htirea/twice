@@ -2,6 +2,7 @@
 #define TWICE_ARM_H
 
 #include "common/types.h"
+#include "common/util.h"
 
 namespace twice {
 
@@ -33,7 +34,7 @@ struct Arm {
 	u32 gpr[16]{};
 	u32 bankedr[6][3]{};
 	u32 fiqr[5]{};
-	u32 cpsr = (1 << 7) | (1 << 6) | SYS_MODE_BITS;
+	u32 cpsr = BIT(7) | BIT(6) | SYS_MODE_BITS;
 	u32 opcode;
 	u32 pipeline[2]{};
 	u32 exception_base{};
@@ -49,12 +50,12 @@ struct Arm {
 
 	void check_interrupt()
 	{
-		interrupt = !(cpsr & (1 << 7)) && (IME & 1) && (IE & IF);
+		interrupt = !(cpsr & BIT(7)) && (IME & 1) && (IE & IF);
 	}
 
 	void request_interrupt(int bit)
 	{
-		IF |= (1 << bit);
+		IF |= BIT(bit);
 		check_interrupt();
 	}
 
@@ -73,13 +74,13 @@ struct Arm {
 
 	bool current_mode_has_spsr() { return !in_sys_or_usr_mode(); }
 
-	bool in_thumb() { return cpsr & (1 << 5); }
+	bool in_thumb() { return cpsr & BIT(5); }
 
-	bool get_c() { return cpsr & (1 << 29); }
+	bool get_c() { return cpsr & BIT(29); }
 
-	void set_q(bool q) { cpsr = (cpsr & ~(1 << 27)) | (q << 27); }
+	void set_q(bool q) { cpsr = (cpsr & ~BIT(27)) | (q << 27); }
 
-	void set_t(bool t) { cpsr = (cpsr & ~(1 << 5)) | (t << 5); }
+	void set_t(bool t) { cpsr = (cpsr & ~BIT(5)) | (t << 5); }
 
 	void set_nz(bool n, bool z)
 	{
@@ -129,10 +130,10 @@ struct Arm {
 			return true;
 		}
 
-		bool N = cpsr & (1 << 31);
-		bool Z = cpsr & (1 << 30);
-		bool C = cpsr & (1 << 29);
-		bool V = cpsr & (1 << 28);
+		bool N = cpsr & BIT(31);
+		bool Z = cpsr & BIT(30);
+		bool C = cpsr & BIT(29);
+		bool V = cpsr & BIT(28);
 
 		switch (cond) {
 		case 0x0:

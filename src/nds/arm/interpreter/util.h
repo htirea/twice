@@ -69,7 +69,7 @@ arm_do_ldrsb(Arm *cpu, u32 addr)
 #define TWICE_ARM_LDM_(start_, end_, arr_, off_)                              \
 	do {                                                                  \
 		for (int i = (start_); i <= (end_); i++) {                    \
-			if (register_list & (1 << i)) {                       \
+			if (register_list & BIT(i)) {                         \
 				(arr_)[i + (off_)] = cpu->load32(addr);       \
 				addr += 4;                                    \
 			}                                                     \
@@ -79,7 +79,7 @@ arm_do_ldrsb(Arm *cpu, u32 addr)
 #define TWICE_ARM_STM_(start_, end_, arr_, off_)                              \
 	do {                                                                  \
 		for (int i = (start_); i <= (end_); i++) {                    \
-			if (register_list & (1 << i)) {                       \
+			if (register_list & BIT(i)) {                         \
 				cpu->store32(addr, (arr_)[i + (off_)]);       \
 				addr += 4;                                    \
 			}                                                     \
