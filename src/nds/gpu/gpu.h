@@ -71,6 +71,63 @@ struct Gpu {
 	u16 arm7_bank[2]{};
 
 	u8 vramcnt[VRAM_NUM_BANKS]{};
+
+	template <typename T, int bank> T vram_bank_read(u32 offset)
+	{
+		switch (bank) {
+		case VRAM_A:
+			return readarr<T>(vram_a, offset & VRAM_A_MASK);
+		case VRAM_B:
+			return readarr<T>(vram_b, offset & VRAM_B_MASK);
+		case VRAM_C:
+			return readarr<T>(vram_c, offset & VRAM_C_MASK);
+		case VRAM_D:
+			return readarr<T>(vram_d, offset & VRAM_D_MASK);
+		case VRAM_E:
+			return readarr<T>(vram_e, offset & VRAM_E_MASK);
+		case VRAM_F:
+			return readarr<T>(vram_f, offset & VRAM_F_MASK);
+		case VRAM_G:
+			return readarr<T>(vram_g, offset & VRAM_G_MASK);
+		case VRAM_H:
+			return readarr<T>(vram_h, offset & VRAM_H_MASK);
+		case VRAM_I:
+			return readarr<T>(vram_i, offset & VRAM_I_MASK);
+		}
+	}
+
+	template <typename T, int bank>
+	void vram_bank_write(u32 offset, T value)
+	{
+		switch (bank) {
+		case VRAM_A:
+			writearr<T>(vram_a, offset & VRAM_A_MASK, value);
+			break;
+		case VRAM_B:
+			writearr<T>(vram_b, offset & VRAM_B_MASK, value);
+			break;
+		case VRAM_C:
+			writearr<T>(vram_c, offset & VRAM_C_MASK, value);
+			break;
+		case VRAM_D:
+			writearr<T>(vram_d, offset & VRAM_D_MASK, value);
+			break;
+		case VRAM_E:
+			writearr<T>(vram_e, offset & VRAM_E_MASK, value);
+			break;
+		case VRAM_F:
+			writearr<T>(vram_f, offset & VRAM_F_MASK, value);
+			break;
+		case VRAM_G:
+			writearr<T>(vram_g, offset & VRAM_G_MASK, value);
+			break;
+		case VRAM_H:
+			writearr<T>(vram_h, offset & VRAM_H_MASK, value);
+			break;
+		case VRAM_I:
+			writearr<T>(vram_i, offset & VRAM_I_MASK, value);
+		}
+	}
 };
 
 } // namespace twice
