@@ -66,7 +66,6 @@ struct NDS {
 	size_t cartridge_size{};
 
 	u32 fb[NDS_FB_SZ_BYTES]{};
-	u8 vram[512_KiB]{};
 
 	/*
 	 * IO

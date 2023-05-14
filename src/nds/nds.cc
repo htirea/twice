@@ -151,7 +151,7 @@ NDS::run_frame()
 	dispstat[1] |= 1;
 
 	for (u32 i = 0; i < NDS_FB_SZ; i++) {
-		fb[i] = ABGR1555_TO_ABGR8888(readarr<u16>(vram, i * 2));
+		fb[i] = ABGR1555_TO_ABGR8888(vram_read_lcdc<u16>(this, i * 2));
 	}
 
 	while (cycles < 558060) {
