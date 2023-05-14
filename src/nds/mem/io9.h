@@ -7,6 +7,15 @@
 namespace twice {
 
 void wramcnt_write(NDS *nds, u8 value);
+void vramcnt_a_write(NDS *nds, u8 value);
+void vramcnt_b_write(NDS *nds, u8 value);
+void vramcnt_c_write(NDS *nds, u8 value);
+void vramcnt_d_write(NDS *nds, u8 value);
+void vramcnt_e_write(NDS *nds, u8 value);
+void vramcnt_f_write(NDS *nds, u8 value);
+void vramcnt_g_write(NDS *nds, u8 value);
+void vramcnt_h_write(NDS *nds, u8 value);
+void vramcnt_i_write(NDS *nds, u8 value);
 
 inline u8
 io9_read8(NDS *nds, u32 addr)
@@ -69,8 +78,35 @@ io9_write8(NDS *nds, u32 addr, u8 value)
 	switch (addr) {
 	default:
 		IO_WRITE8_COMMON(0);
+	case 0x4000240:
+		vramcnt_a_write(nds, value);
+		break;
+	case 0x4000241:
+		vramcnt_b_write(nds, value);
+		break;
+	case 0x4000242:
+		vramcnt_c_write(nds, value);
+		break;
+	case 0x4000243:
+		vramcnt_d_write(nds, value);
+		break;
+	case 0x4000244:
+		vramcnt_e_write(nds, value);
+		break;
+	case 0x4000245:
+		vramcnt_f_write(nds, value);
+		break;
+	case 0x4000246:
+		vramcnt_g_write(nds, value);
+		break;
 	case 0x4000247:
 		wramcnt_write(nds, value);
+		break;
+	case 0x4000248:
+		vramcnt_h_write(nds, value);
+		break;
+	case 0x4000249:
+		vramcnt_i_write(nds, value);
 		break;
 	}
 }
