@@ -1,6 +1,8 @@
 export CC=arm-none-eabi-gcc
+export AS=arm-none-eabi-as
 export OBJCOPY=arm-none-eabi-objcopy
 export LD=arm-none-eabi-ld
+export CFLAGS=-O2 -ffreestanding
 
 all: hello-world.nds
 

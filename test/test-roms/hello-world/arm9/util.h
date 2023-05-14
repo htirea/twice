@@ -12,11 +12,20 @@ typedef int16_t s16;
 typedef int32_t s32;
 typedef int64_t s64;
 
+typedef volatile u8 vu8;
+typedef volatile u16 vu16;
+typedef volatile u32 vu32;
+typedef volatile u64 vu64;
+typedef volatile s8 vs8;
+typedef volatile s16 vs16;
+typedef volatile s32 vs32;
+typedef volatile s64 vs64;
+
 #define LCDC_OFFSET 0x6800000
 
-#define REG_POWCNT1 *((u16 *)0x4000304)
-#define REG_DISPCNT_A *((u32 *)0x4000000)
-#define REG_VRAMCNT_A *((u8 *)0x4000240)
+#define REG_POWCNT1 *((vu16 *)0x4000304)
+#define REG_DISPCNT_A *((vu32 *)0x4000000)
+#define REG_VRAMCNT_A *((vu8 *)0x4000240)
 
 #define FB_WIDTH 256
 #define FB_HEIGHT 384

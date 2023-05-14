@@ -3,5 +3,11 @@ ENTRY(_arm9_start)
 SECTIONS
 {
 	. = 0x2000000;
-	.text : { *(.text) *(.data) *(.bss) }
+	.text :
+	{
+		entry.o (.text)
+		*(.text)
+		*(.data)
+		*(.bss)
+	}
 }

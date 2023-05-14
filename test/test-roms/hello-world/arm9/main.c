@@ -2,14 +2,14 @@
 #include "util.h"
 
 void
-_arm9_start(void)
+arm9_main(void)
 {
 	REG_POWCNT1 = 0x8003;
 	REG_DISPCNT_A = 0x20000;
 	REG_VRAMCNT_A = 0x80;
 
 	for (u32 i = 0; i < 0xC000; i++) {
-		*((u16 *)LCDC_OFFSET + i) = 0x0;
+		*((vu16 *)LCDC_OFFSET + i) = 0x0;
 	}
 
 	print_string("Hello World!", 0, 0, WHITE);
@@ -44,7 +44,7 @@ print_char(char c, int row, int col, u16 color)
 		u8 bitmap = letter[j];
 		for (int i = 0; i < 8; i++) {
 			if (bitmap & (1 << i)) {
-				*((u16 *)LCDC_OFFSET + FB_WIDTH * (row + j) +
+				*((vu16 *)LCDC_OFFSET + FB_WIDTH * (row + j) +
 						(col + i)) = color;
 			}
 		}
