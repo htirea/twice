@@ -309,6 +309,8 @@ vramcnt_cd_write(NDS *nds, u8 value)
 			break;
 		}
 
+		nds->vramstat &= ~BIT(bank - VRAM_C);
+
 		gpu.bank_mapped[bank] = false;
 	}
 
@@ -325,6 +327,7 @@ vramcnt_cd_write(NDS *nds, u8 value)
 			break;
 		case 2:
 			map_arm7(nds, bank, base, ofs & 1);
+			nds->vramstat |= BIT(bank - VRAM_C);
 			break;
 		case 3:
 			throw TwiceError("map vram bank c/d to texture");

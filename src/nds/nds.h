@@ -70,6 +70,7 @@ struct NDS {
 	/*
 	 * IO
 	 */
+	u8 vramstat{};
 	u8 wramcnt{};
 	u16 dispstat[2]{};
 
