@@ -97,7 +97,7 @@ NDS::direct_boot()
 	parse_header(this, entry_addr);
 
 	arm9->cp15_write(0x100, 0x00012078);
-	arm9->cp15_write(0x910, 0x3000000A);
+	arm9->cp15_write(0x910, 0x0300000A);
 	arm9->cp15_write(0x911, 0x00000020);
 
 	/* TODO: remove this later */
