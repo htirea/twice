@@ -56,10 +56,6 @@ parse_header(NDS *nds, u32 *entry_addr_ret)
 		throw TwiceError("arm7 transfer size too large");
 	}
 
-	if ((rom_offset[0] | rom_offset[1]) & 0x3) {
-		throw TwiceError("cartridge rom offset unaligned");
-	}
-
 	if ((entry_addr[0] | entry_addr[1]) & 0x3) {
 		throw TwiceError("cartridge entry addr unaligned");
 	}
