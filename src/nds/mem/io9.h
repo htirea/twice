@@ -136,6 +136,12 @@ io9_write32(NDS *nds, u32 addr, u32 value)
 	switch (addr) {
 	default:
 		IO_WRITE32_COMMON(0);
+	case 0x4000240:
+		vramcnt_a_write(nds, value);
+		vramcnt_b_write(nds, value >> 8);
+		vramcnt_c_write(nds, value >> 16);
+		vramcnt_d_write(nds, value >> 24);
+		break;
 	case 0x4000290:
 		nds->div_numer[0] = value;
 		nds_math_div(nds);
