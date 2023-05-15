@@ -1,7 +1,7 @@
 #ifndef TWICE_NDS_H
 #define TWICE_NDS_H
 
-#include "nds/gpu/gpu.h"
+#include "nds/gpu/vram.h"
 #include "nds/ipc.h"
 
 #include "common/types.h"
@@ -42,7 +42,7 @@ struct NDS {
 	std::unique_ptr<Arm9> arm9;
 	std::unique_ptr<Arm7> arm7;
 
-	Gpu gpu;
+	GpuVram vram;
 
 	u64 cycles{};
 

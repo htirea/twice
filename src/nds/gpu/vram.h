@@ -1,5 +1,5 @@
-#ifndef TWICE_GPU_H
-#define TWICE_GPU_H
+#ifndef TWICE_GPU_VRAM_H
+#define TWICE_GPU_VRAM_H
 
 #include "common/types.h"
 #include "common/util.h"
@@ -40,7 +40,7 @@ enum VramSizes : u32 {
 	VRAM_I_MASK = 16_KiB - 1,
 };
 
-struct Gpu {
+struct GpuVram {
 	u8 vram_a[VRAM_A_SIZE]{};
 	u8 vram_b[VRAM_B_SIZE]{};
 	u8 vram_c[VRAM_C_SIZE]{};

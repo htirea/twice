@@ -1,5 +1,5 @@
-#ifndef TWICE_VRAM_H
-#define TWICE_VRAM_H
+#ifndef TWICE_MEM_VRAM_H
+#define TWICE_MEM_VRAM_H
 
 #include "nds/nds.h"
 
@@ -7,11 +7,11 @@
 
 #define VRAM_READ_FROM_MASK(bank_)                                            \
 	if (mask & BIT(bank_))                                                \
-	value |= nds->gpu.vram_bank_read<T, bank_>(offset)
+	value |= nds->vram.vram_bank_read<T, bank_>(offset)
 
 #define VRAM_WRITE_FROM_MASK(bank_)                                           \
 	if (mask & BIT(bank_))                                                \
-	nds->gpu.vram_bank_write<T, bank_>(offset, value)
+	nds->vram.vram_bank_write<T, bank_>(offset, value)
 
 namespace twice {
 
@@ -20,11 +20,11 @@ T
 vram_read_abg(NDS *nds, u32 offset)
 {
 	u32 index = offset >> 14 & 31;
-	u8 *p = nds->gpu.abg_pt[index];
+	u8 *p = nds->vram.abg_pt[index];
 	if (p) {
 		return readarr<T>(p, offset & 0x3FFF);
 	} else {
-		u16 mask = nds->gpu.abg_bank[index];
+		u16 mask = nds->vram.abg_bank[index];
 		T value = 0;
 
 		VRAM_READ_FROM_MASK(VRAM_A);
@@ -44,11 +44,11 @@ void
 vram_write_abg(NDS *nds, u32 offset, T value)
 {
 	u32 index = offset >> 14 & 31;
-	u8 *p = nds->gpu.abg_pt[index];
+	u8 *p = nds->vram.abg_pt[index];
 	if (p) {
 		writearr<T>(p, offset & 0x3FFF, value);
 	} else {
-		u16 mask = nds->gpu.abg_bank[index];
+		u16 mask = nds->vram.abg_bank[index];
 		VRAM_WRITE_FROM_MASK(VRAM_A);
 		VRAM_WRITE_FROM_MASK(VRAM_B);
 		VRAM_WRITE_FROM_MASK(VRAM_C);
@@ -64,11 +64,11 @@ T
 vram_read_bbg(NDS *nds, u32 offset)
 {
 	u32 index = offset >> 14 & 7;
-	u8 *p = nds->gpu.bbg_pt[index];
+	u8 *p = nds->vram.bbg_pt[index];
 	if (p) {
 		return readarr<T>(p, offset & 0x3FFF);
 	} else {
-		u16 mask = nds->gpu.bbg_bank[index >> 1];
+		u16 mask = nds->vram.bbg_bank[index >> 1];
 		T value = 0;
 
 		VRAM_READ_FROM_MASK(VRAM_C);
@@ -84,11 +84,11 @@ void
 vram_write_bbg(NDS *nds, u32 offset, T value)
 {
 	u32 index = offset >> 14 & 7;
-	u8 *p = nds->gpu.bbg_pt[index];
+	u8 *p = nds->vram.bbg_pt[index];
 	if (p) {
 		writearr<T>(p, offset & 0x3FFF, value);
 	} else {
-		u16 mask = nds->gpu.bbg_bank[index >> 1];
+		u16 mask = nds->vram.bbg_bank[index >> 1];
 		VRAM_WRITE_FROM_MASK(VRAM_C);
 		VRAM_WRITE_FROM_MASK(VRAM_H);
 		VRAM_WRITE_FROM_MASK(VRAM_I);
@@ -100,11 +100,11 @@ T
 vram_read_aobj(NDS *nds, u32 offset)
 {
 	u32 index = offset >> 14 & 15;
-	u8 *p = nds->gpu.aobj_pt[index];
+	u8 *p = nds->vram.aobj_pt[index];
 	if (p) {
 		return readarr<T>(p, offset & 0x3FFF);
 	} else {
-		u16 mask = nds->gpu.aobj_bank[index];
+		u16 mask = nds->vram.aobj_bank[index];
 		T value = 0;
 
 		VRAM_READ_FROM_MASK(VRAM_A);
@@ -122,11 +122,11 @@ void
 vram_write_aobj(NDS *nds, u32 offset, T value)
 {
 	u32 index = offset >> 14 & 15;
-	u8 *p = nds->gpu.aobj_pt[index];
+	u8 *p = nds->vram.aobj_pt[index];
 	if (p) {
 		writearr<T>(p, offset & 0x3FFF, value);
 	} else {
-		u16 mask = nds->gpu.aobj_bank[index];
+		u16 mask = nds->vram.aobj_bank[index];
 		VRAM_WRITE_FROM_MASK(VRAM_A);
 		VRAM_WRITE_FROM_MASK(VRAM_B);
 		VRAM_WRITE_FROM_MASK(VRAM_E);
@@ -140,11 +140,11 @@ T
 vram_read_bobj(NDS *nds, u32 offset)
 {
 	u32 index = offset >> 14 & 7;
-	u8 *p = nds->gpu.bobj_pt[index];
+	u8 *p = nds->vram.bobj_pt[index];
 	if (p) {
 		return readarr<T>(p, offset & 0x3FFF);
 	} else {
-		u16 mask = nds->gpu.bobj_bank;
+		u16 mask = nds->vram.bobj_bank;
 		T value = 0;
 
 		VRAM_READ_FROM_MASK(VRAM_D);
@@ -159,11 +159,11 @@ void
 vram_write_bobj(NDS *nds, u32 offset, T value)
 {
 	u32 index = offset >> 14 & 7;
-	u8 *p = nds->gpu.bobj_pt[index];
+	u8 *p = nds->vram.bobj_pt[index];
 	if (p) {
 		writearr<T>(p, offset & 0x3FFF, value);
 	} else {
-		u16 mask = nds->gpu.bobj_bank;
+		u16 mask = nds->vram.bobj_bank;
 		VRAM_WRITE_FROM_MASK(VRAM_D);
 		VRAM_WRITE_FROM_MASK(VRAM_I);
 	}
@@ -174,7 +174,7 @@ T
 vram_read_lcdc(NDS *nds, u32 offset)
 {
 	u32 index = offset >> 14 & 63;
-	u8 *p = nds->gpu.lcdc_pt[index];
+	u8 *p = nds->vram.lcdc_pt[index];
 	if (p) {
 		return readarr<T>(p, offset & 0x3FFF);
 	} else {
@@ -187,7 +187,7 @@ void
 vram_write_lcdc(NDS *nds, u32 offset, T value)
 {
 	u32 index = offset >> 14 & 63;
-	u8 *p = nds->gpu.lcdc_pt[index];
+	u8 *p = nds->vram.lcdc_pt[index];
 	if (p) {
 		writearr<T>(p, offset & 0x3FFF, value);
 	}
@@ -241,12 +241,12 @@ T
 vram_arm7_read(NDS *nds, u32 offset)
 {
 	u32 index = offset >> 17 & 1;
-	u8 *p = nds->gpu.arm7_pt[index];
+	u8 *p = nds->vram.arm7_pt[index];
 	if (p) {
 		return readarr<T>(p, offset & 0x1FFFF);
 	} else {
 		T value = 0;
-		u16 mask = nds->gpu.arm7_bank[index];
+		u16 mask = nds->vram.arm7_bank[index];
 		VRAM_READ_FROM_MASK(VRAM_C);
 		VRAM_READ_FROM_MASK(VRAM_D);
 
@@ -259,11 +259,11 @@ void
 vram_arm7_write(NDS *nds, u32 offset, T value)
 {
 	u32 index = offset >> 17 & 1;
-	u8 *p = nds->gpu.arm7_pt[index];
+	u8 *p = nds->vram.arm7_pt[index];
 	if (p) {
 		writearr<T>(p, offset & 0x1FFFF, value);
 	} else {
-		u16 mask = nds->gpu.arm7_bank[index];
+		u16 mask = nds->vram.arm7_bank[index];
 		VRAM_WRITE_FROM_MASK(VRAM_C);
 		VRAM_WRITE_FROM_MASK(VRAM_D);
 	}

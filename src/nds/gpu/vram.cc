@@ -7,8 +7,8 @@ namespace twice {
 u8 *
 get_vram_ptr(NDS *nds, int bank, int page)
 {
-	u8 *base = nds->gpu.bank_to_base_ptr[bank];
-	u8 mask = nds->gpu.bank_to_page_mask[bank];
+	u8 *base = nds->vram.bank_to_base_ptr[bank];
+	u8 mask = nds->vram.bank_to_page_mask[bank];
 
 	return base + (page & mask) * 16_KiB;
 }
@@ -17,7 +17,7 @@ void
 map_lcdc(NDS *nds, u8 *base, int start, int len)
 {
 	for (int i = start; i < start + len; i++, base += 16_KiB) {
-		nds->gpu.lcdc_pt[i] = base;
+		nds->vram.lcdc_pt[i] = base;
 	}
 }
 
@@ -25,7 +25,7 @@ void
 unmap_lcdc(NDS *nds, int start, int len)
 {
 	for (int i = start; i < start + len; i++) {
-		nds->gpu.lcdc_pt[i] = nullptr;
+		nds->vram.lcdc_pt[i] = nullptr;
 	}
 }
 
@@ -33,12 +33,12 @@ void
 map_abg(NDS *nds, int bank, u8 *base, int start, int len)
 {
 	for (int i = start; i < start + len; i++, base += 16_KiB) {
-		auto& mask = nds->gpu.abg_bank[i];
+		auto& mask = nds->vram.abg_bank[i];
 
 		if (mask == 0) {
-			nds->gpu.abg_pt[i] = base;
+			nds->vram.abg_pt[i] = base;
 		} else {
-			nds->gpu.abg_pt[i] = nullptr;
+			nds->vram.abg_pt[i] = nullptr;
 		}
 
 		mask |= BIT(bank);
@@ -49,14 +49,14 @@ void
 unmap_abg(NDS *nds, int bank, int start, int len)
 {
 	for (int i = start; i < start + len; i++) {
-		auto& mask = nds->gpu.abg_bank[i];
+		auto& mask = nds->vram.abg_bank[i];
 		mask &= ~BIT(bank);
 
 		if (std::has_single_bit(mask)) {
 			int only_bank = std::countr_zero(mask);
-			nds->gpu.abg_pt[i] = get_vram_ptr(nds, only_bank, i);
+			nds->vram.abg_pt[i] = get_vram_ptr(nds, only_bank, i);
 		} else {
-			nds->gpu.abg_pt[i] = nullptr;
+			nds->vram.abg_pt[i] = nullptr;
 		}
 	}
 }
@@ -65,12 +65,12 @@ void
 map_aobj(NDS *nds, int bank, u8 *base, int start, int len)
 {
 	for (int i = start; i < start + len; i++, base += 16_KiB) {
-		auto& mask = nds->gpu.aobj_bank[i];
+		auto& mask = nds->vram.aobj_bank[i];
 
 		if (mask == 0) {
-			nds->gpu.aobj_pt[i] = base;
+			nds->vram.aobj_pt[i] = base;
 		} else {
-			nds->gpu.aobj_pt[i] = nullptr;
+			nds->vram.aobj_pt[i] = nullptr;
 		}
 
 		mask |= BIT(bank);
@@ -81,14 +81,14 @@ void
 unmap_aobj(NDS *nds, int bank, int start, int len)
 {
 	for (int i = start; i < start + len; i++) {
-		auto& mask = nds->gpu.aobj_bank[i];
+		auto& mask = nds->vram.aobj_bank[i];
 		mask &= ~BIT(bank);
 
 		if (std::has_single_bit(mask)) {
 			int only_bank = std::countr_zero(mask);
-			nds->gpu.aobj_pt[i] = get_vram_ptr(nds, only_bank, i);
+			nds->vram.aobj_pt[i] = get_vram_ptr(nds, only_bank, i);
 		} else {
-			nds->gpu.aobj_pt[i] = nullptr;
+			nds->vram.aobj_pt[i] = nullptr;
 		}
 	}
 }
@@ -97,18 +97,18 @@ void
 map_bbg(NDS *nds, int bank, u8 *base, int start, int len)
 {
 	for (int i = start; i < start + len; i += 2, base += 32_KiB) {
-		auto& mask = nds->gpu.bbg_bank[i >> 1];
+		auto& mask = nds->vram.bbg_bank[i >> 1];
 
 		if (mask == 0) {
-			nds->gpu.bbg_pt[i] = base;
+			nds->vram.bbg_pt[i] = base;
 			if (bank == VRAM_I) {
-				nds->gpu.bbg_pt[i + 1] = base;
+				nds->vram.bbg_pt[i + 1] = base;
 			} else {
-				nds->gpu.bbg_pt[i + 1] = base + 16_KiB;
+				nds->vram.bbg_pt[i + 1] = base + 16_KiB;
 			}
 		} else {
-			nds->gpu.bbg_pt[i] = nullptr;
-			nds->gpu.bbg_pt[i + 1] = nullptr;
+			nds->vram.bbg_pt[i] = nullptr;
+			nds->vram.bbg_pt[i + 1] = nullptr;
 		}
 
 		mask |= BIT(bank);
@@ -119,21 +119,21 @@ void
 unmap_bbg(NDS *nds, int bank, int start, int len)
 {
 	for (int i = start; i < start + len; i += 2) {
-		auto& mask = nds->gpu.bbg_bank[i >> 1];
+		auto& mask = nds->vram.bbg_bank[i >> 1];
 		mask &= ~BIT(bank);
 
 		if (std::has_single_bit(mask)) {
 			int only_bank = std::countr_zero(mask);
 			u8 *p = get_vram_ptr(nds, only_bank, i);
-			nds->gpu.bbg_pt[i] = p;
+			nds->vram.bbg_pt[i] = p;
 			if (bank == VRAM_I) {
-				nds->gpu.bbg_pt[i + 1] = p;
+				nds->vram.bbg_pt[i + 1] = p;
 			} else {
-				nds->gpu.bbg_pt[i + 1] = p + 16_KiB;
+				nds->vram.bbg_pt[i + 1] = p + 16_KiB;
 			}
 		} else {
-			nds->gpu.bbg_pt[i] = nullptr;
-			nds->gpu.bbg_pt[i + 1] = nullptr;
+			nds->vram.bbg_pt[i] = nullptr;
+			nds->vram.bbg_pt[i + 1] = nullptr;
 		}
 	}
 }
@@ -141,21 +141,21 @@ unmap_bbg(NDS *nds, int bank, int start, int len)
 void
 map_bobj(NDS *nds, int bank, u8 *base)
 {
-	auto& mask = nds->gpu.bobj_bank;
+	auto& mask = nds->vram.bobj_bank;
 
 	if (mask == 0) {
 		if (bank == VRAM_D) {
 			for (int i = 0; i < 8; i++) {
-				nds->gpu.bobj_pt[i] = base + i * 16_KiB;
+				nds->vram.bobj_pt[i] = base + i * 16_KiB;
 			}
 		} else {
 			for (int i = 0; i < 8; i++) {
-				nds->gpu.bobj_pt[i] = base;
+				nds->vram.bobj_pt[i] = base;
 			}
 		}
 	} else {
 		for (int i = 0; i < 8; i++) {
-			nds->gpu.bobj_pt[i] = nullptr;
+			nds->vram.bobj_pt[i] = nullptr;
 		}
 	}
 
@@ -165,20 +165,20 @@ map_bobj(NDS *nds, int bank, u8 *base)
 void
 unmap_bobj(NDS *nds, int bank)
 {
-	auto& mask = nds->gpu.bobj_bank;
+	auto& mask = nds->vram.bobj_bank;
 	mask &= ~BIT(bank);
 
 	if (mask == BIT(VRAM_D)) {
 		for (int i = 0; i < 8; i++) {
-			nds->gpu.bobj_pt[i] = nds->gpu.vram_d + i * 16_KiB;
+			nds->vram.bobj_pt[i] = nds->vram.vram_d + i * 16_KiB;
 		}
 	} else if (mask == BIT(VRAM_I)) {
 		for (int i = 0; i < 8; i++) {
-			nds->gpu.bobj_pt[i] = nds->gpu.vram_i;
+			nds->vram.bobj_pt[i] = nds->vram.vram_i;
 		}
 	} else {
 		for (int i = 0; i < 8; i++) {
-			nds->gpu.bobj_pt[i] = nullptr;
+			nds->vram.bobj_pt[i] = nullptr;
 		}
 	}
 }
@@ -186,12 +186,12 @@ unmap_bobj(NDS *nds, int bank)
 void
 map_arm7(NDS *nds, int bank, u8 *base, int i)
 {
-	auto& mask = nds->gpu.arm7_bank[i];
+	auto& mask = nds->vram.arm7_bank[i];
 
 	if (mask == 0) {
-		nds->gpu.arm7_pt[i] = base;
+		nds->vram.arm7_pt[i] = base;
 	} else {
-		nds->gpu.arm7_pt[i] = nullptr;
+		nds->vram.arm7_pt[i] = nullptr;
 	}
 
 	mask |= BIT(bank);
@@ -200,14 +200,14 @@ map_arm7(NDS *nds, int bank, u8 *base, int i)
 void
 unmap_arm7(NDS *nds, int bank, int i)
 {
-	auto& mask = nds->gpu.arm7_bank[i];
+	auto& mask = nds->vram.arm7_bank[i];
 	mask &= ~BIT(bank);
 
 	if (std::has_single_bit(mask)) {
 		int only_bank = std::countr_zero(mask);
-		nds->gpu.arm7_pt[i] = nds->gpu.bank_to_base_ptr[only_bank];
+		nds->vram.arm7_pt[i] = nds->vram.bank_to_base_ptr[only_bank];
 	} else {
-		nds->gpu.arm7_pt[i] = nullptr;
+		nds->vram.arm7_pt[i] = nullptr;
 	}
 }
 
@@ -215,17 +215,17 @@ template <int bank>
 void
 vramcnt_ab_write(NDS *nds, u8 value)
 {
-	auto& gpu = nds->gpu;
+	auto& vram = nds->vram;
 
-	u8 old = gpu.vramcnt[bank];
+	u8 old = vram.vramcnt[bank];
 
 	if (value == old) {
 		return;
 	}
 
-	u8 *base = gpu.bank_to_base_ptr[bank];
+	u8 *base = vram.bank_to_base_ptr[bank];
 
-	if (gpu.bank_mapped[bank]) {
+	if (vram.bank_mapped[bank]) {
 		u8 mst = old & 0x3;
 		u8 ofs = old >> 3 & 0x3;
 
@@ -243,7 +243,7 @@ vramcnt_ab_write(NDS *nds, u8 value)
 			throw TwiceError("unmap vram bank a/b to texture");
 		}
 
-		gpu.bank_mapped[bank] = false;
+		vram.bank_mapped[bank] = false;
 	}
 
 	if (value & 0x80) {
@@ -264,27 +264,27 @@ vramcnt_ab_write(NDS *nds, u8 value)
 			throw TwiceError("map vram bank a/b to texture");
 		}
 
-		gpu.bank_mapped[bank] = true;
+		vram.bank_mapped[bank] = true;
 	}
 
-	gpu.vramcnt[bank] = value;
+	vram.vramcnt[bank] = value;
 }
 
 template <int bank>
 void
 vramcnt_cd_write(NDS *nds, u8 value)
 {
-	auto& gpu = nds->gpu;
+	auto& vram = nds->vram;
 
-	u8 old = gpu.vramcnt[bank];
+	u8 old = vram.vramcnt[bank];
 
 	if (value == old) {
 		return;
 	}
 
-	u8 *base = gpu.bank_to_base_ptr[bank];
+	u8 *base = vram.bank_to_base_ptr[bank];
 
-	if (gpu.bank_mapped[bank]) {
+	if (vram.bank_mapped[bank]) {
 		u8 mst = old & 0x7;
 		u8 ofs = old >> 3 & 0x3;
 
@@ -311,7 +311,7 @@ vramcnt_cd_write(NDS *nds, u8 value)
 
 		nds->vramstat &= ~BIT(bank - VRAM_C);
 
-		gpu.bank_mapped[bank] = false;
+		vram.bank_mapped[bank] = false;
 	}
 
 	if (value & 0x80) {
@@ -342,26 +342,26 @@ vramcnt_cd_write(NDS *nds, u8 value)
 			throw TwiceError("map vram bank c/d invalid mst");
 		}
 
-		gpu.bank_mapped[bank] = true;
+		vram.bank_mapped[bank] = true;
 	}
 
-	gpu.vramcnt[bank] = value;
+	vram.vramcnt[bank] = value;
 }
 
 void
 vramcnt_e_write(NDS *nds, u8 value)
 {
-	auto& gpu = nds->gpu;
+	auto& vram = nds->vram;
 
-	u8 old = gpu.vramcnt[VRAM_E];
+	u8 old = vram.vramcnt[VRAM_E];
 
 	if (value == old) {
 		return;
 	}
 
-	u8 *base = gpu.bank_to_base_ptr[VRAM_E];
+	u8 *base = vram.bank_to_base_ptr[VRAM_E];
 
-	if (gpu.bank_mapped[VRAM_E]) {
+	if (vram.bank_mapped[VRAM_E]) {
 		u8 mst = old & 0x7;
 
 		switch (mst) {
@@ -380,7 +380,7 @@ vramcnt_e_write(NDS *nds, u8 value)
 			throw TwiceError("unmap vram bank e abg extpal");
 		}
 
-		gpu.bank_mapped[VRAM_E] = false;
+		vram.bank_mapped[VRAM_E] = false;
 	}
 
 	if (value & 0x80) {
@@ -404,27 +404,27 @@ vramcnt_e_write(NDS *nds, u8 value)
 			throw TwiceError("map vram bank e invalid mst");
 		}
 
-		gpu.bank_mapped[VRAM_E] = true;
+		vram.bank_mapped[VRAM_E] = true;
 	}
 
-	gpu.vramcnt[VRAM_E] = value;
+	vram.vramcnt[VRAM_E] = value;
 }
 
 template <int bank>
 void
 vramcnt_fg_write(NDS *nds, u8 value)
 {
-	auto& gpu = nds->gpu;
+	auto& vram = nds->vram;
 
-	u8 old = gpu.vramcnt[bank];
+	u8 old = vram.vramcnt[bank];
 
 	if (value == old) {
 		return;
 	}
 
-	u8 *base = gpu.bank_to_base_ptr[bank];
+	u8 *base = vram.bank_to_base_ptr[bank];
 
-	if (gpu.bank_mapped[bank]) {
+	if (vram.bank_mapped[bank]) {
 		u8 mst = old & 0x7;
 		u8 ofs = old >> 3 & 0x3;
 		u32 offset = (ofs & 1) | (ofs & 2) << 1;
@@ -448,7 +448,7 @@ vramcnt_fg_write(NDS *nds, u8 value)
 		case 5:
 			throw TwiceError("unmap vram bank f/g aobj ext pal");
 		}
-		gpu.bank_mapped[bank] = false;
+		vram.bank_mapped[bank] = false;
 	}
 
 	if (value & 0x80) {
@@ -478,26 +478,26 @@ vramcnt_fg_write(NDS *nds, u8 value)
 			throw TwiceError("map vram bank f/g invalid mst");
 		}
 
-		gpu.bank_mapped[bank] = true;
+		vram.bank_mapped[bank] = true;
 	}
 
-	gpu.vramcnt[bank] = value;
+	vram.vramcnt[bank] = value;
 }
 
 void
 vramcnt_h_write(NDS *nds, u8 value)
 {
-	auto& gpu = nds->gpu;
+	auto& vram = nds->vram;
 
-	u8 old = gpu.vramcnt[VRAM_H];
+	u8 old = vram.vramcnt[VRAM_H];
 
 	if (value == old) {
 		return;
 	}
 
-	u8 *base = gpu.bank_to_base_ptr[VRAM_H];
+	u8 *base = vram.bank_to_base_ptr[VRAM_H];
 
-	if (gpu.bank_mapped[VRAM_H]) {
+	if (vram.bank_mapped[VRAM_H]) {
 		u8 mst = old & 0x3;
 
 		switch (mst) {
@@ -512,7 +512,7 @@ vramcnt_h_write(NDS *nds, u8 value)
 			throw TwiceError("unmap vram bank h bbg ext pal");
 		}
 
-		gpu.bank_mapped[VRAM_H] = false;
+		vram.bank_mapped[VRAM_H] = false;
 	}
 
 	if (value & 0x80) {
@@ -532,26 +532,26 @@ vramcnt_h_write(NDS *nds, u8 value)
 			throw TwiceError("map vram bank h invalid mst");
 		}
 
-		gpu.bank_mapped[VRAM_H] = true;
+		vram.bank_mapped[VRAM_H] = true;
 	}
 
-	gpu.vramcnt[VRAM_H] = value;
+	vram.vramcnt[VRAM_H] = value;
 }
 
 void
 vramcnt_i_write(NDS *nds, u8 value)
 {
-	auto& gpu = nds->gpu;
+	auto& vram = nds->vram;
 
-	u8 old = gpu.vramcnt[VRAM_I];
+	u8 old = vram.vramcnt[VRAM_I];
 
 	if (value == old) {
 		return;
 	}
 
-	u8 *base = gpu.bank_to_base_ptr[VRAM_I];
+	u8 *base = vram.bank_to_base_ptr[VRAM_I];
 
-	if (gpu.bank_mapped[VRAM_I]) {
+	if (vram.bank_mapped[VRAM_I]) {
 		u8 mst = old & 0x3;
 
 		switch (mst) {
@@ -569,7 +569,7 @@ vramcnt_i_write(NDS *nds, u8 value)
 			throw TwiceError("unmap vram bank i bobj ext pal");
 		}
 
-		gpu.bank_mapped[VRAM_I] = false;
+		vram.bank_mapped[VRAM_I] = false;
 	}
 
 	if (value & 0x80) {
@@ -590,10 +590,10 @@ vramcnt_i_write(NDS *nds, u8 value)
 			throw TwiceError("map vram bank i bobj ext pal");
 		}
 
-		gpu.bank_mapped[VRAM_I] = true;
+		vram.bank_mapped[VRAM_I] = true;
 	}
 
-	gpu.vramcnt[VRAM_I] = value;
+	vram.vramcnt[VRAM_I] = value;
 }
 
 void
