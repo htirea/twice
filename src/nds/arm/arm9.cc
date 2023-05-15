@@ -45,7 +45,7 @@ Arm9::step()
 		do_irq();
 	}
 
-	nds->cycles += 1;
+	cycles += 1;
 }
 
 void

@@ -1,8 +1,10 @@
 #ifndef TWICE_NDS_H
 #define TWICE_NDS_H
 
+#include "nds/gpu/gpu.h"
 #include "nds/gpu/vram.h"
 #include "nds/ipc.h"
+#include "nds/scheduler.h"
 
 #include "common/types.h"
 
@@ -43,8 +45,9 @@ struct NDS {
 	std::unique_ptr<Arm7> arm7;
 
 	GpuVram vram;
+	Gpu gpu;
 
-	u64 cycles{};
+	Scheduler scheduler;
 
 	/*
 	 * Memory
@@ -88,6 +91,11 @@ struct NDS {
 	u32 divrem_result[2]{};
 
 	u16 keyinput{ 0x3FF };
+
+	/*
+	 * MISC
+	 */
+	bool frame_finished{};
 
 	/*
 	 * Functions

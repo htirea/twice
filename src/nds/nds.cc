@@ -15,6 +15,7 @@ NDS::NDS(u8 *arm7_bios, u8 *arm9_bios, u8 *firmware, u8 *cartridge,
 		size_t cartridge_size)
 	: arm9(std::make_unique<Arm9>(this)),
 	  arm7(std::make_unique<Arm7>(this)),
+	  scheduler(this),
 	  arm7_bios(arm7_bios),
 	  arm9_bios(arm9_bios),
 	  firmware(firmware),
@@ -24,6 +25,9 @@ NDS::NDS(u8 *arm7_bios, u8 *arm9_bios, u8 *firmware, u8 *cartridge,
 	cpu[0] = arm9.get();
 	cpu[1] = arm7.get();
 	wramcnt_write(this, 0x0);
+
+	scheduler.schedule_event(Scheduler::HBLANK_START, 1536);
+	scheduler.schedule_event(Scheduler::HBLANK_END, 2130);
 }
 
 NDS::~NDS() = default;
@@ -116,53 +120,22 @@ NDS::direct_boot()
 	/* TODO: more stuff for direct booting */
 }
 
-u32
-ABGR1555_TO_ABGR8888(u16 color)
-{
-	u8 r = color & 0x1F;
-	u8 g = color >> 5 & 0x1F;
-	u8 b = color >> 10 & 0x1F;
-	u8 a = color >> 15;
-
-	r = (r << 3) | (r >> 2);
-	g = (g << 3) | (g >> 2);
-	b = (b << 3) | (b >> 2);
-	a = a * 0xFF;
-
-	return (a << 24) | (b << 16) | (g << 8) | r;
-}
-
 void
 NDS::run_frame()
 {
-	cycles = 0;
+	frame_finished = false;
 
-	while (cycles < 408960 * 2) {
-		arm9->step();
-		arm9->step();
-		arm7->step();
-	}
+	while (!frame_finished) {
+		u64 next_event = scheduler.get_next_event_time();
 
-	dispstat[0] |= 1;
-	dispstat[1] |= 1;
+		arm9->target_cycles = next_event << 1;
+		arm9->run();
 
-	for (u32 i = 0; i < NDS_FB_SZ; i++) {
-		fb[i] = ABGR1555_TO_ABGR8888(vram_read_lcdc<u16>(this, i * 2));
-	}
+		arm7->target_cycles = arm9->cycles >> 1;
+		arm7->run();
 
-	while (cycles < 558060 * 2) {
-		arm9->step();
-		arm9->step();
-		arm7->step();
-	}
-
-	dispstat[0] &= ~1;
-	dispstat[1] &= ~1;
-
-	while (cycles < 560190 * 2) {
-		arm9->step();
-		arm9->step();
-		arm7->step();
+		scheduler.current_time = arm7->cycles;
+		scheduler.run_events();
 	}
 }
 

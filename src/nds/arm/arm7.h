@@ -8,6 +8,7 @@ namespace twice {
 struct Arm7 final : Arm {
 	Arm7(NDS *nds);
 
+	void step() override;
 	void jump(u32 addr) override;
 	void arm_jump(u32 addr) override;
 	void thumb_jump(u32 addr) override;
@@ -22,8 +23,6 @@ struct Arm7 final : Arm {
 	void store8(u32 addr, u8 value) override;
 	u16 ldrh(u32 addr) override;
 	s16 ldrsh(u32 addr) override;
-
-	void step();
 };
 
 } // namespace twice

@@ -13,6 +13,14 @@ Arm::Arm(NDS *nds)
 {
 }
 
+void
+Arm::run()
+{
+	while (cycles < target_cycles) {
+		step();
+	}
+}
+
 static u32
 mode_bits_to_mode(u32 bits)
 {

@@ -33,6 +33,7 @@ struct Arm9 final : Arm {
 	u32 dtcm_reg{};
 	u32 itcm_reg{};
 
+	void step() override;
 	void jump(u32 addr) override;
 	void arm_jump(u32 addr) override;
 	void thumb_jump(u32 addr) override;
@@ -48,7 +49,6 @@ struct Arm9 final : Arm {
 	u16 ldrh(u32 addr) override;
 	s16 ldrsh(u32 addr) override;
 
-	void step();
 	u32 cp15_read(u32 reg);
 	void cp15_write(u32 reg, u32 value);
 

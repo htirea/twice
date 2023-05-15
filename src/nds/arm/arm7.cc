@@ -37,6 +37,8 @@ Arm7::step()
 	if (interrupt) {
 		do_irq();
 	}
+
+	cycles += 1;
 }
 
 void

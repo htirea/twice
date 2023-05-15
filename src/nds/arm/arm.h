@@ -45,6 +45,9 @@ struct Arm {
 	u32 IE{};
 	bool interrupt{};
 
+	u64 target_cycles{};
+	u64 cycles{};
+
 	NDS *nds{};
 	int cpuid{};
 
@@ -169,6 +172,7 @@ struct Arm {
 		return false;
 	}
 
+	virtual void step() = 0;
 	virtual void jump(u32 addr) = 0;
 	virtual void arm_jump(u32 addr) = 0;
 	virtual void thumb_jump(u32 addr) = 0;
@@ -184,6 +188,7 @@ struct Arm {
 	virtual u16 ldrh(u32 addr) = 0;
 	virtual s16 ldrsh(u32 addr) = 0;
 
+	void run();
 	void on_cpsr_write();
 	void switch_mode(u32 new_mode);
 	void swap_registers(u32 old_mode, u32 new_mode);
