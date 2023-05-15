@@ -141,7 +141,7 @@ NDS::run_frame()
 {
 	cycles = 0;
 
-	while (cycles < 408960) {
+	while (cycles < 408960 * 2) {
 		arm9->step();
 		arm9->step();
 		arm7->step();
@@ -154,7 +154,7 @@ NDS::run_frame()
 		fb[i] = ABGR1555_TO_ABGR8888(vram_read_lcdc<u16>(this, i * 2));
 	}
 
-	while (cycles < 558060) {
+	while (cycles < 558060 * 2) {
 		arm9->step();
 		arm9->step();
 		arm7->step();
@@ -163,7 +163,7 @@ NDS::run_frame()
 	dispstat[0] &= ~1;
 	dispstat[1] &= ~1;
 
-	while (cycles < 560190) {
+	while (cycles < 560190 * 2) {
 		arm9->step();
 		arm9->step();
 		arm7->step();
