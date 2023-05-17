@@ -116,13 +116,14 @@ struct Arm {
 	void do_irq()
 	{
 		u32 old_cpsr = cpsr;
+		u32 ret_addr = pc() - (in_thumb() ? 2 : 4) + 4;
 
 		cpsr &= ~0xBF;
 		cpsr |= 0x92;
 		switch_mode(MODE_IRQ);
 		interrupt = false;
 
-		gpr[14] = pc() - (in_thumb() ? 2 : 4) + 4;
+		gpr[14] = ret_addr;
 		spsr() = old_cpsr;
 		arm_jump(exception_base + 0x18);
 	}
