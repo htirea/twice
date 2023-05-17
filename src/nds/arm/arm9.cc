@@ -277,6 +277,9 @@ Arm9::cp15_write(u32 reg, u32 value)
 		itcm_reg = value & 0x3E;
 		break;
 	}
+	case 0x704:
+		/* TODO: implement halt */
+		break;
 	default:
 		fprintf(stderr, "unhandled cp15 write to %03X\n", reg);
 	}
