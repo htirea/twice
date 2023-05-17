@@ -2,8 +2,7 @@
 
 namespace twice {
 
-Scheduler::Scheduler(NDS *nds)
-	: nds(nds)
+Scheduler::Scheduler()
 {
 	events[HBLANK_START].cb = gpu_on_hblank_start;
 	events[HBLANK_END].cb = gpu_on_hblank_end;
@@ -38,11 +37,15 @@ Scheduler::get_next_event_time()
 }
 
 void
-Scheduler::run_events()
+run_events(NDS *nds)
 {
-	for (int i = 0; i < NUM_EVENTS; i++) {
-		if (events[i].enabled && current_time >= events[i].time) {
-			events[i].cb(nds);
+	auto& sc = nds->scheduler;
+
+	for (int i = 0; i < Scheduler::NUM_EVENTS; i++) {
+		if (sc.events[i].enabled &&
+				sc.current_time >= sc.events[i].time) {
+			sc.events[i].enabled = false;
+			sc.events[i].cb(nds);
 		}
 	}
 }

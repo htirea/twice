@@ -15,7 +15,6 @@ NDS::NDS(u8 *arm7_bios, u8 *arm9_bios, u8 *firmware, u8 *cartridge,
 		size_t cartridge_size)
 	: arm9(std::make_unique<Arm9>(this)),
 	  arm7(std::make_unique<Arm7>(this)),
-	  scheduler(this),
 	  arm7_bios(arm7_bios),
 	  arm9_bios(arm9_bios),
 	  firmware(firmware),
@@ -135,7 +134,7 @@ NDS::run_frame()
 		arm7->run();
 
 		scheduler.current_time = arm7->cycles;
-		scheduler.run_events();
+		run_events(this);
 	}
 }
 

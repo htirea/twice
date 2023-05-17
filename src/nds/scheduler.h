@@ -10,7 +10,7 @@ struct NDS;
 typedef void (*event_cb)(NDS *);
 
 struct Scheduler {
-	Scheduler(NDS *nds);
+	Scheduler();
 
 	enum EventType {
 		HBLANK_START,
@@ -19,7 +19,6 @@ struct Scheduler {
 	};
 
 	u64 current_time{};
-	NDS *nds{};
 
 	struct Event {
 		bool enabled{};
@@ -30,8 +29,9 @@ struct Scheduler {
 	void schedule_event(int event, u64 t);
 	void reschedule_event_after(int event, u64 t);
 	u64 get_next_event_time();
-	void run_events();
 };
+
+void run_events(NDS *nds);
 
 } // namespace twice
 
