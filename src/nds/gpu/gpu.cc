@@ -21,6 +21,8 @@ gpu_on_vblank(NDS *nds)
 		nds->cpu[1]->request_interrupt(0);
 	}
 
+	dma_on_vblank(nds);
+
 	nds->frame_finished = true;
 }
 
@@ -36,6 +38,10 @@ gpu_on_hblank_start(NDS *nds)
 
 	if (nds->dispstat[1] & BIT(4)) {
 		nds->cpu[1]->request_interrupt(1);
+	}
+
+	if (nds->gpu.ly < 192) {
+		dma_on_hblank_start(nds);
 	}
 
 	nds->scheduler.reschedule_event_after(Scheduler::HBLANK_START, 2130);

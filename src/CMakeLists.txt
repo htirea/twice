@@ -12,6 +12,7 @@ add_library(twice STATIC
 	nds/arm/arm.cc
 	nds/arm/arm7.cc
 	nds/arm/arm9.cc
+	nds/dma.cc
 	nds/arm/interpreter/lut.cc
 	nds/gpu/gpu.cc
 	nds/gpu/vram.cc

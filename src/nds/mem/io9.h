@@ -47,6 +47,14 @@ io9_read32(NDS *nds, u32 addr)
 	switch (addr) {
 	default:
 		IO_READ32_COMMON(0);
+	case 0x40000E0:
+		return nds->dmafill[0];
+	case 0x40000E4:
+		return nds->dmafill[1];
+	case 0x40000E8:
+		return nds->dmafill[2];
+	case 0x40000EC:
+		return nds->dmafill[3];
 	case 0x4000290:
 		return nds->div_numer[0];
 	case 0x4000294:
@@ -136,6 +144,18 @@ io9_write32(NDS *nds, u32 addr, u32 value)
 	switch (addr) {
 	default:
 		IO_WRITE32_COMMON(0);
+	case 0x40000E0:
+		nds->dmafill[0] = value;
+		break;
+	case 0x40000E4:
+		nds->dmafill[1] = value;
+		break;
+	case 0x40000E8:
+		nds->dmafill[2] = value;
+		break;
+	case 0x40000EC:
+		nds->dmafill[3] = value;
+		break;
 	case 0x4000240:
 		vramcnt_a_write(nds, value);
 		vramcnt_b_write(nds, value >> 8);

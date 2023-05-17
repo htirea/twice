@@ -1,6 +1,7 @@
 #ifndef TWICE_NDS_H
 #define TWICE_NDS_H
 
+#include "nds/dma.h"
 #include "nds/gpu/gpu.h"
 #include "nds/gpu/vram.h"
 #include "nds/ipc.h"
@@ -51,6 +52,10 @@ struct NDS {
 	u64 arm_target_cycles[2]{};
 	u64 arm_cycles[2]{};
 
+	Dma *dma[2]{ &dma9, &dma7 };
+	Dma9 dma9;
+	Dma7 dma7;
+
 	/*
 	 * Memory
 	 */
@@ -92,12 +97,19 @@ struct NDS {
 	u32 div_result[2]{};
 	u32 divrem_result[2]{};
 
+	u32 dma_sad[2][4]{};
+	u32 dma_dad[2][4]{};
+	u16 dmacnt_l[2][4]{};
+	u16 dmacnt_h[2][4]{};
+	u32 dmafill[4]{};
+
 	u16 keyinput{ 0x3FF };
 
 	/*
 	 * MISC
 	 */
 	bool frame_finished{};
+	bool trace{};
 
 	/*
 	 * Functions

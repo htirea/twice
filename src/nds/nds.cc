@@ -15,6 +15,8 @@ NDS::NDS(u8 *arm7_bios, u8 *arm9_bios, u8 *firmware, u8 *cartridge,
 		size_t cartridge_size)
 	: arm9(std::make_unique<Arm9>(this)),
 	  arm7(std::make_unique<Arm7>(this)),
+	  dma9(this),
+	  dma7(this),
 	  arm7_bios(arm7_bios),
 	  arm9_bios(arm9_bios),
 	  firmware(firmware),
@@ -23,6 +25,7 @@ NDS::NDS(u8 *arm7_bios, u8 *arm9_bios, u8 *firmware, u8 *cartridge,
 {
 	cpu[0] = arm9.get();
 	cpu[1] = arm7.get();
+
 	wramcnt_write(this, 0x0);
 
 	scheduler.schedule_event(Scheduler::HBLANK_START, 1536);
@@ -128,10 +131,25 @@ NDS::run_frame()
 		u64 next_event = scheduler.get_next_event_time();
 
 		arm_target_cycles[0] = next_event << 1;
-		arm9->run();
+		if (dma9.active) {
+			dma9.run();
+		} else {
+			arm9->run();
+		}
 
-		arm_target_cycles[1] = arm_cycles[0] >> 1;
-		arm7->run();
+		run_arm_events(this, 0);
+
+		u64 arm7_target = arm_cycles[0] >> 1;
+		while (arm_cycles[1] < arm7_target) {
+			arm_target_cycles[1] = arm7_target;
+			if (dma7.active) {
+				dma7.run();
+			} else {
+				arm7->run();
+			}
+
+			run_arm_events(this, 1);
+		}
 
 		scheduler.current_time = arm_cycles[1];
 		run_events(this);
