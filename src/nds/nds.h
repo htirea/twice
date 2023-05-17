@@ -48,6 +48,8 @@ struct NDS {
 	Gpu gpu;
 
 	Scheduler scheduler;
+	u64 arm_target_cycles[2]{};
+	u64 arm_cycles[2]{};
 
 	/*
 	 * Memory

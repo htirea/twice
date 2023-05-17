@@ -7,9 +7,8 @@
 namespace twice {
 
 Arm9::Arm9(NDS *nds)
-	: Arm(nds)
+	: Arm(nds, 0)
 {
-	cpuid = 0;
 }
 
 void

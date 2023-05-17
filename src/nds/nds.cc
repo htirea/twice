@@ -127,13 +127,13 @@ NDS::run_frame()
 	while (!frame_finished) {
 		u64 next_event = scheduler.get_next_event_time();
 
-		arm9->target_cycles = next_event << 1;
+		arm_target_cycles[0] = next_event << 1;
 		arm9->run();
 
-		arm7->target_cycles = arm9->cycles >> 1;
+		arm_target_cycles[1] = arm_cycles[0] >> 1;
 		arm7->run();
 
-		scheduler.current_time = arm7->cycles;
+		scheduler.current_time = arm_cycles[1];
 		run_events(this);
 	}
 }

@@ -29,7 +29,7 @@ enum CpuModeBits {
 struct NDS;
 
 struct Arm {
-	Arm(NDS *nds);
+	Arm(NDS *nds, int cpuid);
 
 	u32 gpr[16]{};
 	u32 bankedr[6][3]{};
@@ -45,11 +45,11 @@ struct Arm {
 	u32 IE{};
 	bool interrupt{};
 
-	u64 target_cycles{};
-	u64 cycles{};
-
 	NDS *nds{};
 	int cpuid{};
+
+	u64& target_cycles;
+	u64& cycles;
 
 	void check_interrupt()
 	{

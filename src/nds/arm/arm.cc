@@ -8,8 +8,11 @@
 
 namespace twice {
 
-Arm::Arm(NDS *nds)
-	: nds(nds)
+Arm::Arm(NDS *nds, int cpuid)
+	: nds(nds),
+	  cpuid(cpuid),
+	  target_cycles(nds->arm_target_cycles[cpuid]),
+	  cycles(nds->arm_cycles[cpuid])
 {
 }
 
