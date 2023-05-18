@@ -278,7 +278,8 @@ Arm9::cp15_write(u32 reg, u32 value)
 		break;
 	}
 	case 0x704:
-		/* TODO: implement halt */
+		halted = true;
+		force_stop();
 		break;
 	default:
 		fprintf(stderr, "unhandled cp15 write to %03X\n", reg);

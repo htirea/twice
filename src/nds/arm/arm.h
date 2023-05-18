@@ -44,12 +44,15 @@ struct Arm {
 	u32 IF{};
 	u32 IE{};
 	bool interrupt{};
+	bool halted{};
 
 	NDS *nds{};
 	int cpuid{};
 
 	u64& target_cycles;
 	u64& cycles;
+
+	void force_stop() { target_cycles = cycles; }
 
 	void check_interrupt()
 	{
@@ -188,6 +191,7 @@ struct Arm {
 	virtual void store8(u32 addr, u8 value) = 0;
 	virtual u16 ldrh(u32 addr) = 0;
 	virtual s16 ldrsh(u32 addr) = 0;
+	virtual void check_halted() = 0;
 
 	void run();
 	void on_cpsr_write();

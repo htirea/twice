@@ -49,6 +49,13 @@ struct Arm9 final : Arm {
 	u16 ldrh(u32 addr) override;
 	s16 ldrsh(u32 addr) override;
 
+	void check_halted() override
+	{
+		if ((IE & IF) && (IME & 1)) {
+			halted = false;
+		}
+	}
+
 	u32 cp15_read(u32 reg);
 	void cp15_write(u32 reg, u32 value);
 

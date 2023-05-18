@@ -19,6 +19,11 @@ Arm::Arm(NDS *nds, int cpuid)
 void
 Arm::run()
 {
+	if (halted) {
+		cycles = target_cycles;
+		return;
+	}
+
 	while (cycles < target_cycles) {
 		step();
 	}

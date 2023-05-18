@@ -153,6 +153,8 @@ NDS::run_frame()
 
 		scheduler.current_time = arm_cycles[1];
 		run_events(this);
+
+		arm9->check_halted();
 	}
 }
 

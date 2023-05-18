@@ -23,6 +23,8 @@ struct Arm7 final : Arm {
 	void store8(u32 addr, u8 value) override;
 	u16 ldrh(u32 addr) override;
 	s16 ldrsh(u32 addr) override;
+
+	void check_halted() override {}
 };
 
 } // namespace twice
