@@ -36,6 +36,8 @@ arm_block_dt(Arm *cpu)
 
 	addr &= ~3;
 
+	bool writeback = W && rn != 15;
+
 	if (L == 1) {
 		bool cpsr_written = false;
 
@@ -85,7 +87,7 @@ arm_block_dt(Arm *cpu)
 			cpsr_written = true;
 		}
 
-		if (W) {
+		if (writeback) {
 			/* If rn is included in register_list:
 			 * ARMv4: no writeback
 			 * ARMv5: writeback if rn is only register,
@@ -107,7 +109,7 @@ arm_block_dt(Arm *cpu)
 			cpu->on_cpsr_write();
 		}
 	} else {
-		if (W) {
+		if (writeback) {
 			/* If rn is included in register_list:
 			 * ARMv4: if rn is first store old base
 			 *        else store new base
@@ -146,7 +148,7 @@ arm_block_dt(Arm *cpu)
 			cpu->store32(addr, cpu->pc() + 4);
 		}
 
-		if (W) {
+		if (writeback) {
 			cpu->gpr[rn] = writeback_value;
 		}
 	}
