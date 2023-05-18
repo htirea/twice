@@ -30,7 +30,11 @@ arm_cop_reg(Arm *cpu)
 		}
 
 		u32 reg = cn << 8 | cm << 4 | OP2;
-		((Arm9 *)cpu)->cp15_write(reg, cpu->gpr[rd]);
+		u32 value = cpu->gpr[rd];
+		if (rd == 15) {
+			value += 4;
+		}
+		((Arm9 *)cpu)->cp15_write(reg, value);
 	} else {
 		if (cpu->is_arm7()) {
 			throw TwiceError("arm7 mrc");
