@@ -36,24 +36,37 @@ arm_cop_reg(Arm *cpu)
 		}
 		((Arm9 *)cpu)->cp15_write(reg, value);
 	} else {
+		u32 value;
+
 		if (cpu->is_arm7()) {
-			throw TwiceError("arm7 mrc");
-		}
+			if (cp_num != 14) {
+				fprintf(stderr, "arm7 mrc with cp_num %u\n",
+						cp_num);
+				arm_undefined(cpu);
+				return;
+			}
 
-		if (cp_num != 15) {
-			throw TwiceError("arm9 mrc cp_num != 15");
-		}
+			value = cpu->pipeline[1];
+		} else {
+			if (cp_num != 15) {
+				fprintf(stderr, "arm9 mrc with cp_num %u\n",
+						cp_num);
+				arm_undefined(cpu);
+				return;
+			}
 
-		if (OP1 != 0) {
-			throw TwiceError("arm9 mrc op1 != 0");
-		}
+			if (OP1 != 0) {
+				throw TwiceError("arm9 mrc op1 != 0");
+			}
 
-		if (!cpu->in_privileged_mode()) {
-			throw TwiceError("arm9 mrc not in privileged mode");
-		}
+			if (!cpu->in_privileged_mode()) {
+				throw TwiceError(
+						"arm9 mrc not in privileged mode");
+			}
 
-		u32 reg = cn << 8 | cm << 4 | OP2;
-		u32 value = ((Arm9 *)cpu)->cp15_read(reg);
+			u32 reg = cn << 8 | cm << 4 | OP2;
+			value = ((Arm9 *)cpu)->cp15_read(reg);
+		}
 
 		if (rd == 15) {
 			u32 mask = 0xF0000000;
