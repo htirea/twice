@@ -68,26 +68,24 @@ arm_misc_dt(Arm *cpu)
 			cpu->gpr[rn] += offset;
 		}
 	} else if (L == 0 && S == 1 && H == 0) {
-		if (cpu->is_arm7()) {
-			return;
-		}
-
-		if (rd & 1) {
-			fprintf(stderr, "ldrd odd reg\n");
-			rd &= ~1;
-		}
-
 		if (writeback) {
 			cpu->gpr[rn] += offset;
 		}
 
-		cpu->gpr[rd] = cpu->load32(address & ~3);
-		u32 value = cpu->load32((address & ~3) + 4);
+		if (cpu->is_arm9()) {
+			if (rd & 1) {
+				fprintf(stderr, "ldrd odd reg\n");
+				rd &= ~1;
+			}
 
-		if (rd + 1 == 15) {
-			cpu->arm_jump(value & ~3);
-		} else {
-			cpu->gpr[rd + 1] = value;
+			cpu->gpr[rd] = cpu->load32(address & ~3);
+			u32 value = cpu->load32((address & ~3) + 4);
+
+			if (rd + 1 == 15) {
+				cpu->arm_jump(value & ~3);
+			} else {
+				cpu->gpr[rd + 1] = value;
+			}
 		}
 	} else if (L == 0 && S == 1 && H == 1) {
 		if (cpu->is_arm7()) {
