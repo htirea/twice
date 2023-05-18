@@ -82,6 +82,8 @@
 	case 0x40000DC:                                                       \
 		return (u32)nds->dmacnt_h[cpuid_][3] << 16 |                  \
 				nds->dmacnt_l[cpuid_][3];                     \
+	case 0x4000180:                                                       \
+		return nds->ipcsync[(cpuid_)];                                \
 	case 0x4000208:                                                       \
 		return nds->cpu[(cpuid_)]->IME;                               \
 	case 0x4000210:                                                       \
@@ -107,15 +109,7 @@
 		nds->dispstat[cpuid_] |= ~0x7;                                \
 		break;                                                        \
 	case 0x4000180:                                                       \
-		nds->ipcsync[(cpuid_) ^ 1] &= ~0xF;                           \
-		nds->ipcsync[(cpuid_) ^ 1] |= value >> 8 & 0xF;               \
-		nds->ipcsync[(cpuid_)] &= ~0x4F00;                            \
-		nds->ipcsync[(cpuid_)] |= value & 0x4F00;                     \
-                                                                              \
-		if ((value & BIT(13)) &&                                      \
-				(nds->ipcsync[(cpuid_) ^ 1] & BIT(14))) {     \
-			nds->cpu[(cpuid_) ^ 1]->request_interrupt(16);        \
-		}                                                             \
+		ipcsync_write(nds, (cpuid_), value);                          \
 		break;                                                        \
 	case 0x4000184:                                                       \
 		ipc_fifo_cnt_write(nds, (cpuid_), value);                     \
@@ -168,6 +162,9 @@
 		nds->dmacnt_l[cpuid_][3] = value;                             \
 		nds->dma[cpuid_]->dmacnt_h_write(3, value >> 16);             \
 		break;                                                        \
+	case 0x4000180:                                                       \
+		ipcsync_write(nds, (cpuid_), value);                          \
+		break;                                                        \
 	case 0x4000188:                                                       \
 		ipc_fifo_send(nds, (cpuid_), value);                          \
 		break;                                                        \
@@ -183,5 +180,11 @@
 		nds->cpu[(cpuid_)]->IF &= ~value;                             \
 		nds->cpu[(cpuid_)]->check_interrupt();                        \
 		break
+
+namespace twice {
+
+void ipcsync_write(NDS *nds, int cpuid, u16 value);
+
+}
 
 #endif
