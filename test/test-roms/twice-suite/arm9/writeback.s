@@ -110,6 +110,27 @@ test_writeback:
 	cmp r0, #15
 	bne fail
 
+	@ test 0xB: ldm pc writeback
+	mov r11, #0xB
+	mov r0, #0
+	@ ldmia pc!, {r1, r2}
+	.long 0xE8BF0006
+	check_load
+
+	@ test 0xC: stm pc writeback
+	mov r11, #0xC
+	mov r0, #1
+	ldr r1, =0xE3800004
+	ldr r2, =0xE3800008
+	@ stmib pc!, {r1, r2}
+	.long 0xE9AF0006
+	orr r0, #1
+	orr r0, #2
+	nop
+	nop
+	cmp r0, #15
+	bne fail
+
 success:
 	mov r0, #0
 
