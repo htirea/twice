@@ -35,6 +35,9 @@ arm_misc_dt(Arm *cpu)
 	}
 
 	bool writeback = (W == 1 || P == 0) && rn != 15;
+	if ((W == 1 || P == 0) && rn == 15) {
+		fprintf(stderr, "writeback with pc as base\n");
+	}
 
 	if (L == 1) {
 		if (writeback) {

@@ -37,6 +37,9 @@ arm_block_dt(Arm *cpu)
 	addr &= ~3;
 
 	bool writeback = W && rn != 15;
+	if (W && rn == 15) {
+		fprintf(stderr, "writeback with pc as base\n");
+	}
 
 	if (L == 1) {
 		bool cpsr_written = false;
