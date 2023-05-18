@@ -8,8 +8,16 @@ namespace twice {
 inline void
 thumb_undefined(Arm *cpu)
 {
-	(void)cpu;
-	throw TwiceError("thumb undefined instruction");
+	u32 old_cpsr = cpu->cpsr;
+
+	cpu->cpsr &= ~0xBF;
+	cpu->cpsr |= 0x9B;
+	cpu->switch_mode(MODE_SVC);
+	cpu->interrupt = false;
+
+	cpu->gpr[14] = cpu->pc() - 2;
+	cpu->spsr() = old_cpsr;
+	cpu->arm_jump(cpu->exception_base + 0x4);
 }
 
 inline void
