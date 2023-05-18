@@ -1,6 +1,20 @@
 #include "font8x8_basic.h"
 #include "util.h"
 
+int test_writeback();
+
+void
+run_tests(void)
+{
+	int err = test_writeback();
+	if (err) {
+		print_string("writeback test failed", 0, 0, WHITE);
+		return;
+	}
+
+	print_string("All tests passed!", 0, 0, WHITE);
+}
+
 void
 arm9_main(void)
 {
@@ -12,7 +26,7 @@ arm9_main(void)
 		*((vu16 *)LCDC_OFFSET + i) = 0x0;
 	}
 
-	print_string("All tests passed!", 0, 0, WHITE);
+	run_tests();
 
 	for (;;) {
 		;
