@@ -1,5 +1,6 @@
 #include <cstring>
 #include <exception>
+#include <format>
 #include <iostream>
 #include <memory>
 #include <string>
@@ -154,7 +155,8 @@ Platform::render(void *fb)
 void
 Platform::set_title_fps(int fps)
 {
-	std::string title = "Twice [" + std::to_string(fps) + "]";
+	std::string title = std::format(
+			"Twice [{} fps | {:.2f} ms]", fps, 1000.0 / fps);
 	SDL_SetWindowTitle(window, title.c_str());
 }
 
