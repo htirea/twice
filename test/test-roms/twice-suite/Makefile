@@ -4,7 +4,7 @@ export OBJCOPY=arm-none-eabi-objcopy
 export LD=arm-none-eabi-ld
 export CFLAGS=-O2
 
-target = hello-world.nds
+target = twice-suite.nds
 
 all: $(target)
 

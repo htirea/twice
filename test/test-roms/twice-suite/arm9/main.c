@@ -12,7 +12,7 @@ arm9_main(void)
 		*((vu16 *)LCDC_OFFSET + i) = 0x0;
 	}
 
-	print_string("Hello World!", 0, 0, WHITE);
+	print_string("All tests passed!", 0, 0, WHITE);
 
 	for (;;) {
 		;
