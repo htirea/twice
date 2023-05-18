@@ -62,10 +62,10 @@ arm_sdt(Arm *cpu)
 		address = cpu->gpr[rn];
 	}
 
-	constexpr bool writeback = W == 1 || P == 0;
+	bool writeback = (W == 1 || P == 0) && rn != 15;
 
 	if (L == 1) {
-		if (writeback && rn != 15) {
+		if (writeback) {
 			cpu->gpr[rn] += offset;
 		}
 
@@ -97,7 +97,7 @@ arm_sdt(Arm *cpu)
 			arm_do_str(cpu, address, value);
 		}
 
-		if (writeback && rn != 15) {
+		if (writeback) {
 			cpu->gpr[rn] += offset;
 		}
 	}

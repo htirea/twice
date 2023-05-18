@@ -34,7 +34,7 @@ arm_misc_dt(Arm *cpu)
 		address = cpu->gpr[rn];
 	}
 
-	constexpr bool writeback = W == 1 || P == 0;
+	bool writeback = (W == 1 || P == 0) && rn != 15;
 
 	if (L == 1) {
 		if (writeback) {
