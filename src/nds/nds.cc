@@ -149,12 +149,14 @@ NDS::run_frame()
 			}
 
 			run_arm_events(this, 1);
+			arm7->check_halted();
 		}
 
 		scheduler.current_time = arm_cycles[1];
 		run_events(this);
 
 		arm9->check_halted();
+		arm7->check_halted();
 	}
 }
 

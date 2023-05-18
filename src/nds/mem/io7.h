@@ -42,6 +42,17 @@ io7_write8(NDS *nds, u32 addr, u8 value)
 	switch (addr) {
 	default:
 		IO_WRITE8_COMMON(1);
+	case 0x4000301:
+		switch (value >> 6 & 0x3) {
+		case 2:
+			nds->cpu[1]->halted = true;
+			nds->cpu[1]->force_stop();
+			break;
+		default:
+			fprintf(stderr, "unhandled haltcnt\n");
+		}
+		nds->haltcnt = value;
+		break;
 	}
 }
 

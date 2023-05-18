@@ -103,6 +103,8 @@ struct NDS {
 	u16 dmacnt_h[2][4]{};
 	u32 dmafill[4]{};
 
+	u8 haltcnt{};
+
 	u16 keyinput{ 0x3FF };
 
 	/*

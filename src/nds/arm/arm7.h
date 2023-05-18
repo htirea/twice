@@ -24,7 +24,12 @@ struct Arm7 final : Arm {
 	u16 ldrh(u32 addr) override;
 	s16 ldrsh(u32 addr) override;
 
-	void check_halted() override {}
+	void check_halted() override
+	{
+		if (IE & IF) {
+			halted = false;
+		}
+	}
 };
 
 } // namespace twice
