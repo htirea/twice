@@ -38,5 +38,6 @@ typedef volatile s64 vs64;
 
 void print_string(const char *s, int row, int col, u16 color);
 void print_char(char c, int row, int col, u16 color);
+void print_hex(u32 n, int row, int col, u16 color);
 
 #endif

@@ -8,11 +8,12 @@ run_tests(void)
 {
 	int err = test_writeback();
 	if (err) {
-		print_string("writeback test failed", 0, 0, WHITE);
+		print_string("writeback test failed", 8, 0, RED);
+		print_hex(err, 18, 0, RED);
 		return;
 	}
 
-	print_string("All tests passed!", 0, 0, WHITE);
+	print_string("All tests passed!", 8, 0, GREEN);
 }
 
 void
@@ -63,4 +64,30 @@ print_char(char c, int row, int col, u16 color)
 			}
 		}
 	}
+}
+
+int
+num_to_char(int c)
+{
+	if (c < 10) {
+		return '0' + c;
+	} else if (c < 16) {
+		return 'A' + c - 10;
+	} else {
+		return '?';
+	}
+}
+
+void
+print_hex(u32 num, int row, int col, u16 color)
+{
+	char s[] = "0x00000000";
+
+	for (int i = 0; i < 8; i++) {
+		int c = num_to_char(num & 0xF);
+		s[9 - i] = c;
+		num >>= 4;
+	}
+
+	print_string(s, row, col, color);
 }

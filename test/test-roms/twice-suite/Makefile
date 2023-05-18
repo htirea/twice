@@ -2,7 +2,7 @@ export CC=arm-none-eabi-gcc
 export AS=arm-none-eabi-as
 export OBJCOPY=arm-none-eabi-objcopy
 export LD=arm-none-eabi-ld
-export CFLAGS=-O2
+export CFLAGS=-O2 -Wall -Wextra
 
 target = twice-suite.nds
 
