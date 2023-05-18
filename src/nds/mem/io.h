@@ -38,6 +38,8 @@
 	return 0;                                                             \
 	case 0x4000004:                                                       \
 		return nds->dispstat[(cpuid_)];                               \
+	case 0x4000006:                                                       \
+		return nds->gpu.ly;                                           \
 	case 0x4000130:                                                       \
 		return nds->keyinput;                                         \
 	case 0x4000180:                                                       \
