@@ -4,8 +4,8 @@ namespace twice {
 
 Scheduler::Scheduler()
 {
-	events[HBLANK_START].cb = gpu_on_hblank_start;
-	events[HBLANK_END].cb = gpu_on_hblank_end;
+	events[HBLANK_START].cb = nds_event_hblank_start;
+	events[HBLANK_END].cb = nds_event_hblank_end;
 }
 
 void

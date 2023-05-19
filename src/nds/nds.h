@@ -80,6 +80,8 @@ struct NDS {
 	/*
 	 * IO
 	 */
+	u16 vcount{};
+
 	u8 vramstat{};
 	u8 wramcnt{};
 	u16 dispstat[2]{};
@@ -119,6 +121,9 @@ struct NDS {
 	void direct_boot();
 	void run_frame();
 };
+
+void nds_event_hblank_start(NDS *nds);
+void nds_event_hblank_end(NDS *nds);
 
 } // namespace twice
 

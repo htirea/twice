@@ -15,6 +15,7 @@ NDS::NDS(u8 *arm7_bios, u8 *arm9_bios, u8 *firmware, u8 *cartridge,
 		size_t cartridge_size)
 	: arm9(std::make_unique<Arm9>(this)),
 	  arm7(std::make_unique<Arm7>(this)),
+	  gpu(this),
 	  dma9(this),
 	  dma7(this),
 	  arm7_bios(arm7_bios),
@@ -158,6 +159,69 @@ NDS::run_frame()
 		arm9->check_halted();
 		arm7->check_halted();
 	}
+}
+
+void
+nds_on_vblank(NDS *nds)
+{
+	nds->dispstat[0] |= BIT(0);
+	nds->dispstat[1] |= BIT(0);
+
+	if (nds->dispstat[0] & BIT(3)) {
+		nds->cpu[0]->request_interrupt(0);
+	}
+
+	if (nds->dispstat[1] & BIT(3)) {
+		nds->cpu[1]->request_interrupt(0);
+	}
+
+	dma_on_vblank(nds);
+
+	nds->frame_finished = true;
+}
+
+void
+nds_event_hblank_start(NDS *nds)
+{
+	nds->dispstat[0] |= BIT(1);
+	nds->dispstat[1] |= BIT(1);
+
+	if (nds->dispstat[0] & BIT(4)) {
+		nds->cpu[0]->request_interrupt(1);
+	}
+
+	if (nds->dispstat[1] & BIT(4)) {
+		nds->cpu[1]->request_interrupt(1);
+	}
+
+	dma_on_hblank_start(nds);
+
+	nds->scheduler.reschedule_event_after(Scheduler::HBLANK_START, 2130);
+}
+
+void
+nds_event_hblank_end(NDS *nds)
+{
+	nds->vcount += 1;
+	if (nds->vcount == 263) {
+		nds->vcount = 0;
+	}
+
+	/* the next scanline starts here */
+
+	/* TODO: check LYC */
+
+	if (nds->vcount == 192) {
+		nds_on_vblank(nds);
+	} else if (nds->vcount == 262) {
+		/* vblank flag isn't set in last scanline */
+		nds->dispstat[0] &= ~BIT(0);
+		nds->dispstat[1] &= ~BIT(0);
+	}
+
+	nds->gpu.on_scanline_start();
+
+	nds->scheduler.reschedule_event_after(Scheduler::HBLANK_END, 2130);
 }
 
 } // namespace twice

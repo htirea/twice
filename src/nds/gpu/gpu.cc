@@ -5,73 +5,6 @@
 
 namespace twice {
 
-void gpu_draw_scanline(NDS *nds);
-
-void
-gpu_on_vblank(NDS *nds)
-{
-	nds->dispstat[0] |= BIT(0);
-	nds->dispstat[1] |= BIT(0);
-
-	if (nds->dispstat[0] & BIT(3)) {
-		nds->cpu[0]->request_interrupt(0);
-	}
-
-	if (nds->dispstat[1] & BIT(3)) {
-		nds->cpu[1]->request_interrupt(0);
-	}
-
-	dma_on_vblank(nds);
-
-	nds->frame_finished = true;
-}
-
-void
-gpu_on_hblank_start(NDS *nds)
-{
-	nds->dispstat[0] |= BIT(1);
-	nds->dispstat[1] |= BIT(1);
-
-	if (nds->dispstat[0] & BIT(4)) {
-		nds->cpu[0]->request_interrupt(1);
-	}
-
-	if (nds->dispstat[1] & BIT(4)) {
-		nds->cpu[1]->request_interrupt(1);
-	}
-
-	if (nds->gpu.vcount < 192) {
-		dma_on_hblank_start(nds);
-	}
-
-	nds->scheduler.reschedule_event_after(Scheduler::HBLANK_START, 2130);
-}
-
-void
-gpu_on_hblank_end(NDS *nds)
-{
-	auto& gpu = nds->gpu;
-
-	gpu.vcount += 1;
-	if (gpu.vcount == 263) {
-		gpu.vcount = 0;
-	}
-
-	if (gpu.vcount < 192) {
-		gpu_draw_scanline(nds);
-	} else if (gpu.vcount == 192) {
-		gpu_on_vblank(nds);
-	} else if (gpu.vcount == 262) {
-		/* vblank flag isn't set in last scanline */
-		nds->dispstat[0] &= ~BIT(0);
-		nds->dispstat[1] &= ~BIT(0);
-	}
-
-	/* TODO: check LYC */
-
-	nds->scheduler.reschedule_event_after(Scheduler::HBLANK_END, 2130);
-}
-
 u32
 ABGR1555_TO_ABGR8888(u16 color)
 {
@@ -88,10 +21,24 @@ ABGR1555_TO_ABGR8888(u16 color)
 	return (a << 24) | (b << 16) | (g << 8) | r;
 }
 
-void
-gpu_draw_scanline(NDS *nds)
+Gpu::Gpu(NDS *nds)
+	: nds(nds)
 {
-	u32 start = nds->gpu.vcount * NDS_FB_W;
+}
+
+void
+Gpu::on_scanline_start()
+{
+	if (nds->vcount < 192) {
+		draw_current_scanline();
+	}
+}
+
+void
+Gpu::draw_current_scanline()
+{
+
+	u32 start = nds->vcount * NDS_FB_W;
 	u32 end = start + NDS_FB_W;
 
 	for (u32 i = start; i < end; i++) {

@@ -317,6 +317,10 @@ dma_on_vblank(NDS *nds)
 void
 dma_on_hblank_start(NDS *nds)
 {
+	if (nds->vcount >= 192) {
+		return;
+	}
+
 	for (int channel = 0; channel < 4; channel++) {
 		if (nds->dma[0]->transfers[channel].enabled) {
 			if (nds->dma[0]->transfers[channel].mode == 2) {

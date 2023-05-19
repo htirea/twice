@@ -9,11 +9,14 @@ namespace twice {
 struct NDS;
 
 struct Gpu {
-	u16 vcount{};
-};
+	Gpu(NDS *nds);
 
-void gpu_on_hblank_start(NDS *nds);
-void gpu_on_hblank_end(NDS *nds);
+	NDS *nds{};
+
+	void draw_current_scanline();
+
+	void on_scanline_start();
+};
 
 } // namespace twice
 
