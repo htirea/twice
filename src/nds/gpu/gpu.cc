@@ -40,7 +40,7 @@ gpu_on_hblank_start(NDS *nds)
 		nds->cpu[1]->request_interrupt(1);
 	}
 
-	if (nds->gpu.ly < 192) {
+	if (nds->gpu.vcount < 192) {
 		dma_on_hblank_start(nds);
 	}
 
@@ -52,16 +52,16 @@ gpu_on_hblank_end(NDS *nds)
 {
 	auto& gpu = nds->gpu;
 
-	gpu.ly += 1;
-	if (gpu.ly == 263) {
-		gpu.ly = 0;
+	gpu.vcount += 1;
+	if (gpu.vcount == 263) {
+		gpu.vcount = 0;
 	}
 
-	if (gpu.ly < 192) {
+	if (gpu.vcount < 192) {
 		gpu_draw_scanline(nds);
-	} else if (gpu.ly == 192) {
+	} else if (gpu.vcount == 192) {
 		gpu_on_vblank(nds);
-	} else if (gpu.ly == 262) {
+	} else if (gpu.vcount == 262) {
 		/* vblank flag isn't set in last scanline */
 		nds->dispstat[0] &= ~BIT(0);
 		nds->dispstat[1] &= ~BIT(0);
@@ -91,7 +91,7 @@ ABGR1555_TO_ABGR8888(u16 color)
 void
 gpu_draw_scanline(NDS *nds)
 {
-	u32 start = nds->gpu.ly * NDS_FB_W;
+	u32 start = nds->gpu.vcount * NDS_FB_W;
 	u32 end = start + NDS_FB_W;
 
 	for (u32 i = start; i < end; i++) {

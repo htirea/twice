@@ -9,7 +9,7 @@ namespace twice {
 struct NDS;
 
 struct Gpu {
-	u16 ly{};
+	u16 vcount{};
 };
 
 void gpu_on_hblank_start(NDS *nds);
