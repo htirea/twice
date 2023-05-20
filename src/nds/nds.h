@@ -46,7 +46,7 @@ struct NDS {
 	std::unique_ptr<Arm7> arm7;
 
 	GpuVram vram;
-	Gpu gpu;
+	Gpu2D gpu2D[2];
 
 	Scheduler scheduler;
 	u64 arm_target_cycles[2]{};
@@ -106,6 +106,7 @@ struct NDS {
 	u32 dmafill[4]{};
 
 	u8 haltcnt{};
+	u16 powcnt1{};
 
 	u16 keyinput{ 0x3FF };
 

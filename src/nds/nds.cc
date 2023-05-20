@@ -15,7 +15,7 @@ NDS::NDS(u8 *arm7_bios, u8 *arm9_bios, u8 *firmware, u8 *cartridge,
 		size_t cartridge_size)
 	: arm9(std::make_unique<Arm9>(this)),
 	  arm7(std::make_unique<Arm7>(this)),
-	  gpu(this),
+	  gpu2D{ this, this },
 	  dma9(this),
 	  dma7(this),
 	  arm7_bios(arm7_bios),
@@ -28,6 +28,7 @@ NDS::NDS(u8 *arm7_bios, u8 *arm9_bios, u8 *firmware, u8 *cartridge,
 	cpu[1] = arm7.get();
 
 	wramcnt_write(this, 0x0);
+	powcnt1_write(this, 0x0);
 
 	scheduler.schedule_event(Scheduler::HBLANK_START, 1536);
 	scheduler.schedule_event(Scheduler::HBLANK_END, 2130);
@@ -219,7 +220,7 @@ nds_event_hblank_end(NDS *nds)
 		nds->dispstat[1] &= ~BIT(0);
 	}
 
-	nds->gpu.on_scanline_start();
+	gpu_on_scanline_start(nds);
 
 	nds->scheduler.reschedule_event_after(Scheduler::HBLANK_END, 2130);
 }

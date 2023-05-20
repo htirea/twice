@@ -21,29 +21,27 @@ ABGR1555_TO_ABGR8888(u16 color)
 	return (a << 24) | (b << 16) | (g << 8) | r;
 }
 
-Gpu::Gpu(NDS *nds)
+void
+gpu_on_scanline_start(NDS *nds)
+{
+	if (nds->vcount < 192) {
+		nds->gpu2D[0].draw_scanline(nds->vcount);
+	}
+}
+
+Gpu2D::Gpu2D(NDS *nds)
 	: nds(nds)
 {
 }
 
 void
-Gpu::on_scanline_start()
+Gpu2D::draw_scanline(u16 scanline)
 {
-	if (nds->vcount < 192) {
-		draw_current_scanline();
-	}
-}
-
-void
-Gpu::draw_current_scanline()
-{
-
-	u32 start = nds->vcount * NDS_FB_W;
+	u32 start = scanline * NDS_FB_W;
 	u32 end = start + NDS_FB_W;
 
 	for (u32 i = start; i < end; i++) {
-		nds->fb[i] = ABGR1555_TO_ABGR8888(
-				vram_read_lcdc<u16>(nds, i * 2));
+		fb[i] = ABGR1555_TO_ABGR8888(vram_read_lcdc<u16>(nds, i * 2));
 	}
 }
 

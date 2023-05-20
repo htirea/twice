@@ -8,15 +8,16 @@ namespace twice {
 
 struct NDS;
 
-struct Gpu {
-	Gpu(NDS *nds);
+struct Gpu2D {
+	Gpu2D(NDS *nds);
 
+	u32 *fb{};
 	NDS *nds{};
 
-	void draw_current_scanline();
-
-	void on_scanline_start();
+	void draw_scanline(u16 scanline);
 };
+
+void gpu_on_scanline_start(NDS *nds);
 
 } // namespace twice
 

@@ -16,6 +16,7 @@ void vramcnt_f_write(NDS *nds, u8 value);
 void vramcnt_g_write(NDS *nds, u8 value);
 void vramcnt_h_write(NDS *nds, u8 value);
 void vramcnt_i_write(NDS *nds, u8 value);
+void powcnt1_write(NDS *nds, u16 value);
 
 inline u8
 io9_read8(NDS *nds, u32 addr)
@@ -38,6 +39,8 @@ io9_read16(NDS *nds, u32 addr)
 		return nds->divcnt;
 	case 0x40002B0:
 		return nds->sqrtcnt;
+	case 0x4000304:
+		return nds->powcnt1;
 	}
 }
 
@@ -77,6 +80,8 @@ io9_read32(NDS *nds, u32 addr)
 		return nds->sqrt_param[0];
 	case 0x40002BC:
 		return nds->sqrt_param[1];
+	case 0x4000304:
+		return nds->powcnt1;
 	}
 }
 
@@ -135,6 +140,9 @@ io9_write16(NDS *nds, u32 addr, u16 value)
 		nds->sqrtcnt = (nds->sqrtcnt & 0x8000) | (value & ~0x8000);
 		nds_math_sqrt(nds);
 		break;
+	case 0x4000304:
+		powcnt1_write(nds, value);
+		break;
 	}
 }
 
@@ -185,6 +193,9 @@ io9_write32(NDS *nds, u32 addr, u32 value)
 	case 0x40002BC:
 		nds->sqrt_param[1] = value;
 		nds_math_sqrt(nds);
+		break;
+	case 0x4000304:
+		powcnt1_write(nds, value);
 		break;
 	}
 }

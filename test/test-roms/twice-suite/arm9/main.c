@@ -3,12 +3,36 @@
 
 int test_writeback();
 
+int
+test_io()
+{
+	*((vu32 *)(0x4000304)) = 0xABCDF0F3;
+	u32 num = *((vu32 *)(0x4000304));
+
+	if (num != 0x8003) {
+		return 1;
+	}
+
+	if (REG_POWCNT1 != 0x8003) {
+		return 2;
+	}
+
+	return 0;
+}
+
 void
 run_tests(void)
 {
 	int err = test_writeback();
 	if (err) {
 		print_string("writeback test failed", 8, 0, RED);
+		print_hex(err, 18, 0, RED);
+		return;
+	}
+
+	err = test_io();
+	if (err) {
+		print_string("io test failed", 8, 0, RED);
 		print_hex(err, 18, 0, RED);
 		return;
 	}

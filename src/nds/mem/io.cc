@@ -47,4 +47,18 @@ ipcsync_write(NDS *nds, int cpuid, u16 value)
 	}
 }
 
+void
+powcnt1_write(NDS *nds, u16 value)
+{
+	if (value & BIT(15)) {
+		nds->gpu2D[0].fb = nds->fb;
+		nds->gpu2D[1].fb = nds->fb + NDS_SCREEN_SZ;
+	} else {
+		nds->gpu2D[0].fb = nds->fb + NDS_SCREEN_SZ;
+		nds->gpu2D[1].fb = nds->fb;
+	}
+
+	nds->powcnt1 = (nds->powcnt1 & ~0x820F) | (value & 0x820F);
+}
+
 } // namespace twice
