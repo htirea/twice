@@ -40,7 +40,7 @@ struct Dma {
 	void set_addr_step_and_width(int channel, u16 dmacnt);
 };
 
-struct Dma9 : Dma {
+struct Dma9 final : Dma {
 	Dma9(NDS *nds);
 
 	void run() override;
@@ -50,7 +50,7 @@ struct Dma9 : Dma {
 	void load_dmacnt_l(int channel);
 };
 
-struct Dma7 : Dma {
+struct Dma7 final : Dma {
 	Dma7(NDS *nds);
 
 	void run() override;
