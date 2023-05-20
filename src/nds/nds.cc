@@ -200,6 +200,12 @@ nds_event_hblank_start(NDS *nds)
 	nds->scheduler.reschedule_event_after(Scheduler::HBLANK_START, 2130);
 }
 
+static u16
+get_lyc(u16 dispstat)
+{
+	return (dispstat & BIT(7)) << 1 | dispstat >> 8;
+}
+
 void
 nds_event_hblank_end(NDS *nds)
 {
@@ -210,7 +216,12 @@ nds_event_hblank_end(NDS *nds)
 
 	/* the next scanline starts here */
 
-	/* TODO: check LYC */
+	for (int i = 0; i < 2; i++) {
+		u16 lyc = get_lyc(nds->dispstat[i]);
+		if (nds->vcount == lyc && (nds->dispstat[i] & BIT(5))) {
+			nds->cpu[i]->request_interrupt(2);
+		}
+	}
 
 	if (nds->vcount == 192) {
 		nds_on_vblank(nds);
