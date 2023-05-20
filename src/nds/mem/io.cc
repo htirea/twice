@@ -58,6 +58,12 @@ powcnt1_write(NDS *nds, u16 value)
 		nds->gpu2D[1].fb = nds->fb;
 	}
 
+	/* TODO: check what bit 0 does */
+	nds->gpu2D[0].enabled = value & BIT(1);
+	nds->gpu2D[1].enabled = value & BIT(9);
+
+	/* TODO: disable writes / reads if disabled */
+
 	nds->powcnt1 = (nds->powcnt1 & ~0x820F) | (value & 0x820F);
 }
 

@@ -152,6 +152,9 @@ io9_write32(NDS *nds, u32 addr, u32 value)
 	switch (addr) {
 	default:
 		IO_WRITE32_COMMON(0);
+	case 0x4000000:
+		nds->gpu2D[0].dispcnt = value;
+		break;
 	case 0x40000E0:
 		nds->dmafill[0] = value;
 		break;
