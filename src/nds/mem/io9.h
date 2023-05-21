@@ -22,18 +22,19 @@ inline u8
 io9_read8(NDS *nds, u32 addr)
 {
 	switch (addr) {
-	default:
 		IO_READ8_COMMON(0);
 	case 0x4000247:
 		return nds->wramcnt;
 	}
+
+	fprintf(stderr, "nds 0 read 8 at %08X\n", addr);
+	return 0;
 }
 
 inline u16
 io9_read16(NDS *nds, u32 addr)
 {
 	switch (addr) {
-	default:
 		IO_READ16_COMMON(0);
 	case 0x4000280:
 		return nds->divcnt;
@@ -42,13 +43,15 @@ io9_read16(NDS *nds, u32 addr)
 	case 0x4000304:
 		return nds->powcnt1;
 	}
+
+	fprintf(stderr, "nds 0 read 16 at %08X\n", addr);
+	return 0;
 }
 
 inline u32
 io9_read32(NDS *nds, u32 addr)
 {
 	switch (addr) {
-	default:
 		IO_READ32_COMMON(0);
 	case 0x40000E0:
 		return nds->dmafill[0];
@@ -83,127 +86,133 @@ io9_read32(NDS *nds, u32 addr)
 	case 0x4000304:
 		return nds->powcnt1;
 	}
+
+	fprintf(stderr, "nds 0 read 32 at %08X\n", addr);
+	return 0;
 }
 
 inline void
 io9_write8(NDS *nds, u32 addr, u8 value)
 {
 	switch (addr) {
-	default:
 		IO_WRITE8_COMMON(0);
 	case 0x4000240:
 		vramcnt_a_write(nds, value);
-		break;
+		return;
 	case 0x4000241:
 		vramcnt_b_write(nds, value);
-		break;
+		return;
 	case 0x4000242:
 		vramcnt_c_write(nds, value);
-		break;
+		return;
 	case 0x4000243:
 		vramcnt_d_write(nds, value);
-		break;
+		return;
 	case 0x4000244:
 		vramcnt_e_write(nds, value);
-		break;
+		return;
 	case 0x4000245:
 		vramcnt_f_write(nds, value);
-		break;
+		return;
 	case 0x4000246:
 		vramcnt_g_write(nds, value);
-		break;
+		return;
 	case 0x4000247:
 		wramcnt_write(nds, value);
-		break;
+		return;
 	case 0x4000248:
 		vramcnt_h_write(nds, value);
-		break;
+		return;
 	case 0x4000249:
 		vramcnt_i_write(nds, value);
-		break;
+		return;
 	}
+
+	fprintf(stderr, "nds 0 write 8 to %08X\n", addr);
 }
 
 inline void
 io9_write16(NDS *nds, u32 addr, u16 value)
 {
 	switch (addr) {
-	default:
 		IO_WRITE16_COMMON(0);
 	case 0x4000280:
 		/* TODO: div timings */
 		nds->divcnt = (nds->divcnt & 0x8000) | (value & ~0x8000);
 		nds_math_div(nds);
-		break;
+		return;
 	case 0x40002B0:
 		/* TODO: sqrt timings */
 		nds->sqrtcnt = (nds->sqrtcnt & 0x8000) | (value & ~0x8000);
 		nds_math_sqrt(nds);
-		break;
+		return;
 	case 0x4000304:
 		powcnt1_write(nds, value);
-		break;
+		return;
 	}
+
+	fprintf(stderr, "nds 0 write 16 to %08X\n", addr);
 }
 
 inline void
 io9_write32(NDS *nds, u32 addr, u32 value)
 {
 	switch (addr) {
-	default:
 		IO_WRITE32_COMMON(0);
 	case 0x4000000:
 		nds->gpu2D[0].dispcnt = value;
-		break;
+		return;
 	case 0x40000E0:
 		nds->dmafill[0] = value;
-		break;
+		return;
 	case 0x40000E4:
 		nds->dmafill[1] = value;
-		break;
+		return;
 	case 0x40000E8:
 		nds->dmafill[2] = value;
-		break;
+		return;
 	case 0x40000EC:
 		nds->dmafill[3] = value;
-		break;
+		return;
 	case 0x4000240:
 		vramcnt_a_write(nds, value);
 		vramcnt_b_write(nds, value >> 8);
 		vramcnt_c_write(nds, value >> 16);
 		vramcnt_d_write(nds, value >> 24);
-		break;
+		return;
 	case 0x4000290:
 		nds->div_numer[0] = value;
 		nds_math_div(nds);
-		break;
+		return;
 	case 0x4000294:
 		nds->div_numer[1] = value;
 		nds_math_div(nds);
-		break;
+		return;
 	case 0x4000298:
 		nds->div_denom[0] = value;
 		nds_math_div(nds);
-		break;
+		return;
 	case 0x400029C:
 		nds->div_denom[1] = value;
 		nds_math_div(nds);
-		break;
+		return;
 	case 0x40002B8:
 		nds->sqrt_param[0] = value;
 		nds_math_sqrt(nds);
-		break;
+		return;
 	case 0x40002BC:
 		nds->sqrt_param[1] = value;
 		nds_math_sqrt(nds);
-		break;
+		return;
 	case 0x4000304:
 		powcnt1_write(nds, value);
-		break;
+		return;
 	case 0x4001000:
 		nds->gpu2D[1].dispcnt = value;
-		break;
+		return;
 	}
+
+	fprintf(stderr, "nds 0 write 32 to %08X\n", addr);
 }
 
 } // namespace twice

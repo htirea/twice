@@ -24,8 +24,6 @@
 		return (dest) >> 8
 
 #define IO_READ8_COMMON(cpuid_)                                               \
-	fprintf(stderr, "nds %d io read 8 at %08X\n", (cpuid_), addr);        \
-	return 0;                                                             \
 	case 0x4000208:                                                       \
 		return nds->cpu[(cpuid_)]->IME;                               \
 	case 0x4000210:                                                       \
@@ -34,8 +32,6 @@
 		IO_READ8_FROM_32(0x4000214, nds->cpu[(cpuid_)]->IF)
 
 #define IO_READ16_COMMON(cpuid_)                                              \
-	fprintf(stderr, "nds %d io read 16 at %08X\n", (cpuid_), addr);       \
-	return 0;                                                             \
 	case 0x4000004:                                                       \
 		return nds->dispstat[(cpuid_)];                               \
 	case 0x4000006:                                                       \
@@ -54,8 +50,6 @@
 		IO_READ16_FROM_32(0x4000214, nds->cpu[(cpuid_)]->IF)
 
 #define IO_READ32_COMMON(cpuid_)                                              \
-	fprintf(stderr, "nds %d io read 32 at %08X\n", (cpuid_), addr);       \
-	return 0;                                                             \
 	case 0x40000B0:                                                       \
 		return nds->dma_sad[cpuid_][0];                               \
 	case 0x40000B4:                                                       \
@@ -96,92 +90,86 @@
 		return ipc_fifo_recv(nds, (cpuid_))
 
 #define IO_WRITE8_COMMON(cpuid_)                                              \
-	fprintf(stderr, "nds %d io write 8 to %08X\n", (cpuid_), addr);       \
-	break;                                                                \
 	case 0x4000208:                                                       \
 		nds->cpu[(cpuid_)]->IME = value & 1;                          \
 		nds->cpu[(cpuid_)]->check_interrupt();                        \
-		break
+		return
 
 #define IO_WRITE16_COMMON(cpuid_)                                             \
-	fprintf(stderr, "nds %d io write 16 to %08X\n", (cpuid_), addr);      \
-	break;                                                                \
 	case 0x4000004:                                                       \
 		nds->dispstat[cpuid_] &= 0x7;                                 \
 		nds->dispstat[cpuid_] |= ~0x7;                                \
-		break;                                                        \
+		return;                                                       \
 	case 0x4000180:                                                       \
 		ipcsync_write(nds, (cpuid_), value);                          \
-		break;                                                        \
+		return;                                                       \
 	case 0x4000184:                                                       \
 		ipc_fifo_cnt_write(nds, (cpuid_), value);                     \
-		break;                                                        \
+		return;                                                       \
 	case 0x4000208:                                                       \
 		nds->cpu[(cpuid_)]->IME = value & 1;                          \
 		nds->cpu[(cpuid_)]->check_interrupt();                        \
-		break
+		return
 
 #define IO_WRITE32_COMMON(cpuid_)                                             \
-	fprintf(stderr, "nds %d io write 32 to %08X\n", (cpuid_), addr);      \
-	break;                                                                \
 	case 0x40000B0:                                                       \
 		nds->dma_sad[cpuid_][0] = value;                              \
-		break;                                                        \
+		return;                                                       \
 	case 0x40000B4:                                                       \
 		nds->dma_dad[cpuid_][0] = value;                              \
-		break;                                                        \
+		return;                                                       \
 	case 0x40000B8:                                                       \
 		nds->dmacnt_l[cpuid_][0] = value;                             \
 		nds->dma[cpuid_]->dmacnt_h_write(0, value >> 16);             \
-		break;                                                        \
+		return;                                                       \
 	case 0x40000BC:                                                       \
 		nds->dma_sad[cpuid_][1] = value;                              \
-		break;                                                        \
+		return;                                                       \
 	case 0x40000C0:                                                       \
 		nds->dma_dad[cpuid_][1] = value;                              \
-		break;                                                        \
+		return;                                                       \
 	case 0x40000C4:                                                       \
 		nds->dmacnt_l[cpuid_][1] = value;                             \
 		nds->dma[cpuid_]->dmacnt_h_write(1, value >> 16);             \
-		break;                                                        \
+		return;                                                       \
 	case 0x40000C8:                                                       \
 		nds->dma_sad[cpuid_][2] = value;                              \
-		break;                                                        \
+		return;                                                       \
 	case 0x40000CC:                                                       \
 		nds->dma_dad[cpuid_][2] = value;                              \
-		break;                                                        \
+		return;                                                       \
 	case 0x40000D0:                                                       \
 		nds->dmacnt_l[cpuid_][2] = value;                             \
 		nds->dma[cpuid_]->dmacnt_h_write(2, value >> 16);             \
-		break;                                                        \
+		return;                                                       \
 	case 0x40000D4:                                                       \
 		nds->dma_sad[cpuid_][3] = value;                              \
-		break;                                                        \
+		return;                                                       \
 	case 0x40000D8:                                                       \
 		nds->dma_dad[cpuid_][3] = value;                              \
-		break;                                                        \
+		return;                                                       \
 	case 0x40000DC:                                                       \
 		nds->dmacnt_l[cpuid_][3] = value;                             \
 		nds->dma[cpuid_]->dmacnt_h_write(3, value >> 16);             \
-		break;                                                        \
+		return;                                                       \
 	case 0x4000180:                                                       \
 		ipcsync_write(nds, (cpuid_), value);                          \
-		break;                                                        \
+		return;                                                       \
 	case 0x4000188:                                                       \
 		ipc_fifo_send(nds, (cpuid_), value);                          \
-		break;                                                        \
+		return;                                                       \
 	case 0x4000208:                                                       \
 		nds->cpu[(cpuid_)]->IME = value & 1;                          \
 		nds->cpu[(cpuid_)]->check_interrupt();                        \
-		break;                                                        \
+		return;                                                       \
 	case 0x4000210:                                                       \
 		nds->cpu[(cpuid_)]->IE = value;                               \
 		nds->cpu[(cpuid_)]->check_interrupt();                        \
-		break;                                                        \
+		return;                                                       \
 	case 0x4000214:                                                       \
 		nds->cpu[(cpuid_)]->IF &= ~value;                             \
 		nds->cpu[(cpuid_)]->check_interrupt();                        \
-		break
+		return
 
 namespace twice {
 

@@ -9,38 +9,43 @@ inline u8
 io7_read8(NDS *nds, u32 addr)
 {
 	switch (addr) {
-	default:
 		IO_READ8_COMMON(1);
 	case 0x4000240:
 		return nds->vramstat;
 	case 0x4000241:
 		return nds->wramcnt;
 	}
+
+	fprintf(stderr, "nds 1 read 8 at %08X\n", addr);
+	return 0;
 }
 
 inline u16
 io7_read16(NDS *nds, u32 addr)
 {
 	switch (addr) {
-	default:
 		IO_READ16_COMMON(1);
 	}
+
+	fprintf(stderr, "nds 1 read 16 at %08X\n", addr);
+	return 0;
 }
 
 inline u32
 io7_read32(NDS *nds, u32 addr)
 {
 	switch (addr) {
-	default:
 		IO_READ32_COMMON(1);
 	}
+
+	fprintf(stderr, "nds 1 read 32 at %08X\n", addr);
+	return 0;
 }
 
 inline void
 io7_write8(NDS *nds, u32 addr, u8 value)
 {
 	switch (addr) {
-	default:
 		IO_WRITE8_COMMON(1);
 	case 0x4000301:
 		switch (value >> 6 & 0x3) {
@@ -52,26 +57,30 @@ io7_write8(NDS *nds, u32 addr, u8 value)
 			fprintf(stderr, "unhandled haltcnt\n");
 		}
 		nds->haltcnt = value;
-		break;
+		return;
 	}
+
+	fprintf(stderr, "nds 1 write 8 to %08X\n", addr);
 }
 
 inline void
 io7_write16(NDS *nds, u32 addr, u16 value)
 {
 	switch (addr) {
-	default:
 		IO_WRITE16_COMMON(1);
 	}
+
+	fprintf(stderr, "nds 1 write 16 to %08X\n", addr);
 }
 
 inline void
 io7_write32(NDS *nds, u32 addr, u32 value)
 {
 	switch (addr) {
-	default:
 		IO_WRITE32_COMMON(1);
 	}
+
+	fprintf(stderr, "nds 1 write 32 to %08X\n", addr);
 }
 
 } // namespace twice
