@@ -26,6 +26,10 @@ typedef volatile s64 vs64;
 #define REG_POWCNT1 *((vu16 *)0x4000304)
 #define REG_DISPCNT_A *((vu32 *)0x4000000)
 #define REG_VRAMCNT_A *((vu8 *)0x4000240)
+#define REG_WININ_A *((vu16 *)0x4000048)
+#define REG_WINOUT_A *((vu16 *)0x400004A)
+#define REG_BLDCNT_A *((vu16 *)0x4000050)
+#define REG_BLDALPHA_A *((vu16 *)0x4000052)
 
 #define FB_WIDTH 256
 #define FB_HEIGHT 384

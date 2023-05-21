@@ -17,6 +17,26 @@ test_io()
 		return 2;
 	}
 
+	REG_WININ_A = 0xFFFF;
+	if (REG_WININ_A != 0x3F3F) {
+		return 3;
+	}
+
+	REG_WINOUT_A = 0xFFFF;
+	if (REG_WINOUT_A != 0x3F3F) {
+		return 4;
+	}
+
+	REG_BLDCNT_A = 0xFFFF;
+	if (REG_BLDCNT_A != 0x3FFF) {
+		return 5;
+	}
+
+	REG_BLDALPHA_A = 0xFFFF;
+	if (REG_BLDALPHA_A != 0x1F1F) {
+		return 6;
+	}
+
 	return 0;
 }
 

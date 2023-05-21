@@ -12,10 +12,26 @@ struct Gpu2D {
 	Gpu2D(NDS *nds, int engineid);
 
 	u32 dispcnt{};
+	u16 bg_cnt[4]{};
+	u16 bg_hofs[4]{};
+	u16 bg_vofs[4]{};
+	u16 bg_pa[2]{};
+	u16 bg_pb[2]{};
+	u16 bg_pc[2]{};
+	u16 bg_pd[2]{};
+	u32 bg_x[2]{};
+	u32 bg_y[2]{};
+	u16 win_h[2]{};
+	u16 win_v[2]{};
+	u16 winin{};
+	u16 winout{};
+	u16 mosaic{};
+	u16 bldcnt{};
+	u16 bldalpha{};
+	u16 bldy{};
+
 	bool enabled{};
-
 	u32 *fb{};
-
 	NDS *nds{};
 	int engineid{};
 
