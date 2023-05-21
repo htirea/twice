@@ -92,7 +92,9 @@ Gpu2D::read16(u8 offset)
 void
 Gpu2D::write32(u8 offset, u32 value)
 {
-	/* TODO: check if engine is enabled */
+	if (!enabled) {
+		return;
+	}
 
 	switch (offset) {
 	case 0x28:
@@ -122,7 +124,9 @@ Gpu2D::write32(u8 offset, u32 value)
 void
 Gpu2D::write16(u8 offset, u16 value)
 {
-	/* TODO: check if engine is enabled */
+	if (!enabled) {
+		return;
+	}
 
 	switch (offset) {
 	case 0x8:

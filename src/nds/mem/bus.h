@@ -11,6 +11,13 @@
 
 namespace twice {
 
+inline bool
+gpu_2d_memory_access_disabled(NDS *nds, u32 addr)
+{
+	return (!nds->gpu2D[0].enabled && !(addr & 0x400)) ||
+			(!nds->gpu2D[1].enabled && (addr & 0x400));
+}
+
 template <typename T>
 T
 bus9_read(NDS *nds, u32 addr)
@@ -39,13 +46,21 @@ bus9_read(NDS *nds, u32 addr)
 		}
 		break;
 	case 0x5:
-		value = readarr<T>(nds->palette, addr & PALETTE_MASK);
+		if (gpu_2d_memory_access_disabled(nds, addr)) {
+			value = 0;
+		} else {
+			value = readarr<T>(nds->palette, addr & PALETTE_MASK);
+		}
 		break;
 	case 0x6:
 		value = vram_read<T>(nds, addr);
 		break;
 	case 0x7:
-		value = readarr<T>(nds->oam, addr & OAM_MASK);
+		if (gpu_2d_memory_access_disabled(nds, addr)) {
+			value = 0;
+		} else {
+			value = readarr<T>(nds->oam, addr & OAM_MASK);
+		}
 		break;
 	case 0xFF:
 		if (addr < 0xFFFF0000) {
@@ -95,13 +110,17 @@ bus9_write(NDS *nds, u32 addr, T value)
 		}
 		break;
 	case 0x5:
-		writearr<T>(nds->palette, addr & PALETTE_MASK, value);
+		if (!gpu_2d_memory_access_disabled(nds, addr)) {
+			writearr<T>(nds->palette, addr & PALETTE_MASK, value);
+		}
 		break;
 	case 0x6:
 		vram_write<T>(nds, addr, value);
 		break;
 	case 0x7:
-		writearr<T>(nds->oam, addr & OAM_MASK, value);
+		if (!gpu_2d_memory_access_disabled(nds, addr)) {
+			writearr<T>(nds->oam, addr & OAM_MASK, value);
+		}
 		break;
 	case 0xFF:
 		if (addr < 0xFFFF0000) {
