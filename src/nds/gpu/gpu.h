@@ -9,14 +9,15 @@ namespace twice {
 struct NDS;
 
 struct Gpu2D {
-	Gpu2D(NDS *nds);
+	Gpu2D(NDS *nds, int engineid);
 
 	u32 dispcnt{};
 	bool enabled{};
 
 	u32 *fb{};
-	int engineid{};
+
 	NDS *nds{};
+	int engineid{};
 
 	void draw_scanline(u16 scanline);
 	void vram_display_scanline(u16 scanline);

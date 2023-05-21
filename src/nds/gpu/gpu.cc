@@ -43,8 +43,9 @@ gpu_on_scanline_start(NDS *nds)
 	}
 }
 
-Gpu2D::Gpu2D(NDS *nds)
-	: nds(nds)
+Gpu2D::Gpu2D(NDS *nds, int engineid)
+	: nds(nds),
+	  engineid(engineid)
 {
 }
 
