@@ -49,6 +49,36 @@ Gpu2D::Gpu2D(NDS *nds, int engineid)
 {
 }
 
+u32
+Gpu2D::read32(u8 offset)
+{
+	fprintf(stderr, "2d engine read 32 at offset %02X\n", offset);
+	return 0;
+}
+
+u16
+Gpu2D::read16(u8 offset)
+{
+	fprintf(stderr, "2d engine read 16 at offset %02X\n", offset);
+	return 0;
+}
+
+void
+Gpu2D::write32(u8 offset, u32 value)
+{
+	/* TODO: check if engine is enabled */
+
+	fprintf(stderr, "2d engine write 32 to offset %02X\n", offset);
+}
+
+void
+Gpu2D::write16(u8 offset, u16 value)
+{
+	/* TODO: check if engine is enabled */
+
+	fprintf(stderr, "2d engine write 16 to offset %02X\n", offset);
+}
+
 void
 Gpu2D::draw_scanline(u16 scanline)
 {

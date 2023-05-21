@@ -44,6 +44,14 @@ io9_read16(NDS *nds, u32 addr)
 		return nds->powcnt1;
 	}
 
+	if (0x4000008 <= addr && addr < 0x4000058) {
+		return nds->gpu2D[0].read16(addr);
+	}
+
+	if (0x4001008 <= addr && addr < 0x40010058) {
+		return nds->gpu2D[1].read16(addr);
+	}
+
 	fprintf(stderr, "nds 0 read 16 at %08X\n", addr);
 	return 0;
 }
@@ -85,6 +93,14 @@ io9_read32(NDS *nds, u32 addr)
 		return nds->sqrt_param[1];
 	case 0x4000304:
 		return nds->powcnt1;
+	}
+
+	if (0x4000008 <= addr && addr < 0x4000058) {
+		return nds->gpu2D[0].read32(addr);
+	}
+
+	if (0x4001008 <= addr && addr < 0x40010058) {
+		return nds->gpu2D[1].read32(addr);
 	}
 
 	fprintf(stderr, "nds 0 read 32 at %08X\n", addr);
@@ -151,6 +167,16 @@ io9_write16(NDS *nds, u32 addr, u16 value)
 		return;
 	}
 
+	if (0x4000008 <= addr && addr < 0x4000058) {
+		nds->gpu2D[0].write16(addr, value);
+		return;
+	}
+
+	if (0x4001008 <= addr && addr < 0x40010058) {
+		nds->gpu2D[1].write16(addr, value);
+		return;
+	}
+
 	fprintf(stderr, "nds 0 write 16 to %08X\n", addr);
 }
 
@@ -209,6 +235,16 @@ io9_write32(NDS *nds, u32 addr, u32 value)
 		return;
 	case 0x4001000:
 		nds->gpu2D[1].dispcnt = value;
+		return;
+	}
+
+	if (0x4000008 <= addr && addr < 0x4000058) {
+		nds->gpu2D[0].write32(addr, value);
+		return;
+	}
+
+	if (0x4001008 <= addr && addr < 0x40010058) {
+		nds->gpu2D[1].write32(addr, value);
 		return;
 	}
 
