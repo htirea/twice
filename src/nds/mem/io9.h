@@ -200,6 +200,9 @@ io9_write32(NDS *nds, u32 addr, u32 value)
 	case 0x4000304:
 		powcnt1_write(nds, value);
 		break;
+	case 0x4001000:
+		nds->gpu2D[1].dispcnt = value;
+		break;
 	}
 }
 
