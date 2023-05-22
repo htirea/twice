@@ -30,6 +30,14 @@ Dma::start_transfer(int channel)
 {
 	auto& t = transfers[channel];
 
+	if (t.repeat_reload) {
+		t.repeat_reload = false;
+		load_dmacnt_l(channel);
+		if ((nds->dmacnt_h[cpuid][channel] >> 5 & 0x3) == 3) {
+			load_dad(channel);
+		}
+	}
+
 	t.count = 0;
 	active |= BIT(channel);
 }
@@ -66,12 +74,7 @@ Dma9::run()
 		}
 
 		if (dmacnt & BIT(9)) {
-			/* TODO: should this happen on dma start? */
-			load_dmacnt_l(channel);
-			if ((dmacnt >> 5 & 0x3) == 3) {
-				load_dad(channel);
-			}
-
+			t.repeat_reload = true;
 		} else {
 			dmacnt &= ~BIT(15);
 			t.enabled = false;
@@ -113,11 +116,7 @@ Dma7::run()
 		}
 
 		if (dmacnt & BIT(9)) {
-			/* TODO: should this happen on dma start? */
-			load_dmacnt_l(channel);
-			if ((dmacnt >> 5 & 0x3) == 3) {
-				load_dad(channel);
-			}
+			t.repeat_reload = true;
 		} else {
 			dmacnt &= ~BIT(15);
 			t.enabled = false;
@@ -202,6 +201,8 @@ Dma9::dmacnt_h_write(int channel, u16 value)
 		default:
 			throw TwiceError("arm9 dma mode not implemented");
 		}
+
+		t.repeat_reload = false;
 	}
 
 	dmacnt = value;
@@ -243,6 +244,8 @@ Dma7::dmacnt_h_write(int channel, u16 value)
 		case 3:
 			throw TwiceError("arm7 dma mode 3 not implemented");
 		}
+
+		t.repeat_reload = false;
 	}
 
 	dmacnt = value;

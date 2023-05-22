@@ -19,6 +19,7 @@ struct DmaTransfer {
 	int word_width{};
 	int sad_step{};
 	int dad_step{};
+	bool repeat_reload{};
 };
 
 struct Dma {
@@ -35,6 +36,8 @@ struct Dma {
 
 	virtual void run() = 0;
 	virtual void dmacnt_h_write(int channel, u16 value) = 0;
+	virtual void load_dad(int channel) = 0;
+	virtual void load_dmacnt_l(int channel) = 0;
 
 	void start_transfer(int channel);
 	void set_addr_step_and_width(int channel, u16 dmacnt);
@@ -45,9 +48,8 @@ struct Dma9 final : Dma {
 
 	void run() override;
 	void dmacnt_h_write(int channel, u16 value) override;
-
-	void load_dad(int channel);
-	void load_dmacnt_l(int channel);
+	void load_dad(int channel) override;
+	void load_dmacnt_l(int channel) override;
 };
 
 struct Dma7 final : Dma {
@@ -55,9 +57,8 @@ struct Dma7 final : Dma {
 
 	void run() override;
 	void dmacnt_h_write(int channel, u16 value) override;
-
-	void load_dad(int channel);
-	void load_dmacnt_l(int channel);
+	void load_dad(int channel) override;
+	void load_dmacnt_l(int channel) override;
 };
 
 void dma_on_vblank(NDS *nds);
