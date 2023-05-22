@@ -64,33 +64,18 @@ parse_header(NDS *nds, u32 *entry_addr_ret)
 		throw TwiceError("arm7 transfer size too large");
 	}
 
-	if ((entry_addr[0] | entry_addr[1]) & 0x3) {
-		throw TwiceError("cartridge entry addr unaligned");
+	for (u32 i = 0; i < transfer_size[0]; i++) {
+		u8 value = readarr<u8>(nds->cartridge, rom_offset[0] + i);
+		bus9_write<u8>(nds, ram_addr[0] + i, value);
 	}
 
-	if ((ram_addr[0] | ram_addr[1]) & 0x3) {
-		throw TwiceError("cartridge ram addr unaligned");
+	for (u32 i = 0; i < transfer_size[1]; i++) {
+		u8 value = readarr<u8>(nds->cartridge, rom_offset[1] + i);
+		bus7_write<u8>(nds, ram_addr[1] + i, value);
 	}
 
-	if ((transfer_size[0] | transfer_size[1]) & 0x3) {
-		throw TwiceError("cartridge transfer size unaligned");
-	}
-
-	for (u32 i = 0; i < transfer_size[0]; i += 4) {
-		u32 value = readarr<u32>(nds->cartridge, rom_offset[0] + i);
-		bus9_write<u32>(nds, ram_addr[0] + i, value);
-	}
-
-	for (u32 i = 0; i < transfer_size[1]; i += 4) {
-		u32 value = readarr<u32>(nds->cartridge, rom_offset[1] + i);
-		bus7_write<u32>(nds, ram_addr[1] + i, value);
-	}
-
-	entry_addr_ret[0] = entry_addr[0];
-	entry_addr_ret[1] = entry_addr[1];
-
-	fprintf(stderr, "entry addr: %08X %08X\n", entry_addr[0],
-			entry_addr[1]);
+	entry_addr_ret[0] = entry_addr[0] & ~3;
+	entry_addr_ret[1] = entry_addr[1] & ~3;
 }
 
 void
