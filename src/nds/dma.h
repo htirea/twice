@@ -26,6 +26,7 @@ struct Dma {
 	Dma(NDS *nds, int cpuid);
 
 	u32 active{};
+	u32 requested_imm_dmas{};
 	DmaTransfer transfers[4];
 
 	NDS *nds{};
@@ -63,6 +64,7 @@ struct Dma7 final : Dma {
 
 void dma_on_vblank(NDS *nds);
 void dma_on_hblank_start(NDS *nds);
+void start_immediate_dmas(NDS *nds, int cpuid);
 
 } // namespace twice
 

@@ -6,6 +6,8 @@ Scheduler::Scheduler()
 {
 	events[HBLANK_START].cb = nds_event_hblank_start;
 	events[HBLANK_END].cb = nds_event_hblank_end;
+	arm_events[0][START_IMMEDIATE_DMAS].cb = start_immediate_dmas;
+	arm_events[1][START_IMMEDIATE_DMAS].cb = start_immediate_dmas;
 }
 
 void
@@ -88,7 +90,7 @@ run_arm_events(NDS *nds, int cpuid)
 		if (event.enabled && nds->arm_cycles[cpuid] >= event.time) {
 			event.enabled = false;
 			if (event.cb) {
-				event.cb(nds);
+				event.cb(nds, cpuid);
 			}
 		}
 	}

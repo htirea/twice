@@ -38,7 +38,6 @@ Dma::start_transfer(int channel)
 		}
 	}
 
-	t.count = 0;
 	active |= BIT(channel);
 }
 
@@ -80,6 +79,7 @@ Dma9::run()
 			t.enabled = false;
 		}
 
+		t.count = 0;
 		active &= ~BIT(channel);
 	}
 }
@@ -122,6 +122,7 @@ Dma7::run()
 			t.enabled = false;
 		}
 
+		t.count = 0;
 		active &= ~BIT(channel);
 	}
 }
@@ -189,11 +190,9 @@ Dma9::dmacnt_h_write(int channel, u16 value)
 
 		switch (t.mode) {
 		case 0:
-			/* TODO: the event cb should call the start function */
-			t.count = 0;
-			active |= BIT(channel);
-			schedule_arm_event_after(
-					nds, 0, Scheduler::NULL_EVENT, 1);
+			requested_imm_dmas |= BIT(channel);
+			schedule_arm_event_after(nds, 0,
+					Scheduler::START_IMMEDIATE_DMAS, 1);
 			break;
 		case 1:
 		case 2:
@@ -203,6 +202,7 @@ Dma9::dmacnt_h_write(int channel, u16 value)
 		}
 
 		t.repeat_reload = false;
+		t.count = 0;
 	}
 
 	dmacnt = value;
@@ -231,11 +231,9 @@ Dma7::dmacnt_h_write(int channel, u16 value)
 
 		switch (t.mode) {
 		case 0:
-			/* TODO: the event cb should call the start function */
-			t.count = 0;
-			active |= BIT(channel);
-			schedule_arm_event_after(
-					nds, 1, Scheduler::NULL_EVENT, 2);
+			requested_imm_dmas |= BIT(channel);
+			schedule_arm_event_after(nds, 1,
+					Scheduler::START_IMMEDIATE_DMAS, 2);
 			break;
 		case 1:
 			break;
@@ -246,6 +244,7 @@ Dma7::dmacnt_h_write(int channel, u16 value)
 		}
 
 		t.repeat_reload = false;
+		t.count = 0;
 	}
 
 	dmacnt = value;
@@ -331,6 +330,16 @@ dma_on_hblank_start(NDS *nds)
 			}
 		}
 	}
+}
+
+void
+start_immediate_dmas(NDS *nds, int cpuid)
+{
+	auto& dma = nds->dma[cpuid];
+
+	/* TODO: don't start all requested dmas */
+	dma->active |= dma->requested_imm_dmas;
+	dma->requested_imm_dmas = 0;
 }
 
 } // namespace twice

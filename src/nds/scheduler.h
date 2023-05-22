@@ -8,6 +8,7 @@ namespace twice {
 struct NDS;
 
 typedef void (*event_cb)(NDS *);
+typedef void (*arm_event_cb)(NDS *, int);
 
 struct Scheduler {
 	Scheduler();
@@ -19,7 +20,7 @@ struct Scheduler {
 	};
 
 	enum ArmEventType {
-		NULL_EVENT,
+		START_IMMEDIATE_DMAS,
 		NUM_ARM_EVENTS,
 	};
 
@@ -29,16 +30,23 @@ struct Scheduler {
 		event_cb cb{};
 	};
 
+	struct ArmEvent {
+		bool enabled{};
+		u64 time{};
+		arm_event_cb cb{};
+	};
+
 	u64 current_time{};
 
 	Event events[NUM_EVENTS];
-	Event arm_events[2][NUM_ARM_EVENTS];
+	ArmEvent arm_events[2][NUM_ARM_EVENTS];
 
 	void schedule_event(int event, u64 t);
 	void reschedule_event_after(int event, u64 dt);
 	u64 get_next_event_time();
 };
 
+void schedule_immediate_dma(NDS *nds, int cpuid, int channel);
 void schedule_arm_event_after(NDS *nds, int cpuid, int event, u64 dt);
 void run_events(NDS *nds);
 void run_arm_events(NDS *nds, int cpuid);
