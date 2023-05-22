@@ -44,10 +44,10 @@ Dma9::run()
 
 	while (t.count < t.word_count && cycles < target_cycles) {
 		if (width == 4) {
-			auto value = bus9_read<u32>(nds, t.sad);
+			u32 value = bus9_read<u32>(nds, t.sad);
 			bus9_write<u32>(nds, t.dad, value);
 		} else {
-			auto value = bus9_read<u16>(nds, t.sad);
+			u16 value = bus9_read<u16>(nds, t.sad);
 			bus9_write<u16>(nds, t.dad, value);
 		}
 
@@ -91,10 +91,10 @@ Dma7::run()
 
 	while (t.count < t.word_count && cycles < target_cycles) {
 		if (width == 4) {
-			auto value = bus7_read<u32>(nds, t.sad);
+			u32 value = bus7_read<u32>(nds, t.sad);
 			bus7_write<u32>(nds, t.dad, value);
 		} else {
-			auto value = bus7_read<u16>(nds, t.sad);
+			u16 value = bus7_read<u16>(nds, t.sad);
 			bus7_write<u16>(nds, t.dad, value);
 		}
 

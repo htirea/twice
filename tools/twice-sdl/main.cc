@@ -37,7 +37,7 @@ parse_args(int argc, char **argv)
 static void
 set_data_dir()
 {
-	auto path = SDL_GetPrefPath("", "twice");
+	char *path = SDL_GetPrefPath("", "twice");
 	if (path) {
 		data_dir = path;
 		SDL_free(path);
