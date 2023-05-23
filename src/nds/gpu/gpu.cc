@@ -227,6 +227,7 @@ Gpu2D::draw_scanline(u16 scanline)
 {
 	if (!enabled) {
 		fb_fill_white(fb, scanline);
+		return;
 	}
 
 	switch (dispcnt >> 16 & 0x3) {

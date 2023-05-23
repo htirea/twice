@@ -15,7 +15,7 @@ NDS::NDS(u8 *arm7_bios, u8 *arm9_bios, u8 *firmware, u8 *cartridge,
 		size_t cartridge_size)
 	: arm9(std::make_unique<Arm9>(this)),
 	  arm7(std::make_unique<Arm7>(this)),
-	  gpu2D{ { this, 0 }, { this, 0 } },
+	  gpu2D{ { this, 0 }, { this, 1 } },
 	  dma9(this),
 	  dma7(this),
 	  arm7_bios(arm7_bios),
