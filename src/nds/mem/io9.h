@@ -61,6 +61,8 @@ io9_read32(NDS *nds, u32 addr)
 {
 	switch (addr) {
 		IO_READ32_COMMON(0);
+	case 0x4000000:
+		return nds->gpu2D[0].dispcnt;
 	case 0x40000E0:
 		return nds->dmafill[0];
 	case 0x40000E4:
@@ -93,6 +95,8 @@ io9_read32(NDS *nds, u32 addr)
 		return nds->sqrt_param[1];
 	case 0x4000304:
 		return nds->powcnt1;
+	case 0x4001000:
+		return nds->gpu2D[1].dispcnt;
 	}
 
 	if (0x4000008 <= addr && addr < 0x4000058) {
