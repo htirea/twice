@@ -18,7 +18,7 @@ BGR555_TO_BGR888(u16 color)
 	g = (g * 527 + 23) >> 6;
 	b = (b * 527 + 23) >> 6;
 
-	return (b << 16) | (g << 8) | r;
+	return b << 16 | g << 8 | r;
 }
 
 void
@@ -235,10 +235,11 @@ Gpu2D::draw_scanline(u16 scanline)
 		fb_fill_white(fb, scanline);
 		break;
 	case 1:
-		throw TwiceError("display mode 1 not implemented");
+		graphics_display_scanline();
+		break;
 	case 2:
 		if (engineid == 0) {
-			vram_display_scanline(scanline);
+			vram_display_scanline();
 		} else {
 			throw TwiceError("engine B display mode 2");
 		}
@@ -249,9 +250,56 @@ Gpu2D::draw_scanline(u16 scanline)
 }
 
 void
-Gpu2D::vram_display_scanline(u16 scanline)
+Gpu2D::set_backdrop()
 {
-	u32 start = scanline * NDS_FB_W;
+	u16 backdrop_color = readarr<u16>(nds->palette, 0);
+	for (u32 i = 0; i < NDS_SCREEN_W; i++) {
+		bg_buffer_top[i] = { backdrop_color };
+		bg_buffer_bottom[i] = { backdrop_color };
+	}
+}
+
+void
+Gpu2D::graphics_display_scanline()
+{
+	set_backdrop();
+
+	switch (dispcnt & 0x7) {
+	case 0:
+		if (dispcnt & BIT(11)) render_text_bg(3);
+		if (dispcnt & BIT(10)) render_text_bg(2);
+		if (dispcnt & BIT(9)) render_text_bg(1);
+		if (dispcnt & BIT(8)) render_text_bg(0);
+		break;
+	case 6:
+		if (engineid == 1) {
+			throw TwiceError("bg mode 6 invalid for engine B");
+		}
+		throw TwiceError("bg mode 6 not implemented");
+		break;
+	case 7:
+		throw TwiceError("bg mode 7 invalid");
+	default:
+		throw TwiceError("bg mode not implemented");
+	}
+
+	/* TODO: figure out what format to store pixel colors in */
+
+	for (u32 i = 0; i < NDS_SCREEN_W; i++) {
+		fb[nds->vcount * NDS_FB_W + i] =
+				BGR555_TO_BGR888(bg_buffer_top[i].color);
+	}
+}
+
+void
+Gpu2D::render_text_bg(int bg)
+{
+}
+
+void
+Gpu2D::vram_display_scanline()
+{
+	u32 start = nds->vcount * NDS_FB_W;
 	u32 end = start + NDS_FB_W;
 
 	u32 offset = 0x20000 * (dispcnt >> 18 & 0x3);

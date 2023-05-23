@@ -30,8 +30,16 @@ struct Gpu2D {
 	u16 bldalpha{};
 	u16 bldy{};
 
-	bool enabled{};
 	u32 *fb{};
+
+	struct Pixel {
+		u32 color{};
+	};
+
+	Pixel bg_buffer_top[NDS_SCREEN_W]{};
+	Pixel bg_buffer_bottom[NDS_SCREEN_W]{};
+
+	bool enabled{};
 	NDS *nds{};
 	int engineid{};
 
@@ -41,7 +49,10 @@ struct Gpu2D {
 	void write16(u8 offset, u16 value);
 
 	void draw_scanline(u16 scanline);
-	void vram_display_scanline(u16 scanline);
+	void graphics_display_scanline();
+	void set_backdrop();
+	void render_text_bg(int bg);
+	void vram_display_scanline();
 };
 
 void gpu_on_scanline_start(NDS *nds);
