@@ -121,7 +121,7 @@ Platform::Platform()
 		throw sdl_exception("renderer set logical size failed\n");
 	}
 
-	texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ABGR8888,
+	texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_BGR888,
 			SDL_TEXTUREACCESS_STREAMING, NDS_FB_W, NDS_FB_H);
 	if (!texture) {
 		throw sdl_exception("create texture failed\n");

@@ -8,19 +8,17 @@
 namespace twice {
 
 u32
-ABGR1555_TO_ABGR8888(u16 color)
+BGR555_TO_BGR888(u16 color)
 {
 	u8 r = color & 0x1F;
 	u8 g = color >> 5 & 0x1F;
 	u8 b = color >> 10 & 0x1F;
-	u8 a = color >> 15;
 
-	r = (r << 3) | (r >> 2);
-	g = (g << 3) | (g >> 2);
-	b = (b << 3) | (b >> 2);
-	a = a * 0xFF;
+	r = (r * 527 + 23) >> 6;
+	g = (g * 527 + 23) >> 6;
+	b = (b * 527 + 23) >> 6;
 
-	return (a << 24) | (b << 16) | (g << 8) | r;
+	return (b << 16) | (g << 8) | r;
 }
 
 void
@@ -258,7 +256,7 @@ Gpu2D::vram_display_scanline(u16 scanline)
 	u32 offset = 0x20000 * (dispcnt >> 18 & 0x3);
 
 	for (u32 i = start; i < end; i++) {
-		fb[i] = ABGR1555_TO_ABGR8888(
+		fb[i] = BGR555_TO_BGR888(
 				vram_read_lcdc<u16>(nds, offset + i * 2));
 	}
 }
