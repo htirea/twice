@@ -19,8 +19,8 @@ struct Gpu2D {
 	u16 bg_pb[2]{};
 	u16 bg_pc[2]{};
 	u16 bg_pd[2]{};
-	u32 bg_x[2]{};
-	u32 bg_y[2]{};
+	u32 bg_ref_x[2]{};
+	u32 bg_ref_y[2]{};
 	u16 win_h[2]{};
 	u16 win_v[2]{};
 	u16 winin{};

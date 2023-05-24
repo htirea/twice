@@ -96,16 +96,16 @@ Gpu2D::write32(u8 offset, u32 value)
 
 	switch (offset) {
 	case 0x28:
-		bg_x[0] = value;
+		bg_ref_x[0] = value;
 		return;
 	case 0x2C:
-		bg_y[0] = value;
+		bg_ref_y[0] = value;
 		return;
 	case 0x38:
-		bg_x[1] = value;
+		bg_ref_x[1] = value;
 		return;
 	case 0x3C:
-		bg_y[1] = value;
+		bg_ref_y[1] = value;
 		return;
 	case 0x4C:
 		mosaic = value;
