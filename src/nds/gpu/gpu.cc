@@ -7,6 +7,9 @@
 
 namespace twice {
 
+static const u32 text_bg_widths[] = { 256, 512, 256, 512 };
+static const u32 text_bg_heights[] = { 256, 256, 512, 512 };
+
 u32
 BGR555_TO_BGR888(u16 color)
 {
@@ -294,6 +297,128 @@ Gpu2D::graphics_display_scanline()
 void
 Gpu2D::render_text_bg(int bg)
 {
+	if (engineid == 0 && (dispcnt & BIT(3))) {
+		throw TwiceError("3D not implemented");
+	}
+
+	u32 bg_priority = bg_cnt[bg] & 0x3;
+
+	u32 bg_size_bits = bg_cnt[bg] >> 14 & 0x3;
+	u32 bg_w = text_bg_widths[bg_size_bits];
+	u32 bg_h = text_bg_heights[bg_size_bits];
+
+	u32 bg_x = bg_hofs[bg] & (bg_w - 1);
+	u32 bg_y = bg_vofs[bg] + nds->vcount & (bg_h - 1);
+
+	u32 screen = (bg_y / 256 * 2) + (bg_x / 256);
+	if (bg_size_bits == 2) {
+		screen /= 2;
+	}
+
+	u32 screen_base = (bg_cnt[bg] >> 8 & 0x1F) * 0x800;
+	if (engineid == 0) {
+		screen_base += (dispcnt >> 27 & 0x7) * 0x10000;
+	}
+
+	u32 char_base = (bg_cnt[bg] >> 2 & 0xF) * 0x4000;
+	if (engineid == 0) {
+		char_base += (dispcnt >> 24 & 0x7) * 0x10000;
+	}
+
+	int px = bg_x % 8;
+	u32 se_x = bg_x % 256 / 8;
+	u32 se_y = bg_y % 256 / 8;
+
+	bool color_256 = bg_cnt[bg] & BIT(7);
+	u64 char_row;
+	u32 palette_bank;
+
+	for (u32 i = 0; i < 256;) {
+		if (px == 0 || i == 0) {
+			u16 se = get_screen_entry(
+					screen, screen_base, se_x, se_y);
+			char_row = fetch_char_row(
+					se, char_base, bg_y, color_256);
+
+			if (color_256) {
+				char_row >>= 8 * px;
+			} else {
+				char_row >>= 4 * px;
+				palette_bank = se >> 12;
+			}
+		}
+
+		if (color_256) {
+			for (; px < 8 && i < 256; px++, i++) {
+				u32 offset = char_row & 0xFF;
+				char_row >>= 8;
+				u16 color = get_palette_color_256(offset);
+				if (color != 0) {
+					draw_text_bg_pixel(
+							i, color, bg_priority);
+				}
+			}
+		} else {
+			for (; px < 8 && i < 256; px++, i++) {
+				u32 offset = char_row & 0xF;
+				char_row >>= 4;
+				u16 color = get_palette_color_16(
+						palette_bank, offset);
+				if (color != 0) {
+					draw_text_bg_pixel(
+							i, color, bg_priority);
+				}
+			}
+		}
+
+		px = 0;
+		se_x += 1;
+		if (se_x >= 32) {
+			se_x = 0;
+			if (bg_w > 256) {
+				screen ^= 1;
+			}
+		}
+	}
+}
+
+u64
+Gpu2D::fetch_char_row(u16 se, u32 char_base, u32 bg_y, bool color_256)
+{
+	u64 char_row;
+
+	u16 char_name = se & 0x3FF;
+
+	int py = bg_y % 8;
+	if (se & BIT(11)) {
+		py = 7 - py;
+	}
+
+	if (color_256) {
+		char_row = get_char_row_256(char_base, char_name, py);
+		if (se & BIT(10)) {
+			char_row = __builtin_bswap64(char_row);
+		}
+	} else {
+		char_row = get_char_row_16(char_base, char_name, py);
+		if (se & BIT(10)) {
+			char_row = __builtin_bswap32(char_row);
+		}
+	}
+
+	return char_row;
+}
+
+void
+Gpu2D::draw_text_bg_pixel(u32 fb_x, u16 color, u8 priority)
+{
+	auto& top = bg_buffer_top[fb_x];
+	auto& bottom = bg_buffer_bottom[fb_x];
+
+	if (top.priority <= bottom.priority) {
+		bottom = top;
+		top = { color, priority };
+	}
 }
 
 void
@@ -308,6 +433,61 @@ Gpu2D::vram_display_scanline()
 		fb[i] = BGR555_TO_BGR888(
 				vram_read_lcdc<u16>(nds, offset + i * 2));
 	}
+}
+
+u16
+Gpu2D::get_screen_entry(u32 screen, u32 base, u32 x, u32 y)
+{
+	u32 offset = base + 0x800 * screen + 0x40 * y + 2 * x;
+	if (engineid == 0) {
+		return vram_read_abg<u16>(nds, offset);
+	} else {
+		return vram_read_bbg<u16>(nds, offset);
+	}
+}
+
+u64
+Gpu2D::get_char_row_256(u32 base, u32 char_name, u32 y)
+{
+	u32 offset = base + 64 * char_name + 8 * y;
+	if (engineid == 0) {
+		return vram_read_abg<u64>(nds, offset);
+	} else {
+		return vram_read_bbg<u64>(nds, offset);
+	}
+}
+
+u32
+Gpu2D::get_char_row_16(u32 base, u32 char_name, u32 y)
+{
+	u32 offset = base + 32 * char_name + 4 * y;
+	if (engineid == 0) {
+		return vram_read_abg<u32>(nds, offset);
+	} else {
+		return vram_read_bbg<u32>(nds, offset);
+	}
+}
+
+u16
+Gpu2D::get_palette_color_256(u32 color_num)
+{
+	u32 offset = 2 * color_num;
+	if (engineid == 1) {
+		offset += 0x400;
+	}
+
+	return readarr<u16>(nds->palette, offset);
+}
+
+u16
+Gpu2D::get_palette_color_16(u32 palette_num, u32 color_num)
+{
+	u32 offset = 32 * palette_num + 2 * color_num;
+	if (engineid == 1) {
+		offset += 0x400;
+	}
+
+	return readarr<u16>(nds->palette, offset);
 }
 
 } // namespace twice
