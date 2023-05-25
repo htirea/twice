@@ -257,8 +257,9 @@ Gpu2D::set_backdrop()
 {
 	u16 backdrop_color = readarr<u16>(nds->palette, 0);
 	for (u32 i = 0; i < NDS_SCREEN_W; i++) {
-		bg_buffer_top[i] = { backdrop_color };
-		bg_buffer_bottom[i] = { backdrop_color };
+		bg_buffer_top[i].color = backdrop_color;
+		bg_buffer_top[i].priority = 4;
+		bg_buffer_bottom[i] = bg_buffer_top[i];
 	}
 }
 
@@ -415,9 +416,10 @@ Gpu2D::draw_text_bg_pixel(u32 fb_x, u16 color, u8 priority)
 	auto& top = bg_buffer_top[fb_x];
 	auto& bottom = bg_buffer_bottom[fb_x];
 
-	if (top.priority <= bottom.priority) {
+	if (priority <= top.priority) {
 		bottom = top;
-		top = { color, priority };
+		top.color = color;
+		top.priority = priority;
 	}
 }
 
