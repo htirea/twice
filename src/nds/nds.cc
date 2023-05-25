@@ -27,7 +27,7 @@ NDS::NDS(u8 *arm7_bios, u8 *arm9_bios, u8 *firmware, u8 *cartridge,
 	cpu[0] = arm9.get();
 	cpu[1] = arm7.get();
 
-	wramcnt_write(this, 0x0);
+	wramcnt_write(this, 0x3);
 	powcnt1_write(this, 0x0);
 
 	scheduler.schedule_event(Scheduler::HBLANK_START, 1536);
