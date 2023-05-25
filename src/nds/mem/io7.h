@@ -10,6 +10,9 @@ io7_read8(NDS *nds, u32 addr)
 {
 	switch (addr) {
 		IO_READ8_COMMON(1);
+	case 0x4000138:
+		/* TODO: rtc */
+		return 0;
 	case 0x4000240:
 		return nds->vramstat;
 	case 0x4000241:
@@ -25,6 +28,10 @@ io7_read16(NDS *nds, u32 addr)
 {
 	switch (addr) {
 		IO_READ16_COMMON(1);
+	case 0x40001C0:
+	case 0x40001C2:
+		/* TODO: SPI */
+		return 0;
 	}
 
 	fprintf(stderr, "nds 1 read 16 at %08X\n", addr);
@@ -47,6 +54,9 @@ io7_write8(NDS *nds, u32 addr, u8 value)
 {
 	switch (addr) {
 		IO_WRITE8_COMMON(1);
+	case 0x4000138:
+		/* TODO: rtc */
+		return;
 	case 0x4000301:
 		switch (value >> 6 & 0x3) {
 		case 2:
@@ -68,6 +78,10 @@ io7_write16(NDS *nds, u32 addr, u16 value)
 {
 	switch (addr) {
 		IO_WRITE16_COMMON(1);
+	case 0x40001C0:
+	case 0x40001C2:
+		/* TODO: SPI */
+		return;
 	}
 
 	fprintf(stderr, "nds 1 write 16 to %08X\n", addr);
