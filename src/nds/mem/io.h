@@ -97,8 +97,8 @@
 
 #define IO_WRITE16_COMMON(cpuid_)                                             \
 	case 0x4000004:                                                       \
-		nds->dispstat[cpuid_] &= 0x7;                                 \
-		nds->dispstat[cpuid_] |= ~0x7;                                \
+		nds->dispstat[cpuid_] &= 0x47;                                \
+		nds->dispstat[cpuid_] |= value & ~0x47;                       \
 		return;                                                       \
 	case 0x4000180:                                                       \
 		ipcsync_write(nds, (cpuid_), value);                          \

@@ -199,12 +199,20 @@ nds_event_hblank_end(NDS *nds)
 		nds->vcount = 0;
 	}
 
+	nds->dispstat[0] &= ~BIT(1);
+	nds->dispstat[1] &= ~BIT(1);
+
 	/* the next scanline starts here */
 
 	for (int i = 0; i < 2; i++) {
 		u16 lyc = get_lyc(nds->dispstat[i]);
-		if (nds->vcount == lyc && (nds->dispstat[i] & BIT(5))) {
-			nds->cpu[i]->request_interrupt(2);
+		if (nds->vcount == lyc) {
+			nds->dispstat[i] |= BIT(2);
+			if (nds->dispstat[i] & BIT(5)) {
+				nds->cpu[i]->request_interrupt(2);
+			}
+		} else {
+			nds->dispstat[i] &= ~BIT(2);
 		}
 	}
 
