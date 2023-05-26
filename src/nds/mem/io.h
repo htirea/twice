@@ -29,7 +29,9 @@
 	case 0x4000210:                                                       \
 		IO_READ8_FROM_32(0x4000210, nds->cpu[(cpuid_)]->IE);          \
 	case 0x4000214:                                                       \
-		IO_READ8_FROM_32(0x4000214, nds->cpu[(cpuid_)]->IF)
+		IO_READ8_FROM_32(0x4000214, nds->cpu[(cpuid_)]->IF);          \
+	case 0x4000300:                                                       \
+		return nds->postflg[cpuid_]
 
 #define IO_READ16_COMMON(cpuid_)                                              \
 	case 0x4000004:                                                       \

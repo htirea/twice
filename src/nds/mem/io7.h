@@ -62,6 +62,12 @@ io7_write8(NDS *nds, u32 addr, u8 value)
 	case 0x4000138:
 		/* TODO: rtc */
 		return;
+	case 0x4000300:
+		if (nds->cpu[1]->gpr[15] < ARM7_BIOS_SIZE) {
+			/* once bit 0 is set, cant be unset */
+			nds->postflg[1] |= value & 1;
+		}
+		return;
 	case 0x4000301:
 		switch (value >> 6 & 0x3) {
 		case 2:

@@ -107,6 +107,7 @@ struct NDS {
 
 	u8 haltcnt{};
 	u16 powcnt1{};
+	u8 postflg[2]{};
 
 	u32 soundbias{};
 

@@ -86,6 +86,8 @@ NDS::direct_boot()
 	wramcnt_write(this, 0x3);
 	powcnt1_write(this, 0x1);
 	soundbias = 0x200;
+	postflg[0] = 0x1;
+	postflg[1] = 0x1;
 
 	arm9->cp15_write(0x100, 0x00012078);
 	arm9->cp15_write(0x910, 0x0300000A);

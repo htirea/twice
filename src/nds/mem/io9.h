@@ -153,6 +153,13 @@ io9_write8(NDS *nds, u32 addr, u8 value)
 	case 0x4000249:
 		vramcnt_i_write(nds, value);
 		return;
+	case 0x4000300:
+		/* once bit 0 is set, cant be unset
+		 * bit 1 is r/w
+		 */
+		nds->postflg[0] &= ~BIT(1);
+		nds->postflg[0] |= value & 3;
+		return;
 	}
 
 	fprintf(stderr, "nds 0 write 8 to %08X\n", addr);
