@@ -97,6 +97,11 @@ io7_write32(NDS *nds, u32 addr, u32 value)
 		IO_WRITE32_COMMON(1);
 	}
 
+	if (0x4000400 <= addr && addr < 0x4000520) {
+		/* TODO: sound registers */
+		return;
+	}
+
 	fprintf(stderr, "nds 1 write 32 to %08X\n", addr);
 }
 

@@ -71,6 +71,11 @@ io9_read32(NDS *nds, u32 addr)
 		return nds->dmafill[2];
 	case 0x40000EC:
 		return nds->dmafill[3];
+	case 0x4000240:
+		return (u32)nds->vram.vramcnt[3] << 24 |
+				(u32)nds->vram.vramcnt[2] << 16 |
+				(u32)nds->vram.vramcnt[1] << 8 |
+				(u32)nds->vram.vramcnt[0];
 	case 0x4000290:
 		return nds->div_numer[0];
 	case 0x4000294:
@@ -210,6 +215,12 @@ io9_write32(NDS *nds, u32 addr, u32 value)
 		vramcnt_c_write(nds, value >> 16);
 		vramcnt_d_write(nds, value >> 24);
 		return;
+	case 0x4000244:
+		vramcnt_e_write(nds, value);
+		vramcnt_f_write(nds, value >> 8);
+		vramcnt_g_write(nds, value >> 16);
+		wramcnt_write(nds, value >> 24);
+		return;
 	case 0x4000290:
 		nds->div_numer[0] = value;
 		nds_math_div(nds);
@@ -239,6 +250,8 @@ io9_write32(NDS *nds, u32 addr, u32 value)
 		return;
 	case 0x4001000:
 		nds->gpu2D[1].dispcnt = value;
+		return;
+	case 0x4001058:
 		return;
 	}
 

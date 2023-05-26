@@ -112,6 +112,10 @@
 		return
 
 #define IO_WRITE32_COMMON(cpuid_)                                             \
+	case 0x4000004:                                                       \
+		nds->dispstat[cpuid_] &= 0x47;                                \
+		nds->dispstat[cpuid_] |= value & ~0x47;                       \
+		return;                                                       \
 	case 0x40000B0:                                                       \
 		nds->dma_sad[cpuid_][0] = value;                              \
 		return;                                                       \
