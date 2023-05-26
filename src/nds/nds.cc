@@ -27,7 +27,8 @@ NDS::NDS(u8 *arm7_bios, u8 *arm9_bios, u8 *firmware, u8 *cartridge,
 	cpu[0] = arm9.get();
 	cpu[1] = arm7.get();
 
-	wramcnt_write(this, 0x3);
+	/* need these for side effects */
+	wramcnt_write(this, 0x0);
 	powcnt1_write(this, 0x0);
 
 	scheduler.schedule_event(Scheduler::HBLANK_START, 1536);
@@ -81,16 +82,17 @@ parse_header(NDS *nds, u32 *entry_addr_ret)
 void
 NDS::direct_boot()
 {
-	u32 entry_addr[2];
-
-	parse_header(this, entry_addr);
+	/* give shared wram to arm7 before we do anything else */
+	wramcnt_write(this, 0x3);
+	powcnt1_write(this, 0x1);
+	soundbias = 0x200;
 
 	arm9->cp15_write(0x100, 0x00012078);
 	arm9->cp15_write(0x910, 0x0300000A);
 	arm9->cp15_write(0x911, 0x00000020);
 
-	/* TODO: remove this later */
-	arm9->cp15_write(0x910, 0x0080000A);
+	u32 entry_addr[2];
+	parse_header(this, entry_addr);
 
 	arm9->gpr[12] = entry_addr[0];
 	arm9->gpr[13] = 0x03002F7C;
