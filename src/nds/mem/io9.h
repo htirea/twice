@@ -76,6 +76,8 @@ io9_read32(NDS *nds, u32 addr)
 				(u32)nds->vram.vramcnt[2] << 16 |
 				(u32)nds->vram.vramcnt[1] << 8 |
 				(u32)nds->vram.vramcnt[0];
+	case 0x4000280:
+		return nds->divcnt;
 	case 0x4000290:
 		return nds->div_numer[0];
 	case 0x4000294:
@@ -221,6 +223,10 @@ io9_write32(NDS *nds, u32 addr, u32 value)
 		vramcnt_g_write(nds, value >> 16);
 		wramcnt_write(nds, value >> 24);
 		return;
+	case 0x4000280:
+		nds->divcnt = (nds->divcnt & 0x8000) | (value & ~0x8000);
+		nds_math_div(nds);
+		return;
 	case 0x4000290:
 		nds->div_numer[0] = value;
 		nds_math_div(nds);
@@ -236,6 +242,10 @@ io9_write32(NDS *nds, u32 addr, u32 value)
 	case 0x400029C:
 		nds->div_denom[1] = value;
 		nds_math_div(nds);
+		return;
+	case 0x40002B0:
+		nds->sqrtcnt = (nds->sqrtcnt & 0x8000) | (value & ~0x8000);
+		nds_math_sqrt(nds);
 		return;
 	case 0x40002B8:
 		nds->sqrt_param[0] = value;

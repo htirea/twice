@@ -35,6 +35,8 @@ io7_read16(NDS *nds, u32 addr)
 	case 0x40001C2:
 		/* TODO: SPI */
 		return 0;
+	case 0x4000504:
+		return nds->soundbias;
 	}
 
 	fprintf(stderr, "nds 1 read 16 at %08X\n", addr);
@@ -84,6 +86,9 @@ io7_write16(NDS *nds, u32 addr, u16 value)
 	case 0x40001C0:
 	case 0x40001C2:
 		/* TODO: SPI */
+		return;
+	case 0x4000504:
+		nds->soundbias = value & 0x3FF;
 		return;
 	}
 
