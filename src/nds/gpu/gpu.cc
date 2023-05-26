@@ -353,8 +353,9 @@ Gpu2D::render_text_bg(int bg)
 			for (; px < 8 && i < 256; px++, i++) {
 				u32 offset = char_row & 0xFF;
 				char_row >>= 8;
-				u16 color = get_palette_color_256(offset);
-				if (color != 0) {
+				if (offset != 0) {
+					u16 color = get_palette_color_256(
+							offset);
 					draw_text_bg_pixel(
 							i, color, bg_priority);
 				}
@@ -363,9 +364,9 @@ Gpu2D::render_text_bg(int bg)
 			for (; px < 8 && i < 256; px++, i++) {
 				u32 offset = char_row & 0xF;
 				char_row >>= 4;
-				u16 color = get_palette_color_16(
-						palette_bank, offset);
-				if (color != 0) {
+				if (offset != 0) {
+					u16 color = get_palette_color_16(
+							palette_bank, offset);
 					draw_text_bg_pixel(
 							i, color, bg_priority);
 				}
