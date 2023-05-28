@@ -402,8 +402,7 @@ Gpu2D::render_text_bg(int bg)
 				if (offset != 0) {
 					u16 color = get_palette_color_256(
 							offset);
-					draw_text_bg_pixel(
-							i, color, bg_priority);
+					draw_bg_pixel(i, color, bg_priority);
 				}
 			}
 		} else {
@@ -413,8 +412,7 @@ Gpu2D::render_text_bg(int bg)
 				if (offset != 0) {
 					u16 color = get_palette_color_16(
 							palette_bank, offset);
-					draw_text_bg_pixel(
-							i, color, bg_priority);
+					draw_bg_pixel(i, color, bg_priority);
 				}
 			}
 		}
@@ -458,7 +456,7 @@ Gpu2D::fetch_char_row(u16 se, u32 char_base, u32 bg_y, bool color_256)
 }
 
 void
-Gpu2D::draw_text_bg_pixel(u32 fb_x, u16 color, u8 priority)
+Gpu2D::draw_bg_pixel(u32 fb_x, u16 color, u8 priority)
 {
 	auto& top = bg_buffer_top[fb_x];
 	auto& bottom = bg_buffer_bottom[fb_x];
@@ -473,6 +471,56 @@ Gpu2D::draw_text_bg_pixel(u32 fb_x, u16 color, u8 priority)
 void
 Gpu2D::render_affine_bg(int bg)
 {
+	u32 bg_priority = bg_cnt[bg] & 0x3;
+	u32 bg_w = 128 << (bg_cnt[bg] >> 14 & 0x3);
+	u32 bg_h = bg_w;
+
+	u32 screen_base = (bg_cnt[bg] >> 8 & 0x1F) * 0x800;
+	if (engineid == 0) {
+		screen_base += (dispcnt >> 27 & 0x7) * 0x10000;
+	}
+
+	u32 char_base = (bg_cnt[bg] >> 2 & 0xF) * 0x4000;
+	if (engineid == 0) {
+		char_base += (dispcnt >> 24 & 0x7) * 0x10000;
+	}
+
+	s32 ref_x = bg_ref_x[bg - 2];
+	s32 ref_y = bg_ref_y[bg - 2];
+	s16 pa = bg_pa[bg - 2];
+	s16 pc = bg_pc[bg - 2];
+
+	bool wrap_bg = bg_cnt[bg] & BIT(13);
+
+	for (int i = 0; i < 256; i++) {
+		u32 bg_x = ref_x >> 8;
+		u32 bg_y = ref_y >> 8;
+
+		ref_x += pa;
+		ref_y += pc;
+
+		if (wrap_bg) {
+			bg_x = bg_x & (bg_w - 1);
+			bg_y = bg_y & (bg_h - 1);
+		} else if ((s32)bg_x < 0 || bg_x >= bg_w || (s32)bg_y < 0 ||
+				bg_y >= bg_h) {
+			continue;
+		}
+
+		u32 se_x = bg_x / 8;
+		u32 se_y = bg_y / 8;
+
+		int px = bg_x % 8;
+		int py = bg_y % 8;
+
+		u8 se = get_screen_entry_affine(screen_base, bg_w, se_x, se_y);
+		u8 color_num = get_color_num_affine(char_base, se, px, py);
+
+		if (color_num != 0) {
+			u16 color = get_palette_color_256(color_num);
+			draw_bg_pixel(i, color, bg_priority);
+		}
+	}
 }
 
 void
@@ -500,6 +548,17 @@ Gpu2D::get_screen_entry(u32 screen, u32 base, u32 x, u32 y)
 	}
 }
 
+u8
+Gpu2D::get_screen_entry_affine(u32 base, u32 bg_w, u32 x, u32 y)
+{
+	u32 offset = base + (bg_w / 8) * y + x;
+	if (engineid == 0) {
+		return vram_read_abg<u8>(nds, offset);
+	} else {
+		return vram_read_bbg<u8>(nds, offset);
+	}
+}
+
 u64
 Gpu2D::get_char_row_256(u32 base, u32 char_name, u32 y)
 {
@@ -519,6 +578,17 @@ Gpu2D::get_char_row_16(u32 base, u32 char_name, u32 y)
 		return vram_read_abg<u32>(nds, offset);
 	} else {
 		return vram_read_bbg<u32>(nds, offset);
+	}
+}
+
+u8
+Gpu2D::get_color_num_affine(u32 base, u32 char_name, u32 x, u32 y)
+{
+	u32 offset = base + 64 * char_name + 8 * y + x;
+	if (engineid == 0) {
+		return vram_read_abg<u8>(nds, offset);
+	} else {
+		return vram_read_bbg<u8>(nds, offset);
 	}
 }
 

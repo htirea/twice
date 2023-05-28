@@ -58,13 +58,15 @@ struct Gpu2D {
 	void set_backdrop();
 	void render_text_bg(int bg);
 	u64 fetch_char_row(u16 se, u32 char_base, u32 bg_y, bool color_256);
-	void draw_text_bg_pixel(u32 fb_x, u16 color, u8 priority);
+	void draw_bg_pixel(u32 fb_x, u16 color, u8 priority);
 	void render_affine_bg(int bg);
 	void vram_display_scanline();
 
 	u16 get_screen_entry(u32 screen, u32 base, u32 x, u32 y);
+	u8 get_screen_entry_affine(u32 base, u32 bg_w, u32 x, u32 y);
 	u64 get_char_row_256(u32 base, u32 char_name, u32 y);
 	u32 get_char_row_16(u32 base, u32 char_name, u32 y);
+	u8 get_color_num_affine(u32 base, u32 char_name, u32 x, u32 y);
 	u16 get_palette_color_256(u32 color_num);
 	u16 get_palette_color_16(u32 palette_num, u32 color_num);
 };
