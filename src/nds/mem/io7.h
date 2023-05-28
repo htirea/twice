@@ -29,8 +29,7 @@ io7_read16(NDS *nds, u32 addr)
 	switch (addr) {
 		IO_READ16_COMMON(1);
 	case 0x4000136:
-		/* TODO: EXTKEYIN */
-		return 0x3F;
+		return nds->extkeyin;
 	case 0x40001C0:
 	case 0x40001C2:
 		/* TODO: SPI */

@@ -88,6 +88,20 @@ Machine::button_event(NdsButton button, bool down)
 			nds->keyinput |= BIT((int)button);
 		}
 		break;
+	case X:
+		if (down) {
+			nds->extkeyin &= ~BIT(0);
+		} else {
+			nds->extkeyin |= BIT(0);
+		}
+		break;
+	case Y:
+		if (down) {
+			nds->extkeyin &= ~BIT(1);
+		} else {
+			nds->extkeyin |= BIT(1);
+		}
+		break;
 	default:;
 	}
 }

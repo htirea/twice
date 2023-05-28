@@ -112,6 +112,7 @@ struct NDS {
 	u32 soundbias{};
 
 	u16 keyinput{ 0x3FF };
+	u16 extkeyin{ 0x7F };
 
 	/*
 	 * MISC
