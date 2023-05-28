@@ -39,6 +39,7 @@ struct Gpu2D {
 	struct Pixel {
 		u32 color{};
 		u8 priority{};
+		/* TODO: use bitfields to save space */
 	};
 
 	Pixel bg_buffer_top[NDS_SCREEN_W]{};
