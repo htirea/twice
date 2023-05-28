@@ -355,7 +355,7 @@ Gpu2D::render_text_bg(int bg)
 	u32 bg_h = text_bg_heights[bg_size_bits];
 
 	u32 bg_x = bg_hofs[bg] & (bg_w - 1);
-	u32 bg_y = bg_vofs[bg] + nds->vcount & (bg_h - 1);
+	u32 bg_y = (bg_vofs[bg] + nds->vcount) & (bg_h - 1);
 
 	u32 screen = (bg_y / 256 * 2) + (bg_x / 256);
 	if (bg_size_bits == 2) {
