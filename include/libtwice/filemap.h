@@ -1,12 +1,18 @@
 #ifndef TWICE_FILEMAP_H
 #define TWICE_FILEMAP_H
 
+#include "libtwice/exception.h"
+
 #include <cstddef>
 #include <string>
 
 namespace twice {
 
 struct FileMap {
+	class FileMapError : TwiceException {
+		using TwiceException::TwiceException;
+	};
+
 	static constexpr int MAP_EXACT_SIZE = 0x1;
 	static constexpr int MAP_MAX_SIZE = 0x2;
 
