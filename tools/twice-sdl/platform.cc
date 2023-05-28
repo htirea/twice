@@ -12,7 +12,7 @@ Platform::Platform()
 {
 	using namespace twice;
 
-	if (SDL_Init(SDL_INIT_VIDEO)) {
+	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER)) {
 		throw SDLError("init failed\n");
 	}
 
@@ -39,10 +39,22 @@ Platform::Platform()
 	if (!texture) {
 		throw SDLError("create texture failed\n");
 	}
+
+	int num_joysticks = SDL_NumJoysticks();
+	for (int i = 0; i < num_joysticks; i++) {
+		if (SDL_IsGameController(i)) {
+			add_controller(i);
+		}
+	}
 }
 
 Platform::~Platform()
 {
+	while (!controllers.empty()) {
+		SDL_JoystickID id = *controllers.begin();
+		remove_controller(id);
+	}
+
 	SDL_DestroyTexture(texture);
 	SDL_DestroyRenderer(renderer);
 	SDL_DestroyWindow(window);
@@ -151,6 +163,41 @@ get_nds_button(SDL_Keycode key)
 	}
 }
 
+static NdsButton
+controller_button_to_nds(int button)
+{
+	using enum twice::NdsButton;
+
+	switch (button) {
+	case SDL_CONTROLLER_BUTTON_B:
+		return A;
+	case SDL_CONTROLLER_BUTTON_A:
+		return B;
+	case SDL_CONTROLLER_BUTTON_Y:
+		return X;
+	case SDL_CONTROLLER_BUTTON_X:
+		return Y;
+	case SDL_CONTROLLER_BUTTON_RIGHTSHOULDER:
+		return R;
+	case SDL_CONTROLLER_BUTTON_LEFTSHOULDER:
+		return L;
+	case SDL_CONTROLLER_BUTTON_START:
+		return START;
+	case SDL_CONTROLLER_BUTTON_BACK:
+		return SELECT;
+	case SDL_CONTROLLER_BUTTON_DPAD_LEFT:
+		return LEFT;
+	case SDL_CONTROLLER_BUTTON_DPAD_RIGHT:
+		return RIGHT;
+	case SDL_CONTROLLER_BUTTON_DPAD_UP:
+		return UP;
+	case SDL_CONTROLLER_BUTTON_DPAD_DOWN:
+		return DOWN;
+	default:
+		return NONE;
+	}
+}
+
 void
 Platform::handle_events(twice::Machine *nds)
 {
@@ -167,7 +214,49 @@ Platform::handle_events(twice::Machine *nds)
 		case SDL_KEYUP:
 			nds->button_event(get_nds_button(e.key.keysym.sym), 0);
 			break;
+		case SDL_CONTROLLERDEVICEADDED:
+			add_controller(e.cdevice.which);
+			break;
+		case SDL_CONTROLLERDEVICEREMOVED:
+			remove_controller(e.cdevice.which);
+			break;
+		case SDL_CONTROLLERBUTTONDOWN:
+		{
+			auto button = controller_button_to_nds(
+					e.cbutton.button);
+			nds->button_event(button, 1);
+			break;
 		}
+		case SDL_CONTROLLERBUTTONUP:
+		{
+			auto button = controller_button_to_nds(
+					e.cbutton.button);
+			nds->button_event(button, 0);
+			break;
+		}
+		}
+	}
+}
+
+void
+Platform::add_controller(int joystick_index)
+{
+	SDL_GameController *gc = SDL_GameControllerOpen(joystick_index);
+	if (gc) {
+		SDL_Joystick *joystick = SDL_GameControllerGetJoystick(gc);
+		SDL_JoystickID id = SDL_JoystickInstanceID(joystick);
+		controllers.insert(id);
+	}
+}
+
+void
+Platform::remove_controller(SDL_JoystickID id)
+{
+	controllers.erase(id);
+
+	SDL_GameController *gc = SDL_GameControllerFromInstanceID(id);
+	if (gc) {
+		SDL_GameControllerClose(gc);
 	}
 }
 

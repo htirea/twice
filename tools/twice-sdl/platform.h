@@ -2,6 +2,7 @@
 #define TWICE_SDL_PLATFORM_H
 
 #include <string>
+#include <unordered_set>
 
 #include <SDL2/SDL.h>
 
@@ -41,10 +42,13 @@ struct Platform {
 	void loop(Machine *nds);
 	void handle_events(Machine *nds);
 	void set_title_fps(int fps);
+	void add_controller(int joystick_index);
+	void remove_controller(SDL_JoystickID id);
 
 	SDL_Window *window{};
 	SDL_Renderer *renderer{};
 	SDL_Texture *texture{};
+	std::unordered_set<SDL_JoystickID> controllers;
 
 	bool running{};
 
