@@ -35,12 +35,42 @@ fb_fill_white(u32 *fb, u16 scanline)
 	}
 }
 
+static void
+reload_bg_ref_xy(Gpu2D *gpu, bool force_reload)
+{
+	for (int i = 0; i < 2; i++) {
+		if (gpu->bg_ref_x_reload[i] || force_reload) {
+			gpu->bg_ref_x[i] = SEXT<28>(gpu->bg_ref_x_latch[i]);
+			gpu->bg_ref_x_reload[i] = false;
+		}
+		if (gpu->bg_ref_y_reload[i] || force_reload) {
+			gpu->bg_ref_y[i] = SEXT<28>(gpu->bg_ref_y_latch[i]);
+			gpu->bg_ref_y_reload[i] = false;
+		}
+	}
+}
+
+static void
+increment_bg_ref_xy(Gpu2D *gpu)
+{
+	for (int i = 0; i < 2; i++) {
+		gpu->bg_ref_x[i] += (s16)gpu->bg_pb[i];
+		gpu->bg_ref_y[i] += (s16)gpu->bg_pd[i];
+	}
+}
+
 void
 gpu_on_scanline_start(NDS *nds)
 {
 	if (nds->vcount < 192) {
+		reload_bg_ref_xy(&nds->gpu2D[0], nds->vcount == 0);
+		reload_bg_ref_xy(&nds->gpu2D[1], nds->vcount == 0);
+
 		nds->gpu2D[0].draw_scanline(nds->vcount);
 		nds->gpu2D[1].draw_scanline(nds->vcount);
+
+		increment_bg_ref_xy(&nds->gpu2D[0]);
+		increment_bg_ref_xy(&nds->gpu2D[1]);
 	}
 }
 
@@ -99,16 +129,20 @@ Gpu2D::write32(u8 offset, u32 value)
 
 	switch (offset) {
 	case 0x28:
-		bg_ref_x[0] = value;
+		bg_ref_x_latch[0] = value;
+		bg_ref_x_reload[0] = true;
 		return;
 	case 0x2C:
-		bg_ref_y[0] = value;
+		bg_ref_y_latch[0] = value;
+		bg_ref_y_reload[0] = true;
 		return;
 	case 0x38:
-		bg_ref_x[1] = value;
+		bg_ref_x_latch[1] = value;
+		bg_ref_x_reload[1] = true;
 		return;
 	case 0x3C:
-		bg_ref_y[1] = value;
+		bg_ref_y_latch[1] = value;
+		bg_ref_y_reload[1] = true;
 		return;
 	case 0x4C:
 		mosaic = value;
@@ -275,6 +309,18 @@ Gpu2D::graphics_display_scanline()
 		if (dispcnt & BIT(9)) render_text_bg(1);
 		if (dispcnt & BIT(8)) render_text_bg(0);
 		break;
+	case 1:
+		if (dispcnt & BIT(11)) render_affine_bg(3);
+		if (dispcnt & BIT(10)) render_text_bg(2);
+		if (dispcnt & BIT(9)) render_text_bg(1);
+		if (dispcnt & BIT(8)) render_text_bg(0);
+		break;
+	case 2:
+		if (dispcnt & BIT(11)) render_affine_bg(3);
+		if (dispcnt & BIT(10)) render_affine_bg(2);
+		if (dispcnt & BIT(9)) render_text_bg(1);
+		if (dispcnt & BIT(8)) render_text_bg(0);
+		break;
 	case 6:
 		if (engineid == 1) {
 			throw TwiceError("bg mode 6 invalid for engine B");
@@ -422,6 +468,11 @@ Gpu2D::draw_text_bg_pixel(u32 fb_x, u16 color, u8 priority)
 		top.color = color;
 		top.priority = priority;
 	}
+}
+
+void
+Gpu2D::render_affine_bg(int bg)
+{
 }
 
 void

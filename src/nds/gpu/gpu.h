@@ -19,8 +19,12 @@ struct Gpu2D {
 	u16 bg_pb[2]{};
 	u16 bg_pc[2]{};
 	u16 bg_pd[2]{};
-	u32 bg_ref_x[2]{};
-	u32 bg_ref_y[2]{};
+	s32 bg_ref_x[2]{};
+	s32 bg_ref_y[2]{};
+	u32 bg_ref_x_latch[2]{};
+	u32 bg_ref_y_latch[2]{};
+	bool bg_ref_x_reload[2]{};
+	bool bg_ref_y_reload[2]{};
 	u16 win_h[2]{};
 	u16 win_v[2]{};
 	u16 winin{};
@@ -55,6 +59,7 @@ struct Gpu2D {
 	void render_text_bg(int bg);
 	u64 fetch_char_row(u16 se, u32 char_base, u32 bg_y, bool color_256);
 	void draw_text_bg_pixel(u32 fb_x, u16 color, u8 priority);
+	void render_affine_bg(int bg);
 	void vram_display_scanline();
 
 	u16 get_screen_entry(u32 screen, u32 base, u32 x, u32 y);

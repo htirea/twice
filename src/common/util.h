@@ -35,4 +35,13 @@ MASK(int x)
 	}
 }
 
+template <int n>
+constexpr s32
+SEXT(u32 x)
+{
+	static_assert(n != 0 && n <= 32);
+
+	return (s32)(x << (32 - n)) >> (32 - n);
+}
+
 #endif
