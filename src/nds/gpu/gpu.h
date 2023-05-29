@@ -64,6 +64,8 @@ struct Gpu2D {
 	void render_extended_bg(int bg);
 	void render_extended_text_bg(int bg);
 	void render_extended_bitmap_bg(int bg, bool direct_color);
+	void render_large_bitmap_bg();
+	void render_3d();
 	void vram_display_scanline();
 
 	u16 get_screen_entry(u32 screen, u32 base, u32 x, u32 y);

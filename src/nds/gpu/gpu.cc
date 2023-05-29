@@ -345,7 +345,8 @@ Gpu2D::graphics_display_scanline()
 		if (engineid == 1) {
 			throw TwiceError("bg mode 6 invalid for engine B");
 		}
-		throw TwiceError("bg mode 6 not implemented");
+		if (dispcnt & BIT(10)) render_large_bitmap_bg();
+		if (dispcnt & BIT(8)) render_3d();
 		break;
 	case 7:
 		throw TwiceError("bg mode 7 invalid");
@@ -363,7 +364,8 @@ void
 Gpu2D::render_text_bg(int bg)
 {
 	if (engineid == 0 && (dispcnt & BIT(3))) {
-		throw TwiceError("3D not implemented");
+		render_3d();
+		return;
 	}
 
 	u32 bg_priority = bg_cnt[bg] & 0x3;
@@ -662,6 +664,63 @@ Gpu2D::render_extended_bitmap_bg(int bg, bool direct_color)
 			}
 		}
 	}
+}
+
+void
+Gpu2D::render_large_bitmap_bg()
+{
+	int bg = 2;
+
+	u32 bg_priority = bg_cnt[bg] & 0x3;
+	u32 bg_size_bits = bg_cnt[bg] >> 14 & 0x3;
+	u32 bg_w;
+	u32 bg_h;
+	switch (bg_size_bits) {
+	case 0:
+		bg_w = 512;
+		bg_h = 1024;
+		break;
+	case 1:
+		bg_w = 1024;
+		bg_h = 512;
+		break;
+	default:
+		throw TwiceError("large bitmap bg invalid size");
+	}
+
+	s32 ref_x = bg_ref_x[bg - 2];
+	s32 ref_y = bg_ref_y[bg - 2];
+	s16 pa = bg_pa[bg - 2];
+	s16 pc = bg_pc[bg - 2];
+
+	bool wrap_bg = bg_cnt[bg] & BIT(13);
+
+	for (int i = 0; i < 256; i++) {
+		u32 bg_x = ref_x >> 8;
+		u32 bg_y = ref_y >> 8;
+
+		ref_x += pa;
+		ref_y += pc;
+
+		if (wrap_bg) {
+			bg_x = bg_x & (bg_w - 1);
+			bg_y = bg_y & (bg_h - 1);
+		} else if ((s32)bg_x < 0 || bg_x >= bg_w || (s32)bg_y < 0 ||
+				bg_y >= bg_h) {
+			continue;
+		}
+
+		u8 color_num = vram_read<u8>(nds, bg_w * bg_y + bg_x);
+		if (color_num != 0) {
+			u16 color = get_palette_color_256(color_num);
+			draw_bg_pixel(i, color, bg_priority);
+		}
+	}
+}
+
+void
+Gpu2D::render_3d()
+{
 }
 
 void
