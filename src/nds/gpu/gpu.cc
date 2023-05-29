@@ -289,7 +289,7 @@ Gpu2D::draw_scanline(u16 scanline)
 void
 Gpu2D::set_backdrop()
 {
-	u16 backdrop_color = readarr<u16>(nds->palette, 0);
+	u16 backdrop_color = get_palette_color_256(0);
 	for (u32 i = 0; i < NDS_SCREEN_W; i++) {
 		bg_buffer_top[i].color = backdrop_color;
 		bg_buffer_top[i].priority = 4;
