@@ -63,6 +63,7 @@ struct Gpu2D {
 	void render_affine_bg(int bg);
 	void render_extended_bg(int bg);
 	void render_extended_text_bg(int bg);
+	void render_extended_bitmap_bg(int bg, bool direct_color);
 	void vram_display_scanline();
 
 	u16 get_screen_entry(u32 screen, u32 base, u32 x, u32 y);
@@ -73,6 +74,7 @@ struct Gpu2D {
 	u8 get_color_num_256(u32 base, u32 char_name, u32 x, u32 y);
 	u16 get_palette_color_256(u32 color_num);
 	u16 get_palette_color_16(u32 palette_num, u32 color_num);
+	template <typename T> T read_bg_data(u32 base, u32 w, u32 x, u32 y);
 };
 
 void gpu_on_scanline_start(NDS *nds);

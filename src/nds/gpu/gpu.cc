@@ -9,6 +9,8 @@ namespace twice {
 
 static const u32 text_bg_widths[] = { 256, 512, 256, 512 };
 static const u32 text_bg_heights[] = { 256, 256, 512, 512 };
+static const u32 bitmap_bg_widths[] = { 128, 256, 512, 512 };
+static const u32 bitmap_bg_heights[] = { 128, 256, 256, 512 };
 
 u32
 BGR555_TO_BGR888(u16 color)
@@ -545,6 +547,8 @@ Gpu2D::render_extended_bg(int bg)
 {
 	if (!(bg_cnt[bg] & BIT(7))) {
 		render_extended_text_bg(bg);
+	} else {
+		render_extended_bitmap_bg(bg, bg_cnt[bg] & BIT(2));
 	}
 }
 
@@ -608,6 +612,54 @@ Gpu2D::render_extended_text_bg(int bg)
 		if (color_num != 0) {
 			u16 color = get_palette_color_256(color_num);
 			draw_bg_pixel(i, color, bg_priority);
+		}
+	}
+}
+
+void
+Gpu2D::render_extended_bitmap_bg(int bg, bool direct_color)
+{
+	u32 bg_priority = bg_cnt[bg] & 0x3;
+	u32 bg_size_bits = bg_cnt[bg] >> 14 & 0x3;
+	u32 bg_w = bitmap_bg_widths[bg_size_bits];
+	u32 bg_h = bitmap_bg_heights[bg_size_bits];
+	u32 screen_base = (bg_cnt[bg] >> 8 & 0x1F) * 0x4000;
+
+	s32 ref_x = bg_ref_x[bg - 2];
+	s32 ref_y = bg_ref_y[bg - 2];
+	s16 pa = bg_pa[bg - 2];
+	s16 pc = bg_pc[bg - 2];
+
+	bool wrap_bg = bg_cnt[bg] & BIT(13);
+
+	for (int i = 0; i < 256; i++) {
+		u32 bg_x = ref_x >> 8;
+		u32 bg_y = ref_y >> 8;
+
+		ref_x += pa;
+		ref_y += pc;
+
+		if (wrap_bg) {
+			bg_x = bg_x & (bg_w - 1);
+			bg_y = bg_y & (bg_h - 1);
+		} else if ((s32)bg_x < 0 || bg_x >= bg_w || (s32)bg_y < 0 ||
+				bg_y >= bg_h) {
+			continue;
+		}
+
+		if (direct_color) {
+			u16 color = read_bg_data<u16>(
+					screen_base, bg_w, bg_x, bg_y);
+			if (color & BIT(15)) {
+				draw_bg_pixel(i, color, bg_priority);
+			}
+		} else {
+			u8 color_num = read_bg_data<u8>(
+					screen_base, bg_w, bg_x, bg_y);
+			if (color_num != 0) {
+				u16 color = get_palette_color_256(color_num);
+				draw_bg_pixel(i, color, bg_priority);
+			}
 		}
 	}
 }
@@ -712,6 +764,18 @@ Gpu2D::get_palette_color_16(u32 palette_num, u32 color_num)
 	}
 
 	return readarr<u16>(nds->palette, offset);
+}
+
+template <typename T>
+T
+Gpu2D::read_bg_data(u32 base, u32 w, u32 x, u32 y)
+{
+	u32 offset = base + sizeof(T) * w * y + sizeof(T) * x;
+	if (engineid == 0) {
+		return vram_read_abg<T>(nds, offset);
+	} else {
+		return vram_read_bbg<T>(nds, offset);
+	}
 }
 
 } // namespace twice
