@@ -321,6 +321,24 @@ Gpu2D::graphics_display_scanline()
 		if (dispcnt & BIT(9)) render_text_bg(1);
 		if (dispcnt & BIT(8)) render_text_bg(0);
 		break;
+	case 3:
+		if (dispcnt & BIT(11)) render_extended_bg(3);
+		if (dispcnt & BIT(10)) render_text_bg(2);
+		if (dispcnt & BIT(9)) render_text_bg(1);
+		if (dispcnt & BIT(8)) render_text_bg(0);
+		break;
+	case 4:
+		if (dispcnt & BIT(11)) render_extended_bg(3);
+		if (dispcnt & BIT(10)) render_affine_bg(2);
+		if (dispcnt & BIT(9)) render_text_bg(1);
+		if (dispcnt & BIT(8)) render_text_bg(0);
+		break;
+	case 5:
+		if (dispcnt & BIT(11)) render_extended_bg(3);
+		if (dispcnt & BIT(10)) render_extended_bg(2);
+		if (dispcnt & BIT(9)) render_text_bg(1);
+		if (dispcnt & BIT(8)) render_text_bg(0);
+		break;
 	case 6:
 		if (engineid == 1) {
 			throw TwiceError("bg mode 6 invalid for engine B");
@@ -329,8 +347,6 @@ Gpu2D::graphics_display_scanline()
 		break;
 	case 7:
 		throw TwiceError("bg mode 7 invalid");
-	default:
-		throw TwiceError("bg mode not implemented");
 	}
 
 	/* TODO: figure out what format to store pixel colors in */
@@ -514,7 +530,80 @@ Gpu2D::render_affine_bg(int bg)
 		int py = bg_y % 8;
 
 		u8 se = get_screen_entry_affine(screen_base, bg_w, se_x, se_y);
-		u8 color_num = get_color_num_affine(char_base, se, px, py);
+		/* char_name = se */
+		u8 color_num = get_color_num_256(char_base, se, px, py);
+
+		if (color_num != 0) {
+			u16 color = get_palette_color_256(color_num);
+			draw_bg_pixel(i, color, bg_priority);
+		}
+	}
+}
+
+void
+Gpu2D::render_extended_bg(int bg)
+{
+	if (!(bg_cnt[bg] & BIT(7))) {
+		render_extended_text_bg(bg);
+	}
+}
+
+void
+Gpu2D::render_extended_text_bg(int bg)
+{
+	u32 bg_priority = bg_cnt[bg] & 0x3;
+	u32 bg_w = 128 << (bg_cnt[bg] >> 14 & 0x3);
+	u32 bg_h = bg_w;
+
+	u32 screen_base = (bg_cnt[bg] >> 8 & 0x1F) * 0x800;
+	if (engineid == 0) {
+		screen_base += (dispcnt >> 27 & 0x7) * 0x10000;
+	}
+
+	u32 char_base = (bg_cnt[bg] >> 2 & 0xF) * 0x4000;
+	if (engineid == 0) {
+		char_base += (dispcnt >> 24 & 0x7) * 0x10000;
+	}
+
+	s32 ref_x = bg_ref_x[bg - 2];
+	s32 ref_y = bg_ref_y[bg - 2];
+	s16 pa = bg_pa[bg - 2];
+	s16 pc = bg_pc[bg - 2];
+
+	bool wrap_bg = bg_cnt[bg] & BIT(13);
+
+	for (int i = 0; i < 256; i++) {
+		u32 bg_x = ref_x >> 8;
+		u32 bg_y = ref_y >> 8;
+
+		ref_x += pa;
+		ref_y += pc;
+
+		if (wrap_bg) {
+			bg_x = bg_x & (bg_w - 1);
+			bg_y = bg_y & (bg_h - 1);
+		} else if ((s32)bg_x < 0 || bg_x >= bg_w || (s32)bg_y < 0 ||
+				bg_y >= bg_h) {
+			continue;
+		}
+
+		u32 se_x = bg_x / 8;
+		u32 se_y = bg_y / 8;
+
+		int px = bg_x % 8;
+		int py = bg_y % 8;
+
+		u16 se = get_screen_entry_extended_text(
+				screen_base, bg_w, se_x, se_y);
+		if (se & BIT(11)) {
+			py = 7 - py;
+		}
+		if (se & BIT(10)) {
+			px = 7 - px;
+		}
+
+		u16 char_name = se & 0x3FF;
+		u8 color_num = get_color_num_256(char_base, char_name, px, py);
 
 		if (color_num != 0) {
 			u16 color = get_palette_color_256(color_num);
@@ -559,6 +648,17 @@ Gpu2D::get_screen_entry_affine(u32 base, u32 bg_w, u32 x, u32 y)
 	}
 }
 
+u16
+Gpu2D::get_screen_entry_extended_text(u32 base, u32 bg_w, u32 x, u32 y)
+{
+	u32 offset = base + (bg_w / 8) * 2 * y + 2 * x;
+	if (engineid == 0) {
+		return vram_read_abg<u16>(nds, offset);
+	} else {
+		return vram_read_bbg<u16>(nds, offset);
+	}
+}
+
 u64
 Gpu2D::get_char_row_256(u32 base, u32 char_name, u32 y)
 {
@@ -582,7 +682,7 @@ Gpu2D::get_char_row_16(u32 base, u32 char_name, u32 y)
 }
 
 u8
-Gpu2D::get_color_num_affine(u32 base, u32 char_name, u32 x, u32 y)
+Gpu2D::get_color_num_256(u32 base, u32 char_name, u32 x, u32 y)
 {
 	u32 offset = base + 64 * char_name + 8 * y + x;
 	if (engineid == 0) {
