@@ -114,8 +114,9 @@ Platform::loop(twice::Machine *nds)
 		render(nds->get_framebuffer());
 
 		uint64_t elapsed = SDL_GetPerformanceCounter() - tstart;
-		int fps = (double)tfreq / elapsed;
+		tstart = SDL_GetPerformanceCounter();
 
+		int fps = (double)tfreq / elapsed;
 		fps_counter.add(fps);
 
 		ticks_elapsed += elapsed;
@@ -123,8 +124,6 @@ Platform::loop(twice::Machine *nds)
 			ticks_elapsed -= tfreq;
 			set_title_fps(fps_counter.get_average_fps());
 		}
-
-		tstart = SDL_GetPerformanceCounter();
 	}
 }
 
