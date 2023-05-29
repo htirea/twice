@@ -141,6 +141,10 @@ NDS::run_frame()
 
 			run_arm_events(this, 1);
 			arm7->check_halted();
+
+			if (arm7->interrupt) {
+				arm7->do_irq();
+			}
 		}
 
 		scheduler.current_time = arm_cycles[1];
@@ -148,6 +152,14 @@ NDS::run_frame()
 
 		arm9->check_halted();
 		arm7->check_halted();
+
+		if (arm9->interrupt) {
+			arm9->do_irq();
+		}
+
+		if (arm7->interrupt) {
+			arm7->do_irq();
+		}
 	}
 }
 
