@@ -13,31 +13,31 @@ Platform::Platform()
 	using namespace twice;
 
 	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER)) {
-		throw SDLError("init failed\n");
+		throw SDLError("init failed");
 	}
 
 	window = SDL_CreateWindow("Twice", SDL_WINDOWPOS_UNDEFINED,
 			SDL_WINDOWPOS_UNDEFINED, NDS_FB_W * 2, NDS_FB_H * 2,
 			SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
 	if (!window) {
-		throw SDLError("create window failed\n");
+		throw SDLError("create window failed");
 	}
 
 	SDL_SetWindowResizable(window, SDL_TRUE);
 
 	renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 	if (!renderer) {
-		throw SDLError("create renderer failed\n");
+		throw SDLError("create renderer failed");
 	}
 
 	if (SDL_RenderSetLogicalSize(renderer, NDS_FB_W, NDS_FB_H)) {
-		throw SDLError("renderer set logical size failed\n");
+		throw SDLError("renderer set logical size failed");
 	}
 
 	texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_BGR888,
 			SDL_TEXTUREACCESS_STREAMING, NDS_FB_W, NDS_FB_H);
 	if (!texture) {
-		throw SDLError("create texture failed\n");
+		throw SDLError("create texture failed");
 	}
 
 	int num_joysticks = SDL_NumJoysticks();

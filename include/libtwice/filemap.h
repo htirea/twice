@@ -9,7 +9,7 @@
 namespace twice {
 
 struct FileMap {
-	class FileMapError : TwiceException {
+	struct FileMapError : TwiceException {
 		using TwiceException::TwiceException;
 	};
 

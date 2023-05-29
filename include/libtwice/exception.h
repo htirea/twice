@@ -7,11 +7,11 @@
 
 namespace twice {
 
-class TwiceException : public std::runtime_error {
+struct TwiceException : std::runtime_error {
 	using std::runtime_error::runtime_error;
 };
 
-class TwiceError : TwiceException {
+struct TwiceError : TwiceException {
 	using TwiceException::TwiceException;
 };
 

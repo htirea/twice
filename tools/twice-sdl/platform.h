@@ -31,7 +31,7 @@ struct FpsCounter {
 };
 
 struct Platform {
-	class SDLError : TwiceException {
+	struct SDLError : TwiceException {
 		using TwiceException::TwiceException;
 	};
 
