@@ -119,9 +119,7 @@ NDS::run_frame()
 	frame_finished = false;
 
 	while (!frame_finished) {
-		u64 next_event = scheduler.get_next_event_time();
-
-		arm_target_cycles[0] = next_event << 1;
+		arm_target_cycles[0] = scheduler.get_next_event_time();
 		if (dma9.active) {
 			dma9.run();
 		} else {
@@ -147,7 +145,7 @@ NDS::run_frame()
 			}
 		}
 
-		scheduler.current_time = arm_cycles[1];
+		scheduler.current_time = arm_cycles[0];
 		run_events(this);
 
 		arm9->check_halted();

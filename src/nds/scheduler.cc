@@ -14,20 +14,20 @@ void
 Scheduler::schedule_event(int event, u64 t)
 {
 	events[event].enabled = true;
-	events[event].time = t;
+	events[event].time = t << 1;
 }
 
 void
 Scheduler::reschedule_event_after(int event, u64 dt)
 {
 	events[event].enabled = true;
-	events[event].time += dt;
+	events[event].time += dt << 1;
 }
 
 u64
 Scheduler::get_next_event_time()
 {
-	u64 time = current_time + 32;
+	u64 time = current_time + 64;
 
 	for (int i = 0; i < NUM_EVENTS; i++) {
 		if (events[i].enabled) {
@@ -37,10 +37,10 @@ Scheduler::get_next_event_time()
 
 	for (int i = 0; i < NUM_ARM_EVENTS; i++) {
 		if (arm_events[0][i].enabled) {
-			time = std::min(time, arm_events[0][i].time >> 1);
+			time = std::min(time, arm_events[0][i].time);
 		}
 		if (arm_events[1][i].enabled) {
-			time = std::min(time, arm_events[1][i].time);
+			time = std::min(time, arm_events[1][i].time << 1);
 		}
 	}
 
