@@ -71,7 +71,8 @@ run_events(NDS *nds)
 
 	for (int i = 0; i < Scheduler::NUM_EVENTS; i++) {
 		auto& event = sc.events[i];
-		if (event.enabled && sc.current_time >= event.time) {
+		bool expired = (s64)(sc.current_time - event.time) >= 0;
+		if (event.enabled && expired) {
 			event.enabled = false;
 			if (event.cb) {
 				event.cb(nds);
@@ -87,7 +88,8 @@ run_arm_events(NDS *nds, int cpuid)
 
 	for (int i = 0; i < Scheduler::NUM_ARM_EVENTS; i++) {
 		auto& event = sc.arm_events[cpuid][i];
-		if (event.enabled && nds->arm_cycles[cpuid] >= event.time) {
+		bool expired = (s64)(nds->arm_cycles[cpuid] - event.time) >= 0;
+		if (event.enabled && expired) {
 			event.enabled = false;
 			if (event.cb) {
 				event.cb(nds, cpuid);
