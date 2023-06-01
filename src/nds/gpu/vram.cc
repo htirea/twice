@@ -211,6 +211,51 @@ unmap_arm7(NDS *nds, int bank, int i)
 	}
 }
 
+void
+map_abg_palette(NDS *nds, int bank, u8 *base, int start, int len)
+{
+	for (int i = start; i < start + len; i++, base += 16_KiB) {
+		auto& mask = nds->vram.abg_palette_bank[i];
+
+		if (mask == 0) {
+			nds->vram.abg_palette_pt[i] = base;
+		} else {
+			nds->vram.abg_palette_pt[i] = nullptr;
+		}
+
+		mask |= BIT(bank);
+	}
+}
+
+void
+unmap_abg_palette(NDS *nds, int bank, int start, int len)
+{
+	for (int i = start; i < start + len; i++) {
+		auto& mask = nds->vram.abg_palette_bank[i];
+		mask &= ~BIT(bank);
+
+		if (std::has_single_bit(mask)) {
+			int only_bank = std::countr_zero(mask);
+			nds->vram.abg_palette_pt[i] =
+					get_vram_ptr(nds, only_bank, i);
+		} else {
+			nds->vram.abg_pt[i] = nullptr;
+		}
+	}
+}
+
+void
+map_bbg_palette(NDS *nds, u8 *base)
+{
+	nds->vram.bbg_palette_pt = base;
+}
+
+void
+unmap_bbg_palette(NDS *nds)
+{
+	nds->vram.bbg_palette_pt = nullptr;
+}
+
 template <int bank>
 void
 vramcnt_ab_write(NDS *nds, u8 value)
@@ -377,7 +422,8 @@ vramcnt_e_write(NDS *nds, u8 value)
 		case 3:
 			throw TwiceError("unmap vram bank e tex pal");
 		case 4:
-			throw TwiceError("unmap vram bank e abg extpal");
+			unmap_abg_palette(nds, VRAM_E, 0, 2);
+			break;
 		}
 
 		vram.bank_mapped[VRAM_E] = false;
@@ -399,7 +445,8 @@ vramcnt_e_write(NDS *nds, u8 value)
 		case 3:
 			throw TwiceError("map vram bank e tex pal");
 		case 4:
-			throw TwiceError("map vram bank e abg extpal");
+			map_abg_palette(nds, VRAM_E, base, 0, 2);
+			break;
 		default:
 			throw TwiceError("map vram bank e invalid mst");
 		}
@@ -444,7 +491,8 @@ vramcnt_fg_write(NDS *nds, u8 value)
 		case 3:
 			throw TwiceError("unmap vram bank f/g tex pal");
 		case 4:
-			throw TwiceError("unmap vram bank f/g abg ext pal");
+			unmap_abg_palette(nds, bank, ofs & 1, 1);
+			break;
 		case 5:
 			throw TwiceError("unmap vram bank f/g aobj ext pal");
 		}
@@ -471,7 +519,8 @@ vramcnt_fg_write(NDS *nds, u8 value)
 		case 3:
 			throw TwiceError("map vram bank f/g tex pal");
 		case 4:
-			throw TwiceError("map vram bank f/g abg ext pal");
+			map_abg_palette(nds, bank, base, ofs & 1, 1);
+			break;
 		case 5:
 			throw TwiceError("map vram bank f/g aobj ext pal");
 		default:
@@ -509,7 +558,8 @@ vramcnt_h_write(NDS *nds, u8 value)
 			unmap_bbg(nds, VRAM_H, 4, 2);
 			break;
 		case 2:
-			throw TwiceError("unmap vram bank h bbg ext pal");
+			unmap_bbg_palette(nds);
+			break;
 		}
 
 		vram.bank_mapped[VRAM_H] = false;
@@ -527,7 +577,8 @@ vramcnt_h_write(NDS *nds, u8 value)
 			map_bbg(nds, VRAM_H, base, 4, 2);
 			break;
 		case 2:
-			throw TwiceError("map vram bank h bbg ext pal");
+			map_bbg_palette(nds, base);
+			break;
 		default:
 			throw TwiceError("map vram bank h invalid mst");
 		}

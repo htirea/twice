@@ -195,6 +195,64 @@ vram_write_lcdc(NDS *nds, u32 offset, T value)
 
 template <typename T>
 T
+vram_read_abg_palette(NDS *nds, u32 offset)
+{
+	u32 index = offset >> 14 & 1;
+	u8 *p = nds->vram.abg_palette_pt[index];
+	if (p) {
+		return readarr<T>(p, offset & 0x3FFF);
+	} else {
+		u16 mask = nds->vram.abg_palette_bank[index];
+		T value = 0;
+
+		VRAM_READ_FROM_MASK(VRAM_E);
+		VRAM_READ_FROM_MASK(VRAM_F);
+		VRAM_READ_FROM_MASK(VRAM_G);
+
+		return value;
+	}
+}
+
+template <typename T>
+void
+vram_write_abg_palette(NDS *nds, u32 offset, T value)
+{
+	u32 index = offset >> 14 & 1;
+	u8 *p = nds->vram.abg_palette_pt[index];
+	if (p) {
+		writearr<T>(p, offset & 0x3FFF, value);
+	} else {
+		u16 mask = nds->vram.abg_palette_bank[index];
+		VRAM_WRITE_FROM_MASK(VRAM_E);
+		VRAM_WRITE_FROM_MASK(VRAM_F);
+		VRAM_WRITE_FROM_MASK(VRAM_G);
+	}
+}
+
+template <typename T>
+T
+vram_read_bbg_palette(NDS *nds, u32 offset)
+{
+	u8 *p = nds->vram.bbg_palette_pt;
+	if (p) {
+		return readarr<T>(p, offset & 0x7FFF);
+	} else {
+		return 0;
+	}
+}
+
+template <typename T>
+void
+vram_write_bbg_palette(NDS *nds, u32 offset, T value)
+{
+	u8 *p = nds->vram.bbg_palette_pt;
+	if (p) {
+		writearr<T>(p, offset & 0x7FFF, value);
+	}
+}
+
+template <typename T>
+T
 vram_read(NDS *nds, u32 addr)
 {
 	switch (addr >> 21 & 0x7) {
