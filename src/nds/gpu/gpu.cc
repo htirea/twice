@@ -400,6 +400,12 @@ Gpu2D::render_text_bg(int bg)
 	u64 char_row;
 	u32 palette_bank;
 
+	bool extended_palettes = dispcnt & BIT(30);
+	u32 slot = bg;
+	if (bg_cnt[bg] & BIT(13)) {
+		slot |= 2;
+	}
+
 	for (u32 i = 0; i < 256;) {
 		if (px == 0 || i == 0) {
 			u16 se = get_screen_entry(
@@ -411,19 +417,28 @@ Gpu2D::render_text_bg(int bg)
 				char_row >>= 8 * px;
 			} else {
 				char_row >>= 4 * px;
-				palette_bank = se >> 12;
 			}
+
+			palette_bank = se >> 12;
 		}
 
 		if (color_256) {
 			for (; px < 8 && i < 256; px++, i++) {
 				u32 offset = char_row & 0xFF;
 				char_row >>= 8;
-				if (offset != 0) {
-					u16 color = get_palette_color_256(
+
+				if (offset == 0) continue;
+
+				u16 color;
+				if (extended_palettes) {
+					color = get_palette_color_256_extended(
+							slot, palette_bank,
 							offset);
-					draw_bg_pixel(i, color, bg_priority);
+				} else {
+					color = get_palette_color_256(offset);
 				}
+
+				draw_bg_pixel(i, color, bg_priority);
 			}
 		} else {
 			for (; px < 8 && i < 256; px++, i++) {
@@ -578,6 +593,12 @@ Gpu2D::render_extended_text_bg(int bg)
 
 	bool wrap_bg = bg_cnt[bg] & BIT(13);
 
+	bool extended_palettes = dispcnt & BIT(30);
+	u32 slot = bg;
+	if (bg_cnt[bg] & BIT(13)) {
+		slot |= 2;
+	}
+
 	for (int i = 0; i < 256; i++) {
 		u32 bg_x = ref_x >> 8;
 		u32 bg_y = ref_y >> 8;
@@ -612,7 +633,14 @@ Gpu2D::render_extended_text_bg(int bg)
 		u8 color_num = get_color_num_256(char_base, char_name, px, py);
 
 		if (color_num != 0) {
-			u16 color = get_palette_color_256(color_num);
+			u16 color;
+			if (extended_palettes) {
+				u32 palette_bank = se >> 12;
+				color = get_palette_color_256_extended(
+						slot, palette_bank, color_num);
+			} else {
+				color = get_palette_color_256(color_num);
+			}
 			draw_bg_pixel(i, color, bg_priority);
 		}
 	}
@@ -782,6 +810,17 @@ Gpu2D::get_palette_color_256(u32 color_num)
 	}
 
 	return readarr<u16>(nds->palette, offset);
+}
+
+u16
+Gpu2D::get_palette_color_256_extended(u32 slot, u32 palette_num, u32 color_num)
+{
+	u32 offset = 0x2000 * slot + 512 * palette_num + 2 * color_num;
+	if (engineid == 0) {
+		return vram_read_abg_palette<u16>(nds, offset);
+	} else {
+		return vram_read_bbg_palette<u16>(nds, offset);
+	}
 }
 
 u16

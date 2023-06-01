@@ -75,6 +75,8 @@ struct Gpu2D {
 	u32 get_char_row_16(u32 base, u32 char_name, u32 y);
 	u8 get_color_num_256(u32 base, u32 char_name, u32 x, u32 y);
 	u16 get_palette_color_256(u32 color_num);
+	u16 get_palette_color_256_extended(
+			u32 slot, u32 palette_num, u32 color_num);
 	u16 get_palette_color_16(u32 palette_num, u32 color_num);
 	template <typename T> T read_bg_data(u32 base, u32 w, u32 x, u32 y);
 };
