@@ -306,47 +306,47 @@ Gpu2D::graphics_display_scanline()
 
 	switch (dispcnt & 0x7) {
 	case 0:
-		if (dispcnt & BIT(11)) render_text_bg(3);
-		if (dispcnt & BIT(10)) render_text_bg(2);
-		if (dispcnt & BIT(9)) render_text_bg(1);
 		if (dispcnt & BIT(8)) render_text_bg(0);
+		if (dispcnt & BIT(9)) render_text_bg(1);
+		if (dispcnt & BIT(10)) render_text_bg(2);
+		if (dispcnt & BIT(11)) render_text_bg(3);
 		break;
 	case 1:
-		if (dispcnt & BIT(11)) render_affine_bg(3);
-		if (dispcnt & BIT(10)) render_text_bg(2);
-		if (dispcnt & BIT(9)) render_text_bg(1);
 		if (dispcnt & BIT(8)) render_text_bg(0);
+		if (dispcnt & BIT(9)) render_text_bg(1);
+		if (dispcnt & BIT(10)) render_text_bg(2);
+		if (dispcnt & BIT(11)) render_affine_bg(3);
 		break;
 	case 2:
-		if (dispcnt & BIT(11)) render_affine_bg(3);
-		if (dispcnt & BIT(10)) render_affine_bg(2);
-		if (dispcnt & BIT(9)) render_text_bg(1);
 		if (dispcnt & BIT(8)) render_text_bg(0);
+		if (dispcnt & BIT(9)) render_text_bg(1);
+		if (dispcnt & BIT(10)) render_affine_bg(2);
+		if (dispcnt & BIT(11)) render_affine_bg(3);
 		break;
 	case 3:
-		if (dispcnt & BIT(11)) render_extended_bg(3);
-		if (dispcnt & BIT(10)) render_text_bg(2);
-		if (dispcnt & BIT(9)) render_text_bg(1);
 		if (dispcnt & BIT(8)) render_text_bg(0);
+		if (dispcnt & BIT(9)) render_text_bg(1);
+		if (dispcnt & BIT(10)) render_text_bg(2);
+		if (dispcnt & BIT(11)) render_extended_bg(3);
 		break;
 	case 4:
-		if (dispcnt & BIT(11)) render_extended_bg(3);
-		if (dispcnt & BIT(10)) render_affine_bg(2);
-		if (dispcnt & BIT(9)) render_text_bg(1);
 		if (dispcnt & BIT(8)) render_text_bg(0);
+		if (dispcnt & BIT(9)) render_text_bg(1);
+		if (dispcnt & BIT(10)) render_affine_bg(2);
+		if (dispcnt & BIT(11)) render_extended_bg(3);
 		break;
 	case 5:
-		if (dispcnt & BIT(11)) render_extended_bg(3);
-		if (dispcnt & BIT(10)) render_extended_bg(2);
-		if (dispcnt & BIT(9)) render_text_bg(1);
 		if (dispcnt & BIT(8)) render_text_bg(0);
+		if (dispcnt & BIT(9)) render_text_bg(1);
+		if (dispcnt & BIT(10)) render_extended_bg(2);
+		if (dispcnt & BIT(11)) render_extended_bg(3);
 		break;
 	case 6:
 		if (engineid == 1) {
 			throw TwiceError("bg mode 6 invalid for engine B");
 		}
-		if (dispcnt & BIT(10)) render_large_bitmap_bg();
 		if (dispcnt & BIT(8)) render_3d();
+		if (dispcnt & BIT(10)) render_large_bitmap_bg();
 		break;
 	case 7:
 		throw TwiceError("bg mode 7 invalid");
@@ -710,10 +710,13 @@ Gpu2D::draw_bg_pixel(u32 fb_x, u16 color, u8 priority)
 	auto& top = bg_buffer_top[fb_x];
 	auto& bottom = bg_buffer_bottom[fb_x];
 
-	if (priority <= top.priority) {
+	if (priority < top.priority) {
 		bottom = top;
 		top.color = color;
 		top.priority = priority;
+	} else if (priority < bottom.priority) {
+		bottom.color = color;
+		bottom.priority = priority;
 	}
 }
 
