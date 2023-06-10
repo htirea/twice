@@ -289,20 +289,27 @@ Gpu2D::draw_scanline(u16 scanline)
 }
 
 void
-Gpu2D::set_backdrop()
+Gpu2D::clear_buffers()
 {
 	u16 backdrop_color = get_palette_color_256(0);
 	for (u32 i = 0; i < 256; i++) {
 		bg_buffer_top[i].color = backdrop_color;
 		bg_buffer_top[i].priority = 4;
 		bg_buffer_bottom[i] = bg_buffer_top[i];
+
+		obj_buffer[i].color = 0;
+		obj_buffer[i].priority = 7;
 	}
 }
 
 void
 Gpu2D::graphics_display_scanline()
 {
-	set_backdrop();
+	clear_buffers();
+
+	if (dispcnt & BIT(12)) {
+		render_sprites();
+	}
 
 	switch (dispcnt & 0x7) {
 	case 0:
@@ -350,6 +357,17 @@ Gpu2D::graphics_display_scanline()
 		break;
 	case 7:
 		throw TwiceError("bg mode 7 invalid");
+	}
+
+	for (u32 i = 0; i < 256; i++) {
+		auto& obj = obj_buffer[i];
+
+		if (obj.priority <= bg_buffer_top[i].priority) {
+			bg_buffer_bottom[i] = bg_buffer_top[i];
+			bg_buffer_top[i] = obj;
+		} else if (obj.priority <= bg_buffer_bottom[i].priority) {
+			bg_buffer_bottom[i] = obj;
+		}
 	}
 
 	/* TODO: figure out what format to store pixel colors in */
@@ -722,6 +740,11 @@ Gpu2D::draw_bg_pixel(u32 fb_x, u16 color, u8 priority)
 
 void
 Gpu2D::render_3d()
+{
+}
+
+void
+Gpu2D::render_sprites()
 {
 }
 

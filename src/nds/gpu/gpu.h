@@ -37,13 +37,13 @@ struct Gpu2D {
 	u32 *fb{};
 
 	struct Pixel {
-		u32 color{};
-		u8 priority{};
-		/* TODO: use bitfields to save space */
+		u32 color;
+		u8 priority;
 	};
 
 	Pixel bg_buffer_top[256]{};
 	Pixel bg_buffer_bottom[256]{};
+	Pixel obj_buffer[256]{};
 
 	bool enabled{};
 	NDS *nds{};
@@ -56,7 +56,7 @@ struct Gpu2D {
 
 	void draw_scanline(u16 scanline);
 	void graphics_display_scanline();
-	void set_backdrop();
+	void clear_buffers();
 	void render_text_bg(int bg);
 	void render_affine_bg(int bg);
 	void render_extended_bg(int bg);
@@ -66,6 +66,7 @@ struct Gpu2D {
 	void draw_bg_pixel(u32 fb_x, u16 color, u8 priority);
 	void render_3d();
 	void vram_display_scanline();
+	void render_sprites();
 
 	u64 fetch_char_row(u16 se, u32 char_base, u32 bg_y, bool color_256);
 	u16 get_screen_entry(u32 screen, u32 base, u32 x, u32 y);
