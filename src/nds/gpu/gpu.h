@@ -41,8 +41,8 @@ struct Gpu2D {
 		u8 priority;
 	};
 
-	Pixel bg_buffer_top[256]{};
-	Pixel bg_buffer_bottom[256]{};
+	Pixel buffer_top[256]{};
+	Pixel buffer_bottom[256]{};
 	Pixel obj_buffer[256]{};
 
 	bool enabled{};

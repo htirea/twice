@@ -293,9 +293,9 @@ Gpu2D::clear_buffers()
 {
 	u16 backdrop_color = get_palette_color_256(0);
 	for (u32 i = 0; i < 256; i++) {
-		bg_buffer_top[i].color = backdrop_color;
-		bg_buffer_top[i].priority = 4;
-		bg_buffer_bottom[i] = bg_buffer_top[i];
+		buffer_top[i].color = backdrop_color;
+		buffer_top[i].priority = 4;
+		buffer_bottom[i] = buffer_top[i];
 
 		obj_buffer[i].color = 0;
 		obj_buffer[i].priority = 7;
@@ -362,11 +362,11 @@ Gpu2D::graphics_display_scanline()
 	for (u32 i = 0; i < 256; i++) {
 		auto& obj = obj_buffer[i];
 
-		if (obj.priority <= bg_buffer_top[i].priority) {
-			bg_buffer_bottom[i] = bg_buffer_top[i];
-			bg_buffer_top[i] = obj;
-		} else if (obj.priority <= bg_buffer_bottom[i].priority) {
-			bg_buffer_bottom[i] = obj;
+		if (obj.priority <= buffer_top[i].priority) {
+			buffer_bottom[i] = buffer_top[i];
+			buffer_top[i] = obj;
+		} else if (obj.priority <= buffer_bottom[i].priority) {
+			buffer_bottom[i] = obj;
 		}
 	}
 
@@ -374,7 +374,7 @@ Gpu2D::graphics_display_scanline()
 
 	for (u32 i = 0; i < 256; i++) {
 		fb[nds->vcount * 256 + i] =
-				BGR555_TO_BGR888(bg_buffer_top[i].color);
+				BGR555_TO_BGR888(buffer_top[i].color);
 	}
 }
 
@@ -725,8 +725,8 @@ Gpu2D::render_large_bitmap_bg()
 void
 Gpu2D::draw_bg_pixel(u32 fb_x, u16 color, u8 priority)
 {
-	auto& top = bg_buffer_top[fb_x];
-	auto& bottom = bg_buffer_bottom[fb_x];
+	auto& top = buffer_top[fb_x];
+	auto& bottom = buffer_bottom[fb_x];
 
 	if (priority < top.priority) {
 		bottom = top;
