@@ -119,13 +119,10 @@ struct NDS {
 	 */
 	bool frame_finished{};
 	bool trace{};
-
-	/*
-	 * Functions
-	 */
-	void direct_boot();
-	void run_frame();
 };
+
+void nds_direct_boot(NDS *nds);
+void nds_run_frame(NDS *nds);
 
 void nds_event_hblank_start(NDS *nds);
 void nds_event_hblank_end(NDS *nds);

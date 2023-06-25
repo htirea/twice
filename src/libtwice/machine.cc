@@ -35,7 +35,7 @@ Machine::direct_boot()
 			firmware.get_data(), cartridge.get_data(),
 			cartridge.get_size());
 
-	nds->direct_boot();
+	nds_direct_boot(nds.get());
 }
 
 void
@@ -45,7 +45,7 @@ Machine::run_frame()
 		return;
 	}
 
-	nds->run_frame();
+	nds_run_frame(nds.get());
 }
 
 void *

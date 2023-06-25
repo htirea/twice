@@ -80,83 +80,83 @@ parse_header(NDS *nds, u32 *entry_addr_ret)
 }
 
 void
-NDS::direct_boot()
+nds_direct_boot(NDS *nds)
 {
 	/* give shared wram to arm7 before we do anything else */
-	wramcnt_write(this, 0x3);
-	powcnt1_write(this, 0x1);
-	soundbias = 0x200;
-	postflg[0] = 0x1;
-	postflg[1] = 0x1;
+	wramcnt_write(nds, 0x3);
+	powcnt1_write(nds, 0x1);
+	nds->soundbias = 0x200;
+	nds->postflg[0] = 0x1;
+	nds->postflg[1] = 0x1;
 
-	arm9->cp15_write(0x100, 0x00012078);
-	arm9->cp15_write(0x910, 0x0300000A);
-	arm9->cp15_write(0x911, 0x00000020);
+	nds->arm9->cp15_write(0x100, 0x00012078);
+	nds->arm9->cp15_write(0x910, 0x0300000A);
+	nds->arm9->cp15_write(0x911, 0x00000020);
 
 	u32 entry_addr[2];
-	parse_header(this, entry_addr);
+	parse_header(nds, entry_addr);
 
-	arm9->gpr[12] = entry_addr[0];
-	arm9->gpr[13] = 0x03002F7C;
-	arm9->gpr[14] = entry_addr[0];
-	arm9->bankedr[MODE_IRQ][0] = 0x03003F80;
-	arm9->bankedr[MODE_SVC][0] = 0x03003FC0;
-	arm9->jump(entry_addr[0]);
+	nds->arm9->gpr[12] = entry_addr[0];
+	nds->arm9->gpr[13] = 0x03002F7C;
+	nds->arm9->gpr[14] = entry_addr[0];
+	nds->arm9->bankedr[MODE_IRQ][0] = 0x03003F80;
+	nds->arm9->bankedr[MODE_SVC][0] = 0x03003FC0;
+	nds->arm9->jump(entry_addr[0]);
 
-	arm7->gpr[12] = entry_addr[1];
-	arm7->gpr[13] = 0x0380FD80;
-	arm7->gpr[14] = entry_addr[1];
-	arm7->bankedr[MODE_IRQ][0] = 0x0380FF80;
-	arm7->bankedr[MODE_SVC][0] = 0x0380FFC0;
-	arm7->jump(entry_addr[1]);
+	nds->arm7->gpr[12] = entry_addr[1];
+	nds->arm7->gpr[13] = 0x0380FD80;
+	nds->arm7->gpr[14] = entry_addr[1];
+	nds->arm7->bankedr[MODE_IRQ][0] = 0x0380FF80;
+	nds->arm7->bankedr[MODE_SVC][0] = 0x0380FFC0;
+	nds->arm7->jump(entry_addr[1]);
 
 	/* TODO: more stuff for direct booting */
 }
 
 void
-NDS::run_frame()
+nds_run_frame(NDS *nds)
 {
-	frame_finished = false;
+	nds->frame_finished = false;
 
-	while (!frame_finished) {
-		arm_target_cycles[0] = get_next_event_time(this);
-		if (dma9.active) {
-			dma9.run();
+	while (!nds->frame_finished) {
+		nds->arm_target_cycles[0] = get_next_event_time(nds);
+		if (nds->dma9.active) {
+			nds->dma9.run();
 		} else {
-			arm9->run();
+			nds->arm9->run();
 		}
 
-		run_arm_events(this, 0);
+		run_arm_events(nds, 0);
 
-		u64 arm7_target = arm_cycles[0] >> 1;
-		while (arm_cycles[1] < arm7_target) {
-			arm_target_cycles[1] = arm7_target;
-			if (dma7.active) {
-				dma7.run();
+		u64 arm7_target = nds->arm_cycles[0] >> 1;
+		while (nds->arm_cycles[1] < arm7_target) {
+			nds->arm_target_cycles[1] = arm7_target;
+			if (nds->dma7.active) {
+				nds->dma7.run();
 			} else {
-				arm7->run();
+				nds->arm7->run();
 			}
 
-			run_arm_events(this, 1);
-			arm7->check_halted();
+			run_arm_events(nds, 1);
+			nds->arm7->check_halted();
 
-			if (arm7->interrupt) {
-				arm7->do_irq();
+			if (nds->arm7->interrupt) {
+				nds->arm7->do_irq();
 			}
 		}
 
-		scheduler.current_time = arm_cycles[0];
-		run_events(this);
+		nds->scheduler.current_time = nds->arm_cycles[0];
+		run_events(nds);
 
-		arm9->check_halted();
-		arm7->check_halted();
+		nds->arm9->check_halted();
+		nds->arm7->check_halted();
 
-		if (arm9->interrupt) {
-			arm9->do_irq();
+		if (nds->arm9->interrupt) {
+			nds->arm9->do_irq();
 		}
 
-		if (arm7->interrupt) {
-			arm7->do_irq();
+		if (nds->arm7->interrupt) {
+			nds->arm7->do_irq();
 		}
 	}
 }
