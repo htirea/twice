@@ -235,6 +235,28 @@ bus7_write(NDS *nds, u32 addr, T value)
 	}
 }
 
+template <int cpuid, typename T>
+T
+bus_read(NDS *nds, u32 addr)
+{
+	if (cpuid == 0) {
+		return bus9_read<T>(nds, addr);
+	} else {
+		return bus7_read<T>(nds, addr);
+	}
+}
+
+template <int cpuid, typename T>
+void
+bus_write(NDS *nds, u32 addr, T value)
+{
+	if (cpuid == 0) {
+		bus9_write<T>(nds, addr, value);
+	} else {
+		bus7_write<T>(nds, addr, value);
+	}
+}
+
 } // namespace twice
 
 #endif

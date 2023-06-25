@@ -121,7 +121,7 @@ nds_run_frame(NDS *nds)
 	while (!nds->frame_finished) {
 		nds->arm_target_cycles[0] = get_next_event_time(nds);
 		if (nds->dma9.active) {
-			nds->dma9.run();
+			run_dma9(nds);
 		} else {
 			nds->arm9->run();
 		}
@@ -132,7 +132,7 @@ nds_run_frame(NDS *nds)
 		while (nds->arm_cycles[1] < arm7_target) {
 			nds->arm_target_cycles[1] = arm7_target;
 			if (nds->dma7.active) {
-				nds->dma7.run();
+				run_dma7(nds);
 			} else {
 				nds->arm7->run();
 			}

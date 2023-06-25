@@ -41,35 +41,38 @@ Dma::start_transfer(int channel)
 	active |= BIT(channel);
 }
 
-void
-Dma9::run()
+template <int cpuid>
+static void
+run_dma(NDS *nds)
 {
-	int channel = std::countr_zero(active);
-	auto& t = transfers[channel];
+	Dma *dma = nds->dma[cpuid];
+
+	int channel = std::countr_zero(dma->active);
+	auto& t = dma->transfers[channel];
 
 	int width = t.word_width;
 
-	while (t.count < t.word_count && cycles < target_cycles) {
+	while (t.count < t.word_count && dma->cycles < dma->target_cycles) {
 		if (width == 4) {
-			u32 value = bus9_read<u32>(nds, t.sad);
-			bus9_write<u32>(nds, t.dad, value);
+			u32 value = bus_read<cpuid, u32>(nds, t.sad);
+			bus_write<cpuid, u32>(nds, t.dad, value);
 		} else {
-			u16 value = bus9_read<u16>(nds, t.sad);
-			bus9_write<u16>(nds, t.dad, value);
+			u16 value = bus_read<cpuid, u16>(nds, t.sad);
+			bus_write<cpuid, u16>(nds, t.dad, value);
 		}
 
 		t.sad += t.sad_step;
 		t.dad += t.dad_step;
-		cycles += 2;
+		dma->cycles += 2;
 
 		t.count += 1;
 	}
 
 	if (t.count == t.word_count) {
-		auto& dmacnt = nds->dmacnt_h[0][channel];
+		auto& dmacnt = nds->dmacnt_h[cpuid][channel];
 
 		if (dmacnt & BIT(14)) {
-			nds->cpu[0]->request_interrupt(8 + channel);
+			nds->cpu[cpuid]->request_interrupt(8 + channel);
 		}
 
 		if (dmacnt & BIT(9)) {
@@ -80,51 +83,20 @@ Dma9::run()
 		}
 
 		t.count = 0;
-		active &= ~BIT(channel);
+		dma->active &= ~BIT(channel);
 	}
 }
 
 void
-Dma7::run()
+run_dma9(NDS *nds)
 {
-	int channel = std::countr_zero(active);
-	auto& t = transfers[channel];
+	run_dma<0>(nds);
+}
 
-	int width = t.word_width;
-
-	while (t.count < t.word_count && cycles < target_cycles) {
-		if (width == 4) {
-			u32 value = bus7_read<u32>(nds, t.sad);
-			bus7_write<u32>(nds, t.dad, value);
-		} else {
-			u16 value = bus7_read<u16>(nds, t.sad);
-			bus7_write<u16>(nds, t.dad, value);
-		}
-
-		t.sad += t.sad_step;
-		t.dad += t.dad_step;
-		cycles += 2;
-
-		t.count += 1;
-	}
-
-	if (t.count == t.word_count) {
-		auto& dmacnt = nds->dmacnt_h[1][channel];
-
-		if (dmacnt & BIT(14)) {
-			nds->cpu[1]->request_interrupt(8 + channel);
-		}
-
-		if (dmacnt & BIT(9)) {
-			t.repeat_reload = true;
-		} else {
-			dmacnt &= ~BIT(15);
-			t.enabled = false;
-		}
-
-		t.count = 0;
-		active &= ~BIT(channel);
-	}
+void
+run_dma7(NDS *nds)
+{
+	run_dma<1>(nds);
 }
 
 void

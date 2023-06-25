@@ -35,7 +35,6 @@ struct Dma {
 	u64& target_cycles;
 	u64& cycles;
 
-	virtual void run() = 0;
 	virtual void dmacnt_h_write(int channel, u16 value) = 0;
 	virtual void load_dad(int channel) = 0;
 	virtual void load_dmacnt_l(int channel) = 0;
@@ -47,7 +46,6 @@ struct Dma {
 struct Dma9 final : Dma {
 	Dma9(NDS *nds);
 
-	void run() override;
 	void dmacnt_h_write(int channel, u16 value) override;
 	void load_dad(int channel) override;
 	void load_dmacnt_l(int channel) override;
@@ -56,11 +54,13 @@ struct Dma9 final : Dma {
 struct Dma7 final : Dma {
 	Dma7(NDS *nds);
 
-	void run() override;
 	void dmacnt_h_write(int channel, u16 value) override;
 	void load_dad(int channel) override;
 	void load_dmacnt_l(int channel) override;
 };
+
+void run_dma9(NDS *nds);
+void run_dma7(NDS *nds);
 
 void dma_on_vblank(NDS *nds);
 void dma_on_hblank_start(NDS *nds);
