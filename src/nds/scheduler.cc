@@ -10,41 +10,43 @@ Scheduler::Scheduler()
 	arm_events[1][START_IMMEDIATE_DMAS].cb = start_immediate_dmas;
 }
 
-void
-Scheduler::schedule_event(int event, u64 t)
-{
-	events[event].enabled = true;
-	events[event].time = t << 1;
-}
-
-void
-Scheduler::reschedule_event_after(int event, u64 dt)
-{
-	events[event].enabled = true;
-	events[event].time += dt << 1;
-}
-
 u64
-Scheduler::get_next_event_time()
+get_next_event_time(NDS *nds)
 {
-	u64 time = current_time + 64;
+	auto& sc = nds->scheduler;
 
-	for (int i = 0; i < NUM_EVENTS; i++) {
-		if (events[i].enabled) {
-			time = std::min(time, events[i].time);
+	u64 time = sc.current_time + 64;
+
+	for (int i = 0; i < Scheduler::NUM_EVENTS; i++) {
+		if (sc.events[i].enabled) {
+			time = std::min(time, sc.events[i].time);
 		}
 	}
 
-	for (int i = 0; i < NUM_ARM_EVENTS; i++) {
-		if (arm_events[0][i].enabled) {
-			time = std::min(time, arm_events[0][i].time);
+	for (int i = 0; i < Scheduler::NUM_ARM_EVENTS; i++) {
+		if (sc.arm_events[0][i].enabled) {
+			time = std::min(time, sc.arm_events[0][i].time);
 		}
-		if (arm_events[1][i].enabled) {
-			time = std::min(time, arm_events[1][i].time << 1);
+		if (sc.arm_events[1][i].enabled) {
+			time = std::min(time, sc.arm_events[1][i].time << 1);
 		}
 	}
 
 	return time;
+}
+
+void
+schedule_event(NDS *nds, int event, u64 t)
+{
+	nds->scheduler.events[event].enabled = true;
+	nds->scheduler.events[event].time = t << 1;
+}
+
+void
+reschedule_event_after(NDS *nds, int event, u64 dt)
+{
+	nds->scheduler.events[event].enabled = true;
+	nds->scheduler.events[event].time += dt << 1;
 }
 
 void

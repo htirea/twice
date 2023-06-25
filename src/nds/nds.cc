@@ -31,8 +31,8 @@ NDS::NDS(u8 *arm7_bios, u8 *arm9_bios, u8 *firmware, u8 *cartridge,
 	wramcnt_write(this, 0x0);
 	powcnt1_write(this, 0x0);
 
-	scheduler.schedule_event(Scheduler::HBLANK_START, 1536);
-	scheduler.schedule_event(Scheduler::HBLANK_END, 2130);
+	schedule_event(this, Scheduler::HBLANK_START, 1536);
+	schedule_event(this, Scheduler::HBLANK_END, 2130);
 }
 
 NDS::~NDS() = default;
@@ -119,7 +119,7 @@ NDS::run_frame()
 	frame_finished = false;
 
 	while (!frame_finished) {
-		arm_target_cycles[0] = scheduler.get_next_event_time();
+		arm_target_cycles[0] = get_next_event_time(this);
 		if (dma9.active) {
 			dma9.run();
 		} else {
@@ -196,7 +196,7 @@ nds_event_hblank_start(NDS *nds)
 
 	dma_on_hblank_start(nds);
 
-	nds->scheduler.reschedule_event_after(Scheduler::HBLANK_START, 2130);
+	reschedule_event_after(nds, Scheduler::HBLANK_START, 2130);
 }
 
 static u16
@@ -240,7 +240,7 @@ nds_event_hblank_end(NDS *nds)
 
 	gpu_on_scanline_start(nds);
 
-	nds->scheduler.reschedule_event_after(Scheduler::HBLANK_END, 2130);
+	reschedule_event_after(nds, Scheduler::HBLANK_END, 2130);
 }
 
 } // namespace twice

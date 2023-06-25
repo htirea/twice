@@ -40,13 +40,14 @@ struct Scheduler {
 
 	Event events[NUM_EVENTS];
 	ArmEvent arm_events[2][NUM_ARM_EVENTS];
-
-	void schedule_event(int event, u64 t);
-	void reschedule_event_after(int event, u64 dt);
-	u64 get_next_event_time();
 };
 
+u64 get_next_event_time(NDS *nds);
+
+void schedule_event(NDS *nds, int event, u64 t);
+void reschedule_event_after(NDS *nds, int event, u64 dt);
 void schedule_arm_event_after(NDS *nds, int cpuid, int event, u64 dt);
+
 void run_events(NDS *nds);
 void run_arm_events(NDS *nds, int cpuid);
 
