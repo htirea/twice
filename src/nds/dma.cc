@@ -25,22 +25,6 @@ Dma7::Dma7(NDS *nds)
 {
 }
 
-void
-Dma::start_transfer(int channel)
-{
-	auto& t = transfers[channel];
-
-	if (t.repeat_reload) {
-		t.repeat_reload = false;
-		load_dmacnt_l(channel);
-		if ((nds->dmacnt_h[cpuid][channel] >> 5 & 0x3) == 3) {
-			load_dad(channel);
-		}
-	}
-
-	active |= BIT(channel);
-}
-
 template <int cpuid>
 static void
 run_dma(NDS *nds)
@@ -99,10 +83,10 @@ run_dma7(NDS *nds)
 	run_dma<1>(nds);
 }
 
-void
-Dma::set_addr_step_and_width(int channel, u16 dmacnt)
+static void
+set_addr_step_and_width(Dma *dma, int channel, u16 dmacnt)
 {
-	auto& t = transfers[channel];
+	auto& t = dma->transfers[channel];
 
 	switch (dmacnt >> 5 & 0x3) {
 	case 0:
@@ -152,7 +136,7 @@ Dma9::dmacnt_h_write(int channel, u16 value)
 	bool old_enabled = dmacnt & BIT(15);
 	t.enabled = value & BIT(15);
 	t.mode = value >> 11 & 0x7;
-	set_addr_step_and_width(channel, value);
+	set_addr_step_and_width(this, channel, value);
 
 	if (!old_enabled && t.enabled) {
 		t.sad = nds->dma_sad[0][channel] & MASK(28);
@@ -189,7 +173,7 @@ Dma7::dmacnt_h_write(int channel, u16 value)
 	bool old_enabled = dmacnt & BIT(15);
 	t.enabled = value & BIT(15);
 	t.mode = value >> 12 & 0x3;
-	set_addr_step_and_width(channel, value);
+	set_addr_step_and_width(this, channel, value);
 
 	if (!old_enabled && t.enabled) {
 		if (channel == 0) {
@@ -270,19 +254,35 @@ Dma7::load_dmacnt_l(int channel)
 	transfers[channel].word_count = word_count;
 }
 
+static void
+start_transfer(NDS *nds, Dma *dma, int channel)
+{
+	auto& t = dma->transfers[channel];
+
+	if (t.repeat_reload) {
+		t.repeat_reload = false;
+		dma->load_dmacnt_l(channel);
+		if ((nds->dmacnt_h[dma->cpuid][channel] >> 5 & 0x3) == 3) {
+			dma->load_dad(channel);
+		}
+	}
+
+	dma->active |= BIT(channel);
+}
+
 void
 dma_on_vblank(NDS *nds)
 {
 	for (int channel = 0; channel < 4; channel++) {
 		if (nds->dma[0]->transfers[channel].enabled) {
 			if (nds->dma[0]->transfers[channel].mode == 1) {
-				nds->dma[0]->start_transfer(channel);
+				start_transfer(nds, nds->dma[0], channel);
 			}
 		}
 
 		if (nds->dma[1]->transfers[channel].enabled) {
 			if (nds->dma[1]->transfers[channel].mode == 1) {
-				nds->dma[1]->start_transfer(channel);
+				start_transfer(nds, nds->dma[1], channel);
 			}
 		}
 	}
@@ -298,7 +298,7 @@ dma_on_hblank_start(NDS *nds)
 	for (int channel = 0; channel < 4; channel++) {
 		if (nds->dma[0]->transfers[channel].enabled) {
 			if (nds->dma[0]->transfers[channel].mode == 2) {
-				nds->dma[0]->start_transfer(channel);
+				start_transfer(nds, nds->dma[0], channel);
 			}
 		}
 	}

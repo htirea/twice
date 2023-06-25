@@ -38,9 +38,6 @@ struct Dma {
 	virtual void dmacnt_h_write(int channel, u16 value) = 0;
 	virtual void load_dad(int channel) = 0;
 	virtual void load_dmacnt_l(int channel) = 0;
-
-	void start_transfer(int channel);
-	void set_addr_step_and_width(int channel, u16 dmacnt);
 };
 
 struct Dma9 final : Dma {
