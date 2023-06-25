@@ -4,10 +4,10 @@ namespace twice {
 
 Scheduler::Scheduler()
 {
-	events[HBLANK_START].cb = nds_event_hblank_start;
-	events[HBLANK_END].cb = nds_event_hblank_end;
-	arm_events[0][START_IMMEDIATE_DMAS].cb = start_immediate_dmas;
-	arm_events[1][START_IMMEDIATE_DMAS].cb = start_immediate_dmas;
+	events[HBLANK_START].cb = event_hblank_start;
+	events[HBLANK_END].cb = event_hblank_end;
+	arm_events[0][START_IMMEDIATE_DMAS].cb = event_start_immediate_dmas;
+	arm_events[1][START_IMMEDIATE_DMAS].cb = event_start_immediate_dmas;
 }
 
 u64

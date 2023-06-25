@@ -64,7 +64,7 @@ struct Dma7 final : Dma {
 
 void dma_on_vblank(NDS *nds);
 void dma_on_hblank_start(NDS *nds);
-void start_immediate_dmas(NDS *nds, int cpuid);
+void event_start_immediate_dmas(NDS *nds, int cpuid);
 
 } // namespace twice
 

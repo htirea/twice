@@ -333,7 +333,7 @@ dma_on_hblank_start(NDS *nds)
 }
 
 void
-start_immediate_dmas(NDS *nds, int cpuid)
+event_start_immediate_dmas(NDS *nds, int cpuid)
 {
 	auto& dma = nds->dma[cpuid];
 

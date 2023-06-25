@@ -181,7 +181,7 @@ nds_on_vblank(NDS *nds)
 }
 
 void
-nds_event_hblank_start(NDS *nds)
+event_hblank_start(NDS *nds)
 {
 	nds->dispstat[0] |= BIT(1);
 	nds->dispstat[1] |= BIT(1);
@@ -206,7 +206,7 @@ get_lyc(u16 dispstat)
 }
 
 void
-nds_event_hblank_end(NDS *nds)
+event_hblank_end(NDS *nds)
 {
 	nds->vcount += 1;
 	if (nds->vcount == 263) {
