@@ -126,7 +126,7 @@
 		return;                                                       \
 	case 0x40000B8:                                                       \
 		nds->dmacnt_l[cpuid_][0] = value;                             \
-		nds->dma[cpuid_]->dmacnt_h_write(0, value >> 16);             \
+		dmacnt_h_write(nds, (cpuid_), 0, value >> 16);                \
 		return;                                                       \
 	case 0x40000BC:                                                       \
 		nds->dma_sad[cpuid_][1] = value;                              \
@@ -136,7 +136,7 @@
 		return;                                                       \
 	case 0x40000C4:                                                       \
 		nds->dmacnt_l[cpuid_][1] = value;                             \
-		nds->dma[cpuid_]->dmacnt_h_write(1, value >> 16);             \
+		dmacnt_h_write(nds, (cpuid_), 1, value >> 16);                \
 		return;                                                       \
 	case 0x40000C8:                                                       \
 		nds->dma_sad[cpuid_][2] = value;                              \
@@ -146,7 +146,7 @@
 		return;                                                       \
 	case 0x40000D0:                                                       \
 		nds->dmacnt_l[cpuid_][2] = value;                             \
-		nds->dma[cpuid_]->dmacnt_h_write(2, value >> 16);             \
+		dmacnt_h_write(nds, (cpuid_), 2, value >> 16);                \
 		return;                                                       \
 	case 0x40000D4:                                                       \
 		nds->dma_sad[cpuid_][3] = value;                              \
@@ -156,7 +156,7 @@
 		return;                                                       \
 	case 0x40000DC:                                                       \
 		nds->dmacnt_l[cpuid_][3] = value;                             \
-		nds->dma[cpuid_]->dmacnt_h_write(3, value >> 16);             \
+		dmacnt_h_write(nds, (cpuid_), 3, value >> 16);                \
 		return;                                                       \
 	case 0x4000180:                                                       \
 		ipcsync_write(nds, (cpuid_), value);                          \

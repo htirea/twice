@@ -15,28 +15,17 @@ Dma::Dma(NDS *nds, int cpuid)
 {
 }
 
-Dma9::Dma9(NDS *nds)
-	: Dma(nds, 0)
-{
-}
-
-Dma7::Dma7(NDS *nds)
-	: Dma(nds, 1)
-{
-}
-
 template <int cpuid>
 static void
 run_dma(NDS *nds)
 {
-	Dma *dma = nds->dma[cpuid];
-
-	int channel = std::countr_zero(dma->active);
-	auto& t = dma->transfers[channel];
+	auto& dma = nds->dma[cpuid];
+	int channel = std::countr_zero(dma.active);
+	auto& t = dma.transfers[channel];
 
 	int width = t.word_width;
 
-	while (t.count < t.word_count && dma->cycles < dma->target_cycles) {
+	while (t.count < t.word_count && dma.cycles < dma.target_cycles) {
 		if (width == 4) {
 			u32 value = bus_read<cpuid, u32>(nds, t.sad);
 			bus_write<cpuid, u32>(nds, t.dad, value);
@@ -47,7 +36,7 @@ run_dma(NDS *nds)
 
 		t.sad += t.sad_step;
 		t.dad += t.dad_step;
-		dma->cycles += 2;
+		dma.cycles += 2;
 
 		t.count += 1;
 	}
@@ -67,7 +56,7 @@ run_dma(NDS *nds)
 		}
 
 		t.count = 0;
-		dma->active &= ~BIT(channel);
+		dma.active &= ~BIT(channel);
 	}
 }
 
@@ -130,7 +119,7 @@ set_addr_step_and_width(Dma *dma, int channel, u16 dmacnt)
 static void
 load_dad(NDS *nds, int cpuid, int channel)
 {
-	auto& dad = nds->dma[cpuid]->transfers[channel].dad;
+	auto& dad = nds->dma[cpuid].transfers[channel].dad;
 
 	if (cpuid == 0) {
 		dad = nds->dma_dad[0][channel] & MASK(28);
@@ -146,7 +135,7 @@ load_dad(NDS *nds, int cpuid, int channel)
 static void
 load_dmacnt_l(NDS *nds, int cpuid, int channel)
 {
-	auto& word_count = nds->dma[cpuid]->transfers[channel].word_count;
+	auto& word_count = nds->dma[cpuid].transfers[channel].word_count;
 
 	if (cpuid == 0) {
 		word_count = nds->dmacnt_l[0][channel] & MASK(21);
@@ -171,16 +160,17 @@ load_dmacnt_l(NDS *nds, int cpuid, int channel)
 	}
 }
 
-void
-Dma9::dmacnt_h_write(int channel, u16 value)
+static void
+dma9_dmacnt_h_write(NDS *nds, int channel, u16 value)
 {
+	auto& dma = nds->dma[0];
 	auto& dmacnt = nds->dmacnt_h[0][channel];
-	auto& t = transfers[channel];
+	auto& t = dma.transfers[channel];
 
 	bool old_enabled = dmacnt & BIT(15);
 	t.enabled = value & BIT(15);
 	t.mode = value >> 11 & 0x7;
-	set_addr_step_and_width(this, channel, value);
+	set_addr_step_and_width(&dma, channel, value);
 
 	if (!old_enabled && t.enabled) {
 		t.sad = nds->dma_sad[0][channel] & MASK(28);
@@ -190,7 +180,7 @@ Dma9::dmacnt_h_write(int channel, u16 value)
 
 		switch (t.mode) {
 		case 0:
-			requested_imm_dmas |= BIT(channel);
+			dma.requested_imm_dmas |= BIT(channel);
 			schedule_arm_event_after(nds, 0,
 					Scheduler::START_IMMEDIATE_DMAS, 1);
 			break;
@@ -208,16 +198,17 @@ Dma9::dmacnt_h_write(int channel, u16 value)
 	dmacnt = value;
 }
 
-void
-Dma7::dmacnt_h_write(int channel, u16 value)
+static void
+dma7_dmacnt_h_write(NDS *nds, int channel, u16 value)
 {
+	auto& dma = nds->dma[1];
 	auto& dmacnt = nds->dmacnt_h[1][channel];
-	auto& t = transfers[channel];
+	auto& t = dma.transfers[channel];
 
 	bool old_enabled = dmacnt & BIT(15);
 	t.enabled = value & BIT(15);
 	t.mode = value >> 12 & 0x3;
-	set_addr_step_and_width(this, channel, value);
+	set_addr_step_and_width(&dma, channel, value);
 
 	if (!old_enabled && t.enabled) {
 		if (channel == 0) {
@@ -231,7 +222,7 @@ Dma7::dmacnt_h_write(int channel, u16 value)
 
 		switch (t.mode) {
 		case 0:
-			requested_imm_dmas |= BIT(channel);
+			dma.requested_imm_dmas |= BIT(channel);
 			schedule_arm_event_after(nds, 1,
 					Scheduler::START_IMMEDIATE_DMAS, 2);
 			break;
@@ -250,11 +241,21 @@ Dma7::dmacnt_h_write(int channel, u16 value)
 	dmacnt = value;
 }
 
+void
+dmacnt_h_write(NDS *nds, int cpuid, int channel, u16 value)
+{
+	if (cpuid == 0) {
+		dma9_dmacnt_h_write(nds, channel, value);
+	} else {
+		dma7_dmacnt_h_write(nds, channel, value);
+	}
+}
+
 static void
 start_transfer(NDS *nds, int cpuid, int channel)
 {
-	Dma *dma = nds->dma[cpuid];
-	auto& t = dma->transfers[channel];
+	auto& dma = nds->dma[cpuid];
+	auto& t = dma.transfers[channel];
 
 	if (t.repeat_reload) {
 		t.repeat_reload = false;
@@ -264,21 +265,21 @@ start_transfer(NDS *nds, int cpuid, int channel)
 		}
 	}
 
-	dma->active |= BIT(channel);
+	dma.active |= BIT(channel);
 }
 
 void
 dma_on_vblank(NDS *nds)
 {
 	for (int channel = 0; channel < 4; channel++) {
-		if (nds->dma[0]->transfers[channel].enabled) {
-			if (nds->dma[0]->transfers[channel].mode == 1) {
+		if (nds->dma[0].transfers[channel].enabled) {
+			if (nds->dma[0].transfers[channel].mode == 1) {
 				start_transfer(nds, 0, channel);
 			}
 		}
 
-		if (nds->dma[1]->transfers[channel].enabled) {
-			if (nds->dma[1]->transfers[channel].mode == 1) {
+		if (nds->dma[1].transfers[channel].enabled) {
+			if (nds->dma[1].transfers[channel].mode == 1) {
 				start_transfer(nds, 1, channel);
 			}
 		}
@@ -293,8 +294,8 @@ dma_on_hblank_start(NDS *nds)
 	}
 
 	for (int channel = 0; channel < 4; channel++) {
-		if (nds->dma[0]->transfers[channel].enabled) {
-			if (nds->dma[0]->transfers[channel].mode == 2) {
+		if (nds->dma[0].transfers[channel].enabled) {
+			if (nds->dma[0].transfers[channel].mode == 2) {
 				start_transfer(nds, 0, channel);
 			}
 		}
@@ -307,8 +308,8 @@ event_start_immediate_dmas(NDS *nds, int cpuid)
 	auto& dma = nds->dma[cpuid];
 
 	/* TODO: don't start all requested dmas */
-	dma->active |= dma->requested_imm_dmas;
-	dma->requested_imm_dmas = 0;
+	dma.active |= dma.requested_imm_dmas;
+	dma.requested_imm_dmas = 0;
 }
 
 } // namespace twice

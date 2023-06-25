@@ -16,8 +16,7 @@ NDS::NDS(u8 *arm7_bios, u8 *arm9_bios, u8 *firmware, u8 *cartridge,
 	: arm9(std::make_unique<Arm9>(this)),
 	  arm7(std::make_unique<Arm7>(this)),
 	  gpu2D{ { this, 0 }, { this, 1 } },
-	  dma9(this),
-	  dma7(this),
+	  dma{ { this, 0 }, { this, 1 } },
 	  arm7_bios(arm7_bios),
 	  arm9_bios(arm9_bios),
 	  firmware(firmware),
@@ -120,7 +119,7 @@ nds_run_frame(NDS *nds)
 
 	while (!nds->frame_finished) {
 		nds->arm_target_cycles[0] = get_next_event_time(nds);
-		if (nds->dma9.active) {
+		if (nds->dma[0].active) {
 			run_dma9(nds);
 		} else {
 			nds->arm9->run();
@@ -131,7 +130,7 @@ nds_run_frame(NDS *nds)
 		u64 arm7_target = nds->arm_cycles[0] >> 1;
 		while (nds->arm_cycles[1] < arm7_target) {
 			nds->arm_target_cycles[1] = arm7_target;
-			if (nds->dma7.active) {
+			if (nds->dma[1].active) {
 				run_dma7(nds);
 			} else {
 				nds->arm7->run();

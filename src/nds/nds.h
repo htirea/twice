@@ -52,9 +52,7 @@ struct NDS {
 	u64 arm_target_cycles[2]{};
 	u64 arm_cycles[2]{};
 
-	Dma *dma[2]{ &dma9, &dma7 };
-	Dma9 dma9;
-	Dma7 dma7;
+	Dma dma[2];
 
 	/*
 	 * Memory

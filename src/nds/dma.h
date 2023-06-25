@@ -34,24 +34,11 @@ struct Dma {
 
 	u64& target_cycles;
 	u64& cycles;
-
-	virtual void dmacnt_h_write(int channel, u16 value) = 0;
-};
-
-struct Dma9 final : Dma {
-	Dma9(NDS *nds);
-
-	void dmacnt_h_write(int channel, u16 value) override;
-};
-
-struct Dma7 final : Dma {
-	Dma7(NDS *nds);
-
-	void dmacnt_h_write(int channel, u16 value) override;
 };
 
 void run_dma9(NDS *nds);
 void run_dma7(NDS *nds);
+void dmacnt_h_write(NDS *nds, int cpuid, int channel, u16 value);
 
 void dma_on_vblank(NDS *nds);
 void dma_on_hblank_start(NDS *nds);
