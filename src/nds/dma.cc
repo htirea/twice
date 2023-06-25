@@ -8,9 +8,7 @@
 namespace twice {
 
 Dma::Dma(NDS *nds, int cpuid)
-	: nds(nds),
-	  cpuid(cpuid),
-	  target_cycles(nds->arm_target_cycles[cpuid]),
+	: target_cycles(nds->arm_target_cycles[cpuid]),
 	  cycles(nds->arm_cycles[cpuid])
 {
 }

@@ -29,9 +29,6 @@ struct Dma {
 	u32 requested_imm_dmas{};
 	DmaTransfer transfers[4];
 
-	NDS *nds{};
-	int cpuid;
-
 	u64& target_cycles;
 	u64& cycles;
 };
