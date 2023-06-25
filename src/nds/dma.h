@@ -36,24 +36,18 @@ struct Dma {
 	u64& cycles;
 
 	virtual void dmacnt_h_write(int channel, u16 value) = 0;
-	virtual void load_dad(int channel) = 0;
-	virtual void load_dmacnt_l(int channel) = 0;
 };
 
 struct Dma9 final : Dma {
 	Dma9(NDS *nds);
 
 	void dmacnt_h_write(int channel, u16 value) override;
-	void load_dad(int channel) override;
-	void load_dmacnt_l(int channel) override;
 };
 
 struct Dma7 final : Dma {
 	Dma7(NDS *nds);
 
 	void dmacnt_h_write(int channel, u16 value) override;
-	void load_dad(int channel) override;
-	void load_dmacnt_l(int channel) override;
 };
 
 void run_dma9(NDS *nds);

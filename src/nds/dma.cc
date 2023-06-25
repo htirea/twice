@@ -127,6 +127,50 @@ set_addr_step_and_width(Dma *dma, int channel, u16 dmacnt)
 	t.dad_step *= t.word_width;
 }
 
+static void
+load_dad(NDS *nds, int cpuid, int channel)
+{
+	auto& dad = nds->dma[cpuid]->transfers[channel].dad;
+
+	if (cpuid == 0) {
+		dad = nds->dma_dad[0][channel] & MASK(28);
+	} else {
+		if (channel == 3) {
+			dad = nds->dma_dad[1][channel] & MASK(28);
+		} else {
+			dad = nds->dma_dad[1][channel] & MASK(27);
+		}
+	}
+}
+
+static void
+load_dmacnt_l(NDS *nds, int cpuid, int channel)
+{
+	auto& word_count = nds->dma[cpuid]->transfers[channel].word_count;
+
+	if (cpuid == 0) {
+		word_count = nds->dmacnt_l[0][channel] & MASK(21);
+
+		if (word_count == 0) {
+			word_count = 0x200000;
+		}
+	} else {
+		if (channel == 3) {
+			word_count = nds->dmacnt_l[1][channel] & MASK(16);
+
+			if (word_count == 0) {
+				word_count = 0x10000;
+			}
+		} else {
+			word_count = nds->dmacnt_l[1][channel] & MASK(14);
+
+			if (word_count == 0) {
+				word_count = 0x4000;
+			}
+		}
+	}
+}
+
 void
 Dma9::dmacnt_h_write(int channel, u16 value)
 {
@@ -141,8 +185,8 @@ Dma9::dmacnt_h_write(int channel, u16 value)
 	if (!old_enabled && t.enabled) {
 		t.sad = nds->dma_sad[0][channel] & MASK(28);
 
-		load_dad(channel);
-		load_dmacnt_l(channel);
+		load_dad(nds, 0, channel);
+		load_dmacnt_l(nds, 0, channel);
 
 		switch (t.mode) {
 		case 0:
@@ -182,8 +226,8 @@ Dma7::dmacnt_h_write(int channel, u16 value)
 			t.sad = nds->dma_sad[1][channel] & MASK(28);
 		}
 
-		load_dad(channel);
-		load_dmacnt_l(channel);
+		load_dad(nds, 1, channel);
+		load_dmacnt_l(nds, 1, channel);
 
 		switch (t.mode) {
 		case 0:
@@ -206,64 +250,17 @@ Dma7::dmacnt_h_write(int channel, u16 value)
 	dmacnt = value;
 }
 
-void
-Dma9::load_dad(int channel)
-{
-	transfers[channel].dad = nds->dma_dad[0][channel] & MASK(28);
-}
-
-void
-Dma7::load_dad(int channel)
-{
-	if (channel == 3) {
-		transfers[channel].dad = nds->dma_dad[1][channel] & MASK(28);
-	} else {
-		transfers[channel].dad = nds->dma_dad[1][channel] & MASK(27);
-	}
-}
-
-void
-Dma9::load_dmacnt_l(int channel)
-{
-	u32 word_count = nds->dmacnt_l[0][channel] & MASK(21);
-
-	if (word_count == 0) {
-		word_count = 0x200000;
-	}
-
-	transfers[channel].word_count = word_count;
-}
-
-void
-Dma7::load_dmacnt_l(int channel)
-{
-	u32 word_count;
-
-	if (channel == 3) {
-		word_count = nds->dmacnt_l[1][channel] & MASK(16);
-		if (word_count == 0) {
-			word_count = 0x10000;
-		}
-	} else {
-		word_count = nds->dmacnt_l[1][channel] & MASK(14);
-		if (word_count == 0) {
-			word_count = 0x4000;
-		}
-	}
-
-	transfers[channel].word_count = word_count;
-}
-
 static void
-start_transfer(NDS *nds, Dma *dma, int channel)
+start_transfer(NDS *nds, int cpuid, int channel)
 {
+	Dma *dma = nds->dma[cpuid];
 	auto& t = dma->transfers[channel];
 
 	if (t.repeat_reload) {
 		t.repeat_reload = false;
-		dma->load_dmacnt_l(channel);
-		if ((nds->dmacnt_h[dma->cpuid][channel] >> 5 & 0x3) == 3) {
-			dma->load_dad(channel);
+		load_dmacnt_l(nds, cpuid, channel);
+		if ((nds->dmacnt_h[cpuid][channel] >> 5 & 0x3) == 3) {
+			load_dad(nds, cpuid, channel);
 		}
 	}
 
@@ -276,13 +273,13 @@ dma_on_vblank(NDS *nds)
 	for (int channel = 0; channel < 4; channel++) {
 		if (nds->dma[0]->transfers[channel].enabled) {
 			if (nds->dma[0]->transfers[channel].mode == 1) {
-				start_transfer(nds, nds->dma[0], channel);
+				start_transfer(nds, 0, channel);
 			}
 		}
 
 		if (nds->dma[1]->transfers[channel].enabled) {
 			if (nds->dma[1]->transfers[channel].mode == 1) {
-				start_transfer(nds, nds->dma[1], channel);
+				start_transfer(nds, 1, channel);
 			}
 		}
 	}
@@ -298,7 +295,7 @@ dma_on_hblank_start(NDS *nds)
 	for (int channel = 0; channel < 4; channel++) {
 		if (nds->dma[0]->transfers[channel].enabled) {
 			if (nds->dma[0]->transfers[channel].mode == 2) {
-				start_transfer(nds, nds->dma[0], channel);
+				start_transfer(nds, 0, channel);
 			}
 		}
 	}
