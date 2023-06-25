@@ -46,7 +46,6 @@ struct Scheduler {
 	u64 get_next_event_time();
 };
 
-void schedule_immediate_dma(NDS *nds, int cpuid, int channel);
 void schedule_arm_event_after(NDS *nds, int cpuid, int event, u64 dt);
 void run_events(NDS *nds);
 void run_arm_events(NDS *nds, int cpuid);

@@ -161,7 +161,7 @@ NDS::run_frame()
 	}
 }
 
-void
+static void
 nds_on_vblank(NDS *nds)
 {
 	nds->dispstat[0] |= BIT(0);
