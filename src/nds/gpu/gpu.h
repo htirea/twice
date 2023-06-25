@@ -37,8 +37,8 @@ struct Gpu2D {
 	u32 *fb{};
 
 	struct Pixel {
-		u32 color;
-		u8 priority;
+		u32 color{};
+		u8 priority{};
 	};
 
 	Pixel buffer_top[256]{};
