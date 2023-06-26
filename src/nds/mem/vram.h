@@ -6,12 +6,14 @@
 #include "common/util.h"
 
 #define VRAM_READ_FROM_MASK(bank_)                                            \
-	if (mask & BIT(bank_))                                                \
-	value |= nds->vram.vram_bank_read<T, bank_>(offset)
+	if (mask & BIT(bank_)) {                                              \
+		value |= vram_bank_read<T, bank_>(&nds->vram, offset);        \
+	}
 
 #define VRAM_WRITE_FROM_MASK(bank_)                                           \
-	if (mask & BIT(bank_))                                                \
-	nds->vram.vram_bank_write<T, bank_>(offset, value)
+	if (mask & BIT(bank_)) {                                              \
+		vram_bank_write<T, bank_>(&nds->vram, offset, value);         \
+	}
 
 namespace twice {
 
