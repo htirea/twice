@@ -8,7 +8,7 @@ namespace twice {
 
 template <int COND>
 void
-thumb_b1(Arm *cpu)
+thumb_b1(arm_cpu *cpu)
 {
 	bool N = cpu->cpsr & BIT(31);
 	bool Z = cpu->cpsr & BIT(30);
@@ -74,7 +74,7 @@ thumb_b1(Arm *cpu)
 }
 
 inline void
-thumb_b2(Arm *cpu)
+thumb_b2(arm_cpu *cpu)
 {
 	u32 offset = (s16)(cpu->opcode << 5) >> 4;
 	cpu->thumb_jump(cpu->pc() + offset);
@@ -82,7 +82,7 @@ thumb_b2(Arm *cpu)
 
 template <int H>
 void
-thumb_b_pair(Arm *cpu)
+thumb_b_pair(arm_cpu *cpu)
 {
 	if (H == 2) {
 		u32 offset = (s32)(cpu->opcode << 21) >> 9;
@@ -107,14 +107,14 @@ thumb_b_pair(Arm *cpu)
 }
 
 inline void
-thumb_bx(Arm *cpu)
+thumb_bx(arm_cpu *cpu)
 {
 	u32 addr = cpu->gpr[cpu->opcode >> 3 & 0xF];
 	thumb_do_bx(cpu, addr);
 }
 
 inline void
-thumb_blx2(Arm *cpu)
+thumb_blx2(arm_cpu *cpu)
 {
 	if (cpu->is_arm7()) {
 		thumb_undefined(cpu);

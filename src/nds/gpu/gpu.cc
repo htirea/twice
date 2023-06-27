@@ -13,7 +13,7 @@ static const u32 bitmap_bg_widths[] = { 128, 256, 512, 512 };
 static const u32 bitmap_bg_heights[] = { 128, 256, 256, 512 };
 
 u32
-BGR555_TO_BGR888(u16 color)
+bgr555_to_bgr888(u16 color)
 {
 	u8 r = color & 0x1F;
 	u8 g = color >> 5 & 0x1F;
@@ -38,7 +38,7 @@ fb_fill_white(u32 *fb, u16 scanline)
 }
 
 static void
-reload_bg_ref_xy(Gpu2D *gpu, bool force_reload)
+reload_bg_ref_xy(gpu_2d_engine *gpu, bool force_reload)
 {
 	for (int i = 0; i < 2; i++) {
 		if (gpu->bg_ref_x_reload[i] || force_reload) {
@@ -53,7 +53,7 @@ reload_bg_ref_xy(Gpu2D *gpu, bool force_reload)
 }
 
 static void
-increment_bg_ref_xy(Gpu2D *gpu)
+increment_bg_ref_xy(gpu_2d_engine *gpu)
 {
 	for (int i = 0; i < 2; i++) {
 		gpu->bg_ref_x[i] += (s16)gpu->bg_pb[i];
@@ -62,28 +62,28 @@ increment_bg_ref_xy(Gpu2D *gpu)
 }
 
 void
-gpu_on_scanline_start(NDS *nds)
+gpu_on_scanline_start(nds_ctx *nds)
 {
 	if (nds->vcount < 192) {
-		reload_bg_ref_xy(&nds->gpu2D[0], nds->vcount == 0);
-		reload_bg_ref_xy(&nds->gpu2D[1], nds->vcount == 0);
+		reload_bg_ref_xy(&nds->gpu2d[0], nds->vcount == 0);
+		reload_bg_ref_xy(&nds->gpu2d[1], nds->vcount == 0);
 
-		nds->gpu2D[0].draw_scanline(nds->vcount);
-		nds->gpu2D[1].draw_scanline(nds->vcount);
+		nds->gpu2d[0].draw_scanline(nds->vcount);
+		nds->gpu2d[1].draw_scanline(nds->vcount);
 
-		increment_bg_ref_xy(&nds->gpu2D[0]);
-		increment_bg_ref_xy(&nds->gpu2D[1]);
+		increment_bg_ref_xy(&nds->gpu2d[0]);
+		increment_bg_ref_xy(&nds->gpu2d[1]);
 	}
 }
 
-Gpu2D::Gpu2D(NDS *nds, int engineid)
+gpu_2d_engine::gpu_2d_engine(nds_ctx *nds, int engineid)
 	: nds(nds),
 	  engineid(engineid)
 {
 }
 
 u32
-Gpu2D::read32(u8 offset)
+gpu_2d_engine::read32(u8 offset)
 {
 	switch (offset) {
 	case 0x8:
@@ -97,7 +97,7 @@ Gpu2D::read32(u8 offset)
 }
 
 u16
-Gpu2D::read16(u8 offset)
+gpu_2d_engine::read16(u8 offset)
 {
 	switch (offset) {
 	case 0x8:
@@ -123,7 +123,7 @@ Gpu2D::read16(u8 offset)
 }
 
 void
-Gpu2D::write32(u8 offset, u32 value)
+gpu_2d_engine::write32(u8 offset, u32 value)
 {
 	if (!enabled) {
 		return;
@@ -159,7 +159,7 @@ Gpu2D::write32(u8 offset, u32 value)
 }
 
 void
-Gpu2D::write16(u8 offset, u16 value)
+gpu_2d_engine::write16(u8 offset, u16 value)
 {
 	if (!enabled) {
 		return;
@@ -262,7 +262,7 @@ Gpu2D::write16(u8 offset, u16 value)
 }
 
 void
-Gpu2D::draw_scanline(u16 scanline)
+gpu_2d_engine::draw_scanline(u16 scanline)
 {
 	if (!enabled) {
 		fb_fill_white(fb, scanline);
@@ -280,16 +280,16 @@ Gpu2D::draw_scanline(u16 scanline)
 		if (engineid == 0) {
 			vram_display_scanline();
 		} else {
-			throw TwiceError("engine B display mode 2");
+			throw twice_error("engine B display mode 2");
 		}
 		break;
 	case 3:
-		throw TwiceError("display mode 3 not implemented");
+		throw twice_error("display mode 3 not implemented");
 	}
 }
 
 void
-Gpu2D::clear_buffers()
+gpu_2d_engine::clear_buffers()
 {
 	u16 backdrop_color = get_palette_color_256(0);
 	for (u32 i = 0; i < 256; i++) {
@@ -303,7 +303,7 @@ Gpu2D::clear_buffers()
 }
 
 void
-Gpu2D::graphics_display_scanline()
+gpu_2d_engine::graphics_display_scanline()
 {
 	clear_buffers();
 
@@ -350,13 +350,13 @@ Gpu2D::graphics_display_scanline()
 		break;
 	case 6:
 		if (engineid == 1) {
-			throw TwiceError("bg mode 6 invalid for engine B");
+			throw twice_error("bg mode 6 invalid for engine B");
 		}
 		if (dispcnt & BIT(8)) render_3d();
 		if (dispcnt & BIT(10)) render_large_bitmap_bg();
 		break;
 	case 7:
-		throw TwiceError("bg mode 7 invalid");
+		throw twice_error("bg mode 7 invalid");
 	}
 
 	for (u32 i = 0; i < 256; i++) {
@@ -374,12 +374,12 @@ Gpu2D::graphics_display_scanline()
 
 	for (u32 i = 0; i < 256; i++) {
 		fb[nds->vcount * 256 + i] =
-				BGR555_TO_BGR888(buffer_top[i].color);
+				bgr555_to_bgr888(buffer_top[i].color);
 	}
 }
 
 void
-Gpu2D::render_text_bg(int bg)
+gpu_2d_engine::render_text_bg(int bg)
 {
 	if (engineid == 0 && (dispcnt & BIT(3))) {
 		render_3d();
@@ -480,7 +480,7 @@ Gpu2D::render_text_bg(int bg)
 }
 
 void
-Gpu2D::render_affine_bg(int bg)
+gpu_2d_engine::render_affine_bg(int bg)
 {
 	u32 bg_priority = bg_cnt[bg] & 0x3;
 	u32 bg_w = 128 << (bg_cnt[bg] >> 14 & 0x3);
@@ -536,7 +536,7 @@ Gpu2D::render_affine_bg(int bg)
 }
 
 void
-Gpu2D::render_extended_bg(int bg)
+gpu_2d_engine::render_extended_bg(int bg)
 {
 	if (!(bg_cnt[bg] & BIT(7))) {
 		render_extended_text_bg(bg);
@@ -546,7 +546,7 @@ Gpu2D::render_extended_bg(int bg)
 }
 
 void
-Gpu2D::render_extended_text_bg(int bg)
+gpu_2d_engine::render_extended_text_bg(int bg)
 {
 	u32 bg_priority = bg_cnt[bg] & 0x3;
 	u32 bg_w = 128 << (bg_cnt[bg] >> 14 & 0x3);
@@ -623,7 +623,7 @@ Gpu2D::render_extended_text_bg(int bg)
 }
 
 void
-Gpu2D::render_extended_bitmap_bg(int bg, bool direct_color)
+gpu_2d_engine::render_extended_bitmap_bg(int bg, bool direct_color)
 {
 	u32 bg_priority = bg_cnt[bg] & 0x3;
 	u32 bg_size_bits = bg_cnt[bg] >> 14 & 0x3;
@@ -671,7 +671,7 @@ Gpu2D::render_extended_bitmap_bg(int bg, bool direct_color)
 }
 
 void
-Gpu2D::render_large_bitmap_bg()
+gpu_2d_engine::render_large_bitmap_bg()
 {
 	int bg = 2;
 
@@ -689,7 +689,7 @@ Gpu2D::render_large_bitmap_bg()
 		bg_h = 512;
 		break;
 	default:
-		throw TwiceError("large bitmap bg invalid size");
+		throw twice_error("large bitmap bg invalid size");
 	}
 
 	s32 ref_x = bg_ref_x[bg - 2];
@@ -723,7 +723,7 @@ Gpu2D::render_large_bitmap_bg()
 }
 
 void
-Gpu2D::draw_bg_pixel(u32 fb_x, u16 color, u8 priority)
+gpu_2d_engine::draw_bg_pixel(u32 fb_x, u16 color, u8 priority)
 {
 	auto& top = buffer_top[fb_x];
 	auto& bottom = buffer_bottom[fb_x];
@@ -739,17 +739,17 @@ Gpu2D::draw_bg_pixel(u32 fb_x, u16 color, u8 priority)
 }
 
 void
-Gpu2D::render_3d()
+gpu_2d_engine::render_3d()
 {
 }
 
 void
-Gpu2D::render_sprites()
+gpu_2d_engine::render_sprites()
 {
 }
 
 void
-Gpu2D::vram_display_scanline()
+gpu_2d_engine::vram_display_scanline()
 {
 	u32 start = nds->vcount * 256;
 	u32 end = start + 256;
@@ -757,13 +757,13 @@ Gpu2D::vram_display_scanline()
 	u32 offset = 0x20000 * (dispcnt >> 18 & 0x3);
 
 	for (u32 i = start; i < end; i++) {
-		fb[i] = BGR555_TO_BGR888(
+		fb[i] = bgr555_to_bgr888(
 				vram_read_lcdc<u16>(nds, offset + i * 2));
 	}
 }
 
 u64
-Gpu2D::fetch_char_row(u16 se, u32 char_base, u32 bg_y, bool color_256)
+gpu_2d_engine::fetch_char_row(u16 se, u32 char_base, u32 bg_y, bool color_256)
 {
 	u64 char_row;
 
@@ -790,43 +790,43 @@ Gpu2D::fetch_char_row(u16 se, u32 char_base, u32 bg_y, bool color_256)
 }
 
 u16
-Gpu2D::get_screen_entry(u32 screen, u32 base, u32 x, u32 y)
+gpu_2d_engine::get_screen_entry(u32 screen, u32 base, u32 x, u32 y)
 {
 	return read_bg_data<u16>(base + 0x800 * screen, 32, x, y);
 }
 
 u8
-Gpu2D::get_screen_entry_affine(u32 base, u32 bg_w, u32 x, u32 y)
+gpu_2d_engine::get_screen_entry_affine(u32 base, u32 bg_w, u32 x, u32 y)
 {
 	return read_bg_data<u8>(base, bg_w / 8, x, y);
 }
 
 u16
-Gpu2D::get_screen_entry_extended_text(u32 base, u32 bg_w, u32 x, u32 y)
+gpu_2d_engine::get_screen_entry_extended_text(u32 base, u32 bg_w, u32 x, u32 y)
 {
 	return read_bg_data<u16>(base, bg_w / 8, x, y);
 }
 
 u64
-Gpu2D::get_char_row_256(u32 base, u32 char_name, u32 y)
+gpu_2d_engine::get_char_row_256(u32 base, u32 char_name, u32 y)
 {
 	return read_bg_data<u64>(base + 64 * char_name, 1, 0, y);
 }
 
 u32
-Gpu2D::get_char_row_16(u32 base, u32 char_name, u32 y)
+gpu_2d_engine::get_char_row_16(u32 base, u32 char_name, u32 y)
 {
 	return read_bg_data<u32>(base + 32 * char_name, 1, 0, y);
 }
 
 u8
-Gpu2D::get_color_num_256(u32 base, u32 char_name, u32 x, u32 y)
+gpu_2d_engine::get_color_num_256(u32 base, u32 char_name, u32 x, u32 y)
 {
 	return read_bg_data<u8>(base + 64 * char_name, 8, x, y);
 }
 
 u16
-Gpu2D::get_palette_color_256(u32 color_num)
+gpu_2d_engine::get_palette_color_256(u32 color_num)
 {
 	u32 offset = 2 * color_num;
 	if (engineid == 1) {
@@ -837,7 +837,8 @@ Gpu2D::get_palette_color_256(u32 color_num)
 }
 
 u16
-Gpu2D::get_palette_color_256_extended(u32 slot, u32 palette_num, u32 color_num)
+gpu_2d_engine::get_palette_color_256_extended(
+		u32 slot, u32 palette_num, u32 color_num)
 {
 	u32 offset = 0x2000 * slot + 512 * palette_num + 2 * color_num;
 	if (engineid == 0) {
@@ -848,7 +849,7 @@ Gpu2D::get_palette_color_256_extended(u32 slot, u32 palette_num, u32 color_num)
 }
 
 u16
-Gpu2D::get_palette_color_16(u32 palette_num, u32 color_num)
+gpu_2d_engine::get_palette_color_16(u32 palette_num, u32 color_num)
 {
 	u32 offset = 32 * palette_num + 2 * color_num;
 	if (engineid == 1) {
@@ -860,7 +861,7 @@ Gpu2D::get_palette_color_16(u32 palette_num, u32 color_num)
 
 template <typename T>
 T
-Gpu2D::read_bg_data(u32 base, u32 w, u32 x, u32 y)
+gpu_2d_engine::read_bg_data(u32 base, u32 w, u32 x, u32 y)
 {
 	u32 offset = base + sizeof(T) * w * y + sizeof(T) * x;
 	if (engineid == 0) {

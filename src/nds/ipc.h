@@ -6,9 +6,9 @@
 
 namespace twice {
 
-struct NDS;
+struct nds_ctx;
 
-struct IpcFifo {
+struct ipc_fifo {
 	std::array<u32, 16> fifo{};
 	u32 read{};
 	u32 write{};
@@ -16,9 +16,9 @@ struct IpcFifo {
 	u32 cnt{ BIT(0) | BIT(8) };
 };
 
-u32 ipc_fifo_recv(NDS *nds, int cpuid);
-void ipc_fifo_send(NDS *nds, int cpuid, u32 value);
-void ipc_fifo_cnt_write(NDS *nds, int cpuid, u16 value);
+u32 ipc_fifo_recv(nds_ctx *nds, int cpuid);
+void ipc_fifo_send(nds_ctx *nds, int cpuid, u32 value);
+void ipc_fifo_cnt_write(nds_ctx *nds, int cpuid, u16 value);
 
 } // namespace twice
 

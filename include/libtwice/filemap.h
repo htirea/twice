@@ -8,23 +8,23 @@
 
 namespace twice {
 
-struct FileMap {
-	struct FileMapError : TwiceException {
-		using TwiceException::TwiceException;
+struct file_map {
+	struct file_map_error : twice_exception {
+		using twice_exception::twice_exception;
 	};
 
 	static constexpr int MAP_EXACT_SIZE = 0x1;
 	static constexpr int MAP_MAX_SIZE = 0x2;
 
-	FileMap() = default;
-	FileMap(const std::string& pathname, std::size_t limit, int mode);
+	file_map() = default;
+	file_map(const std::string& pathname, std::size_t limit, int mode);
 
-	~FileMap() { destroy(); }
+	~file_map() { destroy(); }
 
-	FileMap(const FileMap& other) = delete;
-	FileMap& operator=(const FileMap& other) = delete;
+	file_map(const file_map& other) = delete;
+	file_map& operator=(const file_map& other) = delete;
 
-	FileMap(FileMap&& other)
+	file_map(file_map&& other)
 	{
 		data = other.data;
 		size = other.size;
@@ -32,7 +32,7 @@ struct FileMap {
 		other.size = 0;
 	}
 
-	FileMap& operator=(FileMap&& other)
+	file_map& operator=(file_map&& other)
 	{
 		if (this != &other) {
 			destroy();

@@ -7,7 +7,7 @@
 namespace twice {
 
 inline void
-arm_clz(Arm *cpu)
+arm_clz(arm_cpu *cpu)
 {
 	if (cpu->is_arm7()) {
 		arm_undefined(cpu);

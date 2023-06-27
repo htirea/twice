@@ -3,7 +3,7 @@
 namespace twice {
 
 void
-wramcnt_write(NDS *nds, u8 value)
+wramcnt_write(nds_ctx *nds, u8 value)
 {
 	nds->wramcnt = value;
 
@@ -35,7 +35,7 @@ wramcnt_write(NDS *nds, u8 value)
 }
 
 void
-ipcsync_write(NDS *nds, int cpuid, u16 value)
+ipcsync_write(nds_ctx *nds, int cpuid, u16 value)
 {
 	nds->ipcsync[cpuid ^ 1] &= ~0xF;
 	nds->ipcsync[cpuid ^ 1] |= value >> 8 & 0xF;
@@ -48,19 +48,19 @@ ipcsync_write(NDS *nds, int cpuid, u16 value)
 }
 
 void
-powcnt1_write(NDS *nds, u16 value)
+powcnt1_write(nds_ctx *nds, u16 value)
 {
 	if (value & BIT(15)) {
-		nds->gpu2D[0].fb = nds->fb;
-		nds->gpu2D[1].fb = nds->fb + NDS_SCREEN_SZ;
+		nds->gpu2d[0].fb = nds->fb;
+		nds->gpu2d[1].fb = nds->fb + NDS_SCREEN_SZ;
 	} else {
-		nds->gpu2D[0].fb = nds->fb + NDS_SCREEN_SZ;
-		nds->gpu2D[1].fb = nds->fb;
+		nds->gpu2d[0].fb = nds->fb + NDS_SCREEN_SZ;
+		nds->gpu2d[1].fb = nds->fb;
 	}
 
 	/* TODO: check what bit 0 does */
-	nds->gpu2D[0].enabled = value & BIT(1);
-	nds->gpu2D[1].enabled = value & BIT(9);
+	nds->gpu2d[0].enabled = value & BIT(1);
+	nds->gpu2d[1].enabled = value & BIT(9);
 
 	/* TODO: disable writes / reads if disabled */
 

@@ -179,8 +179,7 @@
 
 namespace twice {
 
-void ipcsync_write(NDS *nds, int cpuid, u16 value);
-
+void ipcsync_write(nds_ctx *nds, int cpuid, u16 value);
 }
 
 #endif

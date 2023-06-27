@@ -9,7 +9,7 @@
 namespace twice {
 
 inline void
-arm_do_bx(Arm *cpu, u32 addr)
+arm_do_bx(arm_cpu *cpu, u32 addr)
 {
 	if (addr & 1) {
 		cpu->set_t(1);
@@ -20,7 +20,7 @@ arm_do_bx(Arm *cpu, u32 addr)
 }
 
 inline void
-thumb_do_bx(Arm *cpu, u32 addr)
+thumb_do_bx(arm_cpu *cpu, u32 addr)
 {
 	if (!(addr & 1)) {
 		cpu->set_t(0);
@@ -31,37 +31,37 @@ thumb_do_bx(Arm *cpu, u32 addr)
 }
 
 inline u32
-arm_do_ldr(Arm *cpu, u32 addr)
+arm_do_ldr(arm_cpu *cpu, u32 addr)
 {
 	return std::rotr(cpu->load32(addr & ~3), (addr & 3) << 3);
 }
 
 inline void
-arm_do_str(Arm *cpu, u32 addr, u32 value)
+arm_do_str(arm_cpu *cpu, u32 addr, u32 value)
 {
 	cpu->store32(addr & ~3, value);
 }
 
 inline void
-arm_do_strh(Arm *cpu, u32 addr, u16 value)
+arm_do_strh(arm_cpu *cpu, u32 addr, u16 value)
 {
 	cpu->store16(addr & ~1, value);
 }
 
 inline u8
-arm_do_ldrb(Arm *cpu, u32 addr)
+arm_do_ldrb(arm_cpu *cpu, u32 addr)
 {
 	return cpu->load8(addr);
 }
 
 inline void
-arm_do_strb(Arm *cpu, u32 addr, u8 value)
+arm_do_strb(arm_cpu *cpu, u32 addr, u8 value)
 {
 	cpu->store8(addr, value);
 }
 
 inline s8
-arm_do_ldrsb(Arm *cpu, u32 addr)
+arm_do_ldrsb(arm_cpu *cpu, u32 addr)
 {
 	return cpu->load8(addr);
 }

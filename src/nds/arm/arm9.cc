@@ -6,13 +6,13 @@
 
 namespace twice {
 
-Arm9::Arm9(NDS *nds)
-	: Arm(nds, 0)
+arm9_cpu::arm9_cpu(nds_ctx *nds)
+	: arm_cpu(nds, 0)
 {
 }
 
 void
-Arm9::step()
+arm9_cpu::step()
 {
 	if (in_thumb()) {
 		pc() += 2;
@@ -48,7 +48,7 @@ Arm9::step()
 }
 
 void
-Arm9::jump(u32 addr)
+arm9_cpu::jump(u32 addr)
 {
 	if (in_thumb()) {
 		thumb_jump(addr);
@@ -58,7 +58,7 @@ Arm9::jump(u32 addr)
 }
 
 void
-Arm9::arm_jump(u32 addr)
+arm9_cpu::arm_jump(u32 addr)
 {
 	pc() = addr + 4;
 	pipeline[0] = fetch32(addr);
@@ -66,7 +66,7 @@ Arm9::arm_jump(u32 addr)
 }
 
 void
-Arm9::thumb_jump(u32 addr)
+arm9_cpu::thumb_jump(u32 addr)
 {
 	pc() = addr + 2;
 	pipeline[0] = fetch16(addr);
@@ -74,7 +74,7 @@ Arm9::thumb_jump(u32 addr)
 }
 
 void
-Arm9::jump_cpsr(u32 addr)
+arm9_cpu::jump_cpsr(u32 addr)
 {
 	cpsr = spsr();
 	on_cpsr_write();
@@ -88,7 +88,7 @@ Arm9::jump_cpsr(u32 addr)
 
 template <typename T>
 T
-Arm9::fetch(u32 addr)
+arm9_cpu::fetch(u32 addr)
 {
 	if (read_itcm && 0 == (addr & itcm_addr_mask)) {
 		return readarr<T>(itcm, addr & itcm_array_mask);
@@ -99,7 +99,7 @@ Arm9::fetch(u32 addr)
 
 template <typename T>
 T
-Arm9::load(u32 addr)
+arm9_cpu::load(u32 addr)
 {
 	if (read_itcm && 0 == (addr & itcm_addr_mask)) {
 		return readarr<T>(itcm, addr & itcm_array_mask);
@@ -114,7 +114,7 @@ Arm9::load(u32 addr)
 
 template <typename T>
 void
-Arm9::store(u32 addr, T value)
+arm9_cpu::store(u32 addr, T value)
 {
 	if (write_itcm && 0 == (addr & itcm_addr_mask)) {
 		writearr<T>(itcm, addr & itcm_array_mask, value);
@@ -130,67 +130,67 @@ Arm9::store(u32 addr, T value)
 }
 
 u32
-Arm9::fetch32(u32 addr)
+arm9_cpu::fetch32(u32 addr)
 {
 	return fetch<u32>(addr);
 }
 
 u16
-Arm9::fetch16(u32 addr)
+arm9_cpu::fetch16(u32 addr)
 {
 	return fetch<u16>(addr);
 }
 
 u32
-Arm9::load32(u32 addr)
+arm9_cpu::load32(u32 addr)
 {
 	return load<u32>(addr);
 }
 
 u16
-Arm9::load16(u32 addr)
+arm9_cpu::load16(u32 addr)
 {
 	return load<u16>(addr);
 }
 
 u8
-Arm9::load8(u32 addr)
+arm9_cpu::load8(u32 addr)
 {
 	return load<u8>(addr);
 }
 
 void
-Arm9::store32(u32 addr, u32 value)
+arm9_cpu::store32(u32 addr, u32 value)
 {
 	store<u32>(addr, value);
 }
 
 void
-Arm9::store16(u32 addr, u16 value)
+arm9_cpu::store16(u32 addr, u16 value)
 {
 	store<u16>(addr, value);
 }
 
 void
-Arm9::store8(u32 addr, u8 value)
+arm9_cpu::store8(u32 addr, u8 value)
 {
 	store<u8>(addr, value);
 }
 
 u16
-Arm9::ldrh(u32 addr)
+arm9_cpu::ldrh(u32 addr)
 {
 	return load16(addr & ~1);
 }
 
 s16
-Arm9::ldrsh(u32 addr)
+arm9_cpu::ldrsh(u32 addr)
 {
 	return load16(addr & ~1);
 }
 
 u32
-Arm9::cp15_read(u32 reg)
+arm9_cpu::cp15_read(u32 reg)
 {
 	switch (reg) {
 	/* cache type register */
@@ -222,12 +222,12 @@ Arm9::cp15_read(u32 reg)
 		return itcm_reg;
 	default:
 		fprintf(stderr, "cp15 read %03X\n", reg);
-		throw TwiceError("unhandled cp15 read");
+		throw twice_error("unhandled cp15 read");
 	}
 }
 
 static void
-ctrl_reg_write(Arm9 *cpu, u32 value)
+ctrl_reg_write(arm9_cpu *cpu, u32 value)
 {
 	u32 diff = cpu->ctrl_reg ^ value;
 	u32 unhandled = BIT(0) | BIT(2) | BIT(7) | BIT(12) | BIT(14) | BIT(15);
@@ -252,7 +252,7 @@ ctrl_reg_write(Arm9 *cpu, u32 value)
 }
 
 void
-Arm9::cp15_write(u32 reg, u32 value)
+arm9_cpu::cp15_write(u32 reg, u32 value)
 {
 	switch (reg) {
 	case 0x100:

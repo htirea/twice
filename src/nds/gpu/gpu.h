@@ -6,10 +6,10 @@
 
 namespace twice {
 
-struct NDS;
+struct nds_ctx;
 
-struct Gpu2D {
-	Gpu2D(NDS *nds, int engineid);
+struct gpu_2d_engine {
+	gpu_2d_engine(nds_ctx *nds, int engineid);
 
 	u32 dispcnt{};
 	u16 bg_cnt[4]{};
@@ -36,17 +36,17 @@ struct Gpu2D {
 
 	u32 *fb{};
 
-	struct Pixel {
+	struct pixel {
 		u32 color{};
 		u8 priority{};
 	};
 
-	Pixel buffer_top[256]{};
-	Pixel buffer_bottom[256]{};
-	Pixel obj_buffer[256]{};
+	pixel buffer_top[256]{};
+	pixel buffer_bottom[256]{};
+	pixel obj_buffer[256]{};
 
 	bool enabled{};
-	NDS *nds{};
+	nds_ctx *nds{};
 	int engineid{};
 
 	u32 read32(u8 offset);
@@ -82,7 +82,7 @@ struct Gpu2D {
 	template <typename T> T read_bg_data(u32 base, u32 w, u32 x, u32 y);
 };
 
-void gpu_on_scanline_start(NDS *nds);
+void gpu_on_scanline_start(nds_ctx *nds);
 
 } // namespace twice
 

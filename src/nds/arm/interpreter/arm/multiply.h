@@ -7,7 +7,7 @@ namespace twice {
 
 template <int A, int S>
 void
-arm_multiply(Arm *cpu)
+arm_multiply(arm_cpu *cpu)
 {
 	u32 rd = cpu->opcode >> 16 & 0xF;
 	u32 rs = cpu->opcode >> 8 & 0xF;
@@ -29,7 +29,7 @@ arm_multiply(Arm *cpu)
 
 template <int U, int A, int S>
 void
-arm_multiply_long(Arm *cpu)
+arm_multiply_long(arm_cpu *cpu)
 {
 	u32 rdhi = cpu->opcode >> 16 & 0xF;
 	u32 rdlo = cpu->opcode >> 12 & 0xF;

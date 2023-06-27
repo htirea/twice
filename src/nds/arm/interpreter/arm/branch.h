@@ -8,7 +8,7 @@ namespace twice {
 
 template <int L>
 void
-arm_b(Arm *cpu)
+arm_b(arm_cpu *cpu)
 {
 	if (L) {
 		cpu->gpr[14] = cpu->pc() - 4;
@@ -19,7 +19,7 @@ arm_b(Arm *cpu)
 }
 
 inline void
-arm_blx2(Arm *cpu)
+arm_blx2(arm_cpu *cpu)
 {
 	if (cpu->is_arm7()) {
 		arm_undefined(cpu);
@@ -32,7 +32,7 @@ arm_blx2(Arm *cpu)
 }
 
 inline void
-arm_bx(Arm *cpu)
+arm_bx(arm_cpu *cpu)
 {
 	u32 addr = cpu->gpr[cpu->opcode & 0xF];
 	arm_do_bx(cpu, addr);

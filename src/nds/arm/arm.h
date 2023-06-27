@@ -6,7 +6,7 @@
 
 namespace twice {
 
-enum CpuMode {
+enum {
 	MODE_SYS,
 	MODE_FIQ,
 	MODE_SVC,
@@ -16,7 +16,7 @@ enum CpuMode {
 	MODE_USR = 8
 };
 
-enum CpuModeBits {
+enum {
 	USR_MODE_BITS = 0x10,
 	FIQ_MODE_BITS = 0x11,
 	IRQ_MODE_BITS = 0x12,
@@ -26,10 +26,10 @@ enum CpuModeBits {
 	SYS_MODE_BITS = 0x1F,
 };
 
-struct NDS;
+struct nds_ctx;
 
-struct Arm {
-	Arm(NDS *nds, int cpuid);
+struct arm_cpu {
+	arm_cpu(nds_ctx *nds, int cpuid);
 
 	u32 gpr[16]{};
 	u32 bankedr[6][3]{};
@@ -46,7 +46,7 @@ struct Arm {
 	bool interrupt{};
 	bool halted{};
 
-	NDS *nds{};
+	nds_ctx *nds{};
 	int cpuid{};
 
 	u64& target_cycles;

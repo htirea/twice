@@ -5,9 +5,9 @@
 
 namespace twice {
 
-struct NDS;
+struct nds_ctx;
 
-struct DmaTransfer {
+struct dma_transfer_state {
 	bool enabled{};
 	int mode{};
 
@@ -22,24 +22,24 @@ struct DmaTransfer {
 	bool repeat_reload{};
 };
 
-struct Dma {
-	Dma(NDS *nds, int cpuid);
+struct dma_controller {
+	dma_controller(nds_ctx *nds, int cpuid);
 
 	u32 active{};
 	u32 requested_imm_dmas{};
-	DmaTransfer transfers[4];
+	dma_transfer_state transfers[4];
 
 	u64& target_cycles;
 	u64& cycles;
 };
 
-void run_dma9(NDS *nds);
-void run_dma7(NDS *nds);
-void dmacnt_h_write(NDS *nds, int cpuid, int channel, u16 value);
+void run_dma9(nds_ctx *nds);
+void run_dma7(nds_ctx *nds);
+void dmacnt_h_write(nds_ctx *nds, int cpuid, int channel, u16 value);
 
-void dma_on_vblank(NDS *nds);
-void dma_on_hblank_start(NDS *nds);
-void event_start_immediate_dmas(NDS *nds, int cpuid);
+void dma_on_vblank(nds_ctx *nds);
+void dma_on_hblank_start(nds_ctx *nds);
+void event_start_immediate_dmas(nds_ctx *nds, int cpuid);
 
 } // namespace twice
 

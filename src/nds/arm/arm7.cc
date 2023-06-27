@@ -6,13 +6,13 @@
 
 namespace twice {
 
-Arm7::Arm7(NDS *nds)
-	: Arm(nds, 1)
+arm7_cpu::arm7_cpu(nds_ctx *nds)
+	: arm_cpu(nds, 1)
 {
 }
 
 void
-Arm7::step()
+arm7_cpu::step()
 {
 	if (in_thumb()) {
 		pc() += 2;
@@ -41,7 +41,7 @@ Arm7::step()
 }
 
 void
-Arm7::jump(u32 addr)
+arm7_cpu::jump(u32 addr)
 {
 	if (in_thumb()) {
 		thumb_jump(addr);
@@ -51,7 +51,7 @@ Arm7::jump(u32 addr)
 }
 
 void
-Arm7::arm_jump(u32 addr)
+arm7_cpu::arm_jump(u32 addr)
 {
 	pc() = addr + 4;
 	pipeline[0] = fetch32(addr);
@@ -59,7 +59,7 @@ Arm7::arm_jump(u32 addr)
 }
 
 void
-Arm7::thumb_jump(u32 addr)
+arm7_cpu::thumb_jump(u32 addr)
 {
 	pc() = addr + 2;
 	pipeline[0] = fetch16(addr);
@@ -67,7 +67,7 @@ Arm7::thumb_jump(u32 addr)
 }
 
 void
-Arm7::jump_cpsr(u32 addr)
+arm7_cpu::jump_cpsr(u32 addr)
 {
 	cpsr = spsr();
 	on_cpsr_write();
@@ -80,61 +80,61 @@ Arm7::jump_cpsr(u32 addr)
 }
 
 u32
-Arm7::fetch32(u32 addr)
+arm7_cpu::fetch32(u32 addr)
 {
 	return bus7_read<u32>(nds, addr);
 }
 
 u16
-Arm7::fetch16(u32 addr)
+arm7_cpu::fetch16(u32 addr)
 {
 	return bus7_read<u16>(nds, addr);
 }
 
 u32
-Arm7::load32(u32 addr)
+arm7_cpu::load32(u32 addr)
 {
 	return bus7_read<u32>(nds, addr);
 }
 
 u16
-Arm7::load16(u32 addr)
+arm7_cpu::load16(u32 addr)
 {
 	return bus7_read<u16>(nds, addr);
 }
 
 u8
-Arm7::load8(u32 addr)
+arm7_cpu::load8(u32 addr)
 {
 	return bus7_read<u8>(nds, addr);
 }
 
 void
-Arm7::store32(u32 addr, u32 value)
+arm7_cpu::store32(u32 addr, u32 value)
 {
 	bus7_write<u32>(nds, addr, value);
 }
 
 void
-Arm7::store16(u32 addr, u16 value)
+arm7_cpu::store16(u32 addr, u16 value)
 {
 	bus7_write<u16>(nds, addr, value);
 }
 
 void
-Arm7::store8(u32 addr, u8 value)
+arm7_cpu::store8(u32 addr, u8 value)
 {
 	bus7_write<u8>(nds, addr, value);
 }
 
 u16
-Arm7::ldrh(u32 addr)
+arm7_cpu::ldrh(u32 addr)
 {
 	return std::rotr(load16(addr & ~1), (addr & 1) << 3);
 }
 
 s16
-Arm7::ldrsh(u32 addr)
+arm7_cpu::ldrsh(u32 addr)
 {
 	if (addr & 1) {
 		return (s8)load8(addr);

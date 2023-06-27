@@ -7,7 +7,7 @@ namespace twice {
 
 template <int P, int U, int S, int W, int L>
 void
-arm_block_dt(Arm *cpu)
+arm_block_dt(arm_cpu *cpu)
 {
 	u32 rn = cpu->opcode >> 16 & 0xF;
 	u16 register_list = cpu->opcode & 0xFFFF;

@@ -7,7 +7,7 @@ namespace twice {
 
 template <int L, int RN>
 void
-thumb_ldm_stm(Arm *cpu)
+thumb_ldm_stm(arm_cpu *cpu)
 {
 	u8 register_list = cpu->opcode & 0xFF;
 	u32 offset = 4 * std::popcount(register_list);
@@ -62,7 +62,7 @@ thumb_ldm_stm(Arm *cpu)
 
 template <int L, int R>
 void
-thumb_push_pop(Arm *cpu)
+thumb_push_pop(arm_cpu *cpu)
 {
 	u8 register_list = cpu->opcode & 0xFF;
 	u32 offset = 4 * (R + std::popcount(register_list));

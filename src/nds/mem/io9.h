@@ -6,20 +6,20 @@
 
 namespace twice {
 
-void wramcnt_write(NDS *nds, u8 value);
-void vramcnt_a_write(NDS *nds, u8 value);
-void vramcnt_b_write(NDS *nds, u8 value);
-void vramcnt_c_write(NDS *nds, u8 value);
-void vramcnt_d_write(NDS *nds, u8 value);
-void vramcnt_e_write(NDS *nds, u8 value);
-void vramcnt_f_write(NDS *nds, u8 value);
-void vramcnt_g_write(NDS *nds, u8 value);
-void vramcnt_h_write(NDS *nds, u8 value);
-void vramcnt_i_write(NDS *nds, u8 value);
-void powcnt1_write(NDS *nds, u16 value);
+void wramcnt_write(nds_ctx *nds, u8 value);
+void vramcnt_a_write(nds_ctx *nds, u8 value);
+void vramcnt_b_write(nds_ctx *nds, u8 value);
+void vramcnt_c_write(nds_ctx *nds, u8 value);
+void vramcnt_d_write(nds_ctx *nds, u8 value);
+void vramcnt_e_write(nds_ctx *nds, u8 value);
+void vramcnt_f_write(nds_ctx *nds, u8 value);
+void vramcnt_g_write(nds_ctx *nds, u8 value);
+void vramcnt_h_write(nds_ctx *nds, u8 value);
+void vramcnt_i_write(nds_ctx *nds, u8 value);
+void powcnt1_write(nds_ctx *nds, u16 value);
 
 inline u8
-io9_read8(NDS *nds, u32 addr)
+io9_read8(nds_ctx *nds, u32 addr)
 {
 	switch (addr) {
 		IO_READ8_COMMON(0);
@@ -32,7 +32,7 @@ io9_read8(NDS *nds, u32 addr)
 }
 
 inline u16
-io9_read16(NDS *nds, u32 addr)
+io9_read16(nds_ctx *nds, u32 addr)
 {
 	switch (addr) {
 		IO_READ16_COMMON(0);
@@ -45,11 +45,11 @@ io9_read16(NDS *nds, u32 addr)
 	}
 
 	if (0x4000008 <= addr && addr < 0x4000058) {
-		return nds->gpu2D[0].read16(addr);
+		return nds->gpu2d[0].read16(addr);
 	}
 
 	if (0x4001008 <= addr && addr < 0x4001058) {
-		return nds->gpu2D[1].read16(addr);
+		return nds->gpu2d[1].read16(addr);
 	}
 
 	fprintf(stderr, "nds 0 read 16 at %08X\n", addr);
@@ -57,12 +57,12 @@ io9_read16(NDS *nds, u32 addr)
 }
 
 inline u32
-io9_read32(NDS *nds, u32 addr)
+io9_read32(nds_ctx *nds, u32 addr)
 {
 	switch (addr) {
 		IO_READ32_COMMON(0);
 	case 0x4000000:
-		return nds->gpu2D[0].dispcnt;
+		return nds->gpu2d[0].dispcnt;
 	case 0x40000E0:
 		return nds->dmafill[0];
 	case 0x40000E4:
@@ -103,15 +103,15 @@ io9_read32(NDS *nds, u32 addr)
 	case 0x4000304:
 		return nds->powcnt1;
 	case 0x4001000:
-		return nds->gpu2D[1].dispcnt;
+		return nds->gpu2d[1].dispcnt;
 	}
 
 	if (0x4000008 <= addr && addr < 0x4000058) {
-		return nds->gpu2D[0].read32(addr);
+		return nds->gpu2d[0].read32(addr);
 	}
 
 	if (0x4001008 <= addr && addr < 0x4001058) {
-		return nds->gpu2D[1].read32(addr);
+		return nds->gpu2d[1].read32(addr);
 	}
 
 	fprintf(stderr, "nds 0 read 32 at %08X\n", addr);
@@ -119,7 +119,7 @@ io9_read32(NDS *nds, u32 addr)
 }
 
 inline void
-io9_write8(NDS *nds, u32 addr, u8 value)
+io9_write8(nds_ctx *nds, u32 addr, u8 value)
 {
 	switch (addr) {
 		IO_WRITE8_COMMON(0);
@@ -166,7 +166,7 @@ io9_write8(NDS *nds, u32 addr, u8 value)
 }
 
 inline void
-io9_write16(NDS *nds, u32 addr, u16 value)
+io9_write16(nds_ctx *nds, u32 addr, u16 value)
 {
 	switch (addr) {
 		IO_WRITE16_COMMON(0);
@@ -186,12 +186,12 @@ io9_write16(NDS *nds, u32 addr, u16 value)
 	}
 
 	if (0x4000008 <= addr && addr < 0x4000058) {
-		nds->gpu2D[0].write16(addr, value);
+		nds->gpu2d[0].write16(addr, value);
 		return;
 	}
 
 	if (0x4001008 <= addr && addr < 0x4001058) {
-		nds->gpu2D[1].write16(addr, value);
+		nds->gpu2d[1].write16(addr, value);
 		return;
 	}
 
@@ -199,12 +199,12 @@ io9_write16(NDS *nds, u32 addr, u16 value)
 }
 
 inline void
-io9_write32(NDS *nds, u32 addr, u32 value)
+io9_write32(nds_ctx *nds, u32 addr, u32 value)
 {
 	switch (addr) {
 		IO_WRITE32_COMMON(0);
 	case 0x4000000:
-		nds->gpu2D[0].dispcnt = value;
+		nds->gpu2d[0].dispcnt = value;
 		return;
 	case 0x40000E0:
 		nds->dmafill[0] = value;
@@ -266,19 +266,19 @@ io9_write32(NDS *nds, u32 addr, u32 value)
 		powcnt1_write(nds, value);
 		return;
 	case 0x4001000:
-		nds->gpu2D[1].dispcnt = value;
+		nds->gpu2d[1].dispcnt = value;
 		return;
 	case 0x4001058:
 		return;
 	}
 
 	if (0x4000008 <= addr && addr < 0x4000058) {
-		nds->gpu2D[0].write32(addr, value);
+		nds->gpu2d[0].write32(addr, value);
 		return;
 	}
 
 	if (0x4001008 <= addr && addr < 0x4001058) {
-		nds->gpu2D[1].write32(addr, value);
+		nds->gpu2d[1].write32(addr, value);
 		return;
 	}
 

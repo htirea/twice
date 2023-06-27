@@ -5,8 +5,8 @@
 
 namespace twice {
 
-struct Arm7 final : Arm {
-	Arm7(NDS *nds);
+struct arm7_cpu final : arm_cpu {
+	arm7_cpu(nds_ctx *nds);
 
 	void step() override;
 	void jump(u32 addr) override;

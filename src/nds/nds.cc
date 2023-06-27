@@ -11,11 +11,11 @@
 
 namespace twice {
 
-NDS::NDS(u8 *arm7_bios, u8 *arm9_bios, u8 *firmware, u8 *cartridge,
+nds_ctx::nds_ctx(u8 *arm7_bios, u8 *arm9_bios, u8 *firmware, u8 *cartridge,
 		size_t cartridge_size)
-	: arm9(std::make_unique<Arm9>(this)),
-	  arm7(std::make_unique<Arm7>(this)),
-	  gpu2D{ { this, 0 }, { this, 1 } },
+	: arm9(std::make_unique<arm9_cpu>(this)),
+	  arm7(std::make_unique<arm7_cpu>(this)),
+	  gpu2d{ { this, 0 }, { this, 1 } },
 	  dma{ { this, 0 }, { this, 1 } },
 	  arm7_bios(arm7_bios),
 	  arm9_bios(arm9_bios),
@@ -30,14 +30,14 @@ NDS::NDS(u8 *arm7_bios, u8 *arm9_bios, u8 *firmware, u8 *cartridge,
 	wramcnt_write(this, 0x0);
 	powcnt1_write(this, 0x0);
 
-	schedule_event(this, Scheduler::HBLANK_START, 1536);
-	schedule_event(this, Scheduler::HBLANK_END, 2130);
+	schedule_nds_event(this, event_scheduler::HBLANK_START, 1536);
+	schedule_nds_event(this, event_scheduler::HBLANK_END, 2130);
 }
 
-NDS::~NDS() = default;
+nds_ctx::~nds_ctx() = default;
 
 static void
-parse_header(NDS *nds, u32 *entry_addr_ret)
+parse_header(nds_ctx *nds, u32 *entry_addr_ret)
 {
 	u32 rom_offset[2]{ readarr<u32>(nds->cartridge, 0x20),
 		readarr<u32>(nds->cartridge, 0x30) };
@@ -49,19 +49,19 @@ parse_header(NDS *nds, u32 *entry_addr_ret)
 		readarr<u32>(nds->cartridge, 0x3C) };
 
 	if (rom_offset[0] >= nds->cartridge_size) {
-		throw TwiceError("arm9 rom offset too large");
+		throw twice_error("arm9 rom offset too large");
 	}
 
 	if (rom_offset[0] + transfer_size[0] > nds->cartridge_size) {
-		throw TwiceError("arm9 transfer size too large");
+		throw twice_error("arm9 transfer size too large");
 	}
 
 	if (rom_offset[1] >= nds->cartridge_size) {
-		throw TwiceError("arm7 rom offset too large");
+		throw twice_error("arm7 rom offset too large");
 	}
 
 	if (rom_offset[1] + transfer_size[1] > nds->cartridge_size) {
-		throw TwiceError("arm7 transfer size too large");
+		throw twice_error("arm7 transfer size too large");
 	}
 
 	for (u32 i = 0; i < transfer_size[0]; i++) {
@@ -79,7 +79,7 @@ parse_header(NDS *nds, u32 *entry_addr_ret)
 }
 
 void
-nds_direct_boot(NDS *nds)
+nds_direct_boot(nds_ctx *nds)
 {
 	/* give shared wram to arm7 before we do anything else */
 	wramcnt_write(nds, 0x3);
@@ -113,7 +113,7 @@ nds_direct_boot(NDS *nds)
 }
 
 void
-nds_run_frame(NDS *nds)
+nds_run_frame(nds_ctx *nds)
 {
 	nds->frame_finished = false;
 
@@ -125,7 +125,7 @@ nds_run_frame(NDS *nds)
 			nds->arm9->run();
 		}
 
-		run_arm_events(nds, 0);
+		run_cpu_events(nds, 0);
 
 		u64 arm7_target = nds->arm_cycles[0] >> 1;
 		while (nds->arm_cycles[1] < arm7_target) {
@@ -136,7 +136,7 @@ nds_run_frame(NDS *nds)
 				nds->arm7->run();
 			}
 
-			run_arm_events(nds, 1);
+			run_cpu_events(nds, 1);
 			nds->arm7->check_halted();
 
 			if (nds->arm7->interrupt) {
@@ -145,7 +145,7 @@ nds_run_frame(NDS *nds)
 		}
 
 		nds->scheduler.current_time = nds->arm_cycles[0];
-		run_events(nds);
+		run_nds_events(nds);
 
 		nds->arm9->check_halted();
 		nds->arm7->check_halted();
@@ -161,7 +161,7 @@ nds_run_frame(NDS *nds)
 }
 
 static void
-nds_on_vblank(NDS *nds)
+nds_on_vblank(nds_ctx *nds)
 {
 	nds->dispstat[0] |= BIT(0);
 	nds->dispstat[1] |= BIT(0);
@@ -180,7 +180,7 @@ nds_on_vblank(NDS *nds)
 }
 
 void
-event_hblank_start(NDS *nds)
+event_hblank_start(nds_ctx *nds)
 {
 	nds->dispstat[0] |= BIT(1);
 	nds->dispstat[1] |= BIT(1);
@@ -195,7 +195,7 @@ event_hblank_start(NDS *nds)
 
 	dma_on_hblank_start(nds);
 
-	reschedule_event_after(nds, Scheduler::HBLANK_START, 2130);
+	reschedule_nds_event_after(nds, event_scheduler::HBLANK_START, 2130);
 }
 
 static u16
@@ -205,7 +205,7 @@ get_lyc(u16 dispstat)
 }
 
 void
-event_hblank_end(NDS *nds)
+event_hblank_end(nds_ctx *nds)
 {
 	nds->vcount += 1;
 	if (nds->vcount == 263) {
@@ -239,7 +239,7 @@ event_hblank_end(NDS *nds)
 
 	gpu_on_scanline_start(nds);
 
-	reschedule_event_after(nds, Scheduler::HBLANK_END, 2130);
+	reschedule_nds_event_after(nds, event_scheduler::HBLANK_END, 2130);
 }
 
 } // namespace twice

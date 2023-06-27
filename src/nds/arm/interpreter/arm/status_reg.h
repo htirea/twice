@@ -7,7 +7,7 @@ namespace twice {
 
 template <int R>
 void
-arm_mrs(Arm *cpu)
+arm_mrs(arm_cpu *cpu)
 {
 	u32 rd = cpu->opcode >> 12 & 0xF;
 
@@ -20,7 +20,7 @@ arm_mrs(Arm *cpu)
 
 template <int I, int R>
 void
-arm_msr(Arm *cpu)
+arm_msr(arm_cpu *cpu)
 {
 	u32 operand;
 	if (I) {
@@ -51,7 +51,7 @@ arm_msr(Arm *cpu)
 		cpu->on_cpsr_write();
 
 		if (operand & write_mask & BIT(5)) {
-			throw TwiceError("msr changed thumb bit");
+			throw twice_error("msr changed thumb bit");
 		}
 	} else {
 		if (cpu->current_mode_has_spsr()) {

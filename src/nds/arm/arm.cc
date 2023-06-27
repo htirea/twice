@@ -8,7 +8,7 @@
 
 namespace twice {
 
-Arm::Arm(NDS *nds, int cpuid)
+arm_cpu::arm_cpu(nds_ctx *nds, int cpuid)
 	: nds(nds),
 	  cpuid(cpuid),
 	  target_cycles(nds->arm_target_cycles[cpuid]),
@@ -17,7 +17,7 @@ Arm::Arm(NDS *nds, int cpuid)
 }
 
 void
-Arm::run()
+arm_cpu::run()
 {
 	if (halted) {
 		cycles = target_cycles;
@@ -49,11 +49,11 @@ mode_bits_to_mode(u32 bits)
 		return MODE_USR;
 	}
 
-	throw TwiceException("invalid mode bits");
+	throw twice_exception("invalid mode bits");
 }
 
 void
-Arm::swap_registers(u32 old_mode, u32 new_mode)
+arm_cpu::swap_registers(u32 old_mode, u32 new_mode)
 {
 	static_assert((MODE_SYS & 7) == (MODE_USR & 7));
 	old_mode &= 7;
@@ -79,7 +79,7 @@ Arm::swap_registers(u32 old_mode, u32 new_mode)
 }
 
 void
-Arm::switch_mode(u32 new_mode)
+arm_cpu::switch_mode(u32 new_mode)
 {
 	if (new_mode != mode) {
 		swap_registers(mode, new_mode);
@@ -89,7 +89,7 @@ Arm::switch_mode(u32 new_mode)
 }
 
 void
-Arm::on_cpsr_write()
+arm_cpu::on_cpsr_write()
 {
 	u32 new_mode = mode_bits_to_mode(cpsr & 0x1F);
 

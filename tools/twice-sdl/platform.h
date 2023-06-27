@@ -10,9 +10,9 @@
 
 namespace twice {
 
-struct Machine;
+struct nds_machine;
 
-struct FpsCounter {
+struct frame_rate_counter {
 	static constexpr unsigned BUF_SIZE = 64;
 
 	int buffer[BUF_SIZE]{};
@@ -30,17 +30,17 @@ struct FpsCounter {
 	int get_average_fps() { return sum / BUF_SIZE; }
 };
 
-struct Platform {
-	struct SDLError : TwiceException {
-		using TwiceException::TwiceException;
+struct sdl_platform {
+	struct sdl_error : twice_exception {
+		using twice_exception::twice_exception;
 	};
 
-	Platform();
-	~Platform();
+	sdl_platform();
+	~sdl_platform();
 
 	void render(void *fb);
-	void loop(Machine *nds);
-	void handle_events(Machine *nds);
+	void loop(nds_machine *nds);
+	void handle_events(nds_machine *nds);
 	void set_title_fps(int fps);
 	void add_controller(int joystick_index);
 	void remove_controller(SDL_JoystickID id);
@@ -52,7 +52,7 @@ struct Platform {
 
 	bool running{};
 
-	FpsCounter fps_counter;
+	frame_rate_counter fps_counter;
 };
 
 std::string get_data_dir();

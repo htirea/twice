@@ -7,7 +7,7 @@
 namespace twice {
 
 inline u32
-saturated_add(Arm *cpu, u32 a, u32 b)
+saturated_add(arm_cpu *cpu, u32 a, u32 b)
 {
 	u32 r = a + b;
 
@@ -20,7 +20,7 @@ saturated_add(Arm *cpu, u32 a, u32 b)
 }
 
 inline u32
-saturated_sub(Arm *cpu, u32 a, u32 b)
+saturated_sub(arm_cpu *cpu, u32 a, u32 b)
 {
 	u32 r = a - b;
 
@@ -34,7 +34,7 @@ saturated_sub(Arm *cpu, u32 a, u32 b)
 
 template <int OP>
 void
-arm_sat_add_sub(Arm *cpu)
+arm_sat_add_sub(arm_cpu *cpu)
 {
 	if (cpu->is_arm7()) {
 		arm_undefined(cpu);
@@ -68,7 +68,7 @@ arm_sat_add_sub(Arm *cpu)
 }
 
 inline u32
-sticky_add(Arm *cpu, u32 a, u32 b)
+sticky_add(arm_cpu *cpu, u32 a, u32 b)
 {
 	u32 r = a + b;
 
@@ -81,7 +81,7 @@ sticky_add(Arm *cpu, u32 a, u32 b)
 
 template <int OP, int Y, int X>
 void
-arm_dsp_multiply(Arm *cpu)
+arm_dsp_multiply(arm_cpu *cpu)
 {
 	if (cpu->is_arm7()) {
 		return;

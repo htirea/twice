@@ -10,7 +10,7 @@
 
 namespace twice {
 
-enum class NdsButton {
+enum class nds_button {
 	A,
 	B,
 	SELECT,
@@ -26,25 +26,25 @@ enum class NdsButton {
 	NONE,
 };
 
-struct NDS;
+struct nds_ctx;
 
-struct Machine {
-	Machine(Config& config);
-	~Machine();
+struct nds_machine {
+	nds_machine(nds_config& config);
+	~nds_machine();
 
 	void load_cartridge(const std::string& pathname);
 	void direct_boot();
 	void run_frame();
 	void *get_framebuffer();
-	void button_event(NdsButton button, bool down);
+	void button_event(nds_button button, bool down);
 
       private:
-	Config config;
-	FileMap arm7_bios;
-	FileMap arm9_bios;
-	FileMap firmware;
-	FileMap cartridge;
-	std::unique_ptr<NDS> nds;
+	nds_config config;
+	file_map arm7_bios;
+	file_map arm9_bios;
+	file_map firmware;
+	file_map cartridge;
+	std::unique_ptr<nds_ctx> nds;
 };
 
 } // namespace twice

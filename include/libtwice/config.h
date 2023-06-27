@@ -5,7 +5,7 @@
 
 namespace twice {
 
-struct Config {
+struct nds_config {
 	std::string data_dir;
 };
 

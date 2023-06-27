@@ -7,7 +7,7 @@ namespace twice {
 
 template <int OP, int IMM>
 void
-thumb_alu1_2(Arm *cpu)
+thumb_alu1_2(arm_cpu *cpu)
 {
 	u32 rn = cpu->gpr[cpu->opcode >> 3 & 0x7];
 	u32 rd = cpu->opcode & 0x7;
@@ -37,7 +37,7 @@ thumb_alu1_2(Arm *cpu)
 
 template <int OP, int RD>
 void
-thumb_alu3(Arm *cpu)
+thumb_alu3(arm_cpu *cpu)
 {
 	u32 rn = cpu->gpr[RD];
 	u32 imm = cpu->opcode & 0xFF;
@@ -68,7 +68,7 @@ thumb_alu3(Arm *cpu)
 
 template <int OP, int IMM>
 void
-thumb_alu4(Arm *cpu)
+thumb_alu4(arm_cpu *cpu)
 {
 	u32 rm = cpu->gpr[cpu->opcode >> 3 & 0x7];
 	u32 rd = cpu->opcode & 0x7;
@@ -117,7 +117,7 @@ thumb_alu4(Arm *cpu)
 
 template <int OP>
 void
-thumb_alu5(Arm *cpu)
+thumb_alu5(arm_cpu *cpu)
 {
 	enum {
 		AND,
@@ -281,7 +281,7 @@ thumb_alu5(Arm *cpu)
 
 template <int R, int RD>
 void
-thumb_alu6(Arm *cpu)
+thumb_alu6(arm_cpu *cpu)
 {
 	if (R == 0) {
 		cpu->gpr[RD] = (cpu->pc() & ~3) + ((cpu->opcode & 0xFF) << 2);
@@ -292,7 +292,7 @@ thumb_alu6(Arm *cpu)
 
 template <int OP>
 void
-thumb_alu7(Arm *cpu)
+thumb_alu7(arm_cpu *cpu)
 {
 	if (OP == 0) {
 		cpu->gpr[13] += (cpu->opcode & 0x7F) << 2;
@@ -303,7 +303,7 @@ thumb_alu7(Arm *cpu)
 
 template <int OP>
 void
-thumb_alu8(Arm *cpu)
+thumb_alu8(arm_cpu *cpu)
 {
 	bool H1 = cpu->opcode >> 7 & 1;
 	u32 rm = cpu->gpr[cpu->opcode >> 3 & 0xF];

@@ -7,7 +7,7 @@ namespace twice {
 
 template <int B>
 void
-arm_swap(Arm *cpu)
+arm_swap(arm_cpu *cpu)
 {
 	u32 rn = cpu->opcode >> 16 & 0xF;
 	u32 rd = cpu->opcode >> 12 & 0xF;

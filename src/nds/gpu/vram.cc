@@ -5,7 +5,7 @@
 namespace twice {
 
 u8 *
-get_vram_ptr(NDS *nds, int bank, int page)
+get_vram_ptr(nds_ctx *nds, int bank, int page)
 {
 	u8 *base = nds->vram.bank_to_base_ptr[bank];
 	u8 mask = nds->vram.bank_to_page_mask[bank];
@@ -14,7 +14,7 @@ get_vram_ptr(NDS *nds, int bank, int page)
 }
 
 void
-map_lcdc(NDS *nds, u8 *base, int start, int len)
+map_lcdc(nds_ctx *nds, u8 *base, int start, int len)
 {
 	for (int i = start; i < start + len; i++, base += 16_KiB) {
 		nds->vram.lcdc_pt[i] = base;
@@ -22,7 +22,7 @@ map_lcdc(NDS *nds, u8 *base, int start, int len)
 }
 
 void
-unmap_lcdc(NDS *nds, int start, int len)
+unmap_lcdc(nds_ctx *nds, int start, int len)
 {
 	for (int i = start; i < start + len; i++) {
 		nds->vram.lcdc_pt[i] = nullptr;
@@ -30,7 +30,7 @@ unmap_lcdc(NDS *nds, int start, int len)
 }
 
 void
-map_abg(NDS *nds, int bank, u8 *base, int start, int len)
+map_abg(nds_ctx *nds, int bank, u8 *base, int start, int len)
 {
 	for (int i = start; i < start + len; i++, base += 16_KiB) {
 		auto& mask = nds->vram.abg_bank[i];
@@ -46,7 +46,7 @@ map_abg(NDS *nds, int bank, u8 *base, int start, int len)
 }
 
 void
-unmap_abg(NDS *nds, int bank, int start, int len)
+unmap_abg(nds_ctx *nds, int bank, int start, int len)
 {
 	for (int i = start; i < start + len; i++) {
 		auto& mask = nds->vram.abg_bank[i];
@@ -62,7 +62,7 @@ unmap_abg(NDS *nds, int bank, int start, int len)
 }
 
 void
-map_aobj(NDS *nds, int bank, u8 *base, int start, int len)
+map_aobj(nds_ctx *nds, int bank, u8 *base, int start, int len)
 {
 	for (int i = start; i < start + len; i++, base += 16_KiB) {
 		auto& mask = nds->vram.aobj_bank[i];
@@ -78,7 +78,7 @@ map_aobj(NDS *nds, int bank, u8 *base, int start, int len)
 }
 
 void
-unmap_aobj(NDS *nds, int bank, int start, int len)
+unmap_aobj(nds_ctx *nds, int bank, int start, int len)
 {
 	for (int i = start; i < start + len; i++) {
 		auto& mask = nds->vram.aobj_bank[i];
@@ -94,7 +94,7 @@ unmap_aobj(NDS *nds, int bank, int start, int len)
 }
 
 void
-map_bbg(NDS *nds, int bank, u8 *base, int start, int len)
+map_bbg(nds_ctx *nds, int bank, u8 *base, int start, int len)
 {
 	for (int i = start; i < start + len; i += 2, base += 32_KiB) {
 		auto& mask = nds->vram.bbg_bank[i >> 1];
@@ -116,7 +116,7 @@ map_bbg(NDS *nds, int bank, u8 *base, int start, int len)
 }
 
 void
-unmap_bbg(NDS *nds, int bank, int start, int len)
+unmap_bbg(nds_ctx *nds, int bank, int start, int len)
 {
 	for (int i = start; i < start + len; i += 2) {
 		auto& mask = nds->vram.bbg_bank[i >> 1];
@@ -139,7 +139,7 @@ unmap_bbg(NDS *nds, int bank, int start, int len)
 }
 
 void
-map_bobj(NDS *nds, int bank, u8 *base)
+map_bobj(nds_ctx *nds, int bank, u8 *base)
 {
 	auto& mask = nds->vram.bobj_bank;
 
@@ -163,7 +163,7 @@ map_bobj(NDS *nds, int bank, u8 *base)
 }
 
 void
-unmap_bobj(NDS *nds, int bank)
+unmap_bobj(nds_ctx *nds, int bank)
 {
 	auto& mask = nds->vram.bobj_bank;
 	mask &= ~BIT(bank);
@@ -184,7 +184,7 @@ unmap_bobj(NDS *nds, int bank)
 }
 
 void
-map_arm7(NDS *nds, int bank, u8 *base, int i)
+map_arm7(nds_ctx *nds, int bank, u8 *base, int i)
 {
 	auto& mask = nds->vram.arm7_bank[i];
 
@@ -198,7 +198,7 @@ map_arm7(NDS *nds, int bank, u8 *base, int i)
 }
 
 void
-unmap_arm7(NDS *nds, int bank, int i)
+unmap_arm7(nds_ctx *nds, int bank, int i)
 {
 	auto& mask = nds->vram.arm7_bank[i];
 	mask &= ~BIT(bank);
@@ -212,7 +212,7 @@ unmap_arm7(NDS *nds, int bank, int i)
 }
 
 void
-map_abg_palette(NDS *nds, int bank, u8 *base, int start, int len)
+map_abg_palette(nds_ctx *nds, int bank, u8 *base, int start, int len)
 {
 	for (int i = start; i < start + len; i++, base += 16_KiB) {
 		auto& mask = nds->vram.abg_palette_bank[i];
@@ -228,7 +228,7 @@ map_abg_palette(NDS *nds, int bank, u8 *base, int start, int len)
 }
 
 void
-unmap_abg_palette(NDS *nds, int bank, int start, int len)
+unmap_abg_palette(nds_ctx *nds, int bank, int start, int len)
 {
 	for (int i = start; i < start + len; i++) {
 		auto& mask = nds->vram.abg_palette_bank[i];
@@ -245,20 +245,20 @@ unmap_abg_palette(NDS *nds, int bank, int start, int len)
 }
 
 void
-map_bbg_palette(NDS *nds, u8 *base)
+map_bbg_palette(nds_ctx *nds, u8 *base)
 {
 	nds->vram.bbg_palette_pt = base;
 }
 
 void
-unmap_bbg_palette(NDS *nds)
+unmap_bbg_palette(nds_ctx *nds)
 {
 	nds->vram.bbg_palette_pt = nullptr;
 }
 
 template <int bank>
 void
-vramcnt_ab_write(NDS *nds, u8 value)
+vramcnt_ab_write(nds_ctx *nds, u8 value)
 {
 	auto& vram = nds->vram;
 
@@ -285,7 +285,7 @@ vramcnt_ab_write(NDS *nds, u8 value)
 			unmap_aobj(nds, bank, (ofs & 1) << 3, 8);
 			break;
 		case 3:
-			throw TwiceError("unmap vram bank a/b to texture");
+			throw twice_error("unmap vram bank a/b to texture");
 		}
 
 		vram.bank_mapped[bank] = false;
@@ -306,7 +306,7 @@ vramcnt_ab_write(NDS *nds, u8 value)
 			map_aobj(nds, bank, base, (ofs & 1) << 3, 8);
 			break;
 		case 3:
-			throw TwiceError("map vram bank a/b to texture");
+			throw twice_error("map vram bank a/b to texture");
 		}
 
 		vram.bank_mapped[bank] = true;
@@ -317,7 +317,7 @@ vramcnt_ab_write(NDS *nds, u8 value)
 
 template <int bank>
 void
-vramcnt_cd_write(NDS *nds, u8 value)
+vramcnt_cd_write(nds_ctx *nds, u8 value)
 {
 	auto& vram = nds->vram;
 
@@ -344,7 +344,7 @@ vramcnt_cd_write(NDS *nds, u8 value)
 			unmap_arm7(nds, bank, ofs & 1);
 			break;
 		case 3:
-			throw TwiceError("unmap vram bank c/d to texture");
+			throw twice_error("unmap vram bank c/d to texture");
 		case 4:
 			if (bank == VRAM_C) {
 				unmap_bbg(nds, bank, 0, 8);
@@ -375,7 +375,7 @@ vramcnt_cd_write(NDS *nds, u8 value)
 			nds->vramstat |= BIT(bank - VRAM_C);
 			break;
 		case 3:
-			throw TwiceError("map vram bank c/d to texture");
+			throw twice_error("map vram bank c/d to texture");
 		case 4:
 			if (bank == VRAM_C) {
 				map_bbg(nds, bank, base, 0, 8);
@@ -384,7 +384,7 @@ vramcnt_cd_write(NDS *nds, u8 value)
 			}
 			break;
 		default:
-			throw TwiceError("map vram bank c/d invalid mst");
+			throw twice_error("map vram bank c/d invalid mst");
 		}
 
 		vram.bank_mapped[bank] = true;
@@ -394,7 +394,7 @@ vramcnt_cd_write(NDS *nds, u8 value)
 }
 
 void
-vramcnt_e_write(NDS *nds, u8 value)
+vramcnt_e_write(nds_ctx *nds, u8 value)
 {
 	auto& vram = nds->vram;
 
@@ -420,7 +420,7 @@ vramcnt_e_write(NDS *nds, u8 value)
 			unmap_aobj(nds, VRAM_E, 0, 4);
 			break;
 		case 3:
-			throw TwiceError("unmap vram bank e tex pal");
+			throw twice_error("unmap vram bank e tex pal");
 		case 4:
 			unmap_abg_palette(nds, VRAM_E, 0, 2);
 			break;
@@ -443,12 +443,12 @@ vramcnt_e_write(NDS *nds, u8 value)
 			map_aobj(nds, VRAM_E, base, 0, 4);
 			break;
 		case 3:
-			throw TwiceError("map vram bank e tex pal");
+			throw twice_error("map vram bank e tex pal");
 		case 4:
 			map_abg_palette(nds, VRAM_E, base, 0, 2);
 			break;
 		default:
-			throw TwiceError("map vram bank e invalid mst");
+			throw twice_error("map vram bank e invalid mst");
 		}
 
 		vram.bank_mapped[VRAM_E] = true;
@@ -459,7 +459,7 @@ vramcnt_e_write(NDS *nds, u8 value)
 
 template <int bank>
 void
-vramcnt_fg_write(NDS *nds, u8 value)
+vramcnt_fg_write(nds_ctx *nds, u8 value)
 {
 	auto& vram = nds->vram;
 
@@ -489,12 +489,12 @@ vramcnt_fg_write(NDS *nds, u8 value)
 			map_aobj(nds, bank, base, offset | 2, 1);
 			break;
 		case 3:
-			throw TwiceError("unmap vram bank f/g tex pal");
+			throw twice_error("unmap vram bank f/g tex pal");
 		case 4:
 			unmap_abg_palette(nds, bank, ofs & 1, 1);
 			break;
 		case 5:
-			throw TwiceError("unmap vram bank f/g aobj ext pal");
+			throw twice_error("unmap vram bank f/g aobj ext pal");
 		}
 		vram.bank_mapped[bank] = false;
 	}
@@ -517,14 +517,14 @@ vramcnt_fg_write(NDS *nds, u8 value)
 			map_aobj(nds, bank, base, offset | 2, 1);
 			break;
 		case 3:
-			throw TwiceError("map vram bank f/g tex pal");
+			throw twice_error("map vram bank f/g tex pal");
 		case 4:
 			map_abg_palette(nds, bank, base, ofs & 1, 1);
 			break;
 		case 5:
-			throw TwiceError("map vram bank f/g aobj ext pal");
+			throw twice_error("map vram bank f/g aobj ext pal");
 		default:
-			throw TwiceError("map vram bank f/g invalid mst");
+			throw twice_error("map vram bank f/g invalid mst");
 		}
 
 		vram.bank_mapped[bank] = true;
@@ -534,7 +534,7 @@ vramcnt_fg_write(NDS *nds, u8 value)
 }
 
 void
-vramcnt_h_write(NDS *nds, u8 value)
+vramcnt_h_write(nds_ctx *nds, u8 value)
 {
 	auto& vram = nds->vram;
 
@@ -580,7 +580,7 @@ vramcnt_h_write(NDS *nds, u8 value)
 			map_bbg_palette(nds, base);
 			break;
 		default:
-			throw TwiceError("map vram bank h invalid mst");
+			throw twice_error("map vram bank h invalid mst");
 		}
 
 		vram.bank_mapped[VRAM_H] = true;
@@ -590,7 +590,7 @@ vramcnt_h_write(NDS *nds, u8 value)
 }
 
 void
-vramcnt_i_write(NDS *nds, u8 value)
+vramcnt_i_write(nds_ctx *nds, u8 value)
 {
 	auto& vram = nds->vram;
 
@@ -617,7 +617,7 @@ vramcnt_i_write(NDS *nds, u8 value)
 			unmap_bobj(nds, VRAM_I);
 			break;
 		case 3:
-			throw TwiceError("unmap vram bank i bobj ext pal");
+			throw twice_error("unmap vram bank i bobj ext pal");
 		}
 
 		vram.bank_mapped[VRAM_I] = false;
@@ -638,7 +638,7 @@ vramcnt_i_write(NDS *nds, u8 value)
 			map_bobj(nds, VRAM_I, base);
 			break;
 		case 3:
-			throw TwiceError("map vram bank i bobj ext pal");
+			throw twice_error("map vram bank i bobj ext pal");
 		}
 
 		vram.bank_mapped[VRAM_I] = true;
@@ -648,37 +648,37 @@ vramcnt_i_write(NDS *nds, u8 value)
 }
 
 void
-vramcnt_a_write(NDS *nds, u8 value)
+vramcnt_a_write(nds_ctx *nds, u8 value)
 {
 	vramcnt_ab_write<VRAM_A>(nds, value);
 }
 
 void
-vramcnt_b_write(NDS *nds, u8 value)
+vramcnt_b_write(nds_ctx *nds, u8 value)
 {
 	vramcnt_ab_write<VRAM_B>(nds, value);
 }
 
 void
-vramcnt_c_write(NDS *nds, u8 value)
+vramcnt_c_write(nds_ctx *nds, u8 value)
 {
 	vramcnt_cd_write<VRAM_C>(nds, value);
 }
 
 void
-vramcnt_d_write(NDS *nds, u8 value)
+vramcnt_d_write(nds_ctx *nds, u8 value)
 {
 	vramcnt_cd_write<VRAM_D>(nds, value);
 }
 
 void
-vramcnt_f_write(NDS *nds, u8 value)
+vramcnt_f_write(nds_ctx *nds, u8 value)
 {
 	vramcnt_fg_write<VRAM_F>(nds, value);
 }
 
 void
-vramcnt_g_write(NDS *nds, u8 value)
+vramcnt_g_write(nds_ctx *nds, u8 value)
 {
 	vramcnt_fg_write<VRAM_G>(nds, value);
 }

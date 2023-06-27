@@ -7,7 +7,7 @@ namespace twice {
 
 template <int OP, int S, int SHIFT, int MODE>
 void
-arm_alu(Arm *cpu)
+arm_alu(arm_cpu *cpu)
 {
 	u32 operand;
 	bool carry;

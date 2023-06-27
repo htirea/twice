@@ -12,15 +12,15 @@
 namespace twice {
 
 inline bool
-gpu_2d_memory_access_disabled(NDS *nds, u32 addr)
+gpu_2d_memory_access_disabled(nds_ctx *nds, u32 addr)
 {
-	return (!nds->gpu2D[0].enabled && !(addr & 0x400)) ||
-			(!nds->gpu2D[1].enabled && (addr & 0x400));
+	return (!nds->gpu2d[0].enabled && !(addr & 0x400)) ||
+			(!nds->gpu2d[1].enabled && (addr & 0x400));
 }
 
 template <typename T>
 T
-bus9_read(NDS *nds, u32 addr)
+bus9_read(nds_ctx *nds, u32 addr)
 {
 	T value = 0;
 	bool undef = false;
@@ -85,7 +85,7 @@ bus9_read(NDS *nds, u32 addr)
 
 template <typename T>
 void
-bus9_write(NDS *nds, u32 addr, T value)
+bus9_write(nds_ctx *nds, u32 addr, T value)
 {
 	bool undef = false;
 
@@ -138,7 +138,7 @@ bus9_write(NDS *nds, u32 addr, T value)
 
 template <typename T>
 T
-bus7_read(NDS *nds, u32 addr)
+bus7_read(nds_ctx *nds, u32 addr)
 {
 	T value = 0;
 	bool undef = false;
@@ -192,7 +192,7 @@ bus7_read(NDS *nds, u32 addr)
 
 template <typename T>
 void
-bus7_write(NDS *nds, u32 addr, T value)
+bus7_write(nds_ctx *nds, u32 addr, T value)
 {
 	bool undef = false;
 
@@ -237,7 +237,7 @@ bus7_write(NDS *nds, u32 addr, T value)
 
 template <int cpuid, typename T>
 T
-bus_read(NDS *nds, u32 addr)
+bus_read(nds_ctx *nds, u32 addr)
 {
 	if (cpuid == 0) {
 		return bus9_read<T>(nds, addr);
@@ -248,7 +248,7 @@ bus_read(NDS *nds, u32 addr)
 
 template <int cpuid, typename T>
 void
-bus_write(NDS *nds, u32 addr, T value)
+bus_write(nds_ctx *nds, u32 addr, T value)
 {
 	if (cpuid == 0) {
 		bus9_write<T>(nds, addr, value);

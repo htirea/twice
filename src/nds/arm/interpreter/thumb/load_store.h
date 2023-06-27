@@ -7,7 +7,7 @@ namespace twice {
 
 template <int OP, int OFFSET>
 void
-thumb_load_store_imm(Arm *cpu)
+thumb_load_store_imm(arm_cpu *cpu)
 {
 	u32 rn = cpu->opcode >> 3 & 0x7;
 	u32 rd = cpu->opcode & 0x7;
@@ -43,7 +43,7 @@ thumb_load_store_imm(Arm *cpu)
 
 template <int OP, int RM>
 void
-thumb_load_store_reg(Arm *cpu)
+thumb_load_store_reg(arm_cpu *cpu)
 {
 	u32 rn = cpu->opcode >> 3 & 0x7;
 	u32 rd = cpu->opcode & 0x7;
@@ -79,7 +79,7 @@ thumb_load_store_reg(Arm *cpu)
 
 template <int RD>
 void
-thumb_load_pc_relative(Arm *cpu)
+thumb_load_pc_relative(arm_cpu *cpu)
 {
 	u32 addr = (cpu->pc() & ~3) + ((cpu->opcode & 0xFF) << 2);
 	cpu->gpr[RD] = cpu->load32(addr);
@@ -87,7 +87,7 @@ thumb_load_pc_relative(Arm *cpu)
 
 template <int L, int RD>
 void
-thumb_load_store_sp_relative(Arm *cpu)
+thumb_load_store_sp_relative(arm_cpu *cpu)
 {
 	u32 addr = cpu->gpr[13] + ((cpu->opcode & 0xFF) << 2);
 

@@ -6,7 +6,7 @@
 namespace twice {
 
 inline void
-thumb_undefined(Arm *cpu)
+thumb_undefined(arm_cpu *cpu)
 {
 	u32 old_cpsr = cpu->cpsr;
 
@@ -21,7 +21,7 @@ thumb_undefined(Arm *cpu)
 }
 
 inline void
-thumb_swi(Arm *cpu)
+thumb_swi(arm_cpu *cpu)
 {
 	u32 old_cpsr = cpu->cpsr;
 
@@ -36,10 +36,10 @@ thumb_swi(Arm *cpu)
 }
 
 inline void
-thumb_bkpt(Arm *cpu)
+thumb_bkpt(arm_cpu *cpu)
 {
 	(void)cpu;
-	throw TwiceError("thumb bkpt not implemented");
+	throw twice_error("thumb bkpt not implemented");
 }
 
 } // namespace twice

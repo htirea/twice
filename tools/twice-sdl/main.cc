@@ -48,13 +48,13 @@ main(int argc, char **argv)
 		std::cerr << "data dir: " << data_dir << '\n';
 	}
 
-	twice::Config config{ data_dir };
-	twice::Machine nds(config);
+	twice::nds_config config{ data_dir };
+	twice::nds_machine nds(config);
 
 	nds.load_cartridge(cartridge_pathname);
 	nds.direct_boot();
 
-	twice::Platform platform;
+	twice::sdl_platform platform;
 
 	platform.loop(&nds);
 

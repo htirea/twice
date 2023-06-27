@@ -5,15 +5,15 @@
 
 namespace twice {
 
-enum TcmSizes {
+enum {
 	ITCM_SIZE = 32_KiB,
 	ITCM_MASK = 32_KiB - 1,
 	DTCM_SIZE = 16_KiB,
 	DTCM_MASK = 16_KiB - 1,
 };
 
-struct Arm9 final : Arm {
-	Arm9(NDS *nds);
+struct arm9_cpu final : arm_cpu {
+	arm9_cpu(nds_ctx *nds);
 
 	u8 itcm[ITCM_SIZE]{};
 	u8 dtcm[DTCM_SIZE]{};

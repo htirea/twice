@@ -7,12 +7,12 @@
 
 namespace twice {
 
-struct TwiceException : std::runtime_error {
+struct twice_exception : std::runtime_error {
 	using std::runtime_error::runtime_error;
 };
 
-struct TwiceError : TwiceException {
-	using TwiceException::TwiceException;
+struct twice_error : twice_exception {
+	using twice_exception::twice_exception;
 };
 
 } // namespace twice

@@ -19,7 +19,7 @@ namespace twice {
 
 template <typename T>
 T
-vram_read_abg(NDS *nds, u32 offset)
+vram_read_abg(nds_ctx *nds, u32 offset)
 {
 	u32 index = offset >> 14 & 31;
 	u8 *p = nds->vram.abg_pt[index];
@@ -43,7 +43,7 @@ vram_read_abg(NDS *nds, u32 offset)
 
 template <typename T>
 void
-vram_write_abg(NDS *nds, u32 offset, T value)
+vram_write_abg(nds_ctx *nds, u32 offset, T value)
 {
 	u32 index = offset >> 14 & 31;
 	u8 *p = nds->vram.abg_pt[index];
@@ -63,7 +63,7 @@ vram_write_abg(NDS *nds, u32 offset, T value)
 
 template <typename T>
 T
-vram_read_bbg(NDS *nds, u32 offset)
+vram_read_bbg(nds_ctx *nds, u32 offset)
 {
 	u32 index = offset >> 14 & 7;
 	u8 *p = nds->vram.bbg_pt[index];
@@ -83,7 +83,7 @@ vram_read_bbg(NDS *nds, u32 offset)
 
 template <typename T>
 void
-vram_write_bbg(NDS *nds, u32 offset, T value)
+vram_write_bbg(nds_ctx *nds, u32 offset, T value)
 {
 	u32 index = offset >> 14 & 7;
 	u8 *p = nds->vram.bbg_pt[index];
@@ -99,7 +99,7 @@ vram_write_bbg(NDS *nds, u32 offset, T value)
 
 template <typename T>
 T
-vram_read_aobj(NDS *nds, u32 offset)
+vram_read_aobj(nds_ctx *nds, u32 offset)
 {
 	u32 index = offset >> 14 & 15;
 	u8 *p = nds->vram.aobj_pt[index];
@@ -121,7 +121,7 @@ vram_read_aobj(NDS *nds, u32 offset)
 
 template <typename T>
 void
-vram_write_aobj(NDS *nds, u32 offset, T value)
+vram_write_aobj(nds_ctx *nds, u32 offset, T value)
 {
 	u32 index = offset >> 14 & 15;
 	u8 *p = nds->vram.aobj_pt[index];
@@ -139,7 +139,7 @@ vram_write_aobj(NDS *nds, u32 offset, T value)
 
 template <typename T>
 T
-vram_read_bobj(NDS *nds, u32 offset)
+vram_read_bobj(nds_ctx *nds, u32 offset)
 {
 	u32 index = offset >> 14 & 7;
 	u8 *p = nds->vram.bobj_pt[index];
@@ -158,7 +158,7 @@ vram_read_bobj(NDS *nds, u32 offset)
 
 template <typename T>
 void
-vram_write_bobj(NDS *nds, u32 offset, T value)
+vram_write_bobj(nds_ctx *nds, u32 offset, T value)
 {
 	u32 index = offset >> 14 & 7;
 	u8 *p = nds->vram.bobj_pt[index];
@@ -173,7 +173,7 @@ vram_write_bobj(NDS *nds, u32 offset, T value)
 
 template <typename T>
 T
-vram_read_lcdc(NDS *nds, u32 offset)
+vram_read_lcdc(nds_ctx *nds, u32 offset)
 {
 	u32 index = offset >> 14 & 63;
 	u8 *p = nds->vram.lcdc_pt[index];
@@ -186,7 +186,7 @@ vram_read_lcdc(NDS *nds, u32 offset)
 
 template <typename T>
 void
-vram_write_lcdc(NDS *nds, u32 offset, T value)
+vram_write_lcdc(nds_ctx *nds, u32 offset, T value)
 {
 	u32 index = offset >> 14 & 63;
 	u8 *p = nds->vram.lcdc_pt[index];
@@ -197,7 +197,7 @@ vram_write_lcdc(NDS *nds, u32 offset, T value)
 
 template <typename T>
 T
-vram_read_abg_palette(NDS *nds, u32 offset)
+vram_read_abg_palette(nds_ctx *nds, u32 offset)
 {
 	u32 index = offset >> 14 & 1;
 	u8 *p = nds->vram.abg_palette_pt[index];
@@ -217,7 +217,7 @@ vram_read_abg_palette(NDS *nds, u32 offset)
 
 template <typename T>
 void
-vram_write_abg_palette(NDS *nds, u32 offset, T value)
+vram_write_abg_palette(nds_ctx *nds, u32 offset, T value)
 {
 	u32 index = offset >> 14 & 1;
 	u8 *p = nds->vram.abg_palette_pt[index];
@@ -233,7 +233,7 @@ vram_write_abg_palette(NDS *nds, u32 offset, T value)
 
 template <typename T>
 T
-vram_read_bbg_palette(NDS *nds, u32 offset)
+vram_read_bbg_palette(nds_ctx *nds, u32 offset)
 {
 	u8 *p = nds->vram.bbg_palette_pt;
 	if (p) {
@@ -245,7 +245,7 @@ vram_read_bbg_palette(NDS *nds, u32 offset)
 
 template <typename T>
 void
-vram_write_bbg_palette(NDS *nds, u32 offset, T value)
+vram_write_bbg_palette(nds_ctx *nds, u32 offset, T value)
 {
 	u8 *p = nds->vram.bbg_palette_pt;
 	if (p) {
@@ -255,7 +255,7 @@ vram_write_bbg_palette(NDS *nds, u32 offset, T value)
 
 template <typename T>
 T
-vram_read(NDS *nds, u32 addr)
+vram_read(nds_ctx *nds, u32 addr)
 {
 	switch (addr >> 21 & 0x7) {
 	case 0:
@@ -275,7 +275,7 @@ vram_read(NDS *nds, u32 addr)
 
 template <typename T>
 void
-vram_write(NDS *nds, u32 addr, T value)
+vram_write(nds_ctx *nds, u32 addr, T value)
 {
 	switch (addr >> 21 & 0x7) {
 	case 0:
@@ -298,7 +298,7 @@ vram_write(NDS *nds, u32 addr, T value)
 
 template <typename T>
 T
-vram_arm7_read(NDS *nds, u32 offset)
+vram_arm7_read(nds_ctx *nds, u32 offset)
 {
 	u32 index = offset >> 17 & 1;
 	u8 *p = nds->vram.arm7_pt[index];
@@ -316,7 +316,7 @@ vram_arm7_read(NDS *nds, u32 offset)
 
 template <typename T>
 void
-vram_arm7_write(NDS *nds, u32 offset, T value)
+vram_arm7_write(nds_ctx *nds, u32 offset, T value)
 {
 	u32 index = offset >> 17 & 1;
 	u8 *p = nds->vram.arm7_pt[index];

@@ -19,7 +19,7 @@ enum {
 	VRAM_NUM_BANKS,
 };
 
-enum VramSizes : u32 {
+enum : u32 {
 	VRAM_A_SIZE = 128_KiB,
 	VRAM_A_MASK = 128_KiB - 1,
 	VRAM_B_SIZE = 128_KiB,
@@ -40,7 +40,7 @@ enum VramSizes : u32 {
 	VRAM_I_MASK = 16_KiB - 1,
 };
 
-struct GpuVram {
+struct gpu_vram {
 	u8 vram_a[VRAM_A_SIZE]{};
 	u8 vram_b[VRAM_B_SIZE]{};
 	u8 vram_c[VRAM_C_SIZE]{};
@@ -78,7 +78,7 @@ struct GpuVram {
 
 template <typename T, int bank>
 T
-vram_bank_read(GpuVram *vram, u32 offset)
+vram_bank_read(gpu_vram *vram, u32 offset)
 {
 	switch (bank) {
 	case VRAM_A:
@@ -104,7 +104,7 @@ vram_bank_read(GpuVram *vram, u32 offset)
 
 template <typename T, int bank>
 void
-vram_bank_write(GpuVram *vram, u32 offset, T value)
+vram_bank_write(gpu_vram *vram, u32 offset, T value)
 {
 	switch (bank) {
 	case VRAM_A:

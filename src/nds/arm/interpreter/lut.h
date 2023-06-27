@@ -3,13 +3,13 @@
 
 namespace twice {
 
-struct Arm;
+struct arm_cpu;
 
-typedef void (*ArmInstruction)(Arm *cpu);
-typedef void (*ThumbInstruction)(Arm *cpu);
+typedef void (*arm_instruction)(arm_cpu *cpu);
+typedef void (*thumb_instruction)(arm_cpu *cpu);
 
-extern const ArmInstruction arm_inst_lut[4096];
-extern const ThumbInstruction thumb_inst_lut[1024];
+extern const arm_instruction arm_inst_lut[4096];
+extern const thumb_instruction thumb_inst_lut[1024];
 
 } // namespace twice
 

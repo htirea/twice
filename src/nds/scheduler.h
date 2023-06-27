@@ -5,51 +5,51 @@
 
 namespace twice {
 
-struct NDS;
+struct nds_ctx;
 
-typedef void (*event_cb)(NDS *);
-typedef void (*arm_event_cb)(NDS *, int);
+typedef void (*nds_event_cb)(nds_ctx *);
+typedef void (*cpu_event_cb)(nds_ctx *, int);
 
-struct Scheduler {
-	Scheduler();
+struct event_scheduler {
+	event_scheduler();
 
-	enum EventType {
+	enum {
 		HBLANK_START,
 		HBLANK_END,
-		NUM_EVENTS,
+		NUM_NDS_EVENTS,
 	};
 
-	enum ArmEventType {
+	enum {
 		START_IMMEDIATE_DMAS,
-		NUM_ARM_EVENTS,
+		NUM_CPU_EVENTS,
 	};
 
-	struct Event {
+	struct nds_event {
 		bool enabled{};
 		u64 time{};
-		event_cb cb{};
+		nds_event_cb cb{};
 	};
 
-	struct ArmEvent {
+	struct arm_event {
 		bool enabled{};
 		u64 time{};
-		arm_event_cb cb{};
+		cpu_event_cb cb{};
 	};
 
 	u64 current_time{};
 
-	Event events[NUM_EVENTS];
-	ArmEvent arm_events[2][NUM_ARM_EVENTS];
+	nds_event events[NUM_NDS_EVENTS];
+	arm_event arm_events[2][NUM_CPU_EVENTS];
 };
 
-u64 get_next_event_time(NDS *nds);
+u64 get_next_event_time(nds_ctx *nds);
 
-void schedule_event(NDS *nds, int event, u64 t);
-void reschedule_event_after(NDS *nds, int event, u64 dt);
-void schedule_arm_event_after(NDS *nds, int cpuid, int event, u64 dt);
+void schedule_nds_event(nds_ctx *nds, int event, u64 t);
+void reschedule_nds_event_after(nds_ctx *nds, int event, u64 dt);
+void schedule_cpu_event_after(nds_ctx *nds, int cpuid, int event, u64 dt);
 
-void run_events(NDS *nds);
-void run_arm_events(NDS *nds, int cpuid);
+void run_nds_events(nds_ctx *nds);
+void run_cpu_events(nds_ctx *nds, int cpuid);
 
 } // namespace twice
 

@@ -8,7 +8,7 @@ namespace twice {
 
 template <int OP1, int L, int OP2>
 void
-arm_cop_reg(Arm *cpu)
+arm_cop_reg(arm_cpu *cpu)
 {
 	u32 cn = cpu->opcode >> 16 & 0xF;
 	u32 rd = cpu->opcode >> 12 & 0xF;
@@ -22,11 +22,11 @@ arm_cop_reg(Arm *cpu)
 		}
 
 		if (cp_num != 15) {
-			throw TwiceError("arm9 mcr cp_num != 15");
+			throw twice_error("arm9 mcr cp_num != 15");
 		}
 
 		if (OP1 != 0) {
-			throw TwiceError("arm9 mcr op1 != 0");
+			throw twice_error("arm9 mcr op1 != 0");
 		}
 
 		u32 reg = cn << 8 | cm << 4 | OP2;
@@ -34,7 +34,7 @@ arm_cop_reg(Arm *cpu)
 		if (rd == 15) {
 			value += 4;
 		}
-		((Arm9 *)cpu)->cp15_write(reg, value);
+		((arm9_cpu *)cpu)->cp15_write(reg, value);
 	} else {
 		u32 value;
 
@@ -56,16 +56,16 @@ arm_cop_reg(Arm *cpu)
 			}
 
 			if (OP1 != 0) {
-				throw TwiceError("arm9 mrc op1 != 0");
+				throw twice_error("arm9 mrc op1 != 0");
 			}
 
 			if (!cpu->in_privileged_mode()) {
-				throw TwiceError(
+				throw twice_error(
 						"arm9 mrc not in privileged mode");
 			}
 
 			u32 reg = cn << 8 | cm << 4 | OP2;
-			value = ((Arm9 *)cpu)->cp15_read(reg);
+			value = ((arm9_cpu *)cpu)->cp15_read(reg);
 		}
 
 		if (rd == 15) {
@@ -78,38 +78,38 @@ arm_cop_reg(Arm *cpu)
 }
 
 inline void
-arm_cdp(Arm *cpu)
+arm_cdp(arm_cpu *cpu)
 {
 	(void)cpu;
-	throw TwiceError("arm cdp");
+	throw twice_error("arm cdp");
 }
 
 inline void
-arm_ldc(Arm *cpu)
+arm_ldc(arm_cpu *cpu)
 {
 	(void)cpu;
-	throw TwiceError("arm ldc");
+	throw twice_error("arm ldc");
 }
 
 inline void
-arm_stc(Arm *cpu)
+arm_stc(arm_cpu *cpu)
 {
 	(void)cpu;
-	throw TwiceError("arm stc");
+	throw twice_error("arm stc");
 }
 
 inline void
-arm_mcrr(Arm *cpu)
+arm_mcrr(arm_cpu *cpu)
 {
 	(void)cpu;
-	throw TwiceError("arm mcrr");
+	throw twice_error("arm mcrr");
 }
 
 inline void
-arm_mrrc(Arm *cpu)
+arm_mrrc(arm_cpu *cpu)
 {
 	(void)cpu;
-	throw TwiceError("arm mrrc");
+	throw twice_error("arm mrrc");
 }
 
 } // namespace twice

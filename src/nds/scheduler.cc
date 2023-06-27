@@ -2,7 +2,7 @@
 
 namespace twice {
 
-Scheduler::Scheduler()
+event_scheduler::event_scheduler()
 {
 	events[HBLANK_START].cb = event_hblank_start;
 	events[HBLANK_END].cb = event_hblank_end;
@@ -11,19 +11,19 @@ Scheduler::Scheduler()
 }
 
 u64
-get_next_event_time(NDS *nds)
+get_next_event_time(nds_ctx *nds)
 {
 	auto& sc = nds->scheduler;
 
 	u64 time = sc.current_time + 64;
 
-	for (int i = 0; i < Scheduler::NUM_EVENTS; i++) {
+	for (int i = 0; i < event_scheduler::NUM_NDS_EVENTS; i++) {
 		if (sc.events[i].enabled) {
 			time = std::min(time, sc.events[i].time);
 		}
 	}
 
-	for (int i = 0; i < Scheduler::NUM_ARM_EVENTS; i++) {
+	for (int i = 0; i < event_scheduler::NUM_CPU_EVENTS; i++) {
 		if (sc.arm_events[0][i].enabled) {
 			time = std::min(time, sc.arm_events[0][i].time);
 		}
@@ -36,21 +36,21 @@ get_next_event_time(NDS *nds)
 }
 
 void
-schedule_event(NDS *nds, int event, u64 t)
+schedule_nds_event(nds_ctx *nds, int event, u64 t)
 {
 	nds->scheduler.events[event].enabled = true;
 	nds->scheduler.events[event].time = t << 1;
 }
 
 void
-reschedule_event_after(NDS *nds, int event, u64 dt)
+reschedule_nds_event_after(nds_ctx *nds, int event, u64 dt)
 {
 	nds->scheduler.events[event].enabled = true;
 	nds->scheduler.events[event].time += dt << 1;
 }
 
 void
-schedule_arm_event_after(NDS *nds, int cpuid, int event, u64 dt)
+schedule_cpu_event_after(nds_ctx *nds, int cpuid, int event, u64 dt)
 {
 	if (cpuid == 0) {
 		dt <<= 1;
@@ -67,11 +67,11 @@ schedule_arm_event_after(NDS *nds, int cpuid, int event, u64 dt)
 }
 
 void
-run_events(NDS *nds)
+run_nds_events(nds_ctx *nds)
 {
 	auto& sc = nds->scheduler;
 
-	for (int i = 0; i < Scheduler::NUM_EVENTS; i++) {
+	for (int i = 0; i < event_scheduler::NUM_NDS_EVENTS; i++) {
 		auto& event = sc.events[i];
 		bool expired = (s64)(sc.current_time - event.time) >= 0;
 		if (event.enabled && expired) {
@@ -84,11 +84,11 @@ run_events(NDS *nds)
 }
 
 void
-run_arm_events(NDS *nds, int cpuid)
+run_cpu_events(nds_ctx *nds, int cpuid)
 {
 	auto& sc = nds->scheduler;
 
-	for (int i = 0; i < Scheduler::NUM_ARM_EVENTS; i++) {
+	for (int i = 0; i < event_scheduler::NUM_CPU_EVENTS; i++) {
 		auto& event = sc.arm_events[cpuid][i];
 		bool expired = (s64)(nds->arm_cycles[cpuid] - event.time) >= 0;
 		if (event.enabled && expired) {

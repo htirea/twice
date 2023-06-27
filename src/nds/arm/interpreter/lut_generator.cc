@@ -9,7 +9,7 @@ generate_arm_lut(FILE *f)
 	WRITE("#include \"nds/arm/interpreter/arm_inst.h\"\n\n");
 	WRITE("namespace twice {\n\n");
 
-	WRITE("const ArmInstruction arm_inst_lut[4096] = {\n");
+	WRITE("const arm_instruction arm_inst_lut[4096] = {\n");
 
 	for (unsigned int i = 0; i < 4096; i++) {
 		WRITE("\t");
@@ -184,7 +184,7 @@ generate_thumb_lut(FILE *f)
 	WRITE("#include \"nds/arm/interpreter/thumb_inst.h\"\n\n");
 	WRITE("namespace twice {\n\n");
 
-	WRITE("const ThumbInstruction thumb_inst_lut[1024] = {\n");
+	WRITE("const thumb_instruction thumb_inst_lut[1024] = {\n");
 
 	for (unsigned int i = 0; i < 1024; i++) {
 		WRITE("\t");

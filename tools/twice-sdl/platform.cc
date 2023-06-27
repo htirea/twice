@@ -8,36 +8,36 @@
 
 namespace twice {
 
-Platform::Platform()
+sdl_platform::sdl_platform()
 {
 	using namespace twice;
 
 	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER)) {
-		throw SDLError("init failed");
+		throw sdl_error("init failed");
 	}
 
 	window = SDL_CreateWindow("Twice", SDL_WINDOWPOS_UNDEFINED,
 			SDL_WINDOWPOS_UNDEFINED, NDS_FB_W * 2, NDS_FB_H * 2,
 			SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
 	if (!window) {
-		throw SDLError("create window failed");
+		throw sdl_error("create window failed");
 	}
 
 	SDL_SetWindowResizable(window, SDL_TRUE);
 
 	renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 	if (!renderer) {
-		throw SDLError("create renderer failed");
+		throw sdl_error("create renderer failed");
 	}
 
 	if (SDL_RenderSetLogicalSize(renderer, NDS_FB_W, NDS_FB_H)) {
-		throw SDLError("renderer set logical size failed");
+		throw sdl_error("renderer set logical size failed");
 	}
 
 	texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_BGR888,
 			SDL_TEXTUREACCESS_STREAMING, NDS_FB_W, NDS_FB_H);
 	if (!texture) {
-		throw SDLError("create texture failed");
+		throw sdl_error("create texture failed");
 	}
 
 	int num_joysticks = SDL_NumJoysticks();
@@ -48,7 +48,7 @@ Platform::Platform()
 	}
 }
 
-Platform::~Platform()
+sdl_platform::~sdl_platform()
 {
 	while (!controllers.empty()) {
 		SDL_JoystickID id = *controllers.begin();
@@ -76,7 +76,7 @@ get_data_dir()
 }
 
 void
-Platform::render(void *fb)
+sdl_platform::render(void *fb)
 {
 	SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0xFF);
 	SDL_RenderClear(renderer);
@@ -92,7 +92,7 @@ Platform::render(void *fb)
 }
 
 void
-Platform::set_title_fps(int fps)
+sdl_platform::set_title_fps(int fps)
 {
 	std::string title = std::format(
 			"Twice [{} fps | {:.2f} ms]", fps, 1000.0 / fps);
@@ -100,7 +100,7 @@ Platform::set_title_fps(int fps)
 }
 
 void
-Platform::loop(twice::Machine *nds)
+sdl_platform::loop(twice::nds_machine *nds)
 {
 	uint64_t tfreq = SDL_GetPerformanceFrequency();
 	uint64_t tstart = SDL_GetPerformanceCounter();
@@ -127,10 +127,10 @@ Platform::loop(twice::Machine *nds)
 	}
 }
 
-static NdsButton
+static nds_button
 get_nds_button(SDL_Keycode key)
 {
-	using enum twice::NdsButton;
+	using enum twice::nds_button;
 
 	switch (key) {
 	case SDLK_x:
@@ -162,10 +162,10 @@ get_nds_button(SDL_Keycode key)
 	}
 }
 
-static NdsButton
+static nds_button
 controller_button_to_nds(int button)
 {
-	using enum twice::NdsButton;
+	using enum twice::nds_button;
 
 	switch (button) {
 	case SDL_CONTROLLER_BUTTON_B:
@@ -198,7 +198,7 @@ controller_button_to_nds(int button)
 }
 
 void
-Platform::handle_events(twice::Machine *nds)
+sdl_platform::handle_events(twice::nds_machine *nds)
 {
 	SDL_Event e;
 
@@ -238,7 +238,7 @@ Platform::handle_events(twice::Machine *nds)
 }
 
 void
-Platform::add_controller(int joystick_index)
+sdl_platform::add_controller(int joystick_index)
 {
 	SDL_GameController *gc = SDL_GameControllerOpen(joystick_index);
 	if (gc) {
@@ -249,7 +249,7 @@ Platform::add_controller(int joystick_index)
 }
 
 void
-Platform::remove_controller(SDL_JoystickID id)
+sdl_platform::remove_controller(SDL_JoystickID id)
 {
 	controllers.erase(id);
 

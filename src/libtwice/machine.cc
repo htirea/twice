@@ -5,41 +5,41 @@
 
 namespace twice {
 
-Machine::Machine(Config& config)
+nds_machine::nds_machine(nds_config& config)
 	: config(config),
 	  arm7_bios(config.data_dir + "bios7.bin", ARM7_BIOS_SIZE,
-			  FileMap::MAP_EXACT_SIZE),
+			  file_map::MAP_EXACT_SIZE),
 	  arm9_bios(config.data_dir + "bios9.bin", ARM9_BIOS_SIZE,
-			  FileMap::MAP_EXACT_SIZE),
+			  file_map::MAP_EXACT_SIZE),
 	  firmware(config.data_dir + "firmware.bin", FIRMWARE_SIZE,
-			  FileMap::MAP_EXACT_SIZE)
+			  file_map::MAP_EXACT_SIZE)
 {
 }
 
-Machine::~Machine() = default;
+nds_machine::~nds_machine() = default;
 
 void
-Machine::load_cartridge(const std::string& pathname)
+nds_machine::load_cartridge(const std::string& pathname)
 {
-	cartridge = { pathname, MAX_CART_SIZE, FileMap::MAP_MAX_SIZE };
+	cartridge = { pathname, MAX_CART_SIZE, file_map::MAP_MAX_SIZE };
 }
 
 void
-Machine::direct_boot()
+nds_machine::direct_boot()
 {
 	if (!cartridge) {
-		throw TwiceError("cartridge not loaded");
+		throw twice_error("cartridge not loaded");
 	}
 
-	nds = std::make_unique<NDS>(arm7_bios.get_data(), arm9_bios.get_data(),
-			firmware.get_data(), cartridge.get_data(),
-			cartridge.get_size());
+	nds = std::make_unique<nds_ctx>(arm7_bios.get_data(),
+			arm9_bios.get_data(), firmware.get_data(),
+			cartridge.get_data(), cartridge.get_size());
 
 	nds_direct_boot(nds.get());
 }
 
 void
-Machine::run_frame()
+nds_machine::run_frame()
 {
 	if (!nds) {
 		return;
@@ -49,7 +49,7 @@ Machine::run_frame()
 }
 
 void *
-Machine::get_framebuffer()
+nds_machine::get_framebuffer()
 {
 	if (!nds) {
 		return nullptr;
@@ -59,13 +59,13 @@ Machine::get_framebuffer()
 }
 
 void
-Machine::button_event(NdsButton button, bool down)
+nds_machine::button_event(nds_button button, bool down)
 {
 	if (!nds) {
 		return;
 	}
 
-	using enum NdsButton;
+	using enum nds_button;
 
 	if (button == NONE) {
 		return;

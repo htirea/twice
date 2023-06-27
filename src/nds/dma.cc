@@ -7,7 +7,7 @@
 
 namespace twice {
 
-Dma::Dma(NDS *nds, int cpuid)
+dma_controller::dma_controller(nds_ctx *nds, int cpuid)
 	: target_cycles(nds->arm_target_cycles[cpuid]),
 	  cycles(nds->arm_cycles[cpuid])
 {
@@ -15,7 +15,7 @@ Dma::Dma(NDS *nds, int cpuid)
 
 template <int cpuid>
 static void
-run_dma(NDS *nds)
+run_dma(nds_ctx *nds)
 {
 	auto& dma = nds->dma[cpuid];
 	int channel = std::countr_zero(dma.active);
@@ -59,19 +59,19 @@ run_dma(NDS *nds)
 }
 
 void
-run_dma9(NDS *nds)
+run_dma9(nds_ctx *nds)
 {
 	run_dma<0>(nds);
 }
 
 void
-run_dma7(NDS *nds)
+run_dma7(nds_ctx *nds)
 {
 	run_dma<1>(nds);
 }
 
 static void
-set_addr_step_and_width(Dma *dma, int channel, u16 dmacnt)
+set_addr_step_and_width(dma_controller *dma, int channel, u16 dmacnt)
 {
 	auto& t = dma->transfers[channel];
 
@@ -101,7 +101,7 @@ set_addr_step_and_width(Dma *dma, int channel, u16 dmacnt)
 		t.sad_step = 0;
 		break;
 	case 3:
-		throw TwiceError("dma invalid source adr step");
+		throw twice_error("dma invalid source adr step");
 	}
 
 	if (dmacnt & BIT(10)) {
@@ -115,7 +115,7 @@ set_addr_step_and_width(Dma *dma, int channel, u16 dmacnt)
 }
 
 static void
-load_dad(NDS *nds, int cpuid, int channel)
+load_dad(nds_ctx *nds, int cpuid, int channel)
 {
 	auto& dad = nds->dma[cpuid].transfers[channel].dad;
 
@@ -131,7 +131,7 @@ load_dad(NDS *nds, int cpuid, int channel)
 }
 
 static void
-load_dmacnt_l(NDS *nds, int cpuid, int channel)
+load_dmacnt_l(nds_ctx *nds, int cpuid, int channel)
 {
 	auto& word_count = nds->dma[cpuid].transfers[channel].word_count;
 
@@ -159,7 +159,7 @@ load_dmacnt_l(NDS *nds, int cpuid, int channel)
 }
 
 static void
-dma9_dmacnt_h_write(NDS *nds, int channel, u16 value)
+dma9_dmacnt_h_write(nds_ctx *nds, int channel, u16 value)
 {
 	auto& dma = nds->dma[0];
 	auto& dmacnt = nds->dmacnt_h[0][channel];
@@ -179,14 +179,15 @@ dma9_dmacnt_h_write(NDS *nds, int channel, u16 value)
 		switch (t.mode) {
 		case 0:
 			dma.requested_imm_dmas |= BIT(channel);
-			schedule_arm_event_after(nds, 0,
-					Scheduler::START_IMMEDIATE_DMAS, 1);
+			schedule_cpu_event_after(nds, 0,
+					event_scheduler::START_IMMEDIATE_DMAS,
+					1);
 			break;
 		case 1:
 		case 2:
 			break;
 		default:
-			throw TwiceError("arm9 dma mode not implemented");
+			throw twice_error("arm9 dma mode not implemented");
 		}
 
 		t.repeat_reload = false;
@@ -197,7 +198,7 @@ dma9_dmacnt_h_write(NDS *nds, int channel, u16 value)
 }
 
 static void
-dma7_dmacnt_h_write(NDS *nds, int channel, u16 value)
+dma7_dmacnt_h_write(nds_ctx *nds, int channel, u16 value)
 {
 	auto& dma = nds->dma[1];
 	auto& dmacnt = nds->dmacnt_h[1][channel];
@@ -221,15 +222,16 @@ dma7_dmacnt_h_write(NDS *nds, int channel, u16 value)
 		switch (t.mode) {
 		case 0:
 			dma.requested_imm_dmas |= BIT(channel);
-			schedule_arm_event_after(nds, 1,
-					Scheduler::START_IMMEDIATE_DMAS, 2);
+			schedule_cpu_event_after(nds, 1,
+					event_scheduler::START_IMMEDIATE_DMAS,
+					2);
 			break;
 		case 1:
 			break;
 		case 2:
-			throw TwiceError("arm7 dma mode 2 not implemented");
+			throw twice_error("arm7 dma mode 2 not implemented");
 		case 3:
-			throw TwiceError("arm7 dma mode 3 not implemented");
+			throw twice_error("arm7 dma mode 3 not implemented");
 		}
 
 		t.repeat_reload = false;
@@ -240,7 +242,7 @@ dma7_dmacnt_h_write(NDS *nds, int channel, u16 value)
 }
 
 void
-dmacnt_h_write(NDS *nds, int cpuid, int channel, u16 value)
+dmacnt_h_write(nds_ctx *nds, int cpuid, int channel, u16 value)
 {
 	if (cpuid == 0) {
 		dma9_dmacnt_h_write(nds, channel, value);
@@ -250,7 +252,7 @@ dmacnt_h_write(NDS *nds, int cpuid, int channel, u16 value)
 }
 
 static void
-start_transfer(NDS *nds, int cpuid, int channel)
+start_transfer(nds_ctx *nds, int cpuid, int channel)
 {
 	auto& dma = nds->dma[cpuid];
 	auto& t = dma.transfers[channel];
@@ -267,7 +269,7 @@ start_transfer(NDS *nds, int cpuid, int channel)
 }
 
 void
-dma_on_vblank(NDS *nds)
+dma_on_vblank(nds_ctx *nds)
 {
 	for (int channel = 0; channel < 4; channel++) {
 		if (nds->dma[0].transfers[channel].enabled) {
@@ -285,7 +287,7 @@ dma_on_vblank(NDS *nds)
 }
 
 void
-dma_on_hblank_start(NDS *nds)
+dma_on_hblank_start(nds_ctx *nds)
 {
 	if (nds->vcount >= 192) {
 		return;
@@ -301,7 +303,7 @@ dma_on_hblank_start(NDS *nds)
 }
 
 void
-event_start_immediate_dmas(NDS *nds, int cpuid)
+event_start_immediate_dmas(nds_ctx *nds, int cpuid)
 {
 	auto& dma = nds->dma[cpuid];
 

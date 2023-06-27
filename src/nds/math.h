@@ -5,10 +5,10 @@
 
 namespace twice {
 
-struct NDS;
+struct nds_ctx;
 
-void nds_math_sqrt(NDS *nds);
-void nds_math_div(NDS *nds);
+void nds_math_sqrt(nds_ctx *nds);
+void nds_math_div(nds_ctx *nds);
 
 } // namespace twice
 

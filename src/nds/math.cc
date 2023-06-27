@@ -21,7 +21,7 @@ sqrt32(u32 n)
 }
 
 void
-nds_math_sqrt(NDS *nds)
+nds_math_sqrt(nds_ctx *nds)
 {
 	if (nds->sqrtcnt & 1) {
 		u64 n = (u64)nds->sqrt_param[1] << 32 | nds->sqrt_param[0];
@@ -32,7 +32,7 @@ nds_math_sqrt(NDS *nds)
 }
 
 static void
-div32(NDS *nds)
+div32(nds_ctx *nds)
 {
 	s32 numer = nds->div_numer[0];
 	s32 denom = nds->div_denom[0];
@@ -58,7 +58,7 @@ div32(NDS *nds)
 }
 
 static void
-div64(NDS *nds, bool denom_is_64_bits)
+div64(nds_ctx *nds, bool denom_is_64_bits)
 {
 	s64 numer = (u64)nds->div_numer[1] << 32 | nds->div_numer[0];
 	s64 denom;
@@ -89,7 +89,7 @@ div64(NDS *nds, bool denom_is_64_bits)
 }
 
 void
-nds_math_div(NDS *nds)
+nds_math_div(nds_ctx *nds)
 {
 	switch (nds->divcnt & 0x3) {
 	case 0:

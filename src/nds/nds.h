@@ -11,7 +11,7 @@
 
 namespace twice {
 
-enum MemorySizes : u32 {
+enum : u32 {
 	MAIN_RAM_SIZE = 4_MiB,
 	MAIN_RAM_MASK = 4_MiB - 1,
 	SHARED_WRAM_SIZE = 32_KiB,
@@ -30,29 +30,29 @@ enum MemorySizes : u32 {
 	MAX_CART_SIZE = 512_MiB,
 };
 
-struct Arm;
-struct Arm9;
-struct Arm7;
+struct arm_cpu;
+struct arm9_cpu;
+struct arm7_cpu;
 
-struct NDS {
-	NDS(u8 *, u8 *, u8 *, u8 *, size_t);
-	~NDS();
+struct nds_ctx {
+	nds_ctx(u8 *, u8 *, u8 *, u8 *, size_t);
+	~nds_ctx();
 
 	/*
 	 * HW
 	 */
-	Arm *cpu[2]{};
-	std::unique_ptr<Arm9> arm9;
-	std::unique_ptr<Arm7> arm7;
+	arm_cpu *cpu[2]{};
+	std::unique_ptr<arm9_cpu> arm9;
+	std::unique_ptr<arm7_cpu> arm7;
 
-	GpuVram vram;
-	Gpu2D gpu2D[2];
+	gpu_vram vram;
+	gpu_2d_engine gpu2d[2];
 
-	Scheduler scheduler;
+	event_scheduler scheduler;
 	u64 arm_target_cycles[2]{};
 	u64 arm_cycles[2]{};
 
-	Dma dma[2];
+	dma_controller dma[2];
 
 	/*
 	 * Memory
@@ -85,7 +85,7 @@ struct NDS {
 	u16 dispstat[2]{};
 
 	u16 ipcsync[2]{};
-	IpcFifo ipcfifo[2];
+	ipc_fifo ipcfifo[2];
 
 	u16 sqrtcnt{};
 	u32 sqrt_result{};
@@ -119,11 +119,11 @@ struct NDS {
 	bool trace{};
 };
 
-void nds_direct_boot(NDS *nds);
-void nds_run_frame(NDS *nds);
+void nds_direct_boot(nds_ctx *nds);
+void nds_run_frame(nds_ctx *nds);
 
-void event_hblank_start(NDS *nds);
-void event_hblank_end(NDS *nds);
+void event_hblank_start(nds_ctx *nds);
+void event_hblank_end(nds_ctx *nds);
 
 } // namespace twice
 

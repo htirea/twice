@@ -6,7 +6,7 @@
 namespace twice {
 
 inline u8
-io7_read8(NDS *nds, u32 addr)
+io7_read8(nds_ctx *nds, u32 addr)
 {
 	switch (addr) {
 		IO_READ8_COMMON(1);
@@ -24,7 +24,7 @@ io7_read8(NDS *nds, u32 addr)
 }
 
 inline u16
-io7_read16(NDS *nds, u32 addr)
+io7_read16(nds_ctx *nds, u32 addr)
 {
 	switch (addr) {
 		IO_READ16_COMMON(1);
@@ -43,7 +43,7 @@ io7_read16(NDS *nds, u32 addr)
 }
 
 inline u32
-io7_read32(NDS *nds, u32 addr)
+io7_read32(nds_ctx *nds, u32 addr)
 {
 	switch (addr) {
 		IO_READ32_COMMON(1);
@@ -54,7 +54,7 @@ io7_read32(NDS *nds, u32 addr)
 }
 
 inline void
-io7_write8(NDS *nds, u32 addr, u8 value)
+io7_write8(nds_ctx *nds, u32 addr, u8 value)
 {
 	switch (addr) {
 		IO_WRITE8_COMMON(1);
@@ -84,7 +84,7 @@ io7_write8(NDS *nds, u32 addr, u8 value)
 }
 
 inline void
-io7_write16(NDS *nds, u32 addr, u16 value)
+io7_write16(nds_ctx *nds, u32 addr, u16 value)
 {
 	switch (addr) {
 		IO_WRITE16_COMMON(1);
@@ -101,7 +101,7 @@ io7_write16(NDS *nds, u32 addr, u16 value)
 }
 
 inline void
-io7_write32(NDS *nds, u32 addr, u32 value)
+io7_write32(nds_ctx *nds, u32 addr, u32 value)
 {
 	switch (addr) {
 		IO_WRITE32_COMMON(1);

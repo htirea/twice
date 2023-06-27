@@ -4,7 +4,7 @@
 namespace twice {
 
 void
-ipc_fifo_send(NDS *nds, int cpuid, u32 value)
+ipc_fifo_send(nds_ctx *nds, int cpuid, u32 value)
 {
 	auto& src = nds->ipcfifo[cpuid];
 	auto& dest = nds->ipcfifo[cpuid ^ 1];
@@ -36,7 +36,7 @@ ipc_fifo_send(NDS *nds, int cpuid, u32 value)
 }
 
 u32
-ipc_fifo_recv(NDS *nds, int cpuid)
+ipc_fifo_recv(nds_ctx *nds, int cpuid)
 {
 	auto& src = nds->ipcfifo[cpuid ^ 1];
 	auto& dest = nds->ipcfifo[cpuid];
@@ -70,7 +70,7 @@ ipc_fifo_recv(NDS *nds, int cpuid)
 }
 
 void
-ipc_fifo_cnt_write(struct NDS *nds, int cpuid, u16 value)
+ipc_fifo_cnt_write(struct nds_ctx *nds, int cpuid, u16 value)
 {
 	auto& src = nds->ipcfifo[cpuid];
 	auto& dest = nds->ipcfifo[cpuid ^ 1];
