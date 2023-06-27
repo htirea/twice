@@ -49,7 +49,7 @@ mode_bits_to_mode(u32 bits)
 		return MODE_USR;
 	}
 
-	throw twice_exception("invalid mode bits");
+	throw twice_error("invalid mode bits");
 }
 
 void
