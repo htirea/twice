@@ -45,7 +45,7 @@ file_map::file_map(const std::string& pathname, std::size_t limit, int mode)
 }
 
 void
-file_map::destroy()
+file_map::destroy() noexcept
 {
 	if (data) {
 		munmap(data, size);

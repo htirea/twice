@@ -16,7 +16,7 @@ struct file_map {
 	static constexpr int MAP_EXACT_SIZE = 0x1;
 	static constexpr int MAP_MAX_SIZE = 0x2;
 
-	file_map() = default;
+	file_map() noexcept = default;
 	file_map(const std::string& pathname, std::size_t limit, int mode);
 
 	~file_map() { destroy(); }
@@ -24,7 +24,7 @@ struct file_map {
 	file_map(const file_map& other) = delete;
 	file_map& operator=(const file_map& other) = delete;
 
-	file_map(file_map&& other)
+	file_map(file_map&& other) noexcept
 	{
 		data = other.data;
 		size = other.size;
@@ -32,7 +32,7 @@ struct file_map {
 		other.size = 0;
 	}
 
-	file_map& operator=(file_map&& other)
+	file_map& operator=(file_map&& other) noexcept
 	{
 		if (this != &other) {
 			destroy();
@@ -46,17 +46,17 @@ struct file_map {
 		return *this;
 	}
 
-	explicit operator bool() { return data; }
+	explicit operator bool() noexcept { return data; }
 
-	unsigned char *get_data() { return data; }
+	unsigned char *get_data() noexcept { return data; }
 
-	size_t get_size() { return size; }
+	size_t get_size() noexcept { return size; }
 
       private:
 	unsigned char *data{};
 	std::size_t size{};
 
-	void destroy();
+	void destroy() noexcept;
 };
 
 } // namespace twice

@@ -29,7 +29,7 @@ enum class nds_button {
 struct nds_ctx;
 
 struct nds_machine {
-	nds_machine(nds_config& config);
+	nds_machine(const nds_config& config);
 	~nds_machine();
 
 	void load_cartridge(const std::string& pathname);

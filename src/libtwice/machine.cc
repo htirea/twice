@@ -5,7 +5,7 @@
 
 namespace twice {
 
-nds_machine::nds_machine(nds_config& config)
+nds_machine::nds_machine(const nds_config& config)
 	: config(config),
 	  arm7_bios(config.data_dir + "bios7.bin", ARM7_BIOS_SIZE,
 			  file_map::MAP_EXACT_SIZE),
@@ -21,7 +21,7 @@ nds_machine::~nds_machine() = default;
 void
 nds_machine::load_cartridge(const std::string& pathname)
 {
-	cartridge = { pathname, MAX_CART_SIZE, file_map::MAP_MAX_SIZE };
+	cartridge = file_map(pathname, MAX_CART_SIZE, file_map::MAP_MAX_SIZE);
 }
 
 void
@@ -31,11 +31,11 @@ nds_machine::direct_boot()
 		throw twice_error("cartridge not loaded");
 	}
 
-	nds = std::make_unique<nds_ctx>(arm7_bios.get_data(),
+	auto ctx = std::make_unique<nds_ctx>(arm7_bios.get_data(),
 			arm9_bios.get_data(), firmware.get_data(),
 			cartridge.get_data(), cartridge.get_size());
-
-	nds_direct_boot(nds.get());
+	nds_direct_boot(ctx.get());
+	nds = std::move(ctx);
 }
 
 void
