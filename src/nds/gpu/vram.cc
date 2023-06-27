@@ -4,7 +4,7 @@
 
 namespace twice {
 
-u8 *
+static u8 *
 get_vram_ptr(nds_ctx *nds, int bank, int page)
 {
 	u8 *base = nds->vram.bank_to_base_ptr[bank];
@@ -13,7 +13,7 @@ get_vram_ptr(nds_ctx *nds, int bank, int page)
 	return base + (page & mask) * 16_KiB;
 }
 
-void
+static void
 map_lcdc(nds_ctx *nds, u8 *base, int start, int len)
 {
 	for (int i = start; i < start + len; i++, base += 16_KiB) {
@@ -21,7 +21,7 @@ map_lcdc(nds_ctx *nds, u8 *base, int start, int len)
 	}
 }
 
-void
+static void
 unmap_lcdc(nds_ctx *nds, int start, int len)
 {
 	for (int i = start; i < start + len; i++) {
@@ -29,7 +29,7 @@ unmap_lcdc(nds_ctx *nds, int start, int len)
 	}
 }
 
-void
+static void
 map_abg(nds_ctx *nds, int bank, u8 *base, int start, int len)
 {
 	for (int i = start; i < start + len; i++, base += 16_KiB) {
@@ -45,7 +45,7 @@ map_abg(nds_ctx *nds, int bank, u8 *base, int start, int len)
 	}
 }
 
-void
+static void
 unmap_abg(nds_ctx *nds, int bank, int start, int len)
 {
 	for (int i = start; i < start + len; i++) {
@@ -61,7 +61,7 @@ unmap_abg(nds_ctx *nds, int bank, int start, int len)
 	}
 }
 
-void
+static void
 map_aobj(nds_ctx *nds, int bank, u8 *base, int start, int len)
 {
 	for (int i = start; i < start + len; i++, base += 16_KiB) {
@@ -77,7 +77,7 @@ map_aobj(nds_ctx *nds, int bank, u8 *base, int start, int len)
 	}
 }
 
-void
+static void
 unmap_aobj(nds_ctx *nds, int bank, int start, int len)
 {
 	for (int i = start; i < start + len; i++) {
@@ -93,7 +93,7 @@ unmap_aobj(nds_ctx *nds, int bank, int start, int len)
 	}
 }
 
-void
+static void
 map_bbg(nds_ctx *nds, int bank, u8 *base, int start, int len)
 {
 	for (int i = start; i < start + len; i += 2, base += 32_KiB) {
@@ -115,7 +115,7 @@ map_bbg(nds_ctx *nds, int bank, u8 *base, int start, int len)
 	}
 }
 
-void
+static void
 unmap_bbg(nds_ctx *nds, int bank, int start, int len)
 {
 	for (int i = start; i < start + len; i += 2) {
@@ -138,7 +138,7 @@ unmap_bbg(nds_ctx *nds, int bank, int start, int len)
 	}
 }
 
-void
+static void
 map_bobj(nds_ctx *nds, int bank, u8 *base)
 {
 	auto& mask = nds->vram.bobj_bank;
@@ -162,7 +162,7 @@ map_bobj(nds_ctx *nds, int bank, u8 *base)
 	mask |= BIT(bank);
 }
 
-void
+static void
 unmap_bobj(nds_ctx *nds, int bank)
 {
 	auto& mask = nds->vram.bobj_bank;
@@ -183,7 +183,7 @@ unmap_bobj(nds_ctx *nds, int bank)
 	}
 }
 
-void
+static void
 map_arm7(nds_ctx *nds, int bank, u8 *base, int i)
 {
 	auto& mask = nds->vram.arm7_bank[i];
@@ -197,7 +197,7 @@ map_arm7(nds_ctx *nds, int bank, u8 *base, int i)
 	mask |= BIT(bank);
 }
 
-void
+static void
 unmap_arm7(nds_ctx *nds, int bank, int i)
 {
 	auto& mask = nds->vram.arm7_bank[i];
@@ -211,7 +211,7 @@ unmap_arm7(nds_ctx *nds, int bank, int i)
 	}
 }
 
-void
+static void
 map_abg_palette(nds_ctx *nds, int bank, u8 *base, int start, int len)
 {
 	for (int i = start; i < start + len; i++, base += 16_KiB) {
@@ -227,7 +227,7 @@ map_abg_palette(nds_ctx *nds, int bank, u8 *base, int start, int len)
 	}
 }
 
-void
+static void
 unmap_abg_palette(nds_ctx *nds, int bank, int start, int len)
 {
 	for (int i = start; i < start + len; i++) {
@@ -244,20 +244,20 @@ unmap_abg_palette(nds_ctx *nds, int bank, int start, int len)
 	}
 }
 
-void
+static void
 map_bbg_palette(nds_ctx *nds, u8 *base)
 {
 	nds->vram.bbg_palette_pt = base;
 }
 
-void
+static void
 unmap_bbg_palette(nds_ctx *nds)
 {
 	nds->vram.bbg_palette_pt = nullptr;
 }
 
 template <int bank>
-void
+static void
 vramcnt_ab_write(nds_ctx *nds, u8 value)
 {
 	auto& vram = nds->vram;
@@ -316,7 +316,7 @@ vramcnt_ab_write(nds_ctx *nds, u8 value)
 }
 
 template <int bank>
-void
+static void
 vramcnt_cd_write(nds_ctx *nds, u8 value)
 {
 	auto& vram = nds->vram;
@@ -458,7 +458,7 @@ vramcnt_e_write(nds_ctx *nds, u8 value)
 }
 
 template <int bank>
-void
+static void
 vramcnt_fg_write(nds_ctx *nds, u8 value)
 {
 	auto& vram = nds->vram;
