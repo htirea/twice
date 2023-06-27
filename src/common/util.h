@@ -3,6 +3,8 @@
 
 #include "common/types.h"
 
+namespace twice {
+
 template <typename T>
 T
 readarr(u8 *arr, u32 offset)
@@ -43,5 +45,7 @@ SEXT(u32 x)
 
 	return (s32)(x << (32 - n)) >> (32 - n);
 }
+
+} // namespace twice
 
 #endif
