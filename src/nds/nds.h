@@ -35,7 +35,8 @@ struct arm9_cpu;
 struct arm7_cpu;
 
 struct nds_ctx {
-	nds_ctx(u8 *, u8 *, u8 *, u8 *, size_t);
+	nds_ctx(u8 *arm7_bios, u8 *arm9_bios, u8 *firmware, u8 *cartridge,
+			size_t cartridge_size);
 	~nds_ctx();
 
 	/*
