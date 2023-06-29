@@ -3,38 +3,6 @@
 
 namespace twice {
 
-void
-ipc_fifo_send(nds_ctx *nds, int cpuid, u32 value)
-{
-	auto& src = nds->ipcfifo[cpuid];
-	auto& dest = nds->ipcfifo[cpuid ^ 1];
-
-	if (!(src.cnt & BIT(15))) {
-		return;
-	}
-
-	if (dest.size >= 16) {
-		src.cnt |= BIT(14);
-		return;
-	}
-
-	dest.fifo[dest.write++ & 0xF] = value;
-	dest.size++;
-
-	if (dest.size == 16) {
-		src.cnt |= BIT(1);
-		dest.cnt |= BIT(9);
-	}
-
-	if (dest.size == 1) {
-		src.cnt &= ~BIT(0);
-		dest.cnt &= ~BIT(8);
-		if (dest.cnt & BIT(10)) {
-			nds->cpu[cpuid ^ 1]->request_interrupt(18);
-		}
-	}
-}
-
 u32
 ipc_fifo_recv(nds_ctx *nds, int cpuid)
 {
@@ -67,6 +35,38 @@ ipc_fifo_recv(nds_ctx *nds, int cpuid)
 	}
 
 	return ret;
+}
+
+void
+ipc_fifo_send(nds_ctx *nds, int cpuid, u32 value)
+{
+	auto& src = nds->ipcfifo[cpuid];
+	auto& dest = nds->ipcfifo[cpuid ^ 1];
+
+	if (!(src.cnt & BIT(15))) {
+		return;
+	}
+
+	if (dest.size >= 16) {
+		src.cnt |= BIT(14);
+		return;
+	}
+
+	dest.fifo[dest.write++ & 0xF] = value;
+	dest.size++;
+
+	if (dest.size == 16) {
+		src.cnt |= BIT(1);
+		dest.cnt |= BIT(9);
+	}
+
+	if (dest.size == 1) {
+		src.cnt &= ~BIT(0);
+		dest.cnt &= ~BIT(8);
+		if (dest.cnt & BIT(10)) {
+			nds->cpu[cpuid ^ 1]->request_interrupt(18);
+		}
+	}
 }
 
 void

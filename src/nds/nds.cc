@@ -160,25 +160,6 @@ nds_run_frame(nds_ctx *nds)
 	}
 }
 
-static void
-nds_on_vblank(nds_ctx *nds)
-{
-	nds->dispstat[0] |= BIT(0);
-	nds->dispstat[1] |= BIT(0);
-
-	if (nds->dispstat[0] & BIT(3)) {
-		nds->cpu[0]->request_interrupt(0);
-	}
-
-	if (nds->dispstat[1] & BIT(3)) {
-		nds->cpu[1]->request_interrupt(0);
-	}
-
-	dma_on_vblank(nds);
-
-	nds->frame_finished = true;
-}
-
 void
 event_hblank_start(nds_ctx *nds)
 {
@@ -202,6 +183,25 @@ static u16
 get_lyc(u16 dispstat)
 {
 	return (dispstat & BIT(7)) << 1 | dispstat >> 8;
+}
+
+static void
+nds_on_vblank(nds_ctx *nds)
+{
+	nds->dispstat[0] |= BIT(0);
+	nds->dispstat[1] |= BIT(0);
+
+	if (nds->dispstat[0] & BIT(3)) {
+		nds->cpu[0]->request_interrupt(0);
+	}
+
+	if (nds->dispstat[1] & BIT(3)) {
+		nds->cpu[1]->request_interrupt(0);
+	}
+
+	dma_on_vblank(nds);
+
+	nds->frame_finished = true;
 }
 
 void
