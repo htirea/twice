@@ -239,8 +239,9 @@ void
 gpu_on_scanline_start(nds_ctx *nds)
 {
 	if (nds->vcount < 192) {
-		reload_bg_ref_xy(&nds->gpu2d[0], nds->vcount == 0);
-		reload_bg_ref_xy(&nds->gpu2d[1], nds->vcount == 0);
+		bool force_reload = nds->vcount == 0;
+		reload_bg_ref_xy(&nds->gpu2d[0], force_reload);
+		reload_bg_ref_xy(&nds->gpu2d[1], force_reload);
 
 		draw_scanline(&nds->gpu2d[0], nds->vcount);
 		draw_scanline(&nds->gpu2d[1], nds->vcount);
@@ -387,9 +388,8 @@ static const u32 bitmap_bg_heights[] = { 128, 256, 256, 512 };
 
 template <typename T>
 static T
-read_bg_data(gpu_2d_engine *gpu, u32 base, u32 w, u32 x, u32 y)
+read_bg_data(gpu_2d_engine *gpu, u32 offset)
 {
-	u32 offset = base + sizeof(T) * w * y + sizeof(T) * x;
 	if (gpu->engineid == 0) {
 		return vram_read_abg<T>(gpu->nds, offset);
 	} else {
@@ -397,22 +397,12 @@ read_bg_data(gpu_2d_engine *gpu, u32 base, u32 w, u32 x, u32 y)
 	}
 }
 
-static u16
-get_screen_entry(gpu_2d_engine *gpu, u32 screen, u32 base, u32 x, u32 y)
+template <typename T>
+static T
+read_bg_data(gpu_2d_engine *gpu, u32 base, u32 w, u32 x, u32 y)
 {
-	return read_bg_data<u16>(gpu, base + 0x800 * screen, 32, x, y);
-}
-
-static u64
-get_char_row_256(gpu_2d_engine *gpu, u32 base, u32 char_name, u32 y)
-{
-	return read_bg_data<u64>(gpu, base + 64 * char_name, 1, 0, y);
-}
-
-static u32
-get_char_row_16(gpu_2d_engine *gpu, u32 base, u32 char_name, u32 y)
-{
-	return read_bg_data<u32>(gpu, base + 32 * char_name, 1, 0, y);
+	u32 offset = base + sizeof(T) * w * y + sizeof(T) * x;
+	return read_bg_data<T>(gpu, offset);
 }
 
 static u64
@@ -429,12 +419,14 @@ fetch_char_row(gpu_2d_engine *gpu, u16 se, u32 char_base, u32 bg_y,
 	}
 
 	if (color_256) {
-		char_row = get_char_row_256(gpu, char_base, char_name, py);
+		char_row = read_bg_data<u64>(
+				gpu, char_base + 64 * char_name + 8 * py);
 		if (se & BIT(10)) {
 			char_row = __builtin_bswap64(char_row);
 		}
 	} else {
-		char_row = get_char_row_16(gpu, char_base, char_name, py);
+		char_row = read_bg_data<u32>(
+				gpu, char_base + 32 * char_name + 4 * py);
 		if (se & BIT(10)) {
 			char_row = __builtin_bswap32(char_row);
 		}
@@ -489,8 +481,9 @@ render_text_bg(gpu_2d_engine *gpu, int bg)
 
 	for (u32 i = 0; i < 256;) {
 		if (px == 0 || i == 0) {
-			u16 se = get_screen_entry(
-					gpu, screen, screen_base, se_x, se_y);
+			u32 se_offset = screen_base + 0x800 * screen +
+					64 * se_y + 2 * se_x;
+			u16 se = read_bg_data<u16>(gpu, se_offset);
 			char_row = fetch_char_row(
 					gpu, se, char_base, bg_y, color_256);
 
@@ -546,18 +539,6 @@ render_text_bg(gpu_2d_engine *gpu, int bg)
 	}
 }
 
-static u8
-get_screen_entry_affine(gpu_2d_engine *gpu, u32 base, u32 bg_w, u32 x, u32 y)
-{
-	return read_bg_data<u8>(gpu, base, bg_w / 8, x, y);
-}
-
-static u8
-get_color_num_256(gpu_2d_engine *gpu, u32 base, u32 char_name, u32 x, u32 y)
-{
-	return read_bg_data<u8>(gpu, base + 64 * char_name, 8, x, y);
-}
-
 static void
 render_affine_bg(gpu_2d_engine *gpu, int bg)
 {
@@ -603,23 +584,17 @@ render_affine_bg(gpu_2d_engine *gpu, int bg)
 		int px = bg_x % 8;
 		int py = bg_y % 8;
 
-		u8 se = get_screen_entry_affine(
-				gpu, screen_base, bg_w, se_x, se_y);
+		u32 se_offset = screen_base + bg_w / 8 * se_y + se_x;
+		u8 se = read_bg_data<u8>(gpu, se_offset);
 		/* char_name = se */
-		u8 color_num = get_color_num_256(gpu, char_base, se, px, py);
+		u8 color_num = read_bg_data<u8>(
+				gpu, char_base + 64 * se + 8 * py + px);
 
 		if (color_num != 0) {
 			u16 color = get_palette_color_256(gpu, color_num);
 			draw_bg_pixel(gpu, i, color, bg_priority);
 		}
 	}
-}
-
-static u16
-get_screen_entry_extended_text(
-		gpu_2d_engine *gpu, u32 base, u32 bg_w, u32 x, u32 y)
-{
-	return read_bg_data<u16>(gpu, base, bg_w / 8, x, y);
 }
 
 static void
@@ -673,8 +648,9 @@ render_extended_text_bg(gpu_2d_engine *gpu, int bg)
 		int px = bg_x % 8;
 		int py = bg_y % 8;
 
-		u16 se = get_screen_entry_extended_text(
-				gpu, screen_base, bg_w, se_x, se_y);
+		u32 se_offset = screen_base + bg_w / 8 * 2 * se_y + 2 * se_x;
+		u16 se = read_bg_data<u16>(gpu, se_offset);
+
 		if (se & BIT(11)) {
 			py = 7 - py;
 		}
@@ -683,8 +659,8 @@ render_extended_text_bg(gpu_2d_engine *gpu, int bg)
 		}
 
 		u16 char_name = se & 0x3FF;
-		u8 color_num = get_color_num_256(
-				gpu, char_base, char_name, px, py);
+		u8 color_num = read_bg_data<u8>(
+				gpu, char_base + 64 * char_name + 8 * py + px);
 
 		if (color_num != 0) {
 			u16 color;
@@ -755,7 +731,8 @@ render_extended_bg(gpu_2d_engine *gpu, int bg)
 	if (!(gpu->bg_cnt[bg] & BIT(7))) {
 		render_extended_text_bg(gpu, bg);
 	} else {
-		render_extended_bitmap_bg(gpu, bg, gpu->bg_cnt[bg] & BIT(2));
+		bool direct_color = gpu->bg_cnt[bg] & BIT(2);
+		render_extended_bitmap_bg(gpu, bg, direct_color);
 	}
 }
 
