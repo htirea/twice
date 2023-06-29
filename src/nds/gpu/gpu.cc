@@ -1,80 +1,12 @@
 #include "nds/nds.h"
 
 #include "nds/arm/arm.h"
+#include "nds/gpu/color.h"
 #include "nds/mem/vram.h"
 
 #include "libtwice/exception.h"
 
 namespace twice {
-
-static const u32 text_bg_widths[] = { 256, 512, 256, 512 };
-static const u32 text_bg_heights[] = { 256, 256, 512, 512 };
-static const u32 bitmap_bg_widths[] = { 128, 256, 512, 512 };
-static const u32 bitmap_bg_heights[] = { 128, 256, 256, 512 };
-
-u32
-bgr555_to_bgr888(u16 color)
-{
-	u8 r = color & 0x1F;
-	u8 g = color >> 5 & 0x1F;
-	u8 b = color >> 10 & 0x1F;
-
-	r = (r * 527 + 23) >> 6;
-	g = (g * 527 + 23) >> 6;
-	b = (b * 527 + 23) >> 6;
-
-	return b << 16 | g << 8 | r;
-}
-
-void
-fb_fill_white(u32 *fb, u16 scanline)
-{
-	u32 start = scanline * 256;
-	u32 end = start + 256;
-
-	for (u32 i = start; i < end; i++) {
-		fb[i] = 0xFFFFFFFF;
-	}
-}
-
-static void
-reload_bg_ref_xy(gpu_2d_engine *gpu, bool force_reload)
-{
-	for (int i = 0; i < 2; i++) {
-		if (gpu->bg_ref_x_reload[i] || force_reload) {
-			gpu->bg_ref_x[i] = SEXT<28>(gpu->bg_ref_x_latch[i]);
-			gpu->bg_ref_x_reload[i] = false;
-		}
-		if (gpu->bg_ref_y_reload[i] || force_reload) {
-			gpu->bg_ref_y[i] = SEXT<28>(gpu->bg_ref_y_latch[i]);
-			gpu->bg_ref_y_reload[i] = false;
-		}
-	}
-}
-
-static void
-increment_bg_ref_xy(gpu_2d_engine *gpu)
-{
-	for (int i = 0; i < 2; i++) {
-		gpu->bg_ref_x[i] += (s16)gpu->bg_pb[i];
-		gpu->bg_ref_y[i] += (s16)gpu->bg_pd[i];
-	}
-}
-
-void
-gpu_on_scanline_start(nds_ctx *nds)
-{
-	if (nds->vcount < 192) {
-		reload_bg_ref_xy(&nds->gpu2d[0], nds->vcount == 0);
-		reload_bg_ref_xy(&nds->gpu2d[1], nds->vcount == 0);
-
-		nds->gpu2d[0].draw_scanline(nds->vcount);
-		nds->gpu2d[1].draw_scanline(nds->vcount);
-
-		increment_bg_ref_xy(&nds->gpu2d[0]);
-		increment_bg_ref_xy(&nds->gpu2d[1]);
-	}
-}
 
 gpu_2d_engine::gpu_2d_engine(nds_ctx *nds, int engineid)
 	: nds(nds),
@@ -261,24 +193,92 @@ gpu_2d_engine::write16(u8 offset, u16 value)
 	fprintf(stderr, "2d engine write 16 to offset %02X\n", offset);
 }
 
-void
-gpu_2d_engine::draw_scanline(u16 scanline)
+static void draw_scanline(gpu_2d_engine *gpu, u16 scanline);
+static void graphics_display_scanline(gpu_2d_engine *gpu);
+static void vram_display_scanline(gpu_2d_engine *gpu);
+static void render_sprites(gpu_2d_engine *gpu);
+static void render_text_bg(gpu_2d_engine *gpu, int bg);
+static void render_affine_bg(gpu_2d_engine *gpu, int bg);
+static void render_extended_bg(gpu_2d_engine *gpu, int bg);
+static void render_large_bitmap_bg(gpu_2d_engine *gpu);
+static void render_3d(gpu_2d_engine *gpu);
+
+static void draw_bg_pixel(
+		gpu_2d_engine *gpu, u32 fb_x, u16 color, u8 priority);
+static u16 get_palette_color_256(gpu_2d_engine *gpu, u32 color_num);
+static u16 get_palette_color_256_extended(
+		gpu_2d_engine *gpu, u32 slot, u32 palette_num, u32 color_num);
+static u16 get_palette_color_16(
+		gpu_2d_engine *gpu, u32 palette_num, u32 color_num);
+
+static void
+reload_bg_ref_xy(gpu_2d_engine *gpu, bool force_reload)
 {
-	if (!enabled) {
-		fb_fill_white(fb, scanline);
+	for (int i = 0; i < 2; i++) {
+		if (gpu->bg_ref_x_reload[i] || force_reload) {
+			gpu->bg_ref_x[i] = SEXT<28>(gpu->bg_ref_x_latch[i]);
+			gpu->bg_ref_x_reload[i] = false;
+		}
+		if (gpu->bg_ref_y_reload[i] || force_reload) {
+			gpu->bg_ref_y[i] = SEXT<28>(gpu->bg_ref_y_latch[i]);
+			gpu->bg_ref_y_reload[i] = false;
+		}
+	}
+}
+
+static void
+increment_bg_ref_xy(gpu_2d_engine *gpu)
+{
+	for (int i = 0; i < 2; i++) {
+		gpu->bg_ref_x[i] += (s16)gpu->bg_pb[i];
+		gpu->bg_ref_y[i] += (s16)gpu->bg_pd[i];
+	}
+}
+
+void
+gpu_on_scanline_start(nds_ctx *nds)
+{
+	if (nds->vcount < 192) {
+		reload_bg_ref_xy(&nds->gpu2d[0], nds->vcount == 0);
+		reload_bg_ref_xy(&nds->gpu2d[1], nds->vcount == 0);
+
+		draw_scanline(&nds->gpu2d[0], nds->vcount);
+		draw_scanline(&nds->gpu2d[1], nds->vcount);
+
+		increment_bg_ref_xy(&nds->gpu2d[0]);
+		increment_bg_ref_xy(&nds->gpu2d[1]);
+	}
+}
+
+static void
+fb_fill_white(u32 *fb, u16 scanline)
+{
+	u32 start = scanline * 256;
+	u32 end = start + 256;
+
+	for (u32 i = start; i < end; i++) {
+		fb[i] = 0xFFFFFFFF;
+	}
+}
+
+static void
+draw_scanline(gpu_2d_engine *gpu, u16 scanline)
+{
+	if (!gpu->enabled) {
+		fb_fill_white(gpu->fb, scanline);
 		return;
 	}
 
-	switch (dispcnt >> 16 & 0x3) {
+	switch (gpu->dispcnt >> 16 & 0x3) {
 	case 0:
-		fb_fill_white(fb, scanline);
+		fb_fill_white(gpu->fb, scanline);
 		break;
 	case 1:
-		graphics_display_scanline();
+		graphics_display_scanline(gpu);
 		break;
 	case 2:
-		if (engineid == 0) {
-			vram_display_scanline();
+		if (gpu->engineid == 0) {
+			vram_display_scanline(gpu);
 		} else {
 			throw twice_error("engine B display mode 2");
 		}
@@ -288,146 +288,211 @@ gpu_2d_engine::draw_scanline(u16 scanline)
 	}
 }
 
-void
-gpu_2d_engine::clear_buffers()
+static void
+clear_buffers(gpu_2d_engine *gpu)
 {
-	u16 backdrop_color = get_palette_color_256(0);
+	u16 backdrop_color = get_palette_color_256(gpu, 0);
 	for (u32 i = 0; i < 256; i++) {
-		buffer_top[i].color = backdrop_color;
-		buffer_top[i].priority = 4;
-		buffer_bottom[i] = buffer_top[i];
+		gpu->buffer_top[i].color = backdrop_color;
+		gpu->buffer_top[i].priority = 4;
+		gpu->buffer_bottom[i] = gpu->buffer_top[i];
 
-		obj_buffer[i].color = 0;
-		obj_buffer[i].priority = 7;
+		gpu->obj_buffer[i].color = 0;
+		gpu->obj_buffer[i].priority = 7;
 	}
 }
 
-void
-gpu_2d_engine::graphics_display_scanline()
+static void
+graphics_display_scanline(gpu_2d_engine *gpu)
 {
-	clear_buffers();
+	auto& dispcnt = gpu->dispcnt;
+
+	clear_buffers(gpu);
 
 	if (dispcnt & BIT(12)) {
-		render_sprites();
+		render_sprites(gpu);
 	}
 
 	switch (dispcnt & 0x7) {
 	case 0:
-		if (dispcnt & BIT(8)) render_text_bg(0);
-		if (dispcnt & BIT(9)) render_text_bg(1);
-		if (dispcnt & BIT(10)) render_text_bg(2);
-		if (dispcnt & BIT(11)) render_text_bg(3);
+		if (dispcnt & BIT(8)) render_text_bg(gpu, 0);
+		if (dispcnt & BIT(9)) render_text_bg(gpu, 1);
+		if (dispcnt & BIT(10)) render_text_bg(gpu, 2);
+		if (dispcnt & BIT(11)) render_text_bg(gpu, 3);
 		break;
 	case 1:
-		if (dispcnt & BIT(8)) render_text_bg(0);
-		if (dispcnt & BIT(9)) render_text_bg(1);
-		if (dispcnt & BIT(10)) render_text_bg(2);
-		if (dispcnt & BIT(11)) render_affine_bg(3);
+		if (dispcnt & BIT(8)) render_text_bg(gpu, 0);
+		if (dispcnt & BIT(9)) render_text_bg(gpu, 1);
+		if (dispcnt & BIT(10)) render_text_bg(gpu, 2);
+		if (dispcnt & BIT(11)) render_affine_bg(gpu, 3);
 		break;
 	case 2:
-		if (dispcnt & BIT(8)) render_text_bg(0);
-		if (dispcnt & BIT(9)) render_text_bg(1);
-		if (dispcnt & BIT(10)) render_affine_bg(2);
-		if (dispcnt & BIT(11)) render_affine_bg(3);
+		if (dispcnt & BIT(8)) render_text_bg(gpu, 0);
+		if (dispcnt & BIT(9)) render_text_bg(gpu, 1);
+		if (dispcnt & BIT(10)) render_affine_bg(gpu, 2);
+		if (dispcnt & BIT(11)) render_affine_bg(gpu, 3);
 		break;
 	case 3:
-		if (dispcnt & BIT(8)) render_text_bg(0);
-		if (dispcnt & BIT(9)) render_text_bg(1);
-		if (dispcnt & BIT(10)) render_text_bg(2);
-		if (dispcnt & BIT(11)) render_extended_bg(3);
+		if (dispcnt & BIT(8)) render_text_bg(gpu, 0);
+		if (dispcnt & BIT(9)) render_text_bg(gpu, 1);
+		if (dispcnt & BIT(10)) render_text_bg(gpu, 2);
+		if (dispcnt & BIT(11)) render_extended_bg(gpu, 3);
 		break;
 	case 4:
-		if (dispcnt & BIT(8)) render_text_bg(0);
-		if (dispcnt & BIT(9)) render_text_bg(1);
-		if (dispcnt & BIT(10)) render_affine_bg(2);
-		if (dispcnt & BIT(11)) render_extended_bg(3);
+		if (dispcnt & BIT(8)) render_text_bg(gpu, 0);
+		if (dispcnt & BIT(9)) render_text_bg(gpu, 1);
+		if (dispcnt & BIT(10)) render_affine_bg(gpu, 2);
+		if (dispcnt & BIT(11)) render_extended_bg(gpu, 3);
 		break;
 	case 5:
-		if (dispcnt & BIT(8)) render_text_bg(0);
-		if (dispcnt & BIT(9)) render_text_bg(1);
-		if (dispcnt & BIT(10)) render_extended_bg(2);
-		if (dispcnt & BIT(11)) render_extended_bg(3);
+		if (dispcnt & BIT(8)) render_text_bg(gpu, 0);
+		if (dispcnt & BIT(9)) render_text_bg(gpu, 1);
+		if (dispcnt & BIT(10)) render_extended_bg(gpu, 2);
+		if (dispcnt & BIT(11)) render_extended_bg(gpu, 3);
 		break;
 	case 6:
-		if (engineid == 1) {
+		if (gpu->engineid == 1) {
 			throw twice_error("bg mode 6 invalid for engine B");
 		}
-		if (dispcnt & BIT(8)) render_3d();
-		if (dispcnt & BIT(10)) render_large_bitmap_bg();
+		if (dispcnt & BIT(8)) render_3d(gpu);
+		if (dispcnt & BIT(10)) render_large_bitmap_bg(gpu);
 		break;
 	case 7:
 		throw twice_error("bg mode 7 invalid");
 	}
 
 	for (u32 i = 0; i < 256; i++) {
-		auto& obj = obj_buffer[i];
+		auto& obj = gpu->obj_buffer[i];
 
-		if (obj.priority <= buffer_top[i].priority) {
-			buffer_bottom[i] = buffer_top[i];
-			buffer_top[i] = obj;
-		} else if (obj.priority <= buffer_bottom[i].priority) {
-			buffer_bottom[i] = obj;
+		if (obj.priority <= gpu->buffer_top[i].priority) {
+			gpu->buffer_bottom[i] = gpu->buffer_top[i];
+			gpu->buffer_top[i] = obj;
+		} else if (obj.priority <= gpu->buffer_bottom[i].priority) {
+			gpu->buffer_bottom[i] = obj;
 		}
 	}
 
 	/* TODO: figure out what format to store pixel colors in */
 
 	for (u32 i = 0; i < 256; i++) {
-		fb[nds->vcount * 256 + i] =
-				bgr555_to_bgr888(buffer_top[i].color);
+		gpu->fb[gpu->nds->vcount * 256 + i] =
+				bgr555_to_bgr888(gpu->buffer_top[i].color);
 	}
 }
 
-void
-gpu_2d_engine::render_text_bg(int bg)
+static const u32 text_bg_widths[] = { 256, 512, 256, 512 };
+static const u32 text_bg_heights[] = { 256, 256, 512, 512 };
+static const u32 bitmap_bg_widths[] = { 128, 256, 512, 512 };
+static const u32 bitmap_bg_heights[] = { 128, 256, 256, 512 };
+
+template <typename T>
+static T
+read_bg_data(gpu_2d_engine *gpu, u32 base, u32 w, u32 x, u32 y)
 {
-	if (engineid == 0 && (dispcnt & BIT(3))) {
-		render_3d();
+	u32 offset = base + sizeof(T) * w * y + sizeof(T) * x;
+	if (gpu->engineid == 0) {
+		return vram_read_abg<T>(gpu->nds, offset);
+	} else {
+		return vram_read_bbg<T>(gpu->nds, offset);
+	}
+}
+
+static u16
+get_screen_entry(gpu_2d_engine *gpu, u32 screen, u32 base, u32 x, u32 y)
+{
+	return read_bg_data<u16>(gpu, base + 0x800 * screen, 32, x, y);
+}
+
+static u64
+get_char_row_256(gpu_2d_engine *gpu, u32 base, u32 char_name, u32 y)
+{
+	return read_bg_data<u64>(gpu, base + 64 * char_name, 1, 0, y);
+}
+
+static u32
+get_char_row_16(gpu_2d_engine *gpu, u32 base, u32 char_name, u32 y)
+{
+	return read_bg_data<u32>(gpu, base + 32 * char_name, 1, 0, y);
+}
+
+static u64
+fetch_char_row(gpu_2d_engine *gpu, u16 se, u32 char_base, u32 bg_y,
+		bool color_256)
+{
+	u64 char_row;
+
+	u16 char_name = se & 0x3FF;
+
+	int py = bg_y % 8;
+	if (se & BIT(11)) {
+		py = 7 - py;
+	}
+
+	if (color_256) {
+		char_row = get_char_row_256(gpu, char_base, char_name, py);
+		if (se & BIT(10)) {
+			char_row = __builtin_bswap64(char_row);
+		}
+	} else {
+		char_row = get_char_row_16(gpu, char_base, char_name, py);
+		if (se & BIT(10)) {
+			char_row = __builtin_bswap32(char_row);
+		}
+	}
+
+	return char_row;
+}
+
+static void
+render_text_bg(gpu_2d_engine *gpu, int bg)
+{
+	if (gpu->engineid == 0 && (gpu->dispcnt & BIT(3))) {
+		render_3d(gpu);
 		return;
 	}
 
-	u32 bg_priority = bg_cnt[bg] & 0x3;
-	u32 bg_size_bits = bg_cnt[bg] >> 14 & 0x3;
+	u32 bg_priority = gpu->bg_cnt[bg] & 0x3;
+	u32 bg_size_bits = gpu->bg_cnt[bg] >> 14 & 0x3;
 	u32 bg_w = text_bg_widths[bg_size_bits];
 	u32 bg_h = text_bg_heights[bg_size_bits];
-	u32 bg_x = bg_hofs[bg] & (bg_w - 1);
-	u32 bg_y = (bg_vofs[bg] + nds->vcount) & (bg_h - 1);
+	u32 bg_x = gpu->bg_hofs[bg] & (bg_w - 1);
+	u32 bg_y = (gpu->bg_vofs[bg] + gpu->nds->vcount) & (bg_h - 1);
 
 	u32 screen = (bg_y / 256 * 2) + (bg_x / 256);
 	if (bg_size_bits == 2) {
 		screen /= 2;
 	}
 
-	u32 screen_base = (bg_cnt[bg] >> 8 & 0x1F) * 0x800;
-	if (engineid == 0) {
-		screen_base += (dispcnt >> 27 & 0x7) * 0x10000;
+	u32 screen_base = (gpu->bg_cnt[bg] >> 8 & 0x1F) * 0x800;
+	if (gpu->engineid == 0) {
+		screen_base += (gpu->dispcnt >> 27 & 0x7) * 0x10000;
 	}
 
-	u32 char_base = (bg_cnt[bg] >> 2 & 0xF) * 0x4000;
-	if (engineid == 0) {
-		char_base += (dispcnt >> 24 & 0x7) * 0x10000;
+	u32 char_base = (gpu->bg_cnt[bg] >> 2 & 0xF) * 0x4000;
+	if (gpu->engineid == 0) {
+		char_base += (gpu->dispcnt >> 24 & 0x7) * 0x10000;
 	}
 
 	int px = bg_x % 8;
 	u32 se_x = bg_x % 256 / 8;
 	u32 se_y = bg_y % 256 / 8;
 
-	bool color_256 = bg_cnt[bg] & BIT(7);
+	bool color_256 = gpu->bg_cnt[bg] & BIT(7);
 	u64 char_row;
 	u32 palette_num;
 
-	bool extended_palettes = dispcnt & BIT(30);
+	bool extended_palettes = gpu->dispcnt & BIT(30);
 	u32 slot = bg;
-	if (bg_cnt[bg] & BIT(13)) {
+	if (gpu->bg_cnt[bg] & BIT(13)) {
 		slot |= 2;
 	}
 
 	for (u32 i = 0; i < 256;) {
 		if (px == 0 || i == 0) {
 			u16 se = get_screen_entry(
-					screen, screen_base, se_x, se_y);
+					gpu, screen, screen_base, se_x, se_y);
 			char_row = fetch_char_row(
-					se, char_base, bg_y, color_256);
+					gpu, se, char_base, bg_y, color_256);
 
 			if (color_256) {
 				char_row >>= 8 * px;
@@ -448,22 +513,24 @@ gpu_2d_engine::render_text_bg(int bg)
 				u16 color;
 				if (extended_palettes) {
 					color = get_palette_color_256_extended(
-							slot, palette_num,
+							gpu, slot, palette_num,
 							offset);
 				} else {
-					color = get_palette_color_256(offset);
+					color = get_palette_color_256(
+							gpu, offset);
 				}
 
-				draw_bg_pixel(i, color, bg_priority);
+				draw_bg_pixel(gpu, i, color, bg_priority);
 			}
 		} else {
 			for (; px < 8 && i < 256; px++, i++) {
 				u32 offset = char_row & 0xF;
 				char_row >>= 4;
 				if (offset != 0) {
-					u16 color = get_palette_color_16(
+					u16 color = get_palette_color_16(gpu,
 							palette_num, offset);
-					draw_bg_pixel(i, color, bg_priority);
+					draw_bg_pixel(gpu, i, color,
+							bg_priority);
 				}
 			}
 		}
@@ -479,29 +546,41 @@ gpu_2d_engine::render_text_bg(int bg)
 	}
 }
 
-void
-gpu_2d_engine::render_affine_bg(int bg)
+static u8
+get_screen_entry_affine(gpu_2d_engine *gpu, u32 base, u32 bg_w, u32 x, u32 y)
 {
-	u32 bg_priority = bg_cnt[bg] & 0x3;
-	u32 bg_w = 128 << (bg_cnt[bg] >> 14 & 0x3);
+	return read_bg_data<u8>(gpu, base, bg_w / 8, x, y);
+}
+
+static u8
+get_color_num_256(gpu_2d_engine *gpu, u32 base, u32 char_name, u32 x, u32 y)
+{
+	return read_bg_data<u8>(gpu, base + 64 * char_name, 8, x, y);
+}
+
+static void
+render_affine_bg(gpu_2d_engine *gpu, int bg)
+{
+	u32 bg_priority = gpu->bg_cnt[bg] & 0x3;
+	u32 bg_w = 128 << (gpu->bg_cnt[bg] >> 14 & 0x3);
 	u32 bg_h = bg_w;
 
-	u32 screen_base = (bg_cnt[bg] >> 8 & 0x1F) * 0x800;
-	if (engineid == 0) {
-		screen_base += (dispcnt >> 27 & 0x7) * 0x10000;
+	u32 screen_base = (gpu->bg_cnt[bg] >> 8 & 0x1F) * 0x800;
+	if (gpu->engineid == 0) {
+		screen_base += (gpu->dispcnt >> 27 & 0x7) * 0x10000;
 	}
 
-	u32 char_base = (bg_cnt[bg] >> 2 & 0xF) * 0x4000;
-	if (engineid == 0) {
-		char_base += (dispcnt >> 24 & 0x7) * 0x10000;
+	u32 char_base = (gpu->bg_cnt[bg] >> 2 & 0xF) * 0x4000;
+	if (gpu->engineid == 0) {
+		char_base += (gpu->dispcnt >> 24 & 0x7) * 0x10000;
 	}
 
-	s32 ref_x = bg_ref_x[bg - 2];
-	s32 ref_y = bg_ref_y[bg - 2];
-	s16 pa = bg_pa[bg - 2];
-	s16 pc = bg_pc[bg - 2];
+	s32 ref_x = gpu->bg_ref_x[bg - 2];
+	s32 ref_y = gpu->bg_ref_y[bg - 2];
+	s16 pa = gpu->bg_pa[bg - 2];
+	s16 pc = gpu->bg_pc[bg - 2];
 
-	bool wrap_bg = bg_cnt[bg] & BIT(13);
+	bool wrap_bg = gpu->bg_cnt[bg] & BIT(13);
 
 	for (int i = 0; i < 256; i++) {
 		u32 bg_x = ref_x >> 8;
@@ -524,54 +603,52 @@ gpu_2d_engine::render_affine_bg(int bg)
 		int px = bg_x % 8;
 		int py = bg_y % 8;
 
-		u8 se = get_screen_entry_affine(screen_base, bg_w, se_x, se_y);
+		u8 se = get_screen_entry_affine(
+				gpu, screen_base, bg_w, se_x, se_y);
 		/* char_name = se */
-		u8 color_num = get_color_num_256(char_base, se, px, py);
+		u8 color_num = get_color_num_256(gpu, char_base, se, px, py);
 
 		if (color_num != 0) {
-			u16 color = get_palette_color_256(color_num);
-			draw_bg_pixel(i, color, bg_priority);
+			u16 color = get_palette_color_256(gpu, color_num);
+			draw_bg_pixel(gpu, i, color, bg_priority);
 		}
 	}
 }
 
-void
-gpu_2d_engine::render_extended_bg(int bg)
+static u16
+get_screen_entry_extended_text(
+		gpu_2d_engine *gpu, u32 base, u32 bg_w, u32 x, u32 y)
 {
-	if (!(bg_cnt[bg] & BIT(7))) {
-		render_extended_text_bg(bg);
-	} else {
-		render_extended_bitmap_bg(bg, bg_cnt[bg] & BIT(2));
-	}
+	return read_bg_data<u16>(gpu, base, bg_w / 8, x, y);
 }
 
-void
-gpu_2d_engine::render_extended_text_bg(int bg)
+static void
+render_extended_text_bg(gpu_2d_engine *gpu, int bg)
 {
-	u32 bg_priority = bg_cnt[bg] & 0x3;
-	u32 bg_w = 128 << (bg_cnt[bg] >> 14 & 0x3);
+	u32 bg_priority = gpu->bg_cnt[bg] & 0x3;
+	u32 bg_w = 128 << (gpu->bg_cnt[bg] >> 14 & 0x3);
 	u32 bg_h = bg_w;
 
-	u32 screen_base = (bg_cnt[bg] >> 8 & 0x1F) * 0x800;
-	if (engineid == 0) {
-		screen_base += (dispcnt >> 27 & 0x7) * 0x10000;
+	u32 screen_base = (gpu->bg_cnt[bg] >> 8 & 0x1F) * 0x800;
+	if (gpu->engineid == 0) {
+		screen_base += (gpu->dispcnt >> 27 & 0x7) * 0x10000;
 	}
 
-	u32 char_base = (bg_cnt[bg] >> 2 & 0xF) * 0x4000;
-	if (engineid == 0) {
-		char_base += (dispcnt >> 24 & 0x7) * 0x10000;
+	u32 char_base = (gpu->bg_cnt[bg] >> 2 & 0xF) * 0x4000;
+	if (gpu->engineid == 0) {
+		char_base += (gpu->dispcnt >> 24 & 0x7) * 0x10000;
 	}
 
-	s32 ref_x = bg_ref_x[bg - 2];
-	s32 ref_y = bg_ref_y[bg - 2];
-	s16 pa = bg_pa[bg - 2];
-	s16 pc = bg_pc[bg - 2];
+	s32 ref_x = gpu->bg_ref_x[bg - 2];
+	s32 ref_y = gpu->bg_ref_y[bg - 2];
+	s16 pa = gpu->bg_pa[bg - 2];
+	s16 pc = gpu->bg_pc[bg - 2];
 
-	bool wrap_bg = bg_cnt[bg] & BIT(13);
+	bool wrap_bg = gpu->bg_cnt[bg] & BIT(13);
 
-	bool extended_palettes = dispcnt & BIT(30);
+	bool extended_palettes = gpu->dispcnt & BIT(30);
 	u32 slot = bg;
-	if (bg_cnt[bg] & BIT(13)) {
+	if (gpu->bg_cnt[bg] & BIT(13)) {
 		slot |= 2;
 	}
 
@@ -597,7 +674,7 @@ gpu_2d_engine::render_extended_text_bg(int bg)
 		int py = bg_y % 8;
 
 		u16 se = get_screen_entry_extended_text(
-				screen_base, bg_w, se_x, se_y);
+				gpu, screen_base, bg_w, se_x, se_y);
 		if (se & BIT(11)) {
 			py = 7 - py;
 		}
@@ -606,37 +683,38 @@ gpu_2d_engine::render_extended_text_bg(int bg)
 		}
 
 		u16 char_name = se & 0x3FF;
-		u8 color_num = get_color_num_256(char_base, char_name, px, py);
+		u8 color_num = get_color_num_256(
+				gpu, char_base, char_name, px, py);
 
 		if (color_num != 0) {
 			u16 color;
 			if (extended_palettes) {
 				u32 palette_num = se >> 12;
-				color = get_palette_color_256_extended(
+				color = get_palette_color_256_extended(gpu,
 						slot, palette_num, color_num);
 			} else {
-				color = get_palette_color_256(color_num);
+				color = get_palette_color_256(gpu, color_num);
 			}
-			draw_bg_pixel(i, color, bg_priority);
+			draw_bg_pixel(gpu, i, color, bg_priority);
 		}
 	}
 }
 
-void
-gpu_2d_engine::render_extended_bitmap_bg(int bg, bool direct_color)
+static void
+render_extended_bitmap_bg(gpu_2d_engine *gpu, int bg, bool direct_color)
 {
-	u32 bg_priority = bg_cnt[bg] & 0x3;
-	u32 bg_size_bits = bg_cnt[bg] >> 14 & 0x3;
+	u32 bg_priority = gpu->bg_cnt[bg] & 0x3;
+	u32 bg_size_bits = gpu->bg_cnt[bg] >> 14 & 0x3;
 	u32 bg_w = bitmap_bg_widths[bg_size_bits];
 	u32 bg_h = bitmap_bg_heights[bg_size_bits];
-	u32 screen_base = (bg_cnt[bg] >> 8 & 0x1F) * 0x4000;
+	u32 screen_base = (gpu->bg_cnt[bg] >> 8 & 0x1F) * 0x4000;
 
-	s32 ref_x = bg_ref_x[bg - 2];
-	s32 ref_y = bg_ref_y[bg - 2];
-	s16 pa = bg_pa[bg - 2];
-	s16 pc = bg_pc[bg - 2];
+	s32 ref_x = gpu->bg_ref_x[bg - 2];
+	s32 ref_y = gpu->bg_ref_y[bg - 2];
+	s16 pa = gpu->bg_pa[bg - 2];
+	s16 pc = gpu->bg_pc[bg - 2];
 
-	bool wrap_bg = bg_cnt[bg] & BIT(13);
+	bool wrap_bg = gpu->bg_cnt[bg] & BIT(13);
 
 	for (int i = 0; i < 256; i++) {
 		u32 bg_x = ref_x >> 8;
@@ -655,28 +733,39 @@ gpu_2d_engine::render_extended_bitmap_bg(int bg, bool direct_color)
 
 		if (direct_color) {
 			u16 color = read_bg_data<u16>(
-					screen_base, bg_w, bg_x, bg_y);
+					gpu, screen_base, bg_w, bg_x, bg_y);
 			if (color & BIT(15)) {
-				draw_bg_pixel(i, color, bg_priority);
+				draw_bg_pixel(gpu, i, color, bg_priority);
 			}
 		} else {
 			u8 color_num = read_bg_data<u8>(
-					screen_base, bg_w, bg_x, bg_y);
+					gpu, screen_base, bg_w, bg_x, bg_y);
 			if (color_num != 0) {
-				u16 color = get_palette_color_256(color_num);
-				draw_bg_pixel(i, color, bg_priority);
+				u16 color = get_palette_color_256(
+						gpu, color_num);
+				draw_bg_pixel(gpu, i, color, bg_priority);
 			}
 		}
 	}
 }
 
-void
-gpu_2d_engine::render_large_bitmap_bg()
+static void
+render_extended_bg(gpu_2d_engine *gpu, int bg)
+{
+	if (!(gpu->bg_cnt[bg] & BIT(7))) {
+		render_extended_text_bg(gpu, bg);
+	} else {
+		render_extended_bitmap_bg(gpu, bg, gpu->bg_cnt[bg] & BIT(2));
+	}
+}
+
+static void
+render_large_bitmap_bg(gpu_2d_engine *gpu)
 {
 	int bg = 2;
 
-	u32 bg_priority = bg_cnt[bg] & 0x3;
-	u32 bg_size_bits = bg_cnt[bg] >> 14 & 0x3;
+	u32 bg_priority = gpu->bg_cnt[bg] & 0x3;
+	u32 bg_size_bits = gpu->bg_cnt[bg] >> 14 & 0x3;
 	u32 bg_w;
 	u32 bg_h;
 	switch (bg_size_bits) {
@@ -692,12 +781,12 @@ gpu_2d_engine::render_large_bitmap_bg()
 		throw twice_error("large bitmap bg invalid size");
 	}
 
-	s32 ref_x = bg_ref_x[bg - 2];
-	s32 ref_y = bg_ref_y[bg - 2];
-	s16 pa = bg_pa[bg - 2];
-	s16 pc = bg_pc[bg - 2];
+	s32 ref_x = gpu->bg_ref_x[bg - 2];
+	s32 ref_y = gpu->bg_ref_y[bg - 2];
+	s16 pa = gpu->bg_pa[bg - 2];
+	s16 pc = gpu->bg_pc[bg - 2];
 
-	bool wrap_bg = bg_cnt[bg] & BIT(13);
+	bool wrap_bg = gpu->bg_cnt[bg] & BIT(13);
 
 	for (int i = 0; i < 256; i++) {
 		u32 bg_x = ref_x >> 8;
@@ -714,19 +803,43 @@ gpu_2d_engine::render_large_bitmap_bg()
 			continue;
 		}
 
-		u8 color_num = vram_read<u8>(nds, bg_w * bg_y + bg_x);
+		u8 color_num = vram_read<u8>(gpu->nds, bg_w * bg_y + bg_x);
 		if (color_num != 0) {
-			u16 color = get_palette_color_256(color_num);
-			draw_bg_pixel(i, color, bg_priority);
+			u16 color = get_palette_color_256(gpu, color_num);
+			draw_bg_pixel(gpu, i, color, bg_priority);
 		}
 	}
 }
 
-void
-gpu_2d_engine::draw_bg_pixel(u32 fb_x, u16 color, u8 priority)
+static void
+render_3d(gpu_2d_engine *gpu)
 {
-	auto& top = buffer_top[fb_x];
-	auto& bottom = buffer_bottom[fb_x];
+}
+
+static void
+render_sprites(gpu_2d_engine *gpu)
+{
+}
+
+static void
+vram_display_scanline(gpu_2d_engine *gpu)
+{
+	u32 start = gpu->nds->vcount * 256;
+	u32 end = start + 256;
+
+	u32 offset = 0x20000 * (gpu->dispcnt >> 18 & 0x3);
+
+	for (u32 i = start; i < end; i++) {
+		gpu->fb[i] = bgr555_to_bgr888(
+				vram_read_lcdc<u16>(gpu->nds, offset + i * 2));
+	}
+}
+
+static void
+draw_bg_pixel(gpu_2d_engine *gpu, u32 fb_x, u16 color, u8 priority)
+{
+	auto& top = gpu->buffer_top[fb_x];
+	auto& bottom = gpu->buffer_bottom[fb_x];
 
 	if (priority < top.priority) {
 		bottom = top;
@@ -738,137 +851,38 @@ gpu_2d_engine::draw_bg_pixel(u32 fb_x, u16 color, u8 priority)
 	}
 }
 
-void
-gpu_2d_engine::render_3d()
-{
-}
-
-void
-gpu_2d_engine::render_sprites()
-{
-}
-
-void
-gpu_2d_engine::vram_display_scanline()
-{
-	u32 start = nds->vcount * 256;
-	u32 end = start + 256;
-
-	u32 offset = 0x20000 * (dispcnt >> 18 & 0x3);
-
-	for (u32 i = start; i < end; i++) {
-		fb[i] = bgr555_to_bgr888(
-				vram_read_lcdc<u16>(nds, offset + i * 2));
-	}
-}
-
-u64
-gpu_2d_engine::fetch_char_row(u16 se, u32 char_base, u32 bg_y, bool color_256)
-{
-	u64 char_row;
-
-	u16 char_name = se & 0x3FF;
-
-	int py = bg_y % 8;
-	if (se & BIT(11)) {
-		py = 7 - py;
-	}
-
-	if (color_256) {
-		char_row = get_char_row_256(char_base, char_name, py);
-		if (se & BIT(10)) {
-			char_row = __builtin_bswap64(char_row);
-		}
-	} else {
-		char_row = get_char_row_16(char_base, char_name, py);
-		if (se & BIT(10)) {
-			char_row = __builtin_bswap32(char_row);
-		}
-	}
-
-	return char_row;
-}
-
-u16
-gpu_2d_engine::get_screen_entry(u32 screen, u32 base, u32 x, u32 y)
-{
-	return read_bg_data<u16>(base + 0x800 * screen, 32, x, y);
-}
-
-u8
-gpu_2d_engine::get_screen_entry_affine(u32 base, u32 bg_w, u32 x, u32 y)
-{
-	return read_bg_data<u8>(base, bg_w / 8, x, y);
-}
-
-u16
-gpu_2d_engine::get_screen_entry_extended_text(u32 base, u32 bg_w, u32 x, u32 y)
-{
-	return read_bg_data<u16>(base, bg_w / 8, x, y);
-}
-
-u64
-gpu_2d_engine::get_char_row_256(u32 base, u32 char_name, u32 y)
-{
-	return read_bg_data<u64>(base + 64 * char_name, 1, 0, y);
-}
-
-u32
-gpu_2d_engine::get_char_row_16(u32 base, u32 char_name, u32 y)
-{
-	return read_bg_data<u32>(base + 32 * char_name, 1, 0, y);
-}
-
-u8
-gpu_2d_engine::get_color_num_256(u32 base, u32 char_name, u32 x, u32 y)
-{
-	return read_bg_data<u8>(base + 64 * char_name, 8, x, y);
-}
-
-u16
-gpu_2d_engine::get_palette_color_256(u32 color_num)
+static u16
+get_palette_color_256(gpu_2d_engine *gpu, u32 color_num)
 {
 	u32 offset = 2 * color_num;
-	if (engineid == 1) {
+	if (gpu->engineid == 1) {
 		offset += 0x400;
 	}
 
-	return readarr<u16>(nds->palette, offset);
+	return readarr<u16>(gpu->nds->palette, offset);
 }
 
-u16
-gpu_2d_engine::get_palette_color_256_extended(
-		u32 slot, u32 palette_num, u32 color_num)
+static u16
+get_palette_color_256_extended(
+		gpu_2d_engine *gpu, u32 slot, u32 palette_num, u32 color_num)
 {
 	u32 offset = 0x2000 * slot + 512 * palette_num + 2 * color_num;
-	if (engineid == 0) {
-		return vram_read_abg_palette<u16>(nds, offset);
+	if (gpu->engineid == 0) {
+		return vram_read_abg_palette<u16>(gpu->nds, offset);
 	} else {
-		return vram_read_bbg_palette<u16>(nds, offset);
+		return vram_read_bbg_palette<u16>(gpu->nds, offset);
 	}
 }
 
-u16
-gpu_2d_engine::get_palette_color_16(u32 palette_num, u32 color_num)
+static u16
+get_palette_color_16(gpu_2d_engine *gpu, u32 palette_num, u32 color_num)
 {
 	u32 offset = 32 * palette_num + 2 * color_num;
-	if (engineid == 1) {
+	if (gpu->engineid == 1) {
 		offset += 0x400;
 	}
 
-	return readarr<u16>(nds->palette, offset);
-}
-
-template <typename T>
-T
-gpu_2d_engine::read_bg_data(u32 base, u32 w, u32 x, u32 y)
-{
-	u32 offset = base + sizeof(T) * w * y + sizeof(T) * x;
-	if (engineid == 0) {
-		return vram_read_abg<T>(nds, offset);
-	} else {
-		return vram_read_bbg<T>(nds, offset);
-	}
+	return readarr<u16>(gpu->nds->palette, offset);
 }
 
 } // namespace twice
