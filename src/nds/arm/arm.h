@@ -75,8 +75,8 @@ struct arm_cpu {
 };
 
 void run_cpu(arm_cpu *cpu);
-void on_cpsr_write(arm_cpu *cpu);
-void switch_mode(arm_cpu *cpu, u32 new_mode);
+void arm_on_cpsr_write(arm_cpu *cpu);
+void arm_switch_mode(arm_cpu *cpu, u32 new_mode);
 
 } // namespace twice
 

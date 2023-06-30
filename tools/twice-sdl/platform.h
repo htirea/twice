@@ -41,7 +41,7 @@ struct sdl_platform {
 	void render(void *fb);
 	void loop(nds_machine *nds);
 	void handle_events(nds_machine *nds);
-	void set_title_fps(int fps);
+	void arm_set_title_fps(int fps);
 	void add_controller(int joystick_index);
 	void remove_controller(SDL_JoystickID id);
 

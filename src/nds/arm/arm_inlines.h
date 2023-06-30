@@ -6,46 +6,46 @@
 namespace twice {
 
 inline void
-set_t(arm_cpu *cpu, bool t)
+arm_set_t(arm_cpu *cpu, bool t)
 {
 	cpu->cpsr = (cpu->cpsr & ~BIT(5)) | (t << 5);
 }
 
 inline bool
-in_thumb(arm_cpu *cpu)
+arm_in_thumb(arm_cpu *cpu)
 {
 	return cpu->cpsr & BIT(5);
 }
 
 inline void
-force_stop(arm_cpu *cpu)
+arm_force_stop(arm_cpu *cpu)
 {
 	cpu->target_cycles = cpu->cycles;
 }
 
 inline void
-check_interrupt(arm_cpu *cpu)
+arm_check_interrupt(arm_cpu *cpu)
 {
 	cpu->interrupt = !(cpu->cpsr & BIT(7)) && (cpu->IME & 1) &&
 			(cpu->IE & cpu->IF);
 }
 
 inline void
-request_interrupt(arm_cpu *cpu, int bit)
+arm_request_interrupt(arm_cpu *cpu, int bit)
 {
 	cpu->IF |= BIT(bit);
-	check_interrupt(cpu);
+	arm_check_interrupt(cpu);
 }
 
 inline void
-do_irq(arm_cpu *cpu)
+arm_do_irq(arm_cpu *cpu)
 {
 	u32 old_cpsr = cpu->cpsr;
-	u32 ret_addr = cpu->pc() - (in_thumb(cpu) ? 2 : 4) + 4;
+	u32 ret_addr = cpu->pc() - (arm_in_thumb(cpu) ? 2 : 4) + 4;
 
 	cpu->cpsr &= ~0xBF;
 	cpu->cpsr |= 0x92;
-	switch_mode(cpu, MODE_IRQ);
+	arm_switch_mode(cpu, MODE_IRQ);
 	cpu->interrupt = false;
 
 	cpu->gpr[14] = ret_addr;
@@ -54,7 +54,7 @@ do_irq(arm_cpu *cpu)
 }
 
 inline bool
-check_cond(arm_cpu *cpu, u32 cond)
+arm_check_cond(arm_cpu *cpu, u32 cond)
 {
 	if (cond == 0xE) {
 		return true;

@@ -140,7 +140,7 @@ nds_run_frame(nds_ctx *nds)
 			nds->arm7->check_halted();
 
 			if (nds->arm7->interrupt) {
-				do_irq(nds->cpu[1]);
+				arm_do_irq(nds->cpu[1]);
 			}
 		}
 
@@ -151,11 +151,11 @@ nds_run_frame(nds_ctx *nds)
 		nds->arm7->check_halted();
 
 		if (nds->arm9->interrupt) {
-			do_irq(nds->cpu[0]);
+			arm_do_irq(nds->cpu[0]);
 		}
 
 		if (nds->arm7->interrupt) {
-			do_irq(nds->cpu[1]);
+			arm_do_irq(nds->cpu[1]);
 		}
 	}
 }
@@ -167,11 +167,11 @@ event_hblank_start(nds_ctx *nds)
 	nds->dispstat[1] |= BIT(1);
 
 	if (nds->dispstat[0] & BIT(4)) {
-		request_interrupt(nds->cpu[0], 1);
+		arm_request_interrupt(nds->cpu[0], 1);
 	}
 
 	if (nds->dispstat[1] & BIT(4)) {
-		request_interrupt(nds->cpu[1], 1);
+		arm_request_interrupt(nds->cpu[1], 1);
 	}
 
 	dma_on_hblank_start(nds);
@@ -192,11 +192,11 @@ nds_on_vblank(nds_ctx *nds)
 	nds->dispstat[1] |= BIT(0);
 
 	if (nds->dispstat[0] & BIT(3)) {
-		request_interrupt(nds->cpu[0], 0);
+		arm_request_interrupt(nds->cpu[0], 0);
 	}
 
 	if (nds->dispstat[1] & BIT(3)) {
-		request_interrupt(nds->cpu[1], 0);
+		arm_request_interrupt(nds->cpu[1], 0);
 	}
 
 	dma_on_vblank(nds);
@@ -222,7 +222,7 @@ event_hblank_end(nds_ctx *nds)
 		if (nds->vcount == lyc) {
 			nds->dispstat[i] |= BIT(2);
 			if (nds->dispstat[i] & BIT(5)) {
-				request_interrupt(nds->cpu[i], 2);
+				arm_request_interrupt(nds->cpu[i], 2);
 			}
 		} else {
 			nds->dispstat[i] &= ~BIT(2);

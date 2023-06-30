@@ -43,7 +43,7 @@ ipcsync_write(nds_ctx *nds, int cpuid, u16 value)
 	nds->ipcsync[cpuid] |= value & 0x4F00;
 
 	if ((value & BIT(13)) && (nds->ipcsync[cpuid ^ 1] & BIT(14))) {
-		request_interrupt(nds->cpu[cpuid ^ 1], 16);
+		arm_request_interrupt(nds->cpu[cpuid ^ 1], 16);
 	}
 }
 

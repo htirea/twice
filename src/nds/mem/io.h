@@ -94,7 +94,7 @@
 #define IO_WRITE8_COMMON(cpuid_)                                              \
 	case 0x4000208:                                                       \
 		nds->cpu[(cpuid_)]->IME = value & 1;                          \
-		check_interrupt(nds->cpu[cpuid_]);                            \
+		arm_check_interrupt(nds->cpu[cpuid_]);                        \
 		return
 
 #define IO_WRITE16_COMMON(cpuid_)                                             \
@@ -110,7 +110,7 @@
 		return;                                                       \
 	case 0x4000208:                                                       \
 		nds->cpu[(cpuid_)]->IME = value & 1;                          \
-		check_interrupt(nds->cpu[cpuid_]);                            \
+		arm_check_interrupt(nds->cpu[cpuid_]);                        \
 		return
 
 #define IO_WRITE32_COMMON(cpuid_)                                             \
@@ -166,15 +166,15 @@
 		return;                                                       \
 	case 0x4000208:                                                       \
 		nds->cpu[(cpuid_)]->IME = value & 1;                          \
-		check_interrupt(nds->cpu[cpuid_]);                            \
+		arm_check_interrupt(nds->cpu[cpuid_]);                        \
 		return;                                                       \
 	case 0x4000210:                                                       \
 		nds->cpu[(cpuid_)]->IE = value;                               \
-		check_interrupt(nds->cpu[cpuid_]);                            \
+		arm_check_interrupt(nds->cpu[cpuid_]);                        \
 		return;                                                       \
 	case 0x4000214:                                                       \
 		nds->cpu[(cpuid_)]->IF &= ~value;                             \
-		check_interrupt(nds->cpu[cpuid_]);                            \
+		arm_check_interrupt(nds->cpu[cpuid_]);                        \
 		return
 
 namespace twice {

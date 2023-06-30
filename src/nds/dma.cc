@@ -43,7 +43,7 @@ run_dma(nds_ctx *nds)
 		auto& dmacnt = nds->dmacnt_h[cpuid][channel];
 
 		if (dmacnt & BIT(14)) {
-			request_interrupt(nds->cpu[cpuid], 8 + channel);
+			arm_request_interrupt(nds->cpu[cpuid], 8 + channel);
 		}
 
 		if (dmacnt & BIT(9)) {

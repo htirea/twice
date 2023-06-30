@@ -92,7 +92,7 @@ sdl_platform::render(void *fb)
 }
 
 void
-sdl_platform::set_title_fps(int fps)
+sdl_platform::arm_set_title_fps(int fps)
 {
 	std::string title = std::format(
 			"Twice [{} fps | {:.2f} ms]", fps, 1000.0 / fps);
@@ -122,7 +122,7 @@ sdl_platform::loop(twice::nds_machine *nds)
 		ticks_elapsed += elapsed;
 		if (ticks_elapsed >= tfreq) {
 			ticks_elapsed -= tfreq;
-			set_title_fps(fps_counter.get_average_fps());
+			arm_set_title_fps(fps_counter.get_average_fps());
 		}
 	}
 }

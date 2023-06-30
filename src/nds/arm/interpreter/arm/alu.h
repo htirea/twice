@@ -235,7 +235,7 @@ arm_alu(arm_cpu *cpu)
 	if (OP == TST || OP == TEQ || OP == CMP || OP == CMN) {
 		if (S && rd == 15) {
 			cpu->cpsr = cpu->spsr();
-			on_cpsr_write(cpu);
+			arm_on_cpsr_write(cpu);
 		}
 	} else {
 		if (S && rd == 15) {

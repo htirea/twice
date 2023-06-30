@@ -48,7 +48,7 @@ arm_msr(arm_cpu *cpu)
 		}
 
 		cpu->cpsr = (cpu->cpsr & ~write_mask) | (operand & write_mask);
-		on_cpsr_write(cpu);
+		arm_on_cpsr_write(cpu);
 
 		if (operand & write_mask & BIT(5)) {
 			throw twice_error("msr changed thumb bit");

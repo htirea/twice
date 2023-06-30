@@ -79,7 +79,7 @@ swap_registers(arm_cpu *cpu, u32 old_mode, u32 new_mode)
 }
 
 void
-switch_mode(arm_cpu *cpu, u32 new_mode)
+arm_switch_mode(arm_cpu *cpu, u32 new_mode)
 {
 	if (new_mode != cpu->mode) {
 		swap_registers(cpu, cpu->mode, new_mode);
@@ -89,13 +89,13 @@ switch_mode(arm_cpu *cpu, u32 new_mode)
 }
 
 void
-on_cpsr_write(arm_cpu *cpu)
+arm_on_cpsr_write(arm_cpu *cpu)
 {
 	u32 new_mode = mode_bits_to_mode(cpu->cpsr & 0x1F);
 
-	switch_mode(cpu, new_mode);
+	arm_switch_mode(cpu, new_mode);
 
-	check_interrupt(cpu);
+	arm_check_interrupt(cpu);
 }
 
 } // namespace twice

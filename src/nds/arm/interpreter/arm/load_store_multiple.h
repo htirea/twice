@@ -82,7 +82,7 @@ arm_block_dt(arm_cpu *cpu)
 
 			u32 value = cpu->load32(addr);
 			cpu->cpsr = cpu->spsr();
-			if (in_thumb(cpu)) {
+			if (arm_in_thumb(cpu)) {
 				cpu->thumb_jump(value & ~1);
 			} else {
 				cpu->arm_jump(value & ~3);
@@ -109,7 +109,7 @@ arm_block_dt(arm_cpu *cpu)
 
 		/* mode switch done after writeback */
 		if (cpsr_written) {
-			on_cpsr_write(cpu);
+			arm_on_cpsr_write(cpu);
 		}
 	} else {
 		if (writeback) {

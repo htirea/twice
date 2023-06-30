@@ -16,7 +16,7 @@ arm9_cpu::arm9_cpu(nds_ctx *nds)
 void
 arm9_cpu::step()
 {
-	if (in_thumb(this)) {
+	if (arm_in_thumb(this)) {
 		pc() += 2;
 		opcode = pipeline[0];
 		pipeline[0] = pipeline[1];
@@ -28,7 +28,7 @@ arm9_cpu::step()
 		pipeline[0] = pipeline[1];
 		pipeline[1] = fetch32(pc());
 
-		if (check_cond(this, opcode >> 28)) {
+		if (arm_check_cond(this, opcode >> 28)) {
 			u32 op1 = opcode >> 20 & 0xFF;
 			u32 op2 = opcode >> 4 & 0xF;
 			arm_inst_lut[op1 << 4 | op2](this);
@@ -37,13 +37,13 @@ arm9_cpu::step()
 			s32 offset = ((s32)(opcode << 8) >> 6) + (H << 1);
 
 			gpr[14] = pc() - 4;
-			set_t(this, 1);
+			arm_set_t(this, 1);
 			thumb_jump(pc() + offset);
 		}
 	}
 
 	if (interrupt) {
-		do_irq(this);
+		arm_do_irq(this);
 	}
 
 	cycles += 1;
@@ -52,7 +52,7 @@ arm9_cpu::step()
 void
 arm9_cpu::jump(u32 addr)
 {
-	if (in_thumb(this)) {
+	if (arm_in_thumb(this)) {
 		thumb_jump(addr);
 	} else {
 		arm_jump(addr);
@@ -79,9 +79,9 @@ void
 arm9_cpu::jump_cpsr(u32 addr)
 {
 	cpsr = spsr();
-	on_cpsr_write(this);
+	arm_on_cpsr_write(this);
 
-	if (in_thumb(this)) {
+	if (arm_in_thumb(this)) {
 		thumb_jump(addr & ~1);
 	} else {
 		arm_jump(addr & ~3);
@@ -281,7 +281,7 @@ arm9_cpu::cp15_write(u32 reg, u32 value)
 	}
 	case 0x704:
 		halted = true;
-		force_stop(this);
+		arm_force_stop(this);
 		break;
 	default:
 		fprintf(stderr, "unhandled cp15 write to %03X\n", reg);

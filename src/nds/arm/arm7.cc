@@ -14,7 +14,7 @@ arm7_cpu::arm7_cpu(nds_ctx *nds)
 void
 arm7_cpu::step()
 {
-	if (in_thumb(this)) {
+	if (arm_in_thumb(this)) {
 		pc() += 2;
 		opcode = pipeline[0];
 		pipeline[0] = pipeline[1];
@@ -26,7 +26,7 @@ arm7_cpu::step()
 		pipeline[0] = pipeline[1];
 		pipeline[1] = fetch32(pc());
 
-		if (check_cond(this, opcode >> 28)) {
+		if (arm_check_cond(this, opcode >> 28)) {
 			u32 op1 = opcode >> 20 & 0xFF;
 			u32 op2 = opcode >> 4 & 0xF;
 			arm_inst_lut[op1 << 4 | op2](this);
@@ -34,7 +34,7 @@ arm7_cpu::step()
 	}
 
 	if (interrupt) {
-		do_irq(this);
+		arm_do_irq(this);
 	}
 
 	cycles += 1;
@@ -43,7 +43,7 @@ arm7_cpu::step()
 void
 arm7_cpu::jump(u32 addr)
 {
-	if (in_thumb(this)) {
+	if (arm_in_thumb(this)) {
 		thumb_jump(addr);
 	} else {
 		arm_jump(addr);
@@ -70,9 +70,9 @@ void
 arm7_cpu::jump_cpsr(u32 addr)
 {
 	cpsr = spsr();
-	on_cpsr_write(this);
+	arm_on_cpsr_write(this);
 
-	if (in_thumb(this)) {
+	if (arm_in_thumb(this)) {
 		thumb_jump(addr & ~1);
 	} else {
 		arm_jump(addr & ~3);

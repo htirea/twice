@@ -86,7 +86,7 @@ inline void
 arm_do_bx(arm_cpu *cpu, u32 addr)
 {
 	if (addr & 1) {
-		set_t(cpu, 1);
+		arm_set_t(cpu, 1);
 		cpu->thumb_jump(addr & ~1);
 	} else {
 		cpu->arm_jump(addr & ~3);
@@ -97,7 +97,7 @@ inline void
 thumb_do_bx(arm_cpu *cpu, u32 addr)
 {
 	if (!(addr & 1)) {
-		set_t(cpu, 0);
+		arm_set_t(cpu, 0);
 		cpu->arm_jump(addr & ~3);
 	} else {
 		cpu->thumb_jump(addr & ~1);
