@@ -100,14 +100,14 @@ nds_direct_boot(nds_ctx *nds)
 	nds->arm9->gpr[14] = entry_addr[0];
 	nds->arm9->bankedr[MODE_IRQ][0] = 0x03003F80;
 	nds->arm9->bankedr[MODE_SVC][0] = 0x03003FC0;
-	nds->arm9->jump(entry_addr[0]);
+	nds->arm9->arm_jump(entry_addr[0]);
 
 	nds->arm7->gpr[12] = entry_addr[1];
 	nds->arm7->gpr[13] = 0x0380FD80;
 	nds->arm7->gpr[14] = entry_addr[1];
 	nds->arm7->bankedr[MODE_IRQ][0] = 0x0380FF80;
 	nds->arm7->bankedr[MODE_SVC][0] = 0x0380FFC0;
-	nds->arm7->jump(entry_addr[1]);
+	nds->arm7->arm_jump(entry_addr[1]);
 
 	/* TODO: more stuff for direct booting */
 }

@@ -34,7 +34,6 @@ struct arm9_cpu final : arm_cpu {
 	u32 itcm_reg{};
 
 	void step() override;
-	void jump(u32 addr) override;
 	void arm_jump(u32 addr) override;
 	void thumb_jump(u32 addr) override;
 	void jump_cpsr(u32 addr) override;

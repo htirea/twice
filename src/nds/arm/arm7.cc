@@ -41,16 +41,6 @@ arm7_cpu::step()
 }
 
 void
-arm7_cpu::jump(u32 addr)
-{
-	if (arm_in_thumb(this)) {
-		thumb_jump(addr);
-	} else {
-		arm_jump(addr);
-	}
-}
-
-void
 arm7_cpu::arm_jump(u32 addr)
 {
 	pc() = addr + 4;

@@ -57,7 +57,6 @@ struct arm_cpu {
 	u32& spsr() { return bankedr[0][2]; }
 
 	virtual void step() = 0;
-	virtual void jump(u32 addr) = 0;
 	virtual void arm_jump(u32 addr) = 0;
 	virtual void thumb_jump(u32 addr) = 0;
 	virtual void jump_cpsr(u32 addr) = 0;

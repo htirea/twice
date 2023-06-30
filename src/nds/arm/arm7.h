@@ -9,7 +9,6 @@ struct arm7_cpu final : arm_cpu {
 	arm7_cpu(nds_ctx *nds);
 
 	void step() override;
-	void jump(u32 addr) override;
 	void arm_jump(u32 addr) override;
 	void thumb_jump(u32 addr) override;
 	void jump_cpsr(u32 addr) override;
