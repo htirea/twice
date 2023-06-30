@@ -73,12 +73,6 @@ struct arm_cpu {
 	virtual void check_halted() = 0;
 };
 
-inline void
-arm_set_thumb(arm_cpu *cpu, bool t)
-{
-	cpu->cpsr = (cpu->cpsr & ~BIT(5)) | (t << 5);
-}
-
 inline bool
 arm_in_thumb(arm_cpu *cpu)
 {
