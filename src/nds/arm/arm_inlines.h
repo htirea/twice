@@ -96,6 +96,7 @@ arm_check_cond(arm_cpu *cpu, u32 cond)
 		return Z || N != V;
 	}
 
+	/* if this is changed then change blx(1) decoding as well */
 	return false;
 }
 
