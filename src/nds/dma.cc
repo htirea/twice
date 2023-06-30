@@ -1,6 +1,6 @@
 #include "nds/nds.h"
 
-#include "nds/arm/arm_inlines.h"
+#include "nds/arm/arm.h"
 #include "nds/mem/bus.h"
 
 #include "libtwice/exception.h"

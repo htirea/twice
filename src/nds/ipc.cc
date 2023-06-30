@@ -1,4 +1,4 @@
-#include "nds/arm/arm_inlines.h"
+#include "nds/arm/arm.h"
 #include "nds/nds.h"
 
 namespace twice {

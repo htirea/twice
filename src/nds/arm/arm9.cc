@@ -1,6 +1,5 @@
 #include "nds/arm/arm9.h"
 
-#include "nds/arm/arm_inlines.h"
 #include "nds/arm/interpreter/lut.h"
 #include "nds/mem/bus.h"
 
@@ -37,7 +36,7 @@ arm9_cpu::step()
 			s32 offset = ((s32)(opcode << 8) >> 6) + (H << 1);
 
 			gpr[14] = pc() - 4;
-			arm_set_t(this, 1);
+			arm_set_thumb(this, 1);
 			thumb_jump(pc() + offset);
 		}
 	}

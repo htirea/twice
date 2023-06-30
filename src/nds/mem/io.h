@@ -1,7 +1,7 @@
 #ifndef TWICE_IO_H
 #define TWICE_IO_H
 
-#include "nds/arm/arm_inlines.h"
+#include "nds/arm/arm.h"
 #include "nds/nds.h"
 
 #define IO_READ8_FROM_32(addr, dest)                                          \
