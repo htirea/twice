@@ -122,7 +122,7 @@ nds_run_frame(nds_ctx *nds)
 		if (nds->dma[0].active) {
 			run_dma9(nds);
 		} else {
-			nds->arm9->run();
+			run_cpu(nds->cpu[0]);
 		}
 
 		run_cpu_events(nds, 0);
@@ -133,14 +133,14 @@ nds_run_frame(nds_ctx *nds)
 			if (nds->dma[1].active) {
 				run_dma7(nds);
 			} else {
-				nds->arm7->run();
+				run_cpu(nds->cpu[1]);
 			}
 
 			run_cpu_events(nds, 1);
 			nds->arm7->check_halted();
 
 			if (nds->arm7->interrupt) {
-				nds->arm7->do_irq();
+				do_irq(nds->cpu[1]);
 			}
 		}
 
@@ -151,11 +151,11 @@ nds_run_frame(nds_ctx *nds)
 		nds->arm7->check_halted();
 
 		if (nds->arm9->interrupt) {
-			nds->arm9->do_irq();
+			do_irq(nds->cpu[0]);
 		}
 
 		if (nds->arm7->interrupt) {
-			nds->arm7->do_irq();
+			do_irq(nds->cpu[1]);
 		}
 	}
 }
@@ -167,11 +167,11 @@ event_hblank_start(nds_ctx *nds)
 	nds->dispstat[1] |= BIT(1);
 
 	if (nds->dispstat[0] & BIT(4)) {
-		nds->cpu[0]->request_interrupt(1);
+		request_interrupt(nds->cpu[0], 1);
 	}
 
 	if (nds->dispstat[1] & BIT(4)) {
-		nds->cpu[1]->request_interrupt(1);
+		request_interrupt(nds->cpu[1], 1);
 	}
 
 	dma_on_hblank_start(nds);
@@ -192,11 +192,11 @@ nds_on_vblank(nds_ctx *nds)
 	nds->dispstat[1] |= BIT(0);
 
 	if (nds->dispstat[0] & BIT(3)) {
-		nds->cpu[0]->request_interrupt(0);
+		request_interrupt(nds->cpu[0], 0);
 	}
 
 	if (nds->dispstat[1] & BIT(3)) {
-		nds->cpu[1]->request_interrupt(0);
+		request_interrupt(nds->cpu[1], 0);
 	}
 
 	dma_on_vblank(nds);
@@ -222,7 +222,7 @@ event_hblank_end(nds_ctx *nds)
 		if (nds->vcount == lyc) {
 			nds->dispstat[i] |= BIT(2);
 			if (nds->dispstat[i] & BIT(5)) {
-				nds->cpu[i]->request_interrupt(2);
+				request_interrupt(nds->cpu[i], 2);
 			}
 		} else {
 			nds->dispstat[i] &= ~BIT(2);

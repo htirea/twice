@@ -1,4 +1,4 @@
-#include "nds/arm/arm.h"
+#include "nds/arm/arm_inlines.h"
 #include "nds/nds.h"
 
 namespace twice {
@@ -30,7 +30,7 @@ ipc_fifo_recv(nds_ctx *nds, int cpuid)
 		src.cnt |= BIT(0);
 		dest.cnt |= BIT(8);
 		if (src.cnt & BIT(2)) {
-			nds->cpu[cpuid ^ 1]->request_interrupt(17);
+			request_interrupt(nds->cpu[cpuid ^ 1], 17);
 		}
 	}
 
@@ -64,7 +64,7 @@ ipc_fifo_send(nds_ctx *nds, int cpuid, u32 value)
 		src.cnt &= ~BIT(0);
 		dest.cnt &= ~BIT(8);
 		if (dest.cnt & BIT(10)) {
-			nds->cpu[cpuid ^ 1]->request_interrupt(18);
+			request_interrupt(nds->cpu[cpuid ^ 1], 18);
 		}
 	}
 }
@@ -90,7 +90,7 @@ ipc_fifo_cnt_write(struct nds_ctx *nds, int cpuid, u16 value)
 		src.cnt |= BIT(0);
 		dest.cnt |= BIT(8);
 		if (src.cnt & BIT(2)) {
-			nds->cpu[cpuid]->request_interrupt(17);
+			request_interrupt(nds->cpu[cpuid], 17);
 		}
 	}
 }

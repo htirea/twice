@@ -17,7 +17,7 @@ arm_alu(arm_cpu *cpu)
 		u32 rotate_imm = cpu->opcode >> 8 & 0xF;
 
 		operand = std::rotr(imm, rotate_imm << 1);
-		carry = rotate_imm == 0 ? cpu->get_c() : operand >> 31;
+		carry = rotate_imm == 0 ? get_c(cpu) : operand >> 31;
 	} else if (MODE == 1) {
 		u32 rm = cpu->gpr[cpu->opcode & 0xF];
 		u32 shift_imm = cpu->opcode >> 7 & 0x1F;
@@ -26,7 +26,7 @@ arm_alu(arm_cpu *cpu)
 		case 0:
 			if (shift_imm == 0) {
 				operand = rm;
-				carry = cpu->get_c();
+				carry = get_c(cpu);
 			} else {
 				operand = rm << shift_imm;
 				carry = rm & BIT(32 - shift_imm);
@@ -56,7 +56,7 @@ arm_alu(arm_cpu *cpu)
 			break;
 		default:
 			if (shift_imm == 0) {
-				operand = cpu->get_c() << 31 | rm >> 1;
+				operand = get_c(cpu) << 31 | rm >> 1;
 				carry = rm & 1;
 			} else {
 				operand = std::rotr(rm, shift_imm);
@@ -76,7 +76,7 @@ arm_alu(arm_cpu *cpu)
 		case 0:
 			if (rs == 0) {
 				operand = rm;
-				carry = cpu->get_c();
+				carry = get_c(cpu);
 			} else if (rs < 32) {
 				operand = rm << rs;
 				carry = rm & BIT(32 - rs);
@@ -91,7 +91,7 @@ arm_alu(arm_cpu *cpu)
 		case 1:
 			if (rs == 0) {
 				operand = rm;
-				carry = cpu->get_c();
+				carry = get_c(cpu);
 			} else if (rs < 32) {
 				operand = rm >> rs;
 				carry = rm & BIT(rs - 1);
@@ -106,7 +106,7 @@ arm_alu(arm_cpu *cpu)
 		case 2:
 			if (rs == 0) {
 				operand = rm;
-				carry = cpu->get_c();
+				carry = get_c(cpu);
 			} else if (rs < 32) {
 				operand = (s32)rm >> rs;
 				carry = rm & BIT(rs - 1);
@@ -122,7 +122,7 @@ arm_alu(arm_cpu *cpu)
 		default:
 			if (rs == 0) {
 				operand = rm;
-				carry = cpu->get_c();
+				carry = get_c(cpu);
 			} else if ((rs & 0x1F) == 0) {
 				operand = rm;
 				carry = rm >> 31;
@@ -185,21 +185,21 @@ arm_alu(arm_cpu *cpu)
 		break;
 	case ADC:
 	{
-		u64 r64 = (u64)rn + operand + cpu->get_c();
+		u64 r64 = (u64)rn + operand + get_c(cpu);
 		r = r64;
 		ADC_FLAGS_(rn, operand);
 		break;
 	}
 	case SBC:
 	{
-		s64 r64 = (s64)rn - operand - !cpu->get_c();
+		s64 r64 = (s64)rn - operand - !get_c(cpu);
 		r = r64;
 		SBC_FLAGS_(rn, operand);
 		break;
 	}
 	case RSC:
 	{
-		s64 r64 = (s64)operand - rn - !cpu->get_c();
+		s64 r64 = (s64)operand - rn - !get_c(cpu);
 		r = r64;
 		SBC_FLAGS_(operand, rn);
 		break;
@@ -235,7 +235,7 @@ arm_alu(arm_cpu *cpu)
 	if (OP == TST || OP == TEQ || OP == CMP || OP == CMN) {
 		if (S && rd == 15) {
 			cpu->cpsr = cpu->spsr();
-			cpu->on_cpsr_write();
+			on_cpsr_write(cpu);
 		}
 	} else {
 		if (S && rd == 15) {
@@ -251,9 +251,9 @@ arm_alu(arm_cpu *cpu)
 		if (OP == AND || OP == EOR || OP == TST || OP == TEQ ||
 				OP == ORR || OP == MOV || OP == BIC ||
 				OP == MVN) {
-			cpu->set_nzc(r >> 31, r == 0, carry);
+			set_nzc(cpu, r >> 31, r == 0, carry);
 		} else {
-			cpu->set_nzcv(r >> 31, r == 0, carry, overflow);
+			set_nzcv(cpu, r >> 31, r == 0, carry, overflow);
 		}
 	}
 }

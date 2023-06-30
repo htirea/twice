@@ -12,7 +12,7 @@ arm_undefined(arm_cpu *cpu)
 
 	cpu->cpsr &= ~0xBF;
 	cpu->cpsr |= 0x9B;
-	cpu->switch_mode(MODE_UND);
+	switch_mode(cpu, MODE_UND);
 	cpu->interrupt = false;
 
 	cpu->gpr[14] = cpu->pc() - 4;
@@ -27,7 +27,7 @@ arm_swi(arm_cpu *cpu)
 
 	cpu->cpsr &= ~0xBF;
 	cpu->cpsr |= 0x93;
-	cpu->switch_mode(MODE_SVC);
+	switch_mode(cpu, MODE_SVC);
 	cpu->interrupt = false;
 
 	cpu->gpr[14] = cpu->pc() - 4;

@@ -93,14 +93,14 @@ thumb_b_pair(arm_cpu *cpu)
 		cpu->thumb_jump(jump_addr & ~1);
 		cpu->gpr[14] = ret_addr | 1;
 	} else {
-		if (cpu->is_arm7()) {
+		if (is_arm7(cpu)) {
 			thumb_undefined(cpu);
 			return;
 		}
 
 		u32 ret_addr = cpu->pc() - 2;
 		u32 jump_addr = cpu->gpr[14] + ((cpu->opcode & 0x7FF) << 1);
-		cpu->set_t(0);
+		set_t(cpu, 0);
 		cpu->arm_jump(jump_addr & ~3);
 		cpu->gpr[14] = ret_addr | 1;
 	}
@@ -116,7 +116,7 @@ thumb_bx(arm_cpu *cpu)
 inline void
 thumb_blx2(arm_cpu *cpu)
 {
-	if (cpu->is_arm7()) {
+	if (is_arm7(cpu)) {
 		thumb_undefined(cpu);
 		return;
 	}

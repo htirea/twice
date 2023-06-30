@@ -1,6 +1,7 @@
 #ifndef TWICE_ARM_COP_H
 #define TWICE_ARM_COP_H
 
+#include "nds/arm/arm9.h"
 #include "nds/arm/interpreter/arm/exception.h"
 #include "nds/arm/interpreter/util.h"
 
@@ -16,7 +17,7 @@ arm_cop_reg(arm_cpu *cpu)
 	u32 cm = cpu->opcode & 0xF;
 
 	if (L == 0) {
-		if (cpu->is_arm7()) {
+		if (is_arm7(cpu)) {
 			fprintf(stderr, "arm7 mcr\n");
 			return;
 		}
@@ -38,7 +39,7 @@ arm_cop_reg(arm_cpu *cpu)
 	} else {
 		u32 value;
 
-		if (cpu->is_arm7()) {
+		if (is_arm7(cpu)) {
 			if (cp_num != 14) {
 				fprintf(stderr, "arm7 mrc with cp_num %u\n",
 						cp_num);
@@ -59,7 +60,7 @@ arm_cop_reg(arm_cpu *cpu)
 				throw twice_error("arm9 mrc op1 != 0");
 			}
 
-			if (!cpu->in_privileged_mode()) {
+			if (!in_privileged_mode(cpu)) {
 				throw twice_error(
 						"arm9 mrc not in privileged mode");
 			}

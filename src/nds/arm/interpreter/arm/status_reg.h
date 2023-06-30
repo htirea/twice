@@ -36,7 +36,7 @@ arm_msr(arm_cpu *cpu)
 	u32 write_mask = 0;
 
 	if (R == 0) {
-		if (cpu->in_privileged_mode()) {
+		if (in_privileged_mode(cpu)) {
 			for (int i = 0; i < 3; i++) {
 				if (field_mask & BIT(i)) {
 					write_mask |= 0xFF << 8 * i;
@@ -48,13 +48,13 @@ arm_msr(arm_cpu *cpu)
 		}
 
 		cpu->cpsr = (cpu->cpsr & ~write_mask) | (operand & write_mask);
-		cpu->on_cpsr_write();
+		on_cpsr_write(cpu);
 
 		if (operand & write_mask & BIT(5)) {
 			throw twice_error("msr changed thumb bit");
 		}
 	} else {
-		if (cpu->current_mode_has_spsr()) {
+		if (current_mode_has_spsr(cpu)) {
 			for (int i = 0; i < 4; i++) {
 				if (field_mask & BIT(i)) {
 					write_mask |= 0xFF << 8 * i;

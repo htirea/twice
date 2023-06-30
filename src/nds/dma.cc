@@ -1,6 +1,6 @@
 #include "nds/nds.h"
 
-#include "nds/arm/arm.h"
+#include "nds/arm/arm_inlines.h"
 #include "nds/mem/bus.h"
 
 #include "libtwice/exception.h"
@@ -43,7 +43,7 @@ run_dma(nds_ctx *nds)
 		auto& dmacnt = nds->dmacnt_h[cpuid][channel];
 
 		if (dmacnt & BIT(14)) {
-			nds->cpu[cpuid]->request_interrupt(8 + channel);
+			request_interrupt(nds->cpu[cpuid], 8 + channel);
 		}
 
 		if (dmacnt & BIT(9)) {

@@ -13,7 +13,7 @@ saturated_add(arm_cpu *cpu, u32 a, u32 b)
 
 	if (((a ^ r) & (b ^ r)) >> 31) {
 		r = r >> 31 ? 0x7FFFFFFF : 0x80000000;
-		cpu->set_q(1);
+		set_q(cpu, 1);
 	}
 
 	return r;
@@ -26,7 +26,7 @@ saturated_sub(arm_cpu *cpu, u32 a, u32 b)
 
 	if (((a ^ b) & (a ^ r)) >> 31) {
 		r = r >> 31 ? 0x7FFFFFFF : 0x80000000;
-		cpu->set_q(1);
+		set_q(cpu, 1);
 	}
 
 	return r;
@@ -36,7 +36,7 @@ template <int OP>
 void
 arm_sat_add_sub(arm_cpu *cpu)
 {
-	if (cpu->is_arm7()) {
+	if (is_arm7(cpu)) {
 		arm_undefined(cpu);
 		return;
 	}
@@ -73,7 +73,7 @@ sticky_add(arm_cpu *cpu, u32 a, u32 b)
 	u32 r = a + b;
 
 	if (((a ^ r) & (b ^ r)) >> 31) {
-		cpu->set_q(1);
+		set_q(cpu, 1);
 	}
 
 	return r;
@@ -83,7 +83,7 @@ template <int OP, int Y, int X>
 void
 arm_dsp_multiply(arm_cpu *cpu)
 {
-	if (cpu->is_arm7()) {
+	if (is_arm7(cpu)) {
 		return;
 	}
 

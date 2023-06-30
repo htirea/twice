@@ -49,32 +49,32 @@ arm_block_dt(arm_cpu *cpu)
 
 			if (register_list >> 15) {
 				u32 value = cpu->load32(addr);
-				if (!cpu->is_arm7()) {
+				if (!is_arm7(cpu)) {
 					arm_do_bx(cpu, value);
 				} else {
 					cpu->arm_jump(value & ~3);
 				}
 			}
 
-			if (cpu->is_arm7() && register_list == 0) {
+			if (is_arm7(cpu) && register_list == 0) {
 				cpu->arm_jump(cpu->load32(addr) & ~3);
 			}
 		} else if (!(register_list >> 15)) {
 			TWICE_ARM_LDM_(0, 7, cpu->gpr, 0);
 
-			if (cpu->in_fiq_mode()) {
+			if (in_fiq_mode(cpu)) {
 				TWICE_ARM_LDM_(8, 12, cpu->fiqr, -8);
 			} else {
 				TWICE_ARM_LDM_(8, 12, cpu->gpr, 0);
 			}
 
-			if (cpu->in_sys_or_usr_mode()) {
+			if (in_sys_or_usr_mode(cpu)) {
 				TWICE_ARM_LDM_(13, 14, cpu->gpr, 0);
 			} else {
 				TWICE_ARM_LDM_(13, 14, cpu->bankedr[0], -13);
 			}
 
-			if (cpu->is_arm7() && register_list == 0) {
+			if (is_arm7(cpu) && register_list == 0) {
 				cpu->arm_jump(cpu->load32(addr) & ~3);
 			}
 		} else {
@@ -82,7 +82,7 @@ arm_block_dt(arm_cpu *cpu)
 
 			u32 value = cpu->load32(addr);
 			cpu->cpsr = cpu->spsr();
-			if (cpu->in_thumb()) {
+			if (in_thumb(cpu)) {
 				cpu->thumb_jump(value & ~1);
 			} else {
 				cpu->arm_jump(value & ~3);
@@ -99,7 +99,7 @@ arm_block_dt(arm_cpu *cpu)
 			if (register_list & BIT(rn)) {
 				bool only = register_list == BIT(rn);
 				bool last = register_list >> rn == 1;
-				if (cpu->is_arm9() && (only || !last)) {
+				if (is_arm9(cpu) && (only || !last)) {
 					cpu->gpr[rn] = writeback_value;
 				}
 			} else {
@@ -109,7 +109,7 @@ arm_block_dt(arm_cpu *cpu)
 
 		/* mode switch done after writeback */
 		if (cpsr_written) {
-			cpu->on_cpsr_write();
+			on_cpsr_write(cpu);
 		}
 	} else {
 		if (writeback) {
@@ -120,7 +120,7 @@ arm_block_dt(arm_cpu *cpu)
 			 */
 			bool in_rlist = register_list & BIT(rn);
 			bool not_first = register_list & MASK(rn);
-			if (in_rlist && cpu->is_arm7() && not_first) {
+			if (in_rlist && is_arm7(cpu) && not_first) {
 				cpu->gpr[rn] = writeback_value;
 			}
 		}
@@ -130,13 +130,13 @@ arm_block_dt(arm_cpu *cpu)
 		} else {
 			TWICE_ARM_STM_(0, 7, cpu->gpr, 0);
 
-			if (cpu->in_fiq_mode()) {
+			if (in_fiq_mode(cpu)) {
 				TWICE_ARM_STM_(8, 12, cpu->fiqr, -8);
 			} else {
 				TWICE_ARM_STM_(8, 12, cpu->gpr, 0);
 			}
 
-			if (cpu->in_sys_or_usr_mode()) {
+			if (in_sys_or_usr_mode(cpu)) {
 				TWICE_ARM_STM_(13, 14, cpu->gpr, 0);
 			} else {
 				TWICE_ARM_STM_(13, 14, cpu->bankedr[0], -13);
@@ -147,7 +147,7 @@ arm_block_dt(arm_cpu *cpu)
 			cpu->store32(addr, cpu->pc() + 4);
 		}
 
-		if (cpu->is_arm7() && register_list == 0) {
+		if (is_arm7(cpu) && register_list == 0) {
 			cpu->store32(addr, cpu->pc() + 4);
 		}
 

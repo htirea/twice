@@ -32,7 +32,7 @@ thumb_alu1_2(arm_cpu *cpu)
 	}
 
 	cpu->gpr[rd] = r;
-	cpu->set_nzcv(r >> 31, r == 0, carry, overflow);
+	set_nzcv(cpu, r >> 31, r == 0, carry, overflow);
 }
 
 template <int OP, int RD>
@@ -60,9 +60,9 @@ thumb_alu3(arm_cpu *cpu)
 	}
 
 	if (OP == 0) {
-		cpu->set_nz(r >> 31, r == 0);
+		set_nz(cpu, r >> 31, r == 0);
 	} else {
-		cpu->set_nzcv(r >> 31, r == 0, carry, overflow);
+		set_nzcv(cpu, r >> 31, r == 0, carry, overflow);
 	}
 }
 
@@ -80,10 +80,10 @@ thumb_alu4(arm_cpu *cpu)
 	case 0:
 		if (IMM == 0) {
 			r = rm;
-			cpu->set_nz(r >> 31, r == 0);
+			set_nz(cpu, r >> 31, r == 0);
 		} else {
 			r = rm << IMM;
-			cpu->set_nzc(r >> 31, r == 0, rm & BIT(32 - IMM));
+			set_nzc(cpu, r >> 31, r == 0, rm & BIT(32 - IMM));
 		}
 		break;
 	case 1:
@@ -94,7 +94,7 @@ thumb_alu4(arm_cpu *cpu)
 			r = rm >> IMM;
 			carry = rm & BIT(IMM - 1);
 		}
-		cpu->set_nzc(r >> 31, r == 0, carry);
+		set_nzc(cpu, r >> 31, r == 0, carry);
 		break;
 	case 2:
 		if (IMM == 0) {
@@ -108,7 +108,7 @@ thumb_alu4(arm_cpu *cpu)
 			r = (s32)rm >> IMM;
 			carry = rm & BIT(IMM - 1);
 		}
-		cpu->set_nzc(r >> 31, r == 0, carry);
+		set_nzc(cpu, r >> 31, r == 0, carry);
 		break;
 	}
 
@@ -148,59 +148,59 @@ thumb_alu5(arm_cpu *cpu)
 	switch (OP) {
 	case AND:
 		r = cpu->gpr[rd] = operand & rm;
-		cpu->set_nz(r >> 31, r == 0);
+		set_nz(cpu, r >> 31, r == 0);
 		break;
 	case EOR:
 		r = cpu->gpr[rd] = operand ^ rm;
-		cpu->set_nz(r >> 31, r == 0);
+		set_nz(cpu, r >> 31, r == 0);
 		break;
 	case LSL:
 		rm &= 0xFF;
 		if (rm == 0) {
 			r = operand;
-			cpu->set_nz(r >> 31, r == 0);
+			set_nz(cpu, r >> 31, r == 0);
 		} else if (rm < 32) {
 			carry = operand & BIT(32 - rm);
 			r = cpu->gpr[rd] = operand << rm;
-			cpu->set_nzc(r >> 31, r == 0, carry);
+			set_nzc(cpu, r >> 31, r == 0, carry);
 		} else if (rm == 32) {
 			carry = operand & 1;
 			r = cpu->gpr[rd] = 0;
-			cpu->set_nzc(r >> 31, r == 0, carry);
+			set_nzc(cpu, r >> 31, r == 0, carry);
 		} else {
 			carry = 0;
 			r = cpu->gpr[rd] = 0;
-			cpu->set_nzc(r >> 31, r == 0, carry);
+			set_nzc(cpu, r >> 31, r == 0, carry);
 		}
 		break;
 	case LSR:
 		rm &= 0xFF;
 		if (rm == 0) {
 			r = operand;
-			cpu->set_nz(r >> 31, r == 0);
+			set_nz(cpu, r >> 31, r == 0);
 		} else if (rm < 32) {
 			carry = operand & BIT(rm - 1);
 			r = cpu->gpr[rd] = operand >> rm;
-			cpu->set_nzc(r >> 31, r == 0, carry);
+			set_nzc(cpu, r >> 31, r == 0, carry);
 		} else if (rm == 32) {
 			carry = operand >> 31;
 			r = cpu->gpr[rd] = 0;
-			cpu->set_nzc(r >> 31, r == 0, carry);
+			set_nzc(cpu, r >> 31, r == 0, carry);
 		} else {
 			carry = 0;
 			r = cpu->gpr[rd] = 0;
-			cpu->set_nzc(r >> 31, r == 0, carry);
+			set_nzc(cpu, r >> 31, r == 0, carry);
 		}
 		break;
 	case ASR:
 		rm &= 0xFF;
 		if (rm == 0) {
 			r = operand;
-			cpu->set_nz(r >> 31, r == 0);
+			set_nz(cpu, r >> 31, r == 0);
 		} else if (rm < 32) {
 			carry = operand & BIT(rm - 1);
 			r = cpu->gpr[rd] = (s32)operand >> rm;
-			cpu->set_nzc(r >> 31, r == 0, carry);
+			set_nzc(cpu, r >> 31, r == 0, carry);
 		} else {
 			carry = operand >> 31;
 			if (operand >> 31 == 0) {
@@ -208,74 +208,74 @@ thumb_alu5(arm_cpu *cpu)
 			} else {
 				r = cpu->gpr[rd] = 0xFFFFFFFF;
 			}
-			cpu->set_nzc(r >> 31, r == 0, carry);
+			set_nzc(cpu, r >> 31, r == 0, carry);
 		}
 		break;
 	case ADC:
 	{
-		u64 r64 = operand + rm + cpu->get_c();
+		u64 r64 = operand + rm + get_c(cpu);
 		r = cpu->gpr[rd] = r64;
 		ADC_FLAGS_(operand, rm);
-		cpu->set_nzcv(r >> 31, r == 0, carry, overflow);
+		set_nzcv(cpu, r >> 31, r == 0, carry, overflow);
 		break;
 	}
 	case SBC:
 	{
-		s64 r64 = operand - rm - !cpu->get_c();
+		s64 r64 = operand - rm - !get_c(cpu);
 		r = cpu->gpr[rd] = r64;
 		SBC_FLAGS_(operand, rm);
-		cpu->set_nzcv(r >> 31, r == 0, carry, overflow);
+		set_nzcv(cpu, r >> 31, r == 0, carry, overflow);
 		break;
 	}
 	case ROR:
 		rm &= 0xFF;
 		if (rm == 0) {
 			r = operand;
-			cpu->set_nz(r >> 31, r == 0);
+			set_nz(cpu, r >> 31, r == 0);
 		} else if ((rm & 0x1F) == 0) {
 			carry = operand >> 31;
 			r = operand;
-			cpu->set_nzc(r >> 31, r == 0, carry);
+			set_nzc(cpu, r >> 31, r == 0, carry);
 		} else {
 			carry = operand & BIT((rm & 0x1F) - 1);
 			r = cpu->gpr[rd] = std::rotr(operand, rm & 0x1F);
-			cpu->set_nzc(r >> 31, r == 0, carry);
+			set_nzc(cpu, r >> 31, r == 0, carry);
 		}
 		break;
 	case TST:
 		r = operand & rm;
-		cpu->set_nz(r >> 31, r == 0);
+		set_nz(cpu, r >> 31, r == 0);
 		break;
 	case NEG:
 		r = cpu->gpr[rd] = -rm;
 		SUB_FLAGS_(0, rm);
-		cpu->set_nzcv(r >> 31, r == 0, carry, overflow);
+		set_nzcv(cpu, r >> 31, r == 0, carry, overflow);
 		break;
 	case CMP:
 		r = operand - rm;
 		SUB_FLAGS_(operand, rm);
-		cpu->set_nzcv(r >> 31, r == 0, carry, overflow);
+		set_nzcv(cpu, r >> 31, r == 0, carry, overflow);
 		break;
 	case CMN:
 		r = operand + rm;
 		ADD_FLAGS_(operand, rm);
-		cpu->set_nzcv(r >> 31, r == 0, carry, overflow);
+		set_nzcv(cpu, r >> 31, r == 0, carry, overflow);
 		break;
 	case ORR:
 		r = cpu->gpr[rd] = operand | rm;
-		cpu->set_nz(r >> 31, r == 0);
+		set_nz(cpu, r >> 31, r == 0);
 		break;
 	case MUL:
 		r = cpu->gpr[rd] = operand * rm;
-		cpu->set_nz(r >> 31, r == 0);
+		set_nz(cpu, r >> 31, r == 0);
 		break;
 	case BIC:
 		r = cpu->gpr[rd] = operand & ~rm;
-		cpu->set_nz(r >> 31, r == 0);
+		set_nz(cpu, r >> 31, r == 0);
 		break;
 	case MVN:
 		r = cpu->gpr[rd] = ~rm;
-		cpu->set_nz(r >> 31, r == 0);
+		set_nz(cpu, r >> 31, r == 0);
 	}
 }
 
@@ -322,7 +322,7 @@ thumb_alu8(arm_cpu *cpu)
 		bool carry;
 		bool overflow;
 		SUB_FLAGS_(rn, rm);
-		cpu->set_nzcv(r >> 31, r == 0, carry, overflow);
+		set_nzcv(cpu, r >> 31, r == 0, carry, overflow);
 	} else {
 		if (rd == 15) {
 			cpu->thumb_jump(rm & ~1);

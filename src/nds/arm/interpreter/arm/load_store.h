@@ -44,8 +44,7 @@ arm_sdt(arm_cpu *cpu)
 			break;
 		default: /* case 3 */
 			if (shift_imm == 0) {
-				offset = cpu->get_c() << 31 |
-						cpu->gpr[rm] >> 1;
+				offset = get_c(cpu) << 31 | cpu->gpr[rm] >> 1;
 			} else {
 				offset = std::rotr(cpu->gpr[rm], shift_imm);
 			}
@@ -80,7 +79,7 @@ arm_sdt(arm_cpu *cpu)
 		}
 
 		if (rd == 15) {
-			if (cpu->is_arm9()) {
+			if (is_arm9(cpu)) {
 				arm_do_bx(cpu, value);
 			} else {
 				cpu->arm_jump(value & ~3);

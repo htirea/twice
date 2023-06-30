@@ -9,7 +9,7 @@ namespace twice {
 inline void
 arm_clz(arm_cpu *cpu)
 {
-	if (cpu->is_arm7()) {
+	if (is_arm7(cpu)) {
 		arm_undefined(cpu);
 		return;
 	}

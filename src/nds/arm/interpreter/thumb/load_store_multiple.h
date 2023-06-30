@@ -27,7 +27,7 @@ thumb_ldm_stm(arm_cpu *cpu)
 	if (L == 1) {
 		TWICE_ARM_LDM_(0, 7, cpu->gpr, 0);
 
-		if (cpu->is_arm7() && register_list == 0) {
+		if (is_arm7(cpu) && register_list == 0) {
 			cpu->thumb_jump(cpu->load32(addr) & ~1);
 		}
 
@@ -46,13 +46,13 @@ thumb_ldm_stm(arm_cpu *cpu)
 		 */
 		bool in_rlist = register_list & BIT(RN);
 		bool not_first = register_list & MASK(RN);
-		if (in_rlist && cpu->is_arm7() && not_first) {
+		if (in_rlist && is_arm7(cpu) && not_first) {
 			cpu->gpr[RN] = writeback_value;
 		}
 
 		TWICE_ARM_STM_(0, 7, cpu->gpr, 0);
 
-		if (cpu->is_arm7() && register_list == 0) {
+		if (is_arm7(cpu) && register_list == 0) {
 			cpu->store32(addr, cpu->pc() + 2);
 		}
 
@@ -73,7 +73,7 @@ thumb_push_pop(arm_cpu *cpu)
 
 		if (R == 1) {
 			u32 value = cpu->load32(addr);
-			if (cpu->is_arm9()) {
+			if (is_arm9(cpu)) {
 				thumb_do_bx(cpu, value);
 			} else {
 				cpu->thumb_jump(value & ~1);

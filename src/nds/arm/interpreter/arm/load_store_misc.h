@@ -75,7 +75,7 @@ arm_misc_dt(arm_cpu *cpu)
 			cpu->gpr[rn] += offset;
 		}
 
-		if (cpu->is_arm9()) {
+		if (is_arm9(cpu)) {
 			if (rd & 1) {
 				fprintf(stderr, "ldrd odd reg\n");
 				rd &= ~1;
@@ -91,7 +91,7 @@ arm_misc_dt(arm_cpu *cpu)
 			}
 		}
 	} else if (L == 0 && S == 1 && H == 1) {
-		if (cpu->is_arm7()) {
+		if (is_arm7(cpu)) {
 			return;
 		}
 

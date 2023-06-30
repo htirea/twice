@@ -1,7 +1,7 @@
 #ifndef TWICE_IO_H
 #define TWICE_IO_H
 
-#include "nds/arm/arm.h"
+#include "nds/arm/arm_inlines.h"
 #include "nds/nds.h"
 
 #define IO_READ8_FROM_32(addr, dest)                                          \
@@ -94,7 +94,7 @@
 #define IO_WRITE8_COMMON(cpuid_)                                              \
 	case 0x4000208:                                                       \
 		nds->cpu[(cpuid_)]->IME = value & 1;                          \
-		nds->cpu[(cpuid_)]->check_interrupt();                        \
+		check_interrupt(nds->cpu[cpuid_]);                            \
 		return
 
 #define IO_WRITE16_COMMON(cpuid_)                                             \
@@ -110,7 +110,7 @@
 		return;                                                       \
 	case 0x4000208:                                                       \
 		nds->cpu[(cpuid_)]->IME = value & 1;                          \
-		nds->cpu[(cpuid_)]->check_interrupt();                        \
+		check_interrupt(nds->cpu[cpuid_]);                            \
 		return
 
 #define IO_WRITE32_COMMON(cpuid_)                                             \
@@ -166,15 +166,15 @@
 		return;                                                       \
 	case 0x4000208:                                                       \
 		nds->cpu[(cpuid_)]->IME = value & 1;                          \
-		nds->cpu[(cpuid_)]->check_interrupt();                        \
+		check_interrupt(nds->cpu[cpuid_]);                            \
 		return;                                                       \
 	case 0x4000210:                                                       \
 		nds->cpu[(cpuid_)]->IE = value;                               \
-		nds->cpu[(cpuid_)]->check_interrupt();                        \
+		check_interrupt(nds->cpu[cpuid_]);                            \
 		return;                                                       \
 	case 0x4000214:                                                       \
 		nds->cpu[(cpuid_)]->IF &= ~value;                             \
-		nds->cpu[(cpuid_)]->check_interrupt();                        \
+		check_interrupt(nds->cpu[cpuid_]);                            \
 		return
 
 namespace twice {

@@ -17,15 +17,15 @@ arm_cpu::arm_cpu(nds_ctx *nds, int cpuid)
 }
 
 void
-arm_cpu::run()
+run_cpu(arm_cpu *cpu)
 {
-	if (halted) {
-		cycles = target_cycles;
+	if (cpu->halted) {
+		cpu->cycles = cpu->target_cycles;
 		return;
 	}
 
-	while (cycles < target_cycles) {
-		step();
+	while (cpu->cycles < cpu->target_cycles) {
+		cpu->step();
 	}
 }
 
@@ -52,8 +52,8 @@ mode_bits_to_mode(u32 bits)
 	throw twice_error("invalid mode bits");
 }
 
-void
-arm_cpu::swap_registers(u32 old_mode, u32 new_mode)
+static void
+swap_registers(arm_cpu *cpu, u32 old_mode, u32 new_mode)
 {
 	static_assert((MODE_SYS & 7) == (MODE_USR & 7));
 	old_mode &= 7;
@@ -63,39 +63,39 @@ arm_cpu::swap_registers(u32 old_mode, u32 new_mode)
 		return;
 	}
 
-	bankedr[old_mode][0] = gpr[13];
-	bankedr[old_mode][1] = gpr[14];
-	bankedr[old_mode][2] = bankedr[0][2];
+	cpu->bankedr[old_mode][0] = cpu->gpr[13];
+	cpu->bankedr[old_mode][1] = cpu->gpr[14];
+	cpu->bankedr[old_mode][2] = cpu->bankedr[0][2];
 
-	gpr[13] = bankedr[new_mode][0];
-	gpr[14] = bankedr[new_mode][1];
-	bankedr[0][2] = bankedr[new_mode][2];
+	cpu->gpr[13] = cpu->bankedr[new_mode][0];
+	cpu->gpr[14] = cpu->bankedr[new_mode][1];
+	cpu->bankedr[0][2] = cpu->bankedr[new_mode][2];
 
 	if (new_mode == MODE_FIQ || old_mode == MODE_FIQ) {
 		for (int i = 0; i < 5; i++) {
-			std::swap(gpr[8 + i], fiqr[i]);
+			std::swap(cpu->gpr[8 + i], cpu->fiqr[i]);
 		}
 	}
 }
 
 void
-arm_cpu::switch_mode(u32 new_mode)
+switch_mode(arm_cpu *cpu, u32 new_mode)
 {
-	if (new_mode != mode) {
-		swap_registers(mode, new_mode);
+	if (new_mode != cpu->mode) {
+		swap_registers(cpu, cpu->mode, new_mode);
 	}
 
-	mode = new_mode;
+	cpu->mode = new_mode;
 }
 
 void
-arm_cpu::on_cpsr_write()
+on_cpsr_write(arm_cpu *cpu)
 {
-	u32 new_mode = mode_bits_to_mode(cpsr & 0x1F);
+	u32 new_mode = mode_bits_to_mode(cpu->cpsr & 0x1F);
 
-	switch_mode(new_mode);
+	switch_mode(cpu, new_mode);
 
-	check_interrupt();
+	check_interrupt(cpu);
 }
 
 } // namespace twice

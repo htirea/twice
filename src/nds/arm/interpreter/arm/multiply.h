@@ -23,7 +23,7 @@ arm_multiply(arm_cpu *cpu)
 	cpu->gpr[rd] = r;
 
 	if (S) {
-		cpu->set_nz(r >> 31, r == 0);
+		set_nz(cpu, r >> 31, r == 0);
 	}
 }
 
@@ -52,7 +52,7 @@ arm_multiply_long(arm_cpu *cpu)
 	cpu->gpr[rdlo] = r;
 
 	if (S) {
-		cpu->set_nz(r >> 63, r == 0);
+		set_nz(cpu, r >> 63, r == 0);
 	}
 }
 

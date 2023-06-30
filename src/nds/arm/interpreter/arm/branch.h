@@ -21,7 +21,7 @@ arm_b(arm_cpu *cpu)
 inline void
 arm_blx2(arm_cpu *cpu)
 {
-	if (cpu->is_arm7()) {
+	if (is_arm7(cpu)) {
 		arm_undefined(cpu);
 		return;
 	}
