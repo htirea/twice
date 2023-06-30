@@ -16,19 +16,6 @@ arm_cpu::arm_cpu(nds_ctx *nds, int cpuid)
 {
 }
 
-void
-run_cpu(arm_cpu *cpu)
-{
-	if (cpu->halted) {
-		cpu->cycles = cpu->target_cycles;
-		return;
-	}
-
-	while (cpu->cycles < cpu->target_cycles) {
-		cpu->step();
-	}
-}
-
 static u32
 mode_bits_to_mode(u32 bits)
 {
@@ -89,22 +76,6 @@ arm_switch_mode(arm_cpu *cpu, u32 new_mode)
 }
 
 void
-arm_on_cpsr_write(arm_cpu *cpu)
-{
-	u32 new_mode = mode_bits_to_mode(cpu->cpsr & 0x1F);
-
-	arm_switch_mode(cpu, new_mode);
-
-	arm_check_interrupt(cpu);
-}
-
-void
-arm_force_stop(arm_cpu *cpu)
-{
-	cpu->target_cycles = cpu->cycles;
-}
-
-void
 arm_check_interrupt(arm_cpu *cpu)
 {
 	cpu->interrupt = !(cpu->cpsr & BIT(7)) && (cpu->IME & 1) &&
@@ -112,9 +83,12 @@ arm_check_interrupt(arm_cpu *cpu)
 }
 
 void
-arm_request_interrupt(arm_cpu *cpu, int bit)
+arm_on_cpsr_write(arm_cpu *cpu)
 {
-	cpu->IF |= BIT(bit);
+	u32 new_mode = mode_bits_to_mode(cpu->cpsr & 0x1F);
+
+	arm_switch_mode(cpu, new_mode);
+
 	arm_check_interrupt(cpu);
 }
 
@@ -179,6 +153,32 @@ arm_check_cond(arm_cpu *cpu, u32 cond)
 
 	/* if this is changed then change blx(1) decoding as well */
 	return false;
+}
+
+void
+run_cpu(arm_cpu *cpu)
+{
+	if (cpu->halted) {
+		cpu->cycles = cpu->target_cycles;
+		return;
+	}
+
+	while (cpu->cycles < cpu->target_cycles) {
+		cpu->step();
+	}
+}
+
+void
+force_stop_cpu(arm_cpu *cpu)
+{
+	cpu->target_cycles = cpu->cycles;
+}
+
+void
+request_interrupt(arm_cpu *cpu, int bit)
+{
+	cpu->IF |= BIT(bit);
+	arm_check_interrupt(cpu);
 }
 
 } // namespace twice

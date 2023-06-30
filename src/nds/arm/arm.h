@@ -73,14 +73,15 @@ struct arm_cpu {
 	virtual void check_halted() = 0;
 };
 
-void run_cpu(arm_cpu *cpu);
 void arm_switch_mode(arm_cpu *cpu, u32 new_mode);
-void arm_on_cpsr_write(arm_cpu *cpu);
-void arm_force_stop(arm_cpu *cpu);
 void arm_check_interrupt(arm_cpu *cpu);
-void arm_request_interrupt(arm_cpu *cpu, int bit);
+void arm_on_cpsr_write(arm_cpu *cpu);
 void arm_do_irq(arm_cpu *cpu);
 bool arm_check_cond(arm_cpu *cpu, u32 cond);
+
+void run_cpu(arm_cpu *cpu);
+void force_stop_cpu(arm_cpu *cpu);
+void request_interrupt(arm_cpu *cpu, int bit);
 
 } // namespace twice
 

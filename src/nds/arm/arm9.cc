@@ -270,7 +270,7 @@ arm9_cpu::cp15_write(u32 reg, u32 value)
 	}
 	case 0x704:
 		halted = true;
-		arm_force_stop(this);
+		force_stop_cpu(this);
 		break;
 	default:
 		fprintf(stderr, "unhandled cp15 write to %03X\n", reg);
