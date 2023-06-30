@@ -73,12 +73,6 @@ struct arm_cpu {
 	virtual void check_halted() = 0;
 };
 
-inline bool
-arm_in_thumb(arm_cpu *cpu)
-{
-	return cpu->cpsr & BIT(5);
-}
-
 void run_cpu(arm_cpu *cpu);
 void arm_switch_mode(arm_cpu *cpu, u32 new_mode);
 void arm_on_cpsr_write(arm_cpu *cpu);

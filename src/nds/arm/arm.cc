@@ -122,7 +122,7 @@ void
 arm_do_irq(arm_cpu *cpu)
 {
 	u32 old_cpsr = cpu->cpsr;
-	u32 ret_addr = cpu->pc() - (arm_in_thumb(cpu) ? 2 : 4) + 4;
+	u32 ret_addr = cpu->pc() - (cpu->cpsr & 0x20 ? 2 : 4) + 4;
 
 	cpu->cpsr &= ~0xBF;
 	cpu->cpsr |= 0x92;

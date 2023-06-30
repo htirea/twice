@@ -82,7 +82,7 @@ arm_block_dt(arm_cpu *cpu)
 
 			u32 value = cpu->load32(addr);
 			cpu->cpsr = cpu->spsr();
-			if (arm_in_thumb(cpu)) {
+			if (cpu->cpsr & 0x20) {
 				cpu->thumb_jump(value & ~1);
 			} else {
 				cpu->arm_jump(value & ~3);

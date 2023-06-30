@@ -14,7 +14,7 @@ arm7_cpu::arm7_cpu(nds_ctx *nds)
 void
 arm7_cpu::step()
 {
-	if (arm_in_thumb(this)) {
+	if (cpsr & 0x20) {
 		pc() += 2;
 		opcode = pipeline[0];
 		pipeline[0] = pipeline[1];
@@ -62,7 +62,7 @@ arm7_cpu::jump_cpsr(u32 addr)
 	cpsr = spsr();
 	arm_on_cpsr_write(this);
 
-	if (arm_in_thumb(this)) {
+	if (cpsr & 0x20) {
 		thumb_jump(addr & ~1);
 	} else {
 		arm_jump(addr & ~3);
