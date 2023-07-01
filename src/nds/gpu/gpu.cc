@@ -381,11 +381,6 @@ graphics_display_scanline(gpu_2d_engine *gpu)
 	}
 }
 
-static const u32 text_bg_widths[] = { 256, 512, 256, 512 };
-static const u32 text_bg_heights[] = { 256, 256, 512, 512 };
-static const u32 bitmap_bg_widths[] = { 128, 256, 512, 512 };
-static const u32 bitmap_bg_heights[] = { 128, 256, 256, 512 };
-
 template <typename T>
 static T
 read_bg_data(gpu_2d_engine *gpu, u32 offset)
@@ -442,6 +437,9 @@ render_text_bg(gpu_2d_engine *gpu, int bg)
 		render_3d(gpu);
 		return;
 	}
+
+	u32 text_bg_widths[] = { 256, 512, 256, 512 };
+	u32 text_bg_heights[] = { 256, 256, 512, 512 };
 
 	u32 bg_priority = gpu->bg_cnt[bg] & 0x3;
 	u32 bg_size_bits = gpu->bg_cnt[bg] >> 14 & 0x3;
@@ -679,6 +677,9 @@ render_extended_text_bg(gpu_2d_engine *gpu, int bg)
 static void
 render_extended_bitmap_bg(gpu_2d_engine *gpu, int bg, bool direct_color)
 {
+	u32 bitmap_bg_widths[] = { 128, 256, 512, 512 };
+	u32 bitmap_bg_heights[] = { 128, 256, 256, 512 };
+
 	u32 bg_priority = gpu->bg_cnt[bg] & 0x3;
 	u32 bg_size_bits = gpu->bg_cnt[bg] >> 14 & 0x3;
 	u32 bg_w = bitmap_bg_widths[bg_size_bits];
