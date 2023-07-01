@@ -8,6 +8,25 @@
 
 namespace twice {
 
+const u16 arm_cond_table[16] = {
+	0xF0F0, /* EQ */
+	0x0F0F, /* NE */
+	0xCCCC, /* CS/HS */
+	0x3333, /* CC/LO */
+	0xFF00, /* MI */
+	0x00FF, /* PL */
+	0xAAAA, /* VS */
+	0x5555, /* VC */
+	0x0C0C, /* HI */
+	0xF3F3, /* LS */
+	0xAA55, /* GE */
+	0x55AA, /* LT */
+	0x0A05, /* GT */
+	0xF5FA, /* LE */
+	0xFFFF, /* AL */
+	0x0000, /* NV -- if this is changed check the decoding for blx(1) */
+};
+
 arm_cpu::arm_cpu(nds_ctx *nds, int cpuid)
 	: nds(nds),
 	  cpuid(cpuid),
@@ -106,53 +125,6 @@ arm_do_irq(arm_cpu *cpu)
 	cpu->gpr[14] = ret_addr;
 	cpu->spsr() = old_cpsr;
 	cpu->arm_jump(cpu->exception_base + 0x18);
-}
-
-bool
-arm_check_cond(arm_cpu *cpu, u32 cond)
-{
-	if (cond == 0xE) {
-		return true;
-	}
-
-	bool N = cpu->cpsr & BIT(31);
-	bool Z = cpu->cpsr & BIT(30);
-	bool C = cpu->cpsr & BIT(29);
-	bool V = cpu->cpsr & BIT(28);
-
-	switch (cond) {
-	case 0x0:
-		return Z;
-	case 0x1:
-		return !Z;
-	case 0x2:
-		return C;
-	case 0x3:
-		return !C;
-	case 0x4:
-		return N;
-	case 0x5:
-		return !N;
-	case 0x6:
-		return V;
-	case 0x7:
-		return !V;
-	case 0x8:
-		return C && !Z;
-	case 0x9:
-		return !C || Z;
-	case 0xA:
-		return N == V;
-	case 0xB:
-		return N != V;
-	case 0xC:
-		return !Z && N == V;
-	case 0xD:
-		return Z || N != V;
-	}
-
-	/* if this is changed then change blx(1) decoding as well */
-	return false;
 }
 
 void

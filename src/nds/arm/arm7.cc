@@ -11,6 +11,12 @@ arm7_cpu::arm7_cpu(nds_ctx *nds)
 {
 }
 
+static bool
+check_cond(u32 cond, u32 cpsr)
+{
+	return arm_cond_table[cond] & (1 << (cpsr >> 28));
+}
+
 void
 arm7_cpu::step()
 {
@@ -26,7 +32,8 @@ arm7_cpu::step()
 		pipeline[0] = pipeline[1];
 		pipeline[1] = fetch32(pc());
 
-		if (arm_check_cond(this, opcode >> 28)) {
+		u32 cond = opcode >> 28;
+		if (cond == 0xE || check_cond(cond, cpsr)) {
 			u32 op1 = opcode >> 20 & 0xFF;
 			u32 op2 = opcode >> 4 & 0xF;
 			arm_inst_lut[op1 << 4 | op2](this);

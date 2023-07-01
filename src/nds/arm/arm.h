@@ -77,11 +77,12 @@ void arm_switch_mode(arm_cpu *cpu, u32 new_mode);
 void arm_check_interrupt(arm_cpu *cpu);
 void arm_on_cpsr_write(arm_cpu *cpu);
 void arm_do_irq(arm_cpu *cpu);
-bool arm_check_cond(arm_cpu *cpu, u32 cond);
 
 void run_cpu(arm_cpu *cpu);
 void force_stop_cpu(arm_cpu *cpu);
 void request_interrupt(arm_cpu *cpu, int bit);
+
+extern const u16 arm_cond_table[16];
 
 } // namespace twice
 
