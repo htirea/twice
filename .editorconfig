@@ -6,4 +6,3 @@ insert_final_newline = true
 
 [*.{c,cc,cpp,h,hh,hpp}]
 indent_style = tab
-indent_size = 8
