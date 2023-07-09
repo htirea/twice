@@ -3,7 +3,7 @@
 
 #include "nds/arm/interpreter/util.h"
 
-namespace twice {
+namespace twice::arm::interpreter {
 
 inline void
 arm_undefined(arm_cpu *cpu)
@@ -42,6 +42,6 @@ arm_bkpt(arm_cpu *cpu)
 	throw twice_error("arm bkpt not implemented");
 }
 
-} // namespace twice
+} // namespace twice::arm::interpreter
 
 #endif

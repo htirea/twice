@@ -3,7 +3,7 @@
 
 #include "nds/arm/interpreter/util.h"
 
-namespace twice {
+namespace twice::arm::interpreter {
 
 template <int A, int S>
 void
@@ -56,6 +56,6 @@ arm_multiply_long(arm_cpu *cpu)
 	}
 }
 
-} // namespace twice
+} // namespace twice::arm::interpreter
 
 #endif

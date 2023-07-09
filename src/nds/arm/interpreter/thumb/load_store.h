@@ -3,7 +3,7 @@
 
 #include "nds/arm/interpreter/util.h"
 
-namespace twice {
+namespace twice::arm::interpreter {
 
 template <int OP, int OFFSET>
 void
@@ -98,6 +98,6 @@ thumb_load_store_sp_relative(arm_cpu *cpu)
 	}
 }
 
-} // namespace twice
+} // namespace twice::arm::interpreter
 
 #endif

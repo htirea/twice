@@ -3,7 +3,7 @@
 
 #include "nds/arm/interpreter/util.h"
 
-namespace twice {
+namespace twice::arm::interpreter {
 
 template <int L, int RN>
 void
@@ -93,6 +93,6 @@ thumb_push_pop(arm_cpu *cpu)
 	}
 }
 
-} // namespace twice
+} // namespace twice::arm::interpreter
 
 #endif

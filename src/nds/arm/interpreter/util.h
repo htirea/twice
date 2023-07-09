@@ -5,7 +5,7 @@
 
 #include "libtwice/exception.h"
 
-namespace twice {
+namespace twice::arm::interpreter {
 
 inline bool
 in_privileged_mode(arm_cpu *cpu)
@@ -184,6 +184,6 @@ arm_do_ldrsb(arm_cpu *cpu, u32 addr)
 		overflow = (((a_) ^ r) & ((b_) ^ r)) >> 31;                   \
 	} while (0)
 
-} // namespace twice
+} // namespace twice::arm::interpreter
 
 #endif

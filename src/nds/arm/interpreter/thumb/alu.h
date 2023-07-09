@@ -3,7 +3,7 @@
 
 #include "nds/arm/interpreter/util.h"
 
-namespace twice {
+namespace twice::arm::interpreter {
 
 template <int OP, int IMM>
 void
@@ -332,6 +332,6 @@ thumb_alu8(arm_cpu *cpu)
 	}
 }
 
-} // namespace twice
+} // namespace twice::arm::interpreter
 
 #endif

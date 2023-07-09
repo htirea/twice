@@ -4,7 +4,7 @@
 #include "nds/arm/interpreter/arm/exception.h"
 #include "nds/arm/interpreter/util.h"
 
-namespace twice {
+namespace twice::arm::interpreter {
 
 inline u32
 saturated_add(arm_cpu *cpu, u32 a, u32 b)
@@ -125,6 +125,6 @@ arm_dsp_multiply(arm_cpu *cpu)
 		break;
 	}
 }
-} // namespace twice
+} // namespace twice::arm::interpreter
 
 #endif

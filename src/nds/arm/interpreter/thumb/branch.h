@@ -4,7 +4,7 @@
 #include "nds/arm/interpreter/thumb/exception.h"
 #include "nds/arm/interpreter/util.h"
 
-namespace twice {
+namespace twice::arm::interpreter {
 
 template <int COND>
 void
@@ -126,6 +126,6 @@ thumb_blx2(arm_cpu *cpu)
 	thumb_do_bx(cpu, addr);
 }
 
-} // namespace twice
+} // namespace twice::arm::interpreter
 
 #endif

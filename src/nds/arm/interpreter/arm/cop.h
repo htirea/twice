@@ -5,7 +5,7 @@
 #include "nds/arm/interpreter/arm/exception.h"
 #include "nds/arm/interpreter/util.h"
 
-namespace twice {
+namespace twice::arm::interpreter {
 
 template <int OP1, int L, int OP2>
 void
@@ -113,6 +113,6 @@ arm_mrrc(arm_cpu *cpu)
 	throw twice_error("arm mrrc");
 }
 
-} // namespace twice
+} // namespace twice::arm::interpreter
 
 #endif

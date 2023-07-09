@@ -3,7 +3,7 @@
 
 #include "nds/arm/interpreter/util.h"
 
-namespace twice {
+namespace twice::arm::interpreter {
 
 template <int P, int U, int I, int W, int L, int S, int H>
 void
@@ -114,6 +114,6 @@ arm_misc_dt(arm_cpu *cpu)
 		}
 	}
 }
-} // namespace twice
+} // namespace twice::arm::interpreter
 
 #endif

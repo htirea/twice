@@ -4,7 +4,7 @@
 #include "nds/arm/interpreter/arm/exception.h"
 #include "nds/arm/interpreter/util.h"
 
-namespace twice {
+namespace twice::arm::interpreter {
 
 template <int L>
 void
@@ -38,6 +38,6 @@ arm_bx(arm_cpu *cpu)
 	arm_do_bx(cpu, addr);
 }
 
-} // namespace twice
+} // namespace twice::arm::interpreter
 
 #endif

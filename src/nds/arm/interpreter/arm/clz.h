@@ -4,7 +4,7 @@
 #include "nds/arm/interpreter/arm/exception.h"
 #include "nds/arm/interpreter/util.h"
 
-namespace twice {
+namespace twice::arm::interpreter {
 
 inline void
 arm_clz(arm_cpu *cpu)
@@ -20,6 +20,6 @@ arm_clz(arm_cpu *cpu)
 	cpu->gpr[rd] = std::countl_zero(cpu->gpr[rm]);
 }
 
-} // namespace twice
+} // namespace twice::arm::interpreter
 
 #endif
