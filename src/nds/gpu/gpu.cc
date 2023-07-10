@@ -408,7 +408,7 @@ fetch_char_row(gpu_2d_engine *gpu, u16 se, u32 char_base, u32 bg_y,
 
 	u16 char_name = se & 0x3FF;
 
-	int py = bg_y % 8;
+	u32 py = bg_y % 8;
 	if (se & BIT(11)) {
 		py = 7 - py;
 	}
@@ -463,7 +463,7 @@ render_text_bg(gpu_2d_engine *gpu, int bg)
 		char_base += (gpu->dispcnt >> 24 & 0x7) * 0x10000;
 	}
 
-	int px = bg_x % 8;
+	u32 px = bg_x % 8;
 	u32 se_x = bg_x % 256 / 8;
 	u32 se_y = bg_y % 256 / 8;
 
@@ -579,8 +579,8 @@ render_affine_bg(gpu_2d_engine *gpu, int bg)
 		u32 se_x = bg_x / 8;
 		u32 se_y = bg_y / 8;
 
-		int px = bg_x % 8;
-		int py = bg_y % 8;
+		u32 px = bg_x % 8;
+		u32 py = bg_y % 8;
 
 		u32 se_offset = screen_base + bg_w / 8 * se_y + se_x;
 		u8 se = read_bg_data<u8>(gpu, se_offset);
@@ -643,8 +643,8 @@ render_extended_text_bg(gpu_2d_engine *gpu, int bg)
 		u32 se_x = bg_x / 8;
 		u32 se_y = bg_y / 8;
 
-		int px = bg_x % 8;
-		int py = bg_y % 8;
+		u32 px = bg_x % 8;
+		u32 py = bg_y % 8;
 
 		u32 se_offset = screen_base + bg_w / 8 * 2 * se_y + 2 * se_x;
 		u16 se = read_bg_data<u16>(gpu, se_offset);
