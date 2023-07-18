@@ -417,13 +417,13 @@ fetch_char_row(gpu_2d_engine *gpu, u16 se, u32 char_base, u32 bg_y,
 		char_row = read_bg_data<u64>(
 				gpu, char_base + 64 * char_name + 8 * py);
 		if (se & BIT(10)) {
-			char_row = __builtin_bswap64(char_row);
+			char_row = byteswap64(char_row);
 		}
 	} else {
 		char_row = read_bg_data<u32>(
 				gpu, char_base + 32 * char_name + 4 * py);
 		if (se & BIT(10)) {
-			char_row = __builtin_bswap32(char_row);
+			char_row = byteswap32(char_row);
 			char_row = (char_row & 0x0F0F0F0F) << 4 |
 					(char_row & 0xF0F0F0F0) >> 4;
 		}

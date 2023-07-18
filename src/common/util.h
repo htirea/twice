@@ -46,6 +46,18 @@ SEXT(u32 x)
 	return (s32)(x << (32 - n)) >> (32 - n);
 }
 
+inline u32
+byteswap32(u32 x)
+{
+	return __builtin_bswap32(x);
+}
+
+inline u64
+byteswap64(u64 x)
+{
+	return __builtin_bswap64(x);
+}
+
 } // namespace twice
 
 #endif
