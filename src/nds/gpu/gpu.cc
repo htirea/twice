@@ -424,6 +424,8 @@ fetch_char_row(gpu_2d_engine *gpu, u16 se, u32 char_base, u32 bg_y,
 				gpu, char_base + 32 * char_name + 4 * py);
 		if (se & BIT(10)) {
 			char_row = __builtin_bswap32(char_row);
+			char_row = (char_row & 0x0F0F0F0F) << 4 |
+					(char_row & 0xF0F0F0F0) >> 4;
 		}
 	}
 
