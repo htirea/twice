@@ -1,7 +1,7 @@
 #include "libtwice/filemap.h"
 #include "libtwice/exception.h"
 
-#include "common/types.h"
+#include <cstdint>
 
 #include <fcntl.h>
 #include <sys/mman.h>
@@ -23,7 +23,12 @@ file_map::file_map(const std::string& pathname, std::size_t limit, int mode)
 		throw file_map_error("could not stat file: " + pathname);
 	}
 
-	size_t actual_size = s.st_size;
+	if (s.st_size < 0 || (std::uint64_t)s.st_size >= SIZE_MAX) {
+		close(fd);
+		throw file_map_error("file size out of range: " + pathname);
+	}
+
+	std::size_t actual_size = s.st_size;
 
 	if (mode == MAP_EXACT_SIZE && actual_size != limit) {
 		close(fd);
