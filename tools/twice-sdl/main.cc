@@ -37,7 +37,7 @@ parse_args(int argc, char **argv)
 
 int
 main(int argc, char **argv)
-{
+try {
 	if (parse_args(argc, argv)) {
 		print_usage();
 		return 1;
@@ -50,13 +50,14 @@ main(int argc, char **argv)
 
 	twice::nds_config config{ data_dir };
 	twice::nds_machine nds(config);
-
 	nds.load_cartridge(cartridge_pathname);
 	nds.direct_boot();
 
 	twice::sdl_platform platform;
-
 	platform.loop(&nds);
 
-	return 0;
+	return EXIT_SUCCESS;
+} catch (const twice::twice_exception& e) {
+	std::cerr << "fatal error: " << e.what() << '\n';
+	return EXIT_FAILURE;
 }
