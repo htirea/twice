@@ -4,9 +4,9 @@
 #include <string>
 #include <unordered_set>
 
-#include <SDL.h>
+#include "SDL.h"
 
-#include <libtwice/exception.h>
+#include "libtwice/exception.h"
 
 namespace twice {
 

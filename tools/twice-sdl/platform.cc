@@ -3,8 +3,8 @@
 #include <cstring>
 #include <format>
 
-#include <libtwice/machine.h>
-#include <libtwice/types.h>
+#include "libtwice/machine.h"
+#include "libtwice/types.h"
 
 namespace twice {
 
