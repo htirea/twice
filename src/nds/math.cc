@@ -6,11 +6,30 @@
 
 namespace twice {
 
+[[maybe_unused]] static u32
+sqrt64_bisect(u64 n)
+{
+	u64 r = 0;
+	u64 r2 = 0;
+
+	for (int i = 32; i--;) {
+		u64 t = r2 + (r << (i + 1)) + ((u64)1 << (i << 1));
+		if (t <= n) {
+			r |= (u64)1 << i;
+			r2 = t;
+		}
+	}
+
+	return r;
+}
+
 static u32
 sqrt64(u64 n)
 {
 #if LDBL_MANT_DIG >= 64
 	return std::sqrt((long double)n);
+#else
+	return sqrt64_bisect(n);
 #endif
 }
 
