@@ -4,7 +4,7 @@
 #include <string>
 #include <unordered_set>
 
-#include <SDL2/SDL.h>
+#include <SDL.h>
 
 #include <libtwice/exception.h>
 
