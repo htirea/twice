@@ -796,9 +796,70 @@ render_3d(gpu_2d_engine *gpu)
 {
 }
 
+struct obj_data {
+	u16 attr0;
+	u16 attr1;
+	u16 attr2;
+};
+
+static void
+read_oam_attrs(gpu_2d_engine *gpu, int obj_num, obj_data *obj)
+{
+	u32 offset = obj_num << 3;
+	if (gpu->engineid == 1) {
+		offset += 0x400;
+	}
+
+	u64 data = readarr<u64>(gpu->nds->oam, offset);
+	obj->attr0 = data;
+	obj->attr1 = data >> 8;
+	obj->attr2 = data >> 16;
+}
+
+static void
+render_normal_sprite(gpu_2d_engine *gpu, int obj_num, obj_data *obj)
+{
+}
+
+static void
+render_bitmap_sprite(gpu_2d_engine *gpu, int obj_num, obj_data *obj)
+{
+}
+
+static void
+render_affine_sprite(gpu_2d_engine *gpu, int obj_num, obj_data *obj)
+{
+}
+
+static void
+render_affine_bitmap_sprite(gpu_2d_engine *gpu, int obj_num, obj_data *obj)
+{
+}
+
 static void
 render_sprites(gpu_2d_engine *gpu)
 {
+	for (int i = 0; i < 128; i++) {
+		obj_data obj;
+		read_oam_attrs(gpu, i, &obj);
+
+		if ((obj.attr0 >> 8 & 3) == 2) {
+			continue;
+		}
+
+		bool is_affine = obj.attr0 & BIT(8);
+		bool is_bitmap = (obj.attr0 >> 10 & 3) == 3;
+
+		if (is_affine && is_bitmap) {
+			render_affine_bitmap_sprite(gpu, i, &obj);
+		} else if (is_affine) {
+			render_affine_sprite(gpu, i, &obj);
+		} else if (is_bitmap) {
+			render_bitmap_sprite(gpu, i, &obj);
+		} else {
+			render_normal_sprite(gpu, i, &obj);
+		}
+	}
 }
 
 static void
