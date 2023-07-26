@@ -92,37 +92,46 @@ sdl_platform::render(void *fb)
 }
 
 void
-sdl_platform::arm_set_title_fps(int fps)
+sdl_platform::arm_set_title_fps(
+		std::uint64_t ticks_per_frame, std::uint64_t freq)
 {
+	double fps = (double)freq / ticks_per_frame;
+	double frametime = 1000.0 * ticks_per_frame / freq;
 	std::string title = std::format(
-			"Twice [{} fps | {:.2f} ms]", fps, 1000.0 / fps);
+			"Twice [{:.2f} fps | {:.2f} ms]", fps, frametime);
 	SDL_SetWindowTitle(window, title.c_str());
 }
 
 void
 sdl_platform::loop(twice::nds_machine *nds)
 {
-	uint64_t tfreq = SDL_GetPerformanceFrequency();
-	uint64_t tstart = SDL_GetPerformanceCounter();
-	uint64_t ticks_elapsed = 0;
+	std::uint64_t freq = SDL_GetPerformanceFrequency();
+	std::uint64_t tframe = freq / 60;
+	std::uint64_t start = SDL_GetPerformanceCounter();
+	std::uint64_t ticks_elapsed = 0;
 
 	running = true;
+	throttle = true;
 
 	while (running) {
 		handle_events(nds);
 		nds->run_frame();
 		render(nds->get_framebuffer());
 
-		uint64_t elapsed = SDL_GetPerformanceCounter() - tstart;
-		tstart = SDL_GetPerformanceCounter();
+		if (throttle) {
+			while (SDL_GetPerformanceCounter() - start < tframe)
+				;
+		}
 
-		int fps = (double)tfreq / elapsed;
-		fps_counter.add(fps);
+		std::uint64_t elapsed = SDL_GetPerformanceCounter() - start;
+		start = SDL_GetPerformanceCounter();
+
+		tick_counter.add(elapsed);
 
 		ticks_elapsed += elapsed;
-		if (ticks_elapsed >= tfreq) {
-			ticks_elapsed -= tfreq;
-			arm_set_title_fps(fps_counter.get_average_fps());
+		if (ticks_elapsed >= freq) {
+			ticks_elapsed -= freq;
+			arm_set_title_fps(tick_counter.get_average(), freq);
 		}
 	}
 }
@@ -209,6 +218,11 @@ sdl_platform::handle_events(twice::nds_machine *nds)
 			break;
 		case SDL_KEYDOWN:
 			nds->button_event(get_nds_button(e.key.keysym.sym), 1);
+			switch (e.key.keysym.sym) {
+			case SDLK_0:
+				throttle = !throttle;
+				break;
+			}
 			break;
 		case SDL_KEYUP:
 			nds->button_event(get_nds_button(e.key.keysym.sym), 0);

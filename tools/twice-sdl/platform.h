@@ -1,6 +1,7 @@
 #ifndef TWICE_SDL_PLATFORM_H
 #define TWICE_SDL_PLATFORM_H
 
+#include <cstdint>
 #include <string>
 #include <unordered_set>
 
@@ -12,22 +13,22 @@ namespace twice {
 
 struct nds_machine;
 
-struct frame_rate_counter {
+struct elapsed_ticks_counter {
 	static constexpr unsigned BUF_SIZE = 64;
 
-	int buffer[BUF_SIZE]{};
-	int sum{};
+	std::uint64_t buffer[BUF_SIZE]{};
+	std::uint64_t sum{};
 	unsigned int index{};
 
-	void add(int fps)
+	void add(std::uint64_t elapsed)
 	{
-		sum += fps;
+		sum += elapsed;
 		sum -= buffer[index];
-		buffer[index] = fps;
+		buffer[index] = elapsed;
 		index = (index + 1) % BUF_SIZE;
 	}
 
-	int get_average_fps() { return sum / BUF_SIZE; }
+	std::uint64_t get_average() { return sum / BUF_SIZE; }
 };
 
 struct sdl_platform {
@@ -41,7 +42,8 @@ struct sdl_platform {
 	void render(void *fb);
 	void loop(nds_machine *nds);
 	void handle_events(nds_machine *nds);
-	void arm_set_title_fps(int fps);
+	void arm_set_title_fps(
+			std::uint64_t ticks_per_frame, std::uint64_t freq);
 	void add_controller(int joystick_index);
 	void remove_controller(SDL_JoystickID id);
 
@@ -51,8 +53,9 @@ struct sdl_platform {
 	std::unordered_set<SDL_JoystickID> controllers;
 
 	bool running{};
+	bool throttle{};
 
-	frame_rate_counter fps_counter;
+	elapsed_ticks_counter tick_counter;
 };
 
 std::string get_data_dir();
