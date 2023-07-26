@@ -205,10 +205,15 @@ static void render_3d(gpu_2d_engine *gpu);
 
 static void draw_bg_pixel(
 		gpu_2d_engine *gpu, u32 fb_x, u16 color, u8 priority);
+static void draw_obj_pixel(
+		gpu_2d_engine *gpu, u32 fb_x, u16 color, u8 priority);
 static u16 get_palette_color_256(gpu_2d_engine *gpu, u32 color_num);
+static u16 obj_get_palette_color_256(gpu_2d_engine *gpu, u32 color_num);
 static u16 get_palette_color_256_extended(
 		gpu_2d_engine *gpu, u32 slot, u32 palette_num, u32 color_num);
 static u16 get_palette_color_16(
+		gpu_2d_engine *gpu, u32 palette_num, u32 color_num);
+static u16 obj_get_palette_color_16(
 		gpu_2d_engine *gpu, u32 palette_num, u32 color_num);
 
 static void
@@ -812,28 +817,179 @@ read_oam_attrs(gpu_2d_engine *gpu, int obj_num, obj_data *obj)
 
 	u64 data = readarr<u64>(gpu->nds->oam, offset);
 	obj->attr0 = data;
-	obj->attr1 = data >> 8;
-	obj->attr2 = data >> 16;
+	obj->attr1 = data >> 16;
+	obj->attr2 = data >> 32;
+}
+
+static void
+get_obj_size(obj_data *obj, u32 *obj_w, u32 *obj_h)
+{
+	u32 shape_bits = obj->attr0 >> 14 & 3;
+	u32 size_bits = obj->attr1 >> 14 & 3;
+
+	if (shape_bits == 3) {
+		throw twice_error("invalid obj shape bits");
+	}
+
+	u32 widths[][4] = { { 8, 16, 32, 64 }, { 16, 32, 32, 64 },
+		{ 8, 8, 16, 32 } };
+	u32 heights[][4] = { { 8, 16, 32, 64 }, { 8, 8, 16, 32 },
+		{ 16, 32, 32, 64 } };
+
+	*obj_w = widths[shape_bits][size_bits];
+	*obj_h = heights[shape_bits][size_bits];
+}
+
+template <typename T>
+static T
+read_obj_data(gpu_2d_engine *gpu, u32 offset)
+{
+	if (gpu->engineid == 0) {
+		return vram_read_aobj<T>(gpu->nds, offset);
+	} else {
+		return vram_read_bobj<T>(gpu->nds, offset);
+	}
+}
+
+static u64
+fetch_obj_char_row(gpu_2d_engine *gpu, u32 tile_offset, u32 py, bool color_256)
+{
+	u64 char_row;
+
+	if (color_256) {
+		char_row = read_obj_data<u64>(gpu, tile_offset + 8 * py);
+	} else {
+		char_row = read_obj_data<u32>(gpu, tile_offset + 4 * py);
+	}
+
+	return char_row;
 }
 
 static void
 render_normal_sprite(gpu_2d_engine *gpu, int obj_num, obj_data *obj)
 {
+	u32 obj_w, obj_h;
+	get_obj_size(obj, &obj_w, &obj_h);
+
+	u32 obj_attr_y = obj->attr0 & 0xFF;
+	u32 obj_y = (gpu->nds->vcount - obj_attr_y) & 0xFF;
+	if (obj_y >= obj_h) {
+		return;
+	}
+	if (obj->attr1 & BIT(13)) {
+		obj_y = obj_h - 1 - obj_y;
+	}
+
+	u32 obj_attr_x = obj->attr1 & 0x1FF;
+	u32 obj_x, draw_x, draw_x_end;
+	if (obj_attr_x < 256) {
+		obj_x = 0;
+		draw_x = obj_attr_x;
+		draw_x_end = std::min(obj_attr_x + obj_w, (u32)256);
+	} else {
+		obj_x = 512 - obj_attr_x;
+		if (obj_x >= obj_w) {
+			return;
+		}
+		draw_x = 0;
+		draw_x_end = obj_w - obj_x;
+	}
+
+	u32 priority = obj->attr2 >> 10 & 3;
+	u32 palette_num = obj->attr2 >> 12;
+
+	bool color_256 = obj->attr0 & BIT(13);
+
+	u32 px = obj_x % 8;
+	u32 tx = obj_x / 8;
+	u32 py = obj_y % 8;
+	u32 ty = obj_y / 8;
+
+	u32 obj_char_name = obj->attr2 & 0x3FF;
+	bool map_1d = gpu->dispcnt & BIT(4);
+
+	u32 tile_offset;
+	if (map_1d) {
+		tile_offset = obj_char_name << 5 << (gpu->dispcnt >> 20 & 3);
+		if (color_256) {
+			tile_offset += (obj_w / 8) * 64 * ty + 64 * tx;
+		} else {
+			tile_offset += (obj_w / 8) * 32 * ty + 32 * tx;
+		}
+	} else {
+		if (color_256) {
+			tile_offset = 32 * (obj_char_name & ~1) + 1024 * ty +
+					64 * tx;
+		} else {
+			tile_offset = 32 * obj_char_name + 1024 * ty + 32 * tx;
+		}
+	}
+
+	u64 char_row = 0;
+
+	for (; draw_x != draw_x_end;) {
+		if (px == 0 || draw_x == 0) {
+			char_row = fetch_obj_char_row(
+					gpu, tile_offset, py, color_256);
+			if (color_256) {
+				char_row >>= 8 * px;
+			} else {
+				char_row >>= 4 * px;
+			}
+		}
+
+		if (color_256) {
+			for (; px < 8 && draw_x != draw_x_end;
+					px++, draw_x++) {
+				u32 offset = char_row & 0xFF;
+				char_row >>= 8;
+
+				if (offset == 0) continue;
+
+				u16 color = obj_get_palette_color_256(
+						gpu, offset);
+				draw_obj_pixel(gpu, draw_x, color, priority);
+			}
+		} else {
+			for (; px < 8 && draw_x != draw_x_end;
+					px++, draw_x++) {
+				u32 offset = char_row & 0xF;
+				char_row >>= 4;
+				if (offset != 0) {
+					u16 color = obj_get_palette_color_16(
+							gpu, palette_num,
+							offset);
+					draw_obj_pixel(gpu, draw_x, color,
+							priority);
+				}
+			}
+		}
+
+		px = 0;
+		if (color_256) {
+			tile_offset += 64;
+		} else {
+			tile_offset += 32;
+		}
+	}
 }
 
 static void
 render_bitmap_sprite(gpu_2d_engine *gpu, int obj_num, obj_data *obj)
 {
+	throw twice_error("bitmap sprite");
 }
 
 static void
 render_affine_sprite(gpu_2d_engine *gpu, int obj_num, obj_data *obj)
 {
+	throw twice_error("affine sprite");
 }
 
 static void
 render_affine_bitmap_sprite(gpu_2d_engine *gpu, int obj_num, obj_data *obj)
 {
+	throw twice_error("affine bitmap sprite");
 }
 
 static void
@@ -892,10 +1048,32 @@ draw_bg_pixel(gpu_2d_engine *gpu, u32 fb_x, u16 color, u8 priority)
 	}
 }
 
+static void
+draw_obj_pixel(gpu_2d_engine *gpu, u32 fb_x, u16 color, u8 priority)
+{
+	auto& top = gpu->obj_buffer[fb_x];
+
+	if (priority < top.priority) {
+		top.color = color;
+		top.priority = priority;
+	}
+}
+
 static u16
 get_palette_color_256(gpu_2d_engine *gpu, u32 color_num)
 {
 	u32 offset = 2 * color_num;
+	if (gpu->engineid == 1) {
+		offset += 0x400;
+	}
+
+	return readarr<u16>(gpu->nds->palette, offset);
+}
+
+static u16
+obj_get_palette_color_256(gpu_2d_engine *gpu, u32 color_num)
+{
+	u32 offset = 0x200 + 2 * color_num;
 	if (gpu->engineid == 1) {
 		offset += 0x400;
 	}
@@ -919,6 +1097,17 @@ static u16
 get_palette_color_16(gpu_2d_engine *gpu, u32 palette_num, u32 color_num)
 {
 	u32 offset = 32 * palette_num + 2 * color_num;
+	if (gpu->engineid == 1) {
+		offset += 0x400;
+	}
+
+	return readarr<u16>(gpu->nds->palette, offset);
+}
+
+static u16
+obj_get_palette_color_16(gpu_2d_engine *gpu, u32 palette_num, u32 color_num)
+{
+	u32 offset = 0x200 + 32 * palette_num + 2 * color_num;
 	if (gpu->engineid == 1) {
 		offset += 0x400;
 	}
