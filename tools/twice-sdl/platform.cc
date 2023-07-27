@@ -106,7 +106,7 @@ void
 sdl_platform::loop(twice::nds_machine *nds)
 {
 	std::uint64_t freq = SDL_GetPerformanceFrequency();
-	std::uint64_t tframe = freq / 60;
+	std::uint64_t tframe = freq / 59.8261;
 	std::uint64_t start = SDL_GetPerformanceCounter();
 	std::uint64_t ticks_elapsed = 0;
 
@@ -119,6 +119,12 @@ sdl_platform::loop(twice::nds_machine *nds)
 		render(nds->get_framebuffer());
 
 		if (throttle) {
+			std::uint64_t elapsed =
+					SDL_GetPerformanceCounter() - start;
+			if (elapsed < tframe) {
+				std::uint64_t remaining = tframe - elapsed;
+				SDL_Delay(remaining * 1000.0 * 0.98 / freq);
+			}
 			while (SDL_GetPerformanceCounter() - start < tframe)
 				;
 		}
