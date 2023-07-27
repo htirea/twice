@@ -75,6 +75,9 @@ ipc_fifo_cnt_write(struct nds_ctx *nds, int cpuid, u16 value)
 	auto& src = nds->ipcfifo[cpuid];
 	auto& dest = nds->ipcfifo[cpuid ^ 1];
 
+	bool send_irq_old = (src.cnt & BIT(2)) && (src.cnt & BIT(0));
+	bool recv_irq_old = (src.cnt & BIT(10)) && !(src.cnt & BIT(8));
+
 	src.cnt = (src.cnt & ~0x8404) | (value & 0x8404);
 	src.cnt &= ~(value & BIT(14));
 
@@ -89,9 +92,16 @@ ipc_fifo_cnt_write(struct nds_ctx *nds, int cpuid, u16 value)
 
 		src.cnt |= BIT(0);
 		dest.cnt |= BIT(8);
-		if (src.cnt & BIT(2)) {
-			request_interrupt(nds->cpu[cpuid], 17);
-		}
+	}
+
+	bool send_irq = (src.cnt & BIT(2)) && (src.cnt & BIT(0));
+	bool recv_irq = (src.cnt & BIT(10)) && !(src.cnt & BIT(8));
+
+	if (!send_irq_old && send_irq) {
+		request_interrupt(nds->cpu[cpuid], 17);
+	}
+	if (!recv_irq_old && recv_irq) {
+		request_interrupt(nds->cpu[cpuid], 18);
 	}
 }
 
