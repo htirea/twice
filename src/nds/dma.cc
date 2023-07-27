@@ -185,6 +185,7 @@ dma9_dmacnt_h_write(nds_ctx *nds, int channel, u16 value)
 			break;
 		case 1:
 		case 2:
+		case 3:
 			break;
 		default:
 			throw twice_error("arm9 dma mode not implemented");
@@ -296,6 +297,22 @@ dma_on_hblank_start(nds_ctx *nds)
 	for (int channel = 0; channel < 4; channel++) {
 		if (nds->dma[0].transfers[channel].enabled) {
 			if (nds->dma[0].transfers[channel].mode == 2) {
+				start_transfer(nds, 0, channel);
+			}
+		}
+	}
+}
+
+void
+dma_on_scanline_start(nds_ctx *nds)
+{
+	if (nds->vcount >= 192) {
+		return;
+	}
+
+	for (int channel = 0; channel < 4; channel++) {
+		if (nds->dma[0].transfers[channel].enabled) {
+			if (nds->dma[0].transfers[channel].mode == 3) {
 				start_transfer(nds, 0, channel);
 			}
 		}

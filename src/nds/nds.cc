@@ -238,6 +238,7 @@ event_hblank_end(nds_ctx *nds)
 	}
 
 	gpu_on_scanline_start(nds);
+	dma_on_scanline_start(nds);
 
 	reschedule_nds_event_after(nds, event_scheduler::HBLANK_END, 2130);
 }
