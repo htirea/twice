@@ -888,7 +888,7 @@ render_normal_sprite(gpu_2d_engine *gpu, int obj_num, obj_data *obj)
 	if (obj->attr1 & BIT(13)) {
 		obj_y = obj_h - 1 - obj_y;
 	}
-	bool hflip = obj->attr1 & BIT(12) || 1;
+	bool hflip = obj->attr1 & BIT(12);
 
 	u32 obj_attr_x = obj->attr1 & 0x1FF;
 	u32 obj_x, draw_x, draw_x_end;
