@@ -38,6 +38,14 @@
 		return nds->dispstat[(cpuid_)];                               \
 	case 0x4000006:                                                       \
 		return nds->vcount;                                           \
+	case 0x40000BA:                                                       \
+		return nds->dmacnt_h[cpuid_][0];                              \
+	case 0x40000C6:                                                       \
+		return nds->dmacnt_h[cpuid_][1];                              \
+	case 0x40000D2:                                                       \
+		return nds->dmacnt_h[cpuid_][2];                              \
+	case 0x40000DE:                                                       \
+		return nds->dmacnt_h[cpuid_][3];                              \
 	case 0x4000130:                                                       \
 		return nds->keyinput;                                         \
 	case 0x4000180:                                                       \
@@ -101,6 +109,30 @@
 	case 0x4000004:                                                       \
 		nds->dispstat[cpuid_] &= 0x47;                                \
 		nds->dispstat[cpuid_] |= value & ~0x47;                       \
+		return;                                                       \
+	case 0x40000B8:                                                       \
+		nds->dmacnt_l[cpuid_][0] = value;                             \
+		return;                                                       \
+	case 0x40000BA:                                                       \
+		dmacnt_h_write(nds, (cpuid_), 0, value);                      \
+		return;                                                       \
+	case 0x40000C4:                                                       \
+		nds->dmacnt_l[cpuid_][1] = value;                             \
+		return;                                                       \
+	case 0x40000C6:                                                       \
+		dmacnt_h_write(nds, (cpuid_), 1, value);                      \
+		return;                                                       \
+	case 0x40000D0:                                                       \
+		nds->dmacnt_l[cpuid_][2] = value;                             \
+		return;                                                       \
+	case 0x40000D2:                                                       \
+		dmacnt_h_write(nds, (cpuid_), 2, value);                      \
+		return;                                                       \
+	case 0x40000DC:                                                       \
+		nds->dmacnt_l[cpuid_][3] = value;                             \
+		return;                                                       \
+	case 0x40000DE:                                                       \
+		dmacnt_h_write(nds, (cpuid_), 3, value);                      \
 		return;                                                       \
 	case 0x4000180:                                                       \
 		ipcsync_write(nds, (cpuid_), value);                          \
