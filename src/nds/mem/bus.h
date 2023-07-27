@@ -14,7 +14,7 @@ inline bool
 gpu_2d_memory_access_disabled(nds_ctx *nds, u32 addr)
 {
 	return (!nds->gpu2d[0].enabled && !(addr & 0x400)) ||
-			(!nds->gpu2d[1].enabled && (addr & 0x400));
+	       (!nds->gpu2d[1].enabled && (addr & 0x400));
 }
 
 template <typename T>

@@ -430,7 +430,7 @@ fetch_char_row(gpu_2d_engine *gpu, u16 se, u32 char_base, u32 bg_y,
 		if (se & BIT(10)) {
 			char_row = byteswap32(char_row);
 			char_row = (char_row & 0x0F0F0F0F) << 4 |
-					(char_row & 0xF0F0F0F0) >> 4;
+			           (char_row & 0xF0F0F0F0) >> 4;
 		}
 	}
 
@@ -487,7 +487,7 @@ render_text_bg(gpu_2d_engine *gpu, int bg)
 	for (u32 i = 0; i < 256;) {
 		if (px == 0 || i == 0) {
 			u32 se_offset = screen_base + 0x800 * screen +
-					64 * se_y + 2 * se_x;
+			                64 * se_y + 2 * se_x;
 			u16 se = read_bg_data<u16>(gpu, se_offset);
 			char_row = fetch_char_row(
 					gpu, se, char_base, bg_y, color_256);
@@ -867,7 +867,7 @@ fetch_obj_char_row(gpu_2d_engine *gpu, u32 tile_offset, u32 py, bool hflip,
 		if (hflip) {
 			char_row = byteswap32(char_row);
 			char_row = (char_row & 0x0F0F0F0F) << 4 |
-					(char_row & 0xF0F0F0F0) >> 4;
+			           (char_row & 0xF0F0F0F0) >> 4;
 		}
 	}
 
@@ -932,7 +932,7 @@ render_normal_sprite(gpu_2d_engine *gpu, int obj_num, obj_data *obj)
 	} else {
 		if (color_256) {
 			tile_offset = 32 * (obj_char_name & ~1) + 1024 * ty +
-					64 * tx;
+			              64 * tx;
 		} else {
 			tile_offset = 32 * obj_char_name + 1024 * ty + 32 * tx;
 		}
@@ -981,10 +981,10 @@ render_normal_sprite(gpu_2d_engine *gpu, int obj_num, obj_data *obj)
 		px = 0;
 		if (color_256) {
 			tile_offset = hflip ? tile_offset - 64
-					    : tile_offset + 64;
+			                    : tile_offset + 64;
 		} else {
 			tile_offset = hflip ? tile_offset - 32
-					    : tile_offset + 32;
+			                    : tile_offset + 32;
 		}
 	}
 }

@@ -98,28 +98,28 @@ void wramcnt_write(nds_ctx *nds, u8 value);
 		return nds->dma_dad[cpuid_][0];                               \
 	case 0x40000B8:                                                       \
 		return (u32)nds->dmacnt_h[cpuid_][0] << 16 |                  \
-				nds->dmacnt_l[cpuid_][0];                     \
+		       nds->dmacnt_l[cpuid_][0];                              \
 	case 0x40000BC:                                                       \
 		return nds->dma_sad[cpuid_][1];                               \
 	case 0x40000C0:                                                       \
 		return nds->dma_dad[cpuid_][1];                               \
 	case 0x40000C4:                                                       \
 		return (u32)nds->dmacnt_h[cpuid_][1] << 16 |                  \
-				nds->dmacnt_l[cpuid_][1];                     \
+		       nds->dmacnt_l[cpuid_][1];                              \
 	case 0x40000C8:                                                       \
 		return nds->dma_sad[cpuid_][2];                               \
 	case 0x40000CC:                                                       \
 		return nds->dma_dad[cpuid_][2];                               \
 	case 0x40000D0:                                                       \
 		return (u32)nds->dmacnt_h[cpuid_][2] << 16 |                  \
-				nds->dmacnt_l[cpuid_][2];                     \
+		       nds->dmacnt_l[cpuid_][2];                              \
 	case 0x40000D4:                                                       \
 		return nds->dma_sad[cpuid_][3];                               \
 	case 0x40000D8:                                                       \
 		return nds->dma_dad[cpuid_][3];                               \
 	case 0x40000DC:                                                       \
 		return (u32)nds->dmacnt_h[cpuid_][3] << 16 |                  \
-				nds->dmacnt_l[cpuid_][3];                     \
+		       nds->dmacnt_l[cpuid_][3];                              \
 	case 0x4000180:                                                       \
 		return nds->ipcsync[(cpuid_)];                                \
 	case 0x4000208:                                                       \

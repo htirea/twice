@@ -111,9 +111,9 @@ io9_read32(nds_ctx *nds, u32 addr)
 		return nds->dmafill[3];
 	case 0x4000240:
 		return (u32)nds->vram.vramcnt[3] << 24 |
-				(u32)nds->vram.vramcnt[2] << 16 |
-				(u32)nds->vram.vramcnt[1] << 8 |
-				(u32)nds->vram.vramcnt[0];
+		       (u32)nds->vram.vramcnt[2] << 16 |
+		       (u32)nds->vram.vramcnt[1] << 8 |
+		       (u32)nds->vram.vramcnt[0];
 	case 0x4000280:
 		return nds->divcnt;
 	case 0x4000290:

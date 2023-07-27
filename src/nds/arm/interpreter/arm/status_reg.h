@@ -62,7 +62,7 @@ arm_msr(arm_cpu *cpu)
 			}
 
 			cpu->spsr() = (cpu->spsr() & ~write_mask) |
-					(operand & write_mask);
+			              (operand & write_mask);
 		}
 	}
 }

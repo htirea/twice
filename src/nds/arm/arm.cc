@@ -98,7 +98,7 @@ void
 arm_check_interrupt(arm_cpu *cpu)
 {
 	cpu->interrupt = !(cpu->cpsr & BIT(7)) && (cpu->IME & 1) &&
-			(cpu->IE & cpu->IF);
+	                 (cpu->IE & cpu->IF);
 }
 
 void

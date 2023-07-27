@@ -93,9 +93,9 @@ arm_dsp_multiply(arm_cpu *cpu)
 	u32 rm = cpu->opcode & 0xF;
 
 	s32 a = X == 0 ? (s32)(cpu->gpr[rm] << 16) >> 16
-		       : (s32)(cpu->gpr[rm]) >> 16;
+	               : (s32)(cpu->gpr[rm]) >> 16;
 	s32 b = Y == 0 ? (s32)(cpu->gpr[rs] << 16) >> 16
-		       : (s32)(cpu->gpr[rs]) >> 16;
+	               : (s32)(cpu->gpr[rs]) >> 16;
 
 	switch (OP) {
 	case 0x0:
