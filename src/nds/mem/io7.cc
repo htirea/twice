@@ -1,11 +1,8 @@
-#ifndef TWICE_IO7_H
-#define TWICE_IO7_H
-
 #include "nds/mem/io.h"
 
 namespace twice {
 
-inline u8
+u8
 io7_read8(nds_ctx *nds, u32 addr)
 {
 	switch (addr) {
@@ -23,7 +20,7 @@ io7_read8(nds_ctx *nds, u32 addr)
 	return 0;
 }
 
-inline u16
+u16
 io7_read16(nds_ctx *nds, u32 addr)
 {
 	switch (addr) {
@@ -42,7 +39,7 @@ io7_read16(nds_ctx *nds, u32 addr)
 	return 0;
 }
 
-inline u32
+u32
 io7_read32(nds_ctx *nds, u32 addr)
 {
 	switch (addr) {
@@ -53,7 +50,7 @@ io7_read32(nds_ctx *nds, u32 addr)
 	return 0;
 }
 
-inline void
+void
 io7_write8(nds_ctx *nds, u32 addr, u8 value)
 {
 	switch (addr) {
@@ -87,7 +84,7 @@ io7_write8(nds_ctx *nds, u32 addr, u8 value)
 	fprintf(stderr, "nds 1 write 8 to %08X\n", addr);
 }
 
-inline void
+void
 io7_write16(nds_ctx *nds, u32 addr, u16 value)
 {
 	switch (addr) {
@@ -104,7 +101,7 @@ io7_write16(nds_ctx *nds, u32 addr, u16 value)
 	fprintf(stderr, "nds 1 write 16 to %08X\n", addr);
 }
 
-inline void
+void
 io7_write32(nds_ctx *nds, u32 addr, u32 value)
 {
 	switch (addr) {
@@ -120,5 +117,3 @@ io7_write32(nds_ctx *nds, u32 addr, u32 value)
 }
 
 } // namespace twice
-
-#endif

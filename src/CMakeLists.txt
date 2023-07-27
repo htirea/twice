@@ -26,6 +26,8 @@ add_library(twice STATIC
 	nds/ipc.cc
 	nds/math.cc
 	nds/mem/io.cc
+	nds/mem/io7.cc
+	nds/mem/io9.cc
 	nds/nds.cc
 	nds/scheduler.cc
 	"${CMAKE_CURRENT_BINARY_DIR}/arm_lut.cc"

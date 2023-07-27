@@ -4,6 +4,38 @@
 #include "nds/arm/arm.h"
 #include "nds/nds.h"
 
+namespace twice {
+
+void ipcsync_write(nds_ctx *nds, int cpuid, u16 value);
+
+u8 io9_read8(nds_ctx *nds, u32 addr);
+u16 io9_read16(nds_ctx *nds, u32 addr);
+u32 io9_read32(nds_ctx *nds, u32 addr);
+void io9_write8(nds_ctx *nds, u32 addr, u8 value);
+void io9_write16(nds_ctx *nds, u32 addr, u16 value);
+void io9_write32(nds_ctx *nds, u32 addr, u32 value);
+
+u8 io7_read8(nds_ctx *nds, u32 addr);
+u16 io7_read16(nds_ctx *nds, u32 addr);
+u32 io7_read32(nds_ctx *nds, u32 addr);
+void io7_write8(nds_ctx *nds, u32 addr, u8 value);
+void io7_write16(nds_ctx *nds, u32 addr, u16 value);
+void io7_write32(nds_ctx *nds, u32 addr, u32 value);
+
+void powcnt1_write(nds_ctx *nds, u16 value);
+void vramcnt_a_write(nds_ctx *nds, u8 value);
+void vramcnt_b_write(nds_ctx *nds, u8 value);
+void vramcnt_c_write(nds_ctx *nds, u8 value);
+void vramcnt_d_write(nds_ctx *nds, u8 value);
+void vramcnt_e_write(nds_ctx *nds, u8 value);
+void vramcnt_f_write(nds_ctx *nds, u8 value);
+void vramcnt_g_write(nds_ctx *nds, u8 value);
+void vramcnt_h_write(nds_ctx *nds, u8 value);
+void vramcnt_i_write(nds_ctx *nds, u8 value);
+void wramcnt_write(nds_ctx *nds, u8 value);
+
+} // namespace twice
+
 #define IO_READ8_FROM_32(addr, dest)                                          \
 	return (dest);                                                        \
 	case (addr) + 1:                                                      \
@@ -208,10 +240,5 @@
 		nds->cpu[(cpuid_)]->IF &= ~value;                             \
 		arm_check_interrupt(nds->cpu[cpuid_]);                        \
 		return
-
-namespace twice {
-
-void ipcsync_write(nds_ctx *nds, int cpuid, u16 value);
-}
 
 #endif

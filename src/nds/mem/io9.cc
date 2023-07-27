@@ -1,24 +1,62 @@
-#ifndef TWICE_IO9_H
-#define TWICE_IO9_H
+#include "nds/mem/io.h"
 
 #include "nds/math.h"
-#include "nds/mem/io.h"
 
 namespace twice {
 
-void wramcnt_write(nds_ctx *nds, u8 value);
-void vramcnt_a_write(nds_ctx *nds, u8 value);
-void vramcnt_b_write(nds_ctx *nds, u8 value);
-void vramcnt_c_write(nds_ctx *nds, u8 value);
-void vramcnt_d_write(nds_ctx *nds, u8 value);
-void vramcnt_e_write(nds_ctx *nds, u8 value);
-void vramcnt_f_write(nds_ctx *nds, u8 value);
-void vramcnt_g_write(nds_ctx *nds, u8 value);
-void vramcnt_h_write(nds_ctx *nds, u8 value);
-void vramcnt_i_write(nds_ctx *nds, u8 value);
-void powcnt1_write(nds_ctx *nds, u16 value);
+void
+wramcnt_write(nds_ctx *nds, u8 value)
+{
+	nds->wramcnt = value;
 
-inline u8
+	switch (value & 3) {
+	case 0:
+		nds->shared_wram_p[0] = nds->shared_wram;
+		nds->shared_wram_mask[0] = 32_KiB - 1;
+		nds->shared_wram_p[1] = nds->arm7_wram;
+		nds->shared_wram_mask[1] = ARM7_WRAM_MASK;
+		break;
+	case 1:
+		nds->shared_wram_p[0] = nds->shared_wram + 16_KiB;
+		nds->shared_wram_mask[0] = 16_KiB - 1;
+		nds->shared_wram_p[1] = nds->shared_wram;
+		nds->shared_wram_mask[1] = 16_KiB - 1;
+		break;
+	case 2:
+		nds->shared_wram_p[0] = nds->shared_wram;
+		nds->shared_wram_mask[0] = 16_KiB - 1;
+		nds->shared_wram_p[1] = nds->shared_wram + 16_KiB;
+		nds->shared_wram_mask[1] = 16_KiB - 1;
+		break;
+	case 3:
+		nds->shared_wram_p[0] = nds->shared_wram_null;
+		nds->shared_wram_mask[0] = 0;
+		nds->shared_wram_p[1] = nds->shared_wram;
+		nds->shared_wram_mask[1] = 32_KiB - 1;
+	}
+}
+
+void
+powcnt1_write(nds_ctx *nds, u16 value)
+{
+	if (value & BIT(15)) {
+		nds->gpu2d[0].fb = nds->fb;
+		nds->gpu2d[1].fb = nds->fb + NDS_SCREEN_SZ;
+	} else {
+		nds->gpu2d[0].fb = nds->fb + NDS_SCREEN_SZ;
+		nds->gpu2d[1].fb = nds->fb;
+	}
+
+	/* TODO: check what bit 0 does */
+	nds->gpu2d[0].enabled = value & BIT(1);
+	nds->gpu2d[1].enabled = value & BIT(9);
+
+	/* TODO: disable writes / reads if disabled */
+
+	nds->powcnt1 = (nds->powcnt1 & ~0x820F) | (value & 0x820F);
+}
+
+u8
 io9_read8(nds_ctx *nds, u32 addr)
 {
 	switch (addr) {
@@ -31,7 +69,7 @@ io9_read8(nds_ctx *nds, u32 addr)
 	return 0;
 }
 
-inline u16
+u16
 io9_read16(nds_ctx *nds, u32 addr)
 {
 	switch (addr) {
@@ -56,7 +94,7 @@ io9_read16(nds_ctx *nds, u32 addr)
 	return 0;
 }
 
-inline u32
+u32
 io9_read32(nds_ctx *nds, u32 addr)
 {
 	switch (addr) {
@@ -118,7 +156,7 @@ io9_read32(nds_ctx *nds, u32 addr)
 	return 0;
 }
 
-inline void
+void
 io9_write8(nds_ctx *nds, u32 addr, u8 value)
 {
 	switch (addr) {
@@ -165,7 +203,7 @@ io9_write8(nds_ctx *nds, u32 addr, u8 value)
 	fprintf(stderr, "nds 0 write 8 to %08X\n", addr);
 }
 
-inline void
+void
 io9_write16(nds_ctx *nds, u32 addr, u16 value)
 {
 	switch (addr) {
@@ -198,7 +236,7 @@ io9_write16(nds_ctx *nds, u32 addr, u16 value)
 	fprintf(stderr, "nds 0 write 16 to %08X\n", addr);
 }
 
-inline void
+void
 io9_write32(nds_ctx *nds, u32 addr, u32 value)
 {
 	switch (addr) {
@@ -286,5 +324,3 @@ io9_write32(nds_ctx *nds, u32 addr, u32 value)
 }
 
 } // namespace twice
-
-#endif
