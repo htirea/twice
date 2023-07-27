@@ -852,14 +852,23 @@ read_obj_data(gpu_2d_engine *gpu, u32 offset)
 }
 
 static u64
-fetch_obj_char_row(gpu_2d_engine *gpu, u32 tile_offset, u32 py, bool color_256)
+fetch_obj_char_row(gpu_2d_engine *gpu, u32 tile_offset, u32 py, bool hflip,
+		bool color_256)
 {
 	u64 char_row;
 
 	if (color_256) {
 		char_row = read_obj_data<u64>(gpu, tile_offset + 8 * py);
+		if (hflip) {
+			char_row = byteswap64(char_row);
+		}
 	} else {
 		char_row = read_obj_data<u32>(gpu, tile_offset + 4 * py);
+		if (hflip) {
+			char_row = byteswap32(char_row);
+			char_row = (char_row & 0x0F0F0F0F) << 4 |
+					(char_row & 0xF0F0F0F0) >> 4;
+		}
 	}
 
 	return char_row;
@@ -879,6 +888,7 @@ render_normal_sprite(gpu_2d_engine *gpu, int obj_num, obj_data *obj)
 	if (obj->attr1 & BIT(13)) {
 		obj_y = obj_h - 1 - obj_y;
 	}
+	bool hflip = obj->attr1 & BIT(12) || 1;
 
 	u32 obj_attr_x = obj->attr1 & 0x1FF;
 	u32 obj_x, draw_x, draw_x_end;
@@ -902,6 +912,9 @@ render_normal_sprite(gpu_2d_engine *gpu, int obj_num, obj_data *obj)
 
 	u32 px = obj_x % 8;
 	u32 tx = obj_x / 8;
+	if (hflip) {
+		tx = (obj_w / 8) - 1 - tx;
+	}
 	u32 py = obj_y % 8;
 	u32 ty = obj_y / 8;
 
@@ -929,8 +942,8 @@ render_normal_sprite(gpu_2d_engine *gpu, int obj_num, obj_data *obj)
 
 	for (; draw_x != draw_x_end;) {
 		if (px == 0 || draw_x == 0) {
-			char_row = fetch_obj_char_row(
-					gpu, tile_offset, py, color_256);
+			char_row = fetch_obj_char_row(gpu, tile_offset, py,
+					hflip, color_256);
 			if (color_256) {
 				char_row >>= 8 * px;
 			} else {
@@ -967,9 +980,11 @@ render_normal_sprite(gpu_2d_engine *gpu, int obj_num, obj_data *obj)
 
 		px = 0;
 		if (color_256) {
-			tile_offset += 64;
+			tile_offset = hflip ? tile_offset - 64
+					    : tile_offset + 64;
 		} else {
-			tile_offset += 32;
+			tile_offset = hflip ? tile_offset - 32
+					    : tile_offset + 32;
 		}
 	}
 }
