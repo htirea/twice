@@ -3,11 +3,13 @@ if (TOOLCHAIN_FILE_INCLUDED)
 endif()
 set(TOOLCHAIN_FILE_INCLUDED true)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
+set(CMAKE_CXX_FLAGS_INIT " \
 -Wall -Wextra -pedantic \
 -Wcast-align \
 -Wtype-limits \
 -Wimplicit-fallthrough")
 
-set(CMAKE_CXX_COMPILER "clang++")
-set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fuse-ld=lld")
+set(CMAKE_CXX_COMPILER clang++)
+set(CMAKE_EXE_LINKER_FLAGS_INIT "-fuse-ld=lld")
+set(CMAKE_MODULE_LINKER_FLAGS_INIT "-fuse-ld=lld")
+set(CMAKE_SHARED_LINKER_FLAGS_INIT "-fuse-ld=lld")
