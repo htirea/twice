@@ -45,6 +45,7 @@ struct arm_cpu {
 	u32 IE{};
 	bool interrupt{};
 	bool halted{};
+	bool stopped{};
 
 	nds_ctx *nds{};
 	int cpuid{};

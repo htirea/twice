@@ -73,6 +73,10 @@ io7_write8(nds_ctx *nds, u32 addr, u8 value)
 			nds->cpu[1]->halted = true;
 			force_stop_cpu(nds->cpu[1]);
 			break;
+		case 3:
+			nds->cpu[1]->stopped = true;
+			force_stop_cpu(nds->cpu[1]);
+			break;
 		default:
 			fprintf(stderr, "unhandled haltcnt\n");
 		}
