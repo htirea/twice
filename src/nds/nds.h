@@ -74,7 +74,7 @@ struct nds_ctx {
 	u8 *cartridge{};
 	size_t cartridge_size{};
 
-	u32 fb[NDS_FB_SZ_BYTES]{};
+	u32 fb[NDS_FB_SZ]{};
 
 	/*
 	 * IO
