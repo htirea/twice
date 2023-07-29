@@ -255,6 +255,36 @@ vram_write_bbg_palette(nds_ctx *nds, u32 offset, T value)
 
 template <typename T>
 T
+vram_read_aobj_palette(nds_ctx *nds, u32 offset)
+{
+	u8 *p = nds->vram.aobj_palette_pt;
+	if (p) {
+		return readarr<T>(p, offset & 0x1FFF);
+	} else {
+		u16 mask = nds->vram.aobj_palette_bank;
+		T value = 0;
+
+		VRAM_READ_FROM_MASK(VRAM_F);
+		VRAM_READ_FROM_MASK(VRAM_G);
+
+		return value;
+	}
+}
+
+template <typename T>
+T
+vram_read_bobj_palette(nds_ctx *nds, u32 offset)
+{
+	u8 *p = nds->vram.bobj_palette_pt;
+	if (p) {
+		return readarr<T>(p, offset & 0x1FFF);
+	} else {
+		return 0;
+	}
+}
+
+template <typename T>
+T
 vram_read(nds_ctx *nds, u32 addr)
 {
 	switch (addr >> 21 & 0x7) {

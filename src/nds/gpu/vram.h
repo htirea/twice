@@ -72,6 +72,9 @@ struct gpu_vram {
 	u8 *abg_palette_pt[2]{};
 	u16 abg_palette_bank[2]{};
 	u8 *bbg_palette_pt{};
+	u8 *aobj_palette_pt{};
+	u16 aobj_palette_bank{};
+	u8 *bobj_palette_pt{};
 
 	u8 vramcnt[VRAM_NUM_BANKS]{};
 };

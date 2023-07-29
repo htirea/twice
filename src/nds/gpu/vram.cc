@@ -256,6 +256,47 @@ unmap_bbg_palette(nds_ctx *nds)
 	nds->vram.bbg_palette_pt = nullptr;
 }
 
+static void
+map_aobj_palette(nds_ctx *nds, int bank, u8 *base)
+{
+	auto& mask = nds->vram.aobj_palette_bank;
+
+	if (mask == 0) {
+		nds->vram.aobj_palette_pt = base;
+	} else {
+		nds->vram.aobj_palette_pt = nullptr;
+	}
+
+	mask |= BIT(bank);
+}
+
+static void
+unmap_aobj_palette(nds_ctx *nds, int bank)
+{
+	auto& mask = nds->vram.aobj_palette_bank;
+	mask &= ~BIT(bank);
+
+	if (mask == BIT(VRAM_F)) {
+		nds->vram.aobj_palette_pt = nds->vram.vram_f;
+	} else if (mask == BIT(VRAM_G)) {
+		nds->vram.aobj_palette_pt = nds->vram.vram_g;
+	} else {
+		nds->vram.aobj_palette_pt = nullptr;
+	}
+}
+
+static void
+map_bobj_palette(nds_ctx *nds, u8 *base)
+{
+	nds->vram.bobj_palette_pt = base;
+}
+
+static void
+unmap_bobj_palette(nds_ctx *nds)
+{
+	nds->vram.bobj_palette_pt = nullptr;
+}
+
 template <int bank>
 static void
 vramcnt_ab_write(nds_ctx *nds, u8 value)
@@ -494,7 +535,8 @@ vramcnt_fg_write(nds_ctx *nds, u8 value)
 			unmap_abg_palette(nds, bank, ofs & 1, 1);
 			break;
 		case 5:
-			throw twice_error("unmap vram bank f/g aobj ext pal");
+			unmap_aobj_palette(nds, bank);
+			break;
 		}
 		vram.bank_mapped[bank] = false;
 	}
@@ -522,7 +564,8 @@ vramcnt_fg_write(nds_ctx *nds, u8 value)
 			map_abg_palette(nds, bank, base, ofs & 1, 1);
 			break;
 		case 5:
-			throw twice_error("map vram bank f/g aobj ext pal");
+			map_aobj_palette(nds, bank, base);
+			break;
 		default:
 			throw twice_error("map vram bank f/g invalid mst");
 		}
@@ -617,7 +660,8 @@ vramcnt_i_write(nds_ctx *nds, u8 value)
 			unmap_bobj(nds, VRAM_I);
 			break;
 		case 3:
-			throw twice_error("unmap vram bank i bobj ext pal");
+			unmap_bobj_palette(nds);
+			break;
 		}
 
 		vram.bank_mapped[VRAM_I] = false;
@@ -638,7 +682,8 @@ vramcnt_i_write(nds_ctx *nds, u8 value)
 			map_bobj(nds, VRAM_I, base);
 			break;
 		case 3:
-			throw twice_error("map vram bank i bobj ext pal");
+			map_bobj_palette(nds, base);
+			break;
 		}
 
 		vram.bank_mapped[VRAM_I] = true;
