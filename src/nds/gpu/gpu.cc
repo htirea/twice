@@ -964,7 +964,115 @@ render_bitmap_sprite(gpu_2d_engine *gpu, int obj_num, obj_data *obj)
 static void
 render_affine_sprite(gpu_2d_engine *gpu, int obj_num, obj_data *obj)
 {
-	throw twice_error("affine sprite");
+	u32 obj_w, obj_h;
+	get_obj_size(obj, &obj_w, &obj_h);
+
+	u32 box_w = obj_w;
+	u32 box_h = obj_h;
+	if (obj->attr0 & BIT(9)) {
+		box_w <<= 1;
+		box_h <<= 1;
+	}
+	u32 half_box_w = box_w >> 1;
+	u32 half_box_h = box_h >> 1;
+
+	u32 obj_attr_y = obj->attr0 & 0xFF;
+	u32 box_y = (gpu->nds->vcount - obj_attr_y) & 0xFF;
+	if (box_y >= box_h) {
+		return;
+	}
+
+	u32 obj_attr_x = obj->attr1 & 0x1FF;
+	u32 box_x, draw_x, draw_x_end;
+	if (obj_attr_x < 256) {
+		box_x = 0;
+		draw_x = obj_attr_x;
+		draw_x_end = std::min(obj_attr_x + box_w, (u32)256);
+	} else {
+		box_x = 512 - obj_attr_x;
+		if (box_x >= box_w) {
+			return;
+		}
+		draw_x = 0;
+		draw_x_end = box_w - box_x;
+	}
+
+	u32 priority = obj->attr2 >> 10 & 3;
+	u32 palette_num = obj->attr2 >> 12;
+
+	bool color_256 = obj->attr0 & BIT(13);
+
+	u32 affine_index = obj->attr1 >> 9 & 0x1F;
+	u32 affine_base_addr = 0x20 * affine_index + 6;
+	if (gpu->engineid == 1) {
+		affine_base_addr += 0x400;
+	}
+	s16 pa = readarr<u16>(gpu->nds->oam, affine_base_addr);
+	s16 pb = readarr<u16>(gpu->nds->oam, affine_base_addr + 8);
+	s16 pc = readarr<u16>(gpu->nds->oam, affine_base_addr + 16);
+	s16 pd = readarr<u16>(gpu->nds->oam, affine_base_addr + 24);
+
+	s32 ref_x = (s32)(box_y - half_box_h) * pb +
+	            (s32)(box_x - half_box_w) * pa + (obj_w >> 1 << 8);
+	s32 ref_y = (s32)(box_y - half_box_h) * pd +
+	            (s32)(box_x - half_box_w) * pc + (obj_h >> 1 << 8);
+
+	u32 obj_char_name = obj->attr2 & 0x3FF;
+	bool map_1d = gpu->dispcnt & BIT(4);
+
+	for (; draw_x != draw_x_end; draw_x++, ref_x += pa, ref_y += pc) {
+		s32 obj_x = ref_x >> 8;
+		s32 obj_y = ref_y >> 8;
+
+		if (obj_x < 0 || (u32)obj_x >= obj_w || obj_y < 0 ||
+				(u32)obj_y >= obj_h) {
+			continue;
+		}
+
+		u32 px = obj_x & 7;
+		u32 tx = obj_x >> 3;
+		u32 py = obj_y & 7;
+		u32 ty = obj_y >> 3;
+
+		u32 tile_offset;
+		if (map_1d) {
+			tile_offset = obj_char_name
+			              << 5 << (gpu->dispcnt >> 20 & 3);
+			if (color_256) {
+				tile_offset += (obj_w / 8) * 64 * ty +
+				               64 * tx + 8 * py + px;
+			} else {
+				tile_offset += (obj_w / 8) * 32 * ty +
+				               32 * tx + 4 * py + px / 2;
+			}
+		} else {
+			if (color_256) {
+				tile_offset = 32 * (obj_char_name & ~1) +
+				              1024 * ty + 64 * tx + 8 * py +
+				              px;
+			} else {
+				tile_offset = 32 * obj_char_name + 1024 * ty +
+				              32 * tx + 4 * py + px / 2;
+			}
+		}
+
+		u8 offset = read_obj_data<u8>(gpu, tile_offset);
+
+		if (color_256) {
+			if (offset != 0) {
+				u16 color = obj_get_palette_color_256(
+						gpu, offset);
+				draw_obj_pixel(gpu, draw_x, color, priority);
+			}
+		} else {
+			offset >>= 4 * (px & 1);
+			if (offset != 0) {
+				u16 color = obj_get_palette_color_16(
+						gpu, palette_num, offset);
+				draw_obj_pixel(gpu, draw_x, color, priority);
+			}
+		}
+	}
 }
 
 static void
