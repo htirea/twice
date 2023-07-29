@@ -207,15 +207,14 @@ static void draw_bg_pixel(
 		gpu_2d_engine *gpu, u32 fb_x, u16 color, u8 priority);
 static void draw_obj_pixel(
 		gpu_2d_engine *gpu, u32 fb_x, u16 color, u8 priority);
-static u16 get_palette_color_256(gpu_2d_engine *gpu, u32 color_num);
-static u16 obj_get_palette_color_256(gpu_2d_engine *gpu, u32 color_num);
-static u16 get_palette_color_256_extended(
+static u16 bg_get_color_256(gpu_2d_engine *gpu, u32 color_num);
+static u16 obj_get_color_256(gpu_2d_engine *gpu, u32 color_num);
+static u16 bg_get_color_extended(
 		gpu_2d_engine *gpu, u32 slot, u32 palette_num, u32 color_num);
-static u16 obj_get_palette_color_extended(
+static u16 obj_get_color_extended(
 		gpu_2d_engine *gpu, u32 palette_num, u32 color_num);
-static u16 get_palette_color_16(
-		gpu_2d_engine *gpu, u32 palette_num, u32 color_num);
-static u16 obj_get_palette_color_16(
+static u16 bg_get_color_16(gpu_2d_engine *gpu, u32 palette_num, u32 color_num);
+static u16 obj_get_color_16(
 		gpu_2d_engine *gpu, u32 palette_num, u32 color_num);
 
 static void
@@ -299,7 +298,7 @@ draw_scanline(gpu_2d_engine *gpu, u16 scanline)
 static void
 clear_buffers(gpu_2d_engine *gpu)
 {
-	u16 backdrop_color = get_palette_color_256(gpu, 0);
+	u16 backdrop_color = bg_get_color_256(gpu, 0);
 	for (u32 i = 0; i < 256; i++) {
 		gpu->buffer_top[i].color = backdrop_color;
 		gpu->buffer_top[i].priority = 4;
@@ -504,12 +503,11 @@ render_text_bg(gpu_2d_engine *gpu, int bg)
 
 				u16 color;
 				if (extended_palettes) {
-					color = get_palette_color_256_extended(
-							gpu, slot, palette_num,
+					color = bg_get_color_extended(gpu,
+							slot, palette_num,
 							offset);
 				} else {
-					color = get_palette_color_256(
-							gpu, offset);
+					color = bg_get_color_256(gpu, offset);
 				}
 				draw_bg_pixel(gpu, i, color, bg_priority);
 			}
@@ -517,7 +515,7 @@ render_text_bg(gpu_2d_engine *gpu, int bg)
 			for (; px < 8 && i < 256; px++, i++, char_row >>= 4) {
 				u32 offset = char_row & 0xF;
 				if (offset != 0) {
-					u16 color = get_palette_color_16(gpu,
+					u16 color = bg_get_color_16(gpu,
 							palette_num, offset);
 					draw_bg_pixel(gpu, i, color,
 							bg_priority);
@@ -583,7 +581,7 @@ render_affine_bg(gpu_2d_engine *gpu, int bg)
 		u8 color_num = read_bg_data<u8>(
 				gpu, char_base + 64 * se + 8 * py + px);
 		if (color_num != 0) {
-			u16 color = get_palette_color_256(gpu, color_num);
+			u16 color = bg_get_color_256(gpu, color_num);
 			draw_bg_pixel(gpu, i, color, bg_priority);
 		}
 	}
@@ -652,10 +650,10 @@ render_extended_text_bg(gpu_2d_engine *gpu, int bg)
 			u16 color;
 			if (extended_palettes) {
 				u32 palette_num = se >> 12;
-				color = get_palette_color_256_extended(gpu,
-						slot, palette_num, color_num);
+				color = bg_get_color_extended(gpu, slot,
+						palette_num, color_num);
 			} else {
-				color = get_palette_color_256(gpu, color_num);
+				color = bg_get_color_256(gpu, color_num);
 			}
 			draw_bg_pixel(gpu, i, color, bg_priority);
 		}
@@ -703,8 +701,7 @@ render_extended_bitmap_bg(gpu_2d_engine *gpu, int bg, bool direct_color)
 			u8 color_num = read_bg_data<u8>(
 					gpu, screen_base, bg_w, bg_x, bg_y);
 			if (color_num != 0) {
-				u16 color = get_palette_color_256(
-						gpu, color_num);
+				u16 color = bg_get_color_256(gpu, color_num);
 				draw_bg_pixel(gpu, i, color, bg_priority);
 			}
 		}
@@ -765,7 +762,7 @@ render_large_bitmap_bg(gpu_2d_engine *gpu)
 
 		u8 color_num = vram_read<u8>(gpu->nds, bg_w * bg_y + bg_x);
 		if (color_num != 0) {
-			u16 color = get_palette_color_256(gpu, color_num);
+			u16 color = bg_get_color_256(gpu, color_num);
 			draw_bg_pixel(gpu, i, color, bg_priority);
 		}
 	}
@@ -931,12 +928,10 @@ render_normal_sprite(gpu_2d_engine *gpu, int obj_num, obj_data *obj)
 
 				u16 color;
 				if (extended_palettes) {
-					color = obj_get_palette_color_extended(
-							gpu, palette_num,
-							offset);
+					color = obj_get_color_extended(gpu,
+							palette_num, offset);
 				} else {
-					color = obj_get_palette_color_256(
-							gpu, offset);
+					color = obj_get_color_256(gpu, offset);
 				}
 				draw_obj_pixel(gpu, draw_x, color, priority);
 			}
@@ -945,9 +940,8 @@ render_normal_sprite(gpu_2d_engine *gpu, int obj_num, obj_data *obj)
 					px++, draw_x++, char_row >>= 4) {
 				u32 offset = char_row & 0xF;
 				if (offset != 0) {
-					u16 color = obj_get_palette_color_16(
-							gpu, palette_num,
-							offset);
+					u16 color = obj_get_color_16(gpu,
+							palette_num, offset);
 					draw_obj_pixel(gpu, draw_x, color,
 							priority);
 				}
@@ -1073,19 +1067,17 @@ render_affine_sprite(gpu_2d_engine *gpu, int obj_num, obj_data *obj)
 			if (offset != 0) {
 				u16 color;
 				if (extended_palettes) {
-					color = obj_get_palette_color_extended(
-							gpu, palette_num,
-							offset);
+					color = obj_get_color_extended(gpu,
+							palette_num, offset);
 				} else {
-					color = obj_get_palette_color_256(
-							gpu, offset);
+					color = obj_get_color_256(gpu, offset);
 				}
 				draw_obj_pixel(gpu, draw_x, color, priority);
 			}
 		} else {
 			offset >>= 4 * (px & 1);
 			if (offset != 0) {
-				u16 color = obj_get_palette_color_16(
+				u16 color = obj_get_color_16(
 						gpu, palette_num, offset);
 				draw_obj_pixel(gpu, draw_x, color, priority);
 			}
@@ -1167,7 +1159,7 @@ draw_obj_pixel(gpu_2d_engine *gpu, u32 fb_x, u16 color, u8 priority)
 }
 
 static u16
-get_palette_color_256(gpu_2d_engine *gpu, u32 color_num)
+bg_get_color_256(gpu_2d_engine *gpu, u32 color_num)
 {
 	u32 offset = 2 * color_num;
 	if (gpu->engineid == 1) {
@@ -1178,7 +1170,7 @@ get_palette_color_256(gpu_2d_engine *gpu, u32 color_num)
 }
 
 static u16
-obj_get_palette_color_256(gpu_2d_engine *gpu, u32 color_num)
+obj_get_color_256(gpu_2d_engine *gpu, u32 color_num)
 {
 	u32 offset = 0x200 + 2 * color_num;
 	if (gpu->engineid == 1) {
@@ -1189,7 +1181,7 @@ obj_get_palette_color_256(gpu_2d_engine *gpu, u32 color_num)
 }
 
 static u16
-get_palette_color_256_extended(
+bg_get_color_extended(
 		gpu_2d_engine *gpu, u32 slot, u32 palette_num, u32 color_num)
 {
 	u32 offset = 0x2000 * slot + 512 * palette_num + 2 * color_num;
@@ -1201,8 +1193,7 @@ get_palette_color_256_extended(
 }
 
 static u16
-obj_get_palette_color_extended(
-		gpu_2d_engine *gpu, u32 palette_num, u32 color_num)
+obj_get_color_extended(gpu_2d_engine *gpu, u32 palette_num, u32 color_num)
 {
 	u32 offset = 512 * palette_num + 2 * color_num;
 	if (gpu->engineid == 0) {
@@ -1213,7 +1204,7 @@ obj_get_palette_color_extended(
 }
 
 static u16
-get_palette_color_16(gpu_2d_engine *gpu, u32 palette_num, u32 color_num)
+bg_get_color_16(gpu_2d_engine *gpu, u32 palette_num, u32 color_num)
 {
 	u32 offset = 32 * palette_num + 2 * color_num;
 	if (gpu->engineid == 1) {
@@ -1224,7 +1215,7 @@ get_palette_color_16(gpu_2d_engine *gpu, u32 palette_num, u32 color_num)
 }
 
 static u16
-obj_get_palette_color_16(gpu_2d_engine *gpu, u32 palette_num, u32 color_num)
+obj_get_color_16(gpu_2d_engine *gpu, u32 palette_num, u32 color_num)
 {
 	u32 offset = 0x200 + 32 * palette_num + 2 * color_num;
 	if (gpu->engineid == 1) {
