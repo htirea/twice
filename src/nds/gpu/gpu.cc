@@ -211,6 +211,8 @@ static u16 get_palette_color_256(gpu_2d_engine *gpu, u32 color_num);
 static u16 obj_get_palette_color_256(gpu_2d_engine *gpu, u32 color_num);
 static u16 get_palette_color_256_extended(
 		gpu_2d_engine *gpu, u32 slot, u32 palette_num, u32 color_num);
+static u16 obj_get_palette_color_extended(
+		gpu_2d_engine *gpu, u32 palette_num, u32 color_num);
 static u16 get_palette_color_16(
 		gpu_2d_engine *gpu, u32 palette_num, u32 color_num);
 static u16 obj_get_palette_color_16(
@@ -893,6 +895,7 @@ render_normal_sprite(gpu_2d_engine *gpu, int obj_num, obj_data *obj)
 
 	u32 obj_char_name = obj->attr2 & 0x3FF;
 	bool map_1d = gpu->dispcnt & BIT(4);
+	bool extended_palettes = gpu->dispcnt & BIT(31);
 
 	u32 tile_offset;
 	if (map_1d) {
@@ -926,8 +929,15 @@ render_normal_sprite(gpu_2d_engine *gpu, int obj_num, obj_data *obj)
 				u32 offset = char_row & 0xFF;
 				if (offset == 0) continue;
 
-				u16 color = obj_get_palette_color_256(
-						gpu, offset);
+				u16 color;
+				if (extended_palettes) {
+					color = obj_get_palette_color_extended(
+							gpu, palette_num,
+							offset);
+				} else {
+					color = obj_get_palette_color_256(
+							gpu, offset);
+				}
 				draw_obj_pixel(gpu, draw_x, color, priority);
 			}
 		} else {
@@ -1019,6 +1029,7 @@ render_affine_sprite(gpu_2d_engine *gpu, int obj_num, obj_data *obj)
 
 	u32 obj_char_name = obj->attr2 & 0x3FF;
 	bool map_1d = gpu->dispcnt & BIT(4);
+	bool extended_palettes = gpu->dispcnt & BIT(31);
 
 	for (; draw_x != draw_x_end; draw_x++, ref_x += pa, ref_y += pc) {
 		s32 obj_x = ref_x >> 8;
@@ -1060,8 +1071,15 @@ render_affine_sprite(gpu_2d_engine *gpu, int obj_num, obj_data *obj)
 
 		if (color_256) {
 			if (offset != 0) {
-				u16 color = obj_get_palette_color_256(
-						gpu, offset);
+				u16 color;
+				if (extended_palettes) {
+					color = obj_get_palette_color_extended(
+							gpu, palette_num,
+							offset);
+				} else {
+					color = obj_get_palette_color_256(
+							gpu, offset);
+				}
 				draw_obj_pixel(gpu, draw_x, color, priority);
 			}
 		} else {
@@ -1179,6 +1197,18 @@ get_palette_color_256_extended(
 		return vram_read_abg_palette<u16>(gpu->nds, offset);
 	} else {
 		return vram_read_bbg_palette<u16>(gpu->nds, offset);
+	}
+}
+
+static u16
+obj_get_palette_color_extended(
+		gpu_2d_engine *gpu, u32 palette_num, u32 color_num)
+{
+	u32 offset = 512 * palette_num + 2 * color_num;
+	if (gpu->engineid == 0) {
+		return vram_read_aobj_palette<u16>(gpu->nds, offset);
+	} else {
+		return vram_read_bobj_palette<u16>(gpu->nds, offset);
 	}
 }
 
