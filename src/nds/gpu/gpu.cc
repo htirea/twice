@@ -491,21 +491,13 @@ render_text_bg(gpu_2d_engine *gpu, int bg)
 			u16 se = read_bg_data<u16>(gpu, se_offset);
 			char_row = fetch_char_row(
 					gpu, se, char_base, bg_y, color_256);
-
-			if (color_256) {
-				char_row >>= 8 * px;
-			} else {
-				char_row >>= 4 * px;
-			}
-
+			char_row >>= (color_256 ? 8 : 4) * px;
 			palette_num = se >> 12;
 		}
 
 		if (color_256) {
-			for (; px < 8 && i < 256; px++, i++) {
+			for (; px < 8 && i < 256; px++, i++, char_row >>= 8) {
 				u32 offset = char_row & 0xFF;
-				char_row >>= 8;
-
 				if (offset == 0) continue;
 
 				u16 color;
@@ -517,13 +509,11 @@ render_text_bg(gpu_2d_engine *gpu, int bg)
 					color = get_palette_color_256(
 							gpu, offset);
 				}
-
 				draw_bg_pixel(gpu, i, color, bg_priority);
 			}
 		} else {
-			for (; px < 8 && i < 256; px++, i++) {
+			for (; px < 8 && i < 256; px++, i++, char_row >>= 4) {
 				u32 offset = char_row & 0xF;
-				char_row >>= 4;
 				if (offset != 0) {
 					u16 color = get_palette_color_16(gpu,
 							palette_num, offset);
@@ -568,12 +558,9 @@ render_affine_bg(gpu_2d_engine *gpu, int bg)
 
 	bool wrap_bg = gpu->bg_cnt[bg] & BIT(13);
 
-	for (int i = 0; i < 256; i++) {
+	for (int i = 0; i < 256; i++, ref_x += pa, ref_y += pc) {
 		u32 bg_x = ref_x >> 8;
 		u32 bg_y = ref_y >> 8;
-
-		ref_x += pa;
-		ref_y += pc;
 
 		if (wrap_bg) {
 			bg_x = bg_x & (bg_w - 1);
@@ -585,7 +572,6 @@ render_affine_bg(gpu_2d_engine *gpu, int bg)
 
 		u32 se_x = bg_x / 8;
 		u32 se_y = bg_y / 8;
-
 		u32 px = bg_x % 8;
 		u32 py = bg_y % 8;
 
@@ -594,7 +580,6 @@ render_affine_bg(gpu_2d_engine *gpu, int bg)
 		/* char_name = se */
 		u8 color_num = read_bg_data<u8>(
 				gpu, char_base + 64 * se + 8 * py + px);
-
 		if (color_num != 0) {
 			u16 color = get_palette_color_256(gpu, color_num);
 			draw_bg_pixel(gpu, i, color, bg_priority);
@@ -632,12 +617,9 @@ render_extended_text_bg(gpu_2d_engine *gpu, int bg)
 		slot |= 2;
 	}
 
-	for (int i = 0; i < 256; i++) {
+	for (int i = 0; i < 256; i++, ref_x += pa, ref_y += pc) {
 		u32 bg_x = ref_x >> 8;
 		u32 bg_y = ref_y >> 8;
-
-		ref_x += pa;
-		ref_y += pc;
 
 		if (wrap_bg) {
 			bg_x = bg_x & (bg_w - 1);
@@ -649,13 +631,11 @@ render_extended_text_bg(gpu_2d_engine *gpu, int bg)
 
 		u32 se_x = bg_x / 8;
 		u32 se_y = bg_y / 8;
-
 		u32 px = bg_x % 8;
 		u32 py = bg_y % 8;
 
 		u32 se_offset = screen_base + bg_w / 8 * 2 * se_y + 2 * se_x;
 		u16 se = read_bg_data<u16>(gpu, se_offset);
-
 		if (se & BIT(11)) {
 			py = 7 - py;
 		}
@@ -666,7 +646,6 @@ render_extended_text_bg(gpu_2d_engine *gpu, int bg)
 		u16 char_name = se & 0x3FF;
 		u8 color_num = read_bg_data<u8>(
 				gpu, char_base + 64 * char_name + 8 * py + px);
-
 		if (color_num != 0) {
 			u16 color;
 			if (extended_palettes) {
@@ -700,12 +679,9 @@ render_extended_bitmap_bg(gpu_2d_engine *gpu, int bg, bool direct_color)
 
 	bool wrap_bg = gpu->bg_cnt[bg] & BIT(13);
 
-	for (int i = 0; i < 256; i++) {
+	for (int i = 0; i < 256; i++, ref_x += pa, ref_y += pc) {
 		u32 bg_x = ref_x >> 8;
 		u32 bg_y = ref_y >> 8;
-
-		ref_x += pa;
-		ref_y += pc;
 
 		if (wrap_bg) {
 			bg_x = bg_x & (bg_w - 1);
@@ -773,12 +749,9 @@ render_large_bitmap_bg(gpu_2d_engine *gpu)
 
 	bool wrap_bg = gpu->bg_cnt[bg] & BIT(13);
 
-	for (int i = 0; i < 256; i++) {
+	for (int i = 0; i < 256; i++, ref_x += pa, ref_y += pc) {
 		u32 bg_x = ref_x >> 8;
 		u32 bg_y = ref_y >> 8;
-
-		ref_x += pa;
-		ref_y += pc;
 
 		if (wrap_bg) {
 			bg_x = bg_x & (bg_w - 1);
@@ -944,19 +917,13 @@ render_normal_sprite(gpu_2d_engine *gpu, int obj_num, obj_data *obj)
 		if (px == 0 || draw_x == 0) {
 			char_row = fetch_obj_char_row(gpu, tile_offset, py,
 					hflip, color_256);
-			if (color_256) {
-				char_row >>= 8 * px;
-			} else {
-				char_row >>= 4 * px;
-			}
+			char_row >>= (color_256 ? 8 : 4) * px;
 		}
 
 		if (color_256) {
 			for (; px < 8 && draw_x != draw_x_end;
-					px++, draw_x++) {
+					px++, draw_x++, char_row >>= 8) {
 				u32 offset = char_row & 0xFF;
-				char_row >>= 8;
-
 				if (offset == 0) continue;
 
 				u16 color = obj_get_palette_color_256(
@@ -965,9 +932,8 @@ render_normal_sprite(gpu_2d_engine *gpu, int obj_num, obj_data *obj)
 			}
 		} else {
 			for (; px < 8 && draw_x != draw_x_end;
-					px++, draw_x++) {
+					px++, draw_x++, char_row >>= 4) {
 				u32 offset = char_row & 0xF;
-				char_row >>= 4;
 				if (offset != 0) {
 					u16 color = obj_get_palette_color_16(
 							gpu, palette_num,
