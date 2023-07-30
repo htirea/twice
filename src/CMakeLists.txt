@@ -16,6 +16,7 @@ endif()
 add_library(twice STATIC
 	common/logger.cc
 	${FILEMAP_SOURCE}
+	libtwice/config.cc
 	libtwice/machine.cc
 	nds/arm/arm.cc
 	nds/arm/arm7.cc
