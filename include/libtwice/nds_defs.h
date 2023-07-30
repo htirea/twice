@@ -1,5 +1,5 @@
-#ifndef TWICE_PUBLIC_TYPES_H
-#define TWICE_PUBLIC_TYPES_H
+#ifndef TWICE_NDS_DEFS_H
+#define TWICE_NDS_DEFS_H
 
 #include <cstddef>
 

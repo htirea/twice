@@ -1,6 +1,8 @@
 #ifndef TWICE_NDS_H
 #define TWICE_NDS_H
 
+#include "libtwice/nds_defs.h"
+
 #include "nds/dma.h"
 #include "nds/gpu/gpu.h"
 #include "nds/gpu/vram.h"

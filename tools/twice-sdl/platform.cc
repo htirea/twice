@@ -4,7 +4,7 @@
 #include <format>
 
 #include "libtwice/machine.h"
-#include "libtwice/types.h"
+#include "libtwice/nds_defs.h"
 
 namespace twice {
 

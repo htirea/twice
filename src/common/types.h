@@ -1,8 +1,6 @@
 #ifndef TWICE_TYPES_H
 #define TWICE_TYPES_H
 
-#include "libtwice/types.h"
-
 #include <algorithm>
 #include <array>
 #include <bit>

@@ -9,7 +9,7 @@
 
 #include "libtwice/exception.h"
 #include "libtwice/machine.h"
-#include "libtwice/types.h"
+#include "libtwice/nds_defs.h"
 
 #include "args.h"
 #include "platform.h"
