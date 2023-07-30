@@ -10,25 +10,25 @@
 
 namespace twice {
 
-enum class nds_button {
-	A,
-	B,
-	SELECT,
-	START,
-	RIGHT,
-	LEFT,
-	UP,
-	DOWN,
-	R,
-	L,
-	X,
-	Y,
-	NONE,
-};
-
 struct nds_ctx;
 
 struct nds_machine {
+	enum class nds_button {
+		A,
+		B,
+		SELECT,
+		START,
+		RIGHT,
+		LEFT,
+		UP,
+		DOWN,
+		R,
+		L,
+		X,
+		Y,
+		NONE,
+	};
+
 	nds_machine(const nds_config& config);
 	~nds_machine();
 

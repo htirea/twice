@@ -142,10 +142,10 @@ sdl_platform::loop(twice::nds_machine *nds)
 	}
 }
 
-static nds_button
+static nds_machine::nds_button
 get_nds_button(SDL_Keycode key)
 {
-	using enum twice::nds_button;
+	using enum twice::nds_machine::nds_button;
 
 	switch (key) {
 	case SDLK_x:
@@ -177,10 +177,10 @@ get_nds_button(SDL_Keycode key)
 	}
 }
 
-static nds_button
+static nds_machine::nds_button
 controller_button_to_nds(int button)
 {
-	using enum twice::nds_button;
+	using enum twice::nds_machine::nds_button;
 
 	switch (button) {
 	case SDL_CONTROLLER_BUTTON_B:
