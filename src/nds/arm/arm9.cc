@@ -3,6 +3,7 @@
 #include "nds/arm/interpreter/lut.h"
 #include "nds/mem/bus.h"
 
+#include "common/logger.h"
 #include "libtwice/exception.h"
 
 namespace twice {
@@ -212,14 +213,14 @@ arm9_cpu::cp15_read(u32 reg)
 	case 0x650:
 	case 0x660:
 	case 0x670:
-		fprintf(stderr, "cp15 read %03X\n", reg);
+		LOG("cp15 read %03X\n", reg);
 		return 0;
 	case 0x910:
 		return dtcm_reg;
 	case 0x911:
 		return itcm_reg;
 	default:
-		fprintf(stderr, "cp15 read %03X\n", reg);
+		LOG("cp15 read %03X\n", reg);
 		throw twice_error("unhandled cp15 read");
 	}
 }
@@ -231,7 +232,7 @@ ctrl_reg_write(arm9_cpu *cpu, u32 value)
 	u32 unhandled = BIT(0) | BIT(2) | BIT(7) | BIT(12) | BIT(14) | BIT(15);
 
 	if (diff & unhandled) {
-		fprintf(stderr, "unhandled bits in cp15 write %08X\n", value);
+		LOG("unhandled bits in cp15 write %08X\n", value);
 	}
 
 	cpu->exception_base = value & BIT(13) ? 0xFFFF0000 : 0;
@@ -280,7 +281,7 @@ arm9_cpu::cp15_write(u32 reg, u32 value)
 		force_stop_cpu(this);
 		break;
 	default:
-		fprintf(stderr, "unhandled cp15 write to %03X\n", reg);
+		LOG("unhandled cp15 write to %03X\n", reg);
 	}
 }
 

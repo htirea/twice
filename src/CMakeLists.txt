@@ -14,6 +14,7 @@ else()
 endif()
 
 add_library(twice STATIC
+	common/logger.cc
 	${FILEMAP_SOURCE}
 	libtwice/machine.cc
 	nds/arm/arm.cc

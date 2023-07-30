@@ -6,6 +6,7 @@
 #include "nds/mem/vram.h"
 #include "nds/nds.h"
 
+#include "common/logger.h"
 #include "common/util.h"
 
 namespace twice {
@@ -32,7 +33,7 @@ bus9_read(nds_ctx *nds, u32 addr)
 		value = readarr<T>(nds->shared_wram_p[0],
 				addr & nds->shared_wram_mask[0]);
 		if (nds->shared_wram_mask[0] == 0) {
-			fprintf(stderr, "nds9 read empty wram\n");
+			LOG("nds9 read empty wram\n");
 		}
 		break;
 	case 0x4:
@@ -76,7 +77,7 @@ bus9_read(nds_ctx *nds, u32 addr)
 	}
 
 	if (undef) {
-		fprintf(stderr, "undefined nds9 read at %08X\n", addr);
+		LOG("undefined nds9 read at %08X\n", addr);
 	}
 
 	return value;
@@ -96,7 +97,7 @@ bus9_write(nds_ctx *nds, u32 addr, T value)
 		writearr<T>(nds->shared_wram_p[0],
 				addr & nds->shared_wram_mask[0], value);
 		if (nds->shared_wram_mask[0] == 0) {
-			fprintf(stderr, "nds9 write empty wram\n");
+			LOG("nds9 write empty wram\n");
 		}
 		break;
 	case 0x4:
@@ -131,7 +132,7 @@ bus9_write(nds_ctx *nds, u32 addr, T value)
 	}
 
 	if (undef) {
-		fprintf(stderr, "undefined nds9 write to %08X\n", addr);
+		LOG("undefined nds9 write to %08X\n", addr);
 	}
 }
 
@@ -183,7 +184,7 @@ bus7_read(nds_ctx *nds, u32 addr)
 	}
 
 	if (undef) {
-		fprintf(stderr, "undefined nds7 read from %08X\n", addr);
+		LOG("undefined nds7 read from %08X\n", addr);
 	}
 
 	return value;
@@ -230,7 +231,7 @@ bus7_write(nds_ctx *nds, u32 addr, T value)
 	}
 
 	if (undef) {
-		fprintf(stderr, "undefined nds7 write to %08X\n", addr);
+		LOG("undefined nds7 write to %08X\n", addr);
 	}
 }
 

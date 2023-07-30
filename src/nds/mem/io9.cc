@@ -1,5 +1,6 @@
 #include "nds/mem/io.h"
 
+#include "common/logger.h"
 #include "nds/math.h"
 
 namespace twice {
@@ -65,7 +66,7 @@ io9_read8(nds_ctx *nds, u32 addr)
 		return nds->wramcnt;
 	}
 
-	fprintf(stderr, "nds 0 read 8 at %08X\n", addr);
+	LOG("nds 0 read 8 at %08X\n", addr);
 	return 0;
 }
 
@@ -90,7 +91,7 @@ io9_read16(nds_ctx *nds, u32 addr)
 		return gpu_2d_read16(&nds->gpu2d[1], addr);
 	}
 
-	fprintf(stderr, "nds 0 read 16 at %08X\n", addr);
+	LOG("nds 0 read 16 at %08X\n", addr);
 	return 0;
 }
 
@@ -152,7 +153,7 @@ io9_read32(nds_ctx *nds, u32 addr)
 		return gpu_2d_read32(&nds->gpu2d[1], addr);
 	}
 
-	fprintf(stderr, "nds 0 read 32 at %08X\n", addr);
+	LOG("nds 0 read 32 at %08X\n", addr);
 	return 0;
 }
 
@@ -200,7 +201,7 @@ io9_write8(nds_ctx *nds, u32 addr, u8 value)
 		return;
 	}
 
-	fprintf(stderr, "nds 0 write 8 to %08X\n", addr);
+	LOG("nds 0 write 8 to %08X\n", addr);
 }
 
 void
@@ -233,7 +234,7 @@ io9_write16(nds_ctx *nds, u32 addr, u16 value)
 		return;
 	}
 
-	fprintf(stderr, "nds 0 write 16 to %08X\n", addr);
+	LOG("nds 0 write 16 to %08X\n", addr);
 }
 
 void
@@ -320,7 +321,7 @@ io9_write32(nds_ctx *nds, u32 addr, u32 value)
 		return;
 	}
 
-	fprintf(stderr, "nds 0 write 32 to %08X\n", addr);
+	LOG("nds 0 write 32 to %08X\n", addr);
 }
 
 } // namespace twice

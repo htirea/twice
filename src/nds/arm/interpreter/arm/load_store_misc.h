@@ -36,7 +36,7 @@ arm_misc_dt(arm_cpu *cpu)
 
 	bool writeback = (W == 1 || P == 0) && rn != 15;
 	if ((W == 1 || P == 0) && rn == 15) {
-		fprintf(stderr, "writeback with pc as base\n");
+		LOG("writeback with pc as base\n");
 	}
 
 	if (L == 1) {
@@ -77,7 +77,7 @@ arm_misc_dt(arm_cpu *cpu)
 
 		if (is_arm9(cpu)) {
 			if (rd & 1) {
-				fprintf(stderr, "ldrd odd reg\n");
+				LOG("ldrd odd reg\n");
 				rd &= ~1;
 			}
 
@@ -96,7 +96,7 @@ arm_misc_dt(arm_cpu *cpu)
 		}
 
 		if (rd & 1) {
-			fprintf(stderr, "strd odd reg\n");
+			LOG("strd odd reg\n");
 			rd &= ~1;
 		}
 

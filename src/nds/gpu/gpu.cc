@@ -4,6 +4,7 @@
 #include "nds/gpu/color.h"
 #include "nds/mem/vram.h"
 
+#include "common/logger.h"
 #include "libtwice/exception.h"
 
 namespace twice {
@@ -24,7 +25,7 @@ gpu_2d_read32(gpu_2d_engine *gpu, u8 offset)
 		return (u32)gpu->bg_cnt[3] << 16 | gpu->bg_cnt[2];
 	}
 
-	fprintf(stderr, "2d engine read 32 at offset %02X\n", offset);
+	LOG("2d engine read 32 at offset %02X\n", offset);
 	return 0;
 }
 
@@ -50,7 +51,7 @@ gpu_2d_read16(gpu_2d_engine *gpu, u8 offset)
 		return gpu->bldalpha;
 	}
 
-	fprintf(stderr, "2d engine read 16 at offset %02X\n", offset);
+	LOG("2d engine read 16 at offset %02X\n", offset);
 	return 0;
 }
 
@@ -190,7 +191,7 @@ gpu_2d_write16(gpu_2d_engine *gpu, u8 offset, u16 value)
 		return;
 	}
 
-	fprintf(stderr, "2d engine write 16 to offset %02X\n", offset);
+	LOG("2d engine write 16 to offset %02X\n", offset);
 }
 
 static void draw_scanline(gpu_2d_engine *gpu, u16 scanline);

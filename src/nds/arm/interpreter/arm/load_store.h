@@ -63,7 +63,7 @@ arm_sdt(arm_cpu *cpu)
 
 	bool writeback = (W == 1 || P == 0) && rn != 15;
 	if ((W == 1 || P == 0) && rn == 15) {
-		fprintf(stderr, "writeback with pc as base\n");
+		LOG("writeback with pc as base\n");
 	}
 
 	if (L == 1) {

@@ -1,5 +1,7 @@
 #include "nds/mem/io.h"
 
+#include "common/logger.h"
+
 namespace twice {
 
 u8
@@ -16,7 +18,7 @@ io7_read8(nds_ctx *nds, u32 addr)
 		return nds->wramcnt;
 	}
 
-	fprintf(stderr, "nds 1 read 8 at %08X\n", addr);
+	LOG("nds 1 read 8 at %08X\n", addr);
 	return 0;
 }
 
@@ -35,7 +37,7 @@ io7_read16(nds_ctx *nds, u32 addr)
 		return nds->soundbias;
 	}
 
-	fprintf(stderr, "nds 1 read 16 at %08X\n", addr);
+	LOG("nds 1 read 16 at %08X\n", addr);
 	return 0;
 }
 
@@ -46,7 +48,7 @@ io7_read32(nds_ctx *nds, u32 addr)
 		IO_READ32_COMMON(1);
 	}
 
-	fprintf(stderr, "nds 1 read 32 at %08X\n", addr);
+	LOG("nds 1 read 32 at %08X\n", addr);
 	return 0;
 }
 
@@ -75,13 +77,13 @@ io7_write8(nds_ctx *nds, u32 addr, u8 value)
 			force_stop_cpu(nds->cpu[1]);
 			break;
 		default:
-			fprintf(stderr, "unhandled haltcnt\n");
+			LOG("unhandled haltcnt\n");
 		}
 		nds->haltcnt = value;
 		return;
 	}
 
-	fprintf(stderr, "nds 1 write 8 to %08X\n", addr);
+	LOG("nds 1 write 8 to %08X\n", addr);
 }
 
 void
@@ -98,7 +100,7 @@ io7_write16(nds_ctx *nds, u32 addr, u16 value)
 		return;
 	}
 
-	fprintf(stderr, "nds 1 write 16 to %08X\n", addr);
+	LOG("nds 1 write 16 to %08X\n", addr);
 }
 
 void
@@ -113,7 +115,7 @@ io7_write32(nds_ctx *nds, u32 addr, u32 value)
 		return;
 	}
 
-	fprintf(stderr, "nds 1 write 32 to %08X\n", addr);
+	LOG("nds 1 write 32 to %08X\n", addr);
 }
 
 } // namespace twice

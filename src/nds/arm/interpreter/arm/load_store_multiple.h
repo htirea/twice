@@ -38,7 +38,7 @@ arm_block_dt(arm_cpu *cpu)
 
 	bool writeback = W && rn != 15;
 	if (W && rn == 15) {
-		fprintf(stderr, "writeback with pc as base\n");
+		LOG("writeback with pc as base\n");
 	}
 
 	if (L == 1) {

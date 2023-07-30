@@ -18,7 +18,7 @@ arm_cop_reg(arm_cpu *cpu)
 
 	if (L == 0) {
 		if (is_arm7(cpu)) {
-			fprintf(stderr, "arm7 mcr\n");
+			LOG("arm7 mcr\n");
 			return;
 		}
 
@@ -41,8 +41,7 @@ arm_cop_reg(arm_cpu *cpu)
 
 		if (is_arm7(cpu)) {
 			if (cp_num != 14) {
-				fprintf(stderr, "arm7 mrc with cp_num %u\n",
-						cp_num);
+				LOG("arm7 mrc with cp_num %u\n", cp_num);
 				arm_undefined(cpu);
 				return;
 			}
@@ -50,8 +49,7 @@ arm_cop_reg(arm_cpu *cpu)
 			value = cpu->pipeline[1];
 		} else {
 			if (cp_num != 15) {
-				fprintf(stderr, "arm9 mrc with cp_num %u\n",
-						cp_num);
+				LOG("arm9 mrc with cp_num %u\n", cp_num);
 				arm_undefined(cpu);
 				return;
 			}

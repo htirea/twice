@@ -3,6 +3,7 @@
 
 #include "nds/arm/arm.h"
 
+#include "common/logger.h"
 #include "libtwice/exception.h"
 
 namespace twice::arm::interpreter {
