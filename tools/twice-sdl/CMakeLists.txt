@@ -1,6 +1,7 @@
 find_package(SDL2 REQUIRED)
 
 add_executable(twice-sdl
+	args.cc
 	platform.cc
 	main.cc)
 

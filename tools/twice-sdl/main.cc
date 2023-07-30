@@ -5,15 +5,22 @@
 #include <iostream>
 #include <memory>
 #include <string>
+#include <unordered_map>
 
 #include "libtwice/exception.h"
 #include "libtwice/machine.h"
 #include "libtwice/types.h"
 
+#include "args.h"
 #include "platform.h"
 
 static std::string cartridge_pathname;
 static std::string data_dir;
+
+const std::vector<twice::option> twice::arg_parser::options = {
+	{ "help", 'h', 0 },
+	{ "verbose", 'v', 0 },
+};
 
 static void
 print_usage()
@@ -23,24 +30,28 @@ print_usage()
 	std::cerr << usage;
 }
 
-static int
-parse_args(int argc, char **argv)
-{
-	if (argc - 1 < 1) {
-		return 1;
-	}
-
-	cartridge_pathname = argv[1];
-
-	return 0;
-}
-
 int
 main(int argc, char **argv)
 try {
-	if (parse_args(argc, argv)) {
+	twice::arg_parser parser;
+	if (parser.parse_args(argc, argv)) {
 		print_usage();
 		return 1;
+	}
+
+	if (parser.get_option("help")) {
+		print_usage();
+		return 0;
+	}
+
+	if (parser.num_args() == 0) {
+		print_usage();
+		return 1;
+	}
+
+	cartridge_pathname = parser.get_arg(0);
+	if (auto opt = parser.get_option("verbose")) {
+		twice::set_logger_verbose_level(opt->count);
 	}
 
 	if (data_dir.empty()) {
