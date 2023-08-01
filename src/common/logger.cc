@@ -1,5 +1,7 @@
 #include "common/logger.h"
 
+#include <cstdarg>
+
 namespace twice {
 
 int logger_verbose_level;
