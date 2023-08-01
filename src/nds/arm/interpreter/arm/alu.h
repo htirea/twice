@@ -95,7 +95,7 @@ arm_alu(arm_cpu *cpu)
 			} else if (rs < 32) {
 				operand = rm >> rs;
 				carry = rm & BIT(rs - 1);
-			} else if (rs == 0) {
+			} else if (rs == 32) {
 				operand = 0;
 				carry = rm >> 31;
 			} else {
