@@ -35,6 +35,8 @@ arm_cpu::arm_cpu(nds_ctx *nds, int cpuid)
 {
 }
 
+arm_cpu::~arm_cpu() = default;
+
 static u32
 mode_bits_to_mode(u32 bits)
 {

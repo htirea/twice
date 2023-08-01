@@ -30,6 +30,7 @@ struct nds_ctx;
 
 struct arm_cpu {
 	arm_cpu(nds_ctx *nds, int cpuid);
+	virtual ~arm_cpu();
 
 	u32 gpr[16]{};
 	u32 bankedr[6][3]{};

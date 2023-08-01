@@ -8,6 +8,7 @@ set(CMAKE_CXX_FLAGS_INIT " \
 -Wcast-align \
 -Wsuggest-final-types \
 -Wsuggest-final-methods \
+-Wnon-virtual-dtor \
 -Wimplicit-fallthrough=5")
 
 set(CMAKE_CXX_COMPILER g++)

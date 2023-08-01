@@ -7,6 +7,7 @@ set(CMAKE_CXX_FLAGS_INIT " \
 -Wall -Wextra -pedantic \
 -Wcast-align \
 -Wtype-limits \
+-Wnon-virtual-dtor \
 -Wimplicit-fallthrough")
 
 set(CMAKE_CXX_COMPILER clang++)
