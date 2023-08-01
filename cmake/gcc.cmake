@@ -9,6 +9,10 @@ set(CMAKE_CXX_FLAGS_INIT " \
 -Wsuggest-final-types \
 -Wsuggest-final-methods \
 -Wnon-virtual-dtor \
+-Wduplicated-branches \
+-Wduplicated-cond \
+-Wlogical-op \
+-Wnull-dereference \
 -Wimplicit-fallthrough=5")
 
 set(CMAKE_CXX_COMPILER g++)
