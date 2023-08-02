@@ -37,14 +37,13 @@ sdl_platform::sdl_platform()
 		throw sdl_error("renderer set logical size failed");
 	}
 
-	if (!SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY,
-			    sdl_config.render_scale_quality.c_str())) {
-		throw sdl_error("set render scale quality failed");
-	}
 	texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_BGR888,
 			SDL_TEXTUREACCESS_STREAMING, NDS_FB_W, NDS_FB_H);
 	if (!texture) {
 		throw sdl_error("create texture failed");
+	}
+	if (SDL_SetTextureScaleMode(texture, sdl_config.scale_mode)) {
+		throw sdl_error("set texture scale mode failed");
 	}
 
 	int num_joysticks = SDL_NumJoysticks();

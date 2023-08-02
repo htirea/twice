@@ -71,9 +71,9 @@ try {
 
 	if (auto opt = parser.get_option("filter")) {
 		if (opt->arg == "nearest") {
-			sdl_config.render_scale_quality = "0";
+			sdl_config.scale_mode = SDL_ScaleModeNearest;
 		} else if (opt->arg == "linear") {
-			sdl_config.render_scale_quality = "1";
+			sdl_config.scale_mode = SDL_ScaleModeLinear;
 		}
 	}
 

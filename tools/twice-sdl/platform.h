@@ -16,7 +16,7 @@ namespace twice {
 struct nds_machine;
 
 struct sdl_platform_config {
-	std::string render_scale_quality = "1";
+	SDL_ScaleMode scale_mode = SDL_ScaleModeLinear;
 	int window_scale = 2;
 	bool fullscreen = false;
 };
