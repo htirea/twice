@@ -15,6 +15,8 @@ struct nds_machine;
 
 struct sdl_platform_config {
 	std::string render_scale_quality = "1";
+	int window_scale = 2;
+	bool fullscreen = false;
 };
 
 extern sdl_platform_config sdl_config;

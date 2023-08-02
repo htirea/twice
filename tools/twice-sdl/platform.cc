@@ -16,9 +16,14 @@ sdl_platform::sdl_platform()
 		throw sdl_error("init failed");
 	}
 
+	Uint32 window_flags = SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE;
+	if (sdl_config.fullscreen) {
+		window_flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
+	}
 	window = SDL_CreateWindow("Twice", SDL_WINDOWPOS_UNDEFINED,
-			SDL_WINDOWPOS_UNDEFINED, NDS_FB_W * 2, NDS_FB_H * 2,
-			SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
+			SDL_WINDOWPOS_UNDEFINED,
+			NDS_FB_W * sdl_config.window_scale,
+			NDS_FB_H * sdl_config.window_scale, window_flags);
 	if (!window) {
 		throw sdl_error("create window failed");
 	}

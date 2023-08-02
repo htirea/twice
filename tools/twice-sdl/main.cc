@@ -21,9 +21,14 @@ static std::string cartridge_pathname;
 static std::string data_dir;
 
 twice::arg_parser::opt_list twice::arg_parser::options = {
+	{ "1x", '1', 0 },
+	{ "2x", '2', 0 },
+	{ "3x", '3', 0 },
+	{ "4x", '4', 0 },
+	{ "filter", '\0', 1 },
+	{ "fullscreen", 'f', 0 },
 	{ "help", 'h', 0 },
 	{ "verbose", 'v', 0 },
-	{ "filter", '\0', 1 },
 };
 
 twice::arg_parser::valid_opt_arg_list twice::arg_parser::valid_option_args = {
@@ -70,6 +75,22 @@ try {
 		} else if (opt->arg == "linear") {
 			sdl_config.render_scale_quality = "1";
 		}
+	}
+
+	if (parser.get_option("1x")) {
+		sdl_config.window_scale = 1;
+	}
+	if (parser.get_option("2x")) {
+		sdl_config.window_scale = 2;
+	}
+	if (parser.get_option("3x")) {
+		sdl_config.window_scale = 3;
+	}
+	if (parser.get_option("4x")) {
+		sdl_config.window_scale = 4;
+	}
+	if (parser.get_option("fullscreen")) {
+		sdl_config.fullscreen = true;
 	}
 
 	if (data_dir.empty()) {
