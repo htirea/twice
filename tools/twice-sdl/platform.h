@@ -23,7 +23,8 @@ struct sdl_platform_config {
 
 extern sdl_platform_config sdl_config;
 
-struct sdl_platform {
+class sdl_platform {
+      public:
 	struct sdl_error : twice_exception {
 		using twice_exception::twice_exception;
 	};
@@ -31,8 +32,10 @@ struct sdl_platform {
 	sdl_platform();
 	~sdl_platform();
 
-	void render(void *fb);
 	void loop(nds_machine *nds);
+
+      private:
+	void render(void *fb);
 	void handle_events(nds_machine *nds);
 	void arm_set_title_fps(
 			std::uint64_t ticks_per_frame, std::uint64_t freq);
