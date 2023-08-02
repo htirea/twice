@@ -13,6 +13,12 @@ namespace twice {
 
 struct nds_machine;
 
+struct sdl_platform_config {
+	std::string render_scale_quality = "1";
+};
+
+extern sdl_platform_config sdl_config;
+
 struct elapsed_ticks_counter {
 	static constexpr unsigned BUF_SIZE = 64;
 

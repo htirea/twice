@@ -35,6 +35,8 @@ class arg_parser {
 	const parsed_option *get_option(const std::string& name);
 };
 
+extern arg_parser parser;
+
 } // namespace twice
 
 #endif

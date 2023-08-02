@@ -22,18 +22,20 @@ sdl_platform::sdl_platform()
 	if (!window) {
 		throw sdl_error("create window failed");
 	}
-
 	SDL_SetWindowResizable(window, SDL_TRUE);
 
 	renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 	if (!renderer) {
 		throw sdl_error("create renderer failed");
 	}
-
 	if (SDL_RenderSetLogicalSize(renderer, NDS_FB_W, NDS_FB_H)) {
 		throw sdl_error("renderer set logical size failed");
 	}
 
+	if (!SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY,
+			    sdl_config.render_scale_quality.c_str())) {
+		throw sdl_error("set render scale quality failed");
+	}
 	texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_BGR888,
 			SDL_TEXTUREACCESS_STREAMING, NDS_FB_W, NDS_FB_H);
 	if (!texture) {

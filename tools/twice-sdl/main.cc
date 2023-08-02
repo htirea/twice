@@ -14,12 +14,16 @@
 #include "args.h"
 #include "platform.h"
 
+twice::arg_parser twice::parser;
+twice::sdl_platform_config twice::sdl_config;
+
 static std::string cartridge_pathname;
 static std::string data_dir;
 
 const std::vector<twice::option> twice::arg_parser::options = {
 	{ "help", 'h', 0 },
 	{ "verbose", 'v', 0 },
+	{ "filter", '\0', 1 },
 };
 
 static void
@@ -33,7 +37,9 @@ print_usage()
 int
 main(int argc, char **argv)
 try {
-	twice::arg_parser parser;
+	using twice::parser;
+	using twice::sdl_config;
+
 	if (parser.parse_args(argc, argv)) {
 		print_usage();
 		return 1;
@@ -52,6 +58,19 @@ try {
 	cartridge_pathname = parser.get_arg(0);
 	if (auto opt = parser.get_option("verbose")) {
 		twice::set_logger_verbose_level(opt->count);
+	}
+
+	if (auto opt = parser.get_option("filter")) {
+		if (opt->arg == "nearest") {
+			sdl_config.render_scale_quality = "0";
+		} else if (opt->arg == "linear") {
+			sdl_config.render_scale_quality = "1";
+		} else {
+			std::cerr << "argument to --filter must be one of:\n"
+				  << "\tnearest\n"
+				  << "\tlinear\n";
+			return 1;
+		}
 	}
 
 	if (data_dir.empty()) {
