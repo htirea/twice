@@ -9,6 +9,8 @@
 
 #include "libtwice/exception.h"
 
+#include "moving_average.h"
+
 namespace twice {
 
 struct nds_machine;
@@ -20,24 +22,6 @@ struct sdl_platform_config {
 };
 
 extern sdl_platform_config sdl_config;
-
-struct elapsed_ticks_counter {
-	static constexpr unsigned BUF_SIZE = 64;
-
-	std::uint64_t buffer[BUF_SIZE]{};
-	std::uint64_t sum{};
-	unsigned int index{};
-
-	void add(std::uint64_t elapsed)
-	{
-		sum += elapsed;
-		sum -= buffer[index];
-		buffer[index] = elapsed;
-		index = (index + 1) % BUF_SIZE;
-	}
-
-	std::uint64_t get_average() { return sum / BUF_SIZE; }
-};
 
 struct sdl_platform {
 	struct sdl_error : twice_exception {
@@ -63,7 +47,7 @@ struct sdl_platform {
 	bool running{};
 	bool throttle{};
 
-	elapsed_ticks_counter tick_counter;
+	moving_average<std::uint64_t> fps_counter;
 };
 
 std::string get_data_dir();

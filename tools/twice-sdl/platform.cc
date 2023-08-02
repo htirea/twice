@@ -139,12 +139,12 @@ sdl_platform::loop(twice::nds_machine *nds)
 		std::uint64_t elapsed = SDL_GetPerformanceCounter() - start;
 		start = SDL_GetPerformanceCounter();
 
-		tick_counter.add(elapsed);
+		fps_counter.insert(elapsed);
 
 		ticks_elapsed += elapsed;
 		if (ticks_elapsed >= freq) {
 			ticks_elapsed -= freq;
-			arm_set_title_fps(tick_counter.get_average(), freq);
+			arm_set_title_fps(fps_counter.get_average(), freq);
 		}
 	}
 }
