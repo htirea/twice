@@ -20,10 +20,14 @@ twice::sdl_platform_config twice::sdl_config;
 static std::string cartridge_pathname;
 static std::string data_dir;
 
-const std::vector<twice::option> twice::arg_parser::options = {
+twice::arg_parser::opt_list twice::arg_parser::options = {
 	{ "help", 'h', 0 },
 	{ "verbose", 'v', 0 },
 	{ "filter", '\0', 1 },
+};
+
+twice::arg_parser::valid_opt_arg_list twice::arg_parser::valid_option_args = {
+	{ "verbose", { "nearest", "linear" } },
 };
 
 static void
@@ -65,11 +69,6 @@ try {
 			sdl_config.render_scale_quality = "0";
 		} else if (opt->arg == "linear") {
 			sdl_config.render_scale_quality = "1";
-		} else {
-			std::cerr << "argument to --filter must be one of:\n"
-				  << "\tnearest\n"
-				  << "\tlinear\n";
-			return 1;
 		}
 	}
 

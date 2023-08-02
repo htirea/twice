@@ -36,6 +36,9 @@ arg_parser::parse_long_opt(int i, int argc, char **argv)
 			return -1;
 		}
 		arg = argv[i + 1];
+		if (invalid_option_arg(name, arg)) {
+			return -1;
+		}
 		i++;
 	}
 	add_parsed_option(name, arg);
@@ -66,6 +69,9 @@ arg_parser::parse_short_opts(int i, int num, int argc, char **argv)
 				return -1;
 			}
 			arg = argv[i + 1];
+			if (invalid_option_arg(it->long_opt, arg)) {
+				return -1;
+			}
 			i++;
 		}
 		add_parsed_option(it->long_opt, arg);
@@ -76,6 +82,26 @@ arg_parser::parse_short_opts(int i, int num, int argc, char **argv)
 	return argv[i][num + 2] == '\0'
 	                       ? i + 1
 	                       : parse_short_opts(i, num + 1, argc, argv);
+}
+
+bool
+arg_parser::invalid_option_arg(const std::string& name, const std::string& arg)
+{
+	auto it = valid_option_args.find(name);
+	if (it == valid_option_args.end()) {
+		return false;
+	}
+
+	if (it->second.find(arg) == it->second.end()) {
+		std::cerr << "argument to option --" << name
+			  << " must be one of: ";
+		for (const auto& x : it->second) {
+			std::cerr << '\t' << x << '\n';
+		}
+		return true;
+	}
+
+	return false;
 }
 
 int

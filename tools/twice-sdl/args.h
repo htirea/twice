@@ -1,6 +1,7 @@
 #ifndef TWICE_ARGS_H
 #define TWICE_ARGS_H
 
+#include <set>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -19,7 +20,13 @@ struct parsed_option {
 };
 
 class arg_parser {
-	static const std::vector<option> options;
+	using opt_list = const std::vector<option>;
+	using valid_opt_arg_list = const std::unordered_map<std::string,
+			std::set<std::string>>;
+
+	static opt_list options;
+	static valid_opt_arg_list valid_option_args;
+
 	std::unordered_map<std::string, parsed_option> parsed_options;
 	std::vector<std::string> parsed_args;
 
@@ -27,6 +34,8 @@ class arg_parser {
 			const std::string& name, const std::string& arg);
 	int parse_long_opt(int i, int argc, char **argv);
 	int parse_short_opts(int i, int num, int argc, char **argv);
+	bool invalid_option_arg(
+			const std::string& name, const std::string& arg);
 
       public:
 	int parse_args(int argc, char **argv);
