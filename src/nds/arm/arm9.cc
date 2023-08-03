@@ -277,6 +277,7 @@ arm9_cpu::cp15_write(u32 reg, u32 value)
 		break;
 	}
 	case 0x704:
+	case 0x782:
 		halted = true;
 		force_stop_cpu(this);
 		break;
