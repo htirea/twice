@@ -1113,7 +1113,48 @@ render_affine_sprite(gpu_2d_engine *gpu, int obj_num, obj_data *obj)
 static void
 render_affine_bitmap_sprite(gpu_2d_engine *gpu, int obj_num, obj_data *obj)
 {
-	throw twice_error("affine bitmap sprite");
+	affine_sprite_data affine;
+	if (init_affine_sprite_data(gpu, obj, &affine)) {
+		return;
+	}
+
+	u32 priority = obj->attr2 >> 10 & 3;
+	u32 alpha_oam = obj->attr2 >> 12;
+	u32 obj_char_name = obj->attr2 & 0x3FF;
+
+	bool map_1d = gpu->dispcnt & BIT(6);
+	u32 start_offset;
+	if (map_1d) {
+		start_offset = obj_char_name << 7 << (gpu->dispcnt >> 22 & 1);
+	} else {
+		u32 mask_x = gpu->dispcnt & BIT(5) ? 0x1F : 0xF;
+		start_offset = 0x10 * (obj_char_name & mask_x) +
+		               0x80 * (obj_char_name & ~mask_x);
+	}
+	u32 width_2d = 128 << (gpu->dispcnt >> 5 & 1);
+
+	for (u32 i = affine.draw_start, end = affine.draw_end; i != end; i++,
+		 affine.ref_x += affine.pa, affine.ref_y += affine.pc) {
+		u32 obj_x = affine.ref_x >> 8;
+		u32 obj_y = affine.ref_y >> 8;
+
+		if ((s32)obj_x < 0 || obj_x >= obj->w || (s32)obj_y < 0 ||
+				obj_y >= obj->h) {
+			continue;
+		}
+
+		u32 offset = start_offset;
+		if (map_1d) {
+			offset += obj->w * 2 * obj_y + 2 * obj_x;
+		} else {
+			offset += width_2d * 2 * obj_y + 2 * obj_x;
+		}
+
+		u16 color = read_obj_data<u16>(gpu, offset);
+		if (color & BIT(15)) {
+			draw_obj_pixel(gpu, i, color, priority);
+		}
+	}
 }
 
 static void
