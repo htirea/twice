@@ -51,8 +51,8 @@ struct arm_cpu {
 	nds_ctx *nds{};
 	int cpuid{};
 
-	u64& target_cycles;
-	u64& cycles;
+	timestamp& target_cycles;
+	timestamp& cycles;
 
 	u32& pc() { return gpr[15]; }
 

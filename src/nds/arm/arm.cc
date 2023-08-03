@@ -137,7 +137,7 @@ run_cpu(arm_cpu *cpu)
 		return;
 	}
 
-	while (cpu->cycles < cpu->target_cycles) {
+	while (cmp_time(cpu->cycles, cpu->target_cycles) < 0) {
 		cpu->step();
 	}
 }

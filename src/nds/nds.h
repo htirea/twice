@@ -52,8 +52,8 @@ struct nds_ctx {
 	gpu_2d_engine gpu2d[2];
 
 	event_scheduler scheduler;
-	u64 arm_target_cycles[2]{};
-	u64 arm_cycles[2]{};
+	timestamp arm_target_cycles[2]{};
+	timestamp arm_cycles[2]{};
 
 	dma_controller dma[2];
 

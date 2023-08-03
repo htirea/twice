@@ -10,25 +10,25 @@ event_scheduler::event_scheduler()
 	arm_events[1][START_IMMEDIATE_DMAS].cb = event_start_immediate_dmas;
 }
 
-u64
+timestamp
 get_next_event_time(nds_ctx *nds)
 {
 	auto& sc = nds->scheduler;
 
-	u64 time = sc.current_time + 64;
+	timestamp time = sc.current_time + 64;
 
 	for (int i = 0; i < event_scheduler::NUM_NDS_EVENTS; i++) {
 		if (sc.events[i].enabled) {
-			time = std::min(time, sc.events[i].time);
+			time = min_time(time, sc.events[i].time);
 		}
 	}
 
 	for (int i = 0; i < event_scheduler::NUM_CPU_EVENTS; i++) {
 		if (sc.arm_events[0][i].enabled) {
-			time = std::min(time, sc.arm_events[0][i].time);
+			time = min_time(time, sc.arm_events[0][i].time);
 		}
 		if (sc.arm_events[1][i].enabled) {
-			time = std::min(time, sc.arm_events[1][i].time << 1);
+			time = min_time(time, sc.arm_events[1][i].time << 1);
 		}
 	}
 
@@ -36,29 +36,29 @@ get_next_event_time(nds_ctx *nds)
 }
 
 void
-schedule_nds_event(nds_ctx *nds, int event, u64 t)
+schedule_nds_event(nds_ctx *nds, int event, timestamp t)
 {
 	nds->scheduler.events[event].enabled = true;
 	nds->scheduler.events[event].time = t << 1;
 }
 
 void
-reschedule_nds_event_after(nds_ctx *nds, int event, u64 dt)
+reschedule_nds_event_after(nds_ctx *nds, int event, timestamp dt)
 {
 	nds->scheduler.events[event].enabled = true;
 	nds->scheduler.events[event].time += dt << 1;
 }
 
 void
-schedule_cpu_event_after(nds_ctx *nds, int cpuid, int event, u64 dt)
+schedule_cpu_event_after(nds_ctx *nds, int cpuid, int event, timestamp dt)
 {
 	if (cpuid == 0) {
 		dt <<= 1;
 	}
 
-	u64 event_time = nds->arm_cycles[cpuid] + dt;
+	timestamp event_time = nds->arm_cycles[cpuid] + dt;
 
-	if (event_time < nds->arm_target_cycles[cpuid]) {
+	if (cmp_time(event_time, nds->arm_target_cycles[cpuid]) < 0) {
 		nds->arm_target_cycles[cpuid] = event_time;
 	}
 
@@ -73,7 +73,7 @@ run_nds_events(nds_ctx *nds)
 
 	for (int i = 0; i < event_scheduler::NUM_NDS_EVENTS; i++) {
 		auto& event = sc.events[i];
-		bool expired = (s64)(sc.current_time - event.time) >= 0;
+		bool expired = cmp_time(sc.current_time, event.time) >= 0;
 		if (event.enabled && expired) {
 			event.enabled = false;
 			if (event.cb) {
@@ -87,10 +87,11 @@ void
 run_cpu_events(nds_ctx *nds, int cpuid)
 {
 	auto& sc = nds->scheduler;
+	timestamp cpu_time = nds->arm_cycles[cpuid];
 
 	for (int i = 0; i < event_scheduler::NUM_CPU_EVENTS; i++) {
 		auto& event = sc.arm_events[cpuid][i];
-		bool expired = (s64)(nds->arm_cycles[cpuid] - event.time) >= 0;
+		bool expired = cmp_time(cpu_time, event.time) >= 0;
 		if (event.enabled && expired) {
 			event.enabled = false;
 			if (event.cb) {

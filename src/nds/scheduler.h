@@ -26,27 +26,40 @@ struct event_scheduler {
 
 	struct nds_event {
 		bool enabled{};
-		u64 time{};
+		timestamp time{};
 		nds_event_cb cb{};
 	};
 
 	struct arm_event {
 		bool enabled{};
-		u64 time{};
+		timestamp time{};
 		cpu_event_cb cb{};
 	};
 
-	u64 current_time{};
+	timestamp current_time{};
 
 	nds_event events[NUM_NDS_EVENTS];
 	arm_event arm_events[2][NUM_CPU_EVENTS];
 };
 
-u64 get_next_event_time(nds_ctx *nds);
+inline stimestamp
+cmp_time(timestamp a, timestamp b)
+{
+	return a - b;
+}
 
-void schedule_nds_event(nds_ctx *nds, int event, u64 t);
-void reschedule_nds_event_after(nds_ctx *nds, int event, u64 dt);
-void schedule_cpu_event_after(nds_ctx *nds, int cpuid, int event, u64 dt);
+inline timestamp
+min_time(timestamp a, timestamp b)
+{
+	return cmp_time(a, b) < 0 ? a : b;
+}
+
+timestamp get_next_event_time(nds_ctx *nds);
+
+void schedule_nds_event(nds_ctx *nds, int event, timestamp t);
+void reschedule_nds_event_after(nds_ctx *nds, int event, timestamp dt);
+void schedule_cpu_event_after(
+		nds_ctx *nds, int cpuid, int event, timestamp dt);
 
 void run_nds_events(nds_ctx *nds);
 void run_cpu_events(nds_ctx *nds, int cpuid);

@@ -16,6 +16,9 @@
 
 namespace twice {
 
+using timestamp = u64;
+using stimestamp = s64;
+
 constexpr size_t operator""_KiB(unsigned long long v)
 {
 	return v << 10;

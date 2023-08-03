@@ -118,6 +118,7 @@ nds_run_frame(nds_ctx *nds)
 	nds->frame_finished = false;
 
 	while (!nds->frame_finished) {
+		timestamp arm9_start_cycles = nds->arm_cycles[0];
 		nds->arm_target_cycles[0] = get_next_event_time(nds);
 		if (nds->dma[0].active) {
 			run_dma9(nds);
@@ -127,8 +128,9 @@ nds_run_frame(nds_ctx *nds)
 
 		run_cpu_events(nds, 0);
 
-		u64 arm7_target = nds->arm_cycles[0] >> 1;
-		while (nds->arm_cycles[1] < arm7_target) {
+		timestamp elapsed = nds->arm_cycles[0] - arm9_start_cycles;
+		timestamp arm7_target = nds->arm_cycles[1] + (elapsed >> 1);
+		while (cmp_time(nds->arm_cycles[1], arm7_target) < 0) {
 			nds->arm_target_cycles[1] = arm7_target;
 			if (nds->dma[1].active) {
 				run_dma7(nds);

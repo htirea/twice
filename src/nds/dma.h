@@ -29,8 +29,8 @@ struct dma_controller {
 	u32 requested_imm_dmas{};
 	dma_transfer_state transfers[4];
 
-	u64& target_cycles;
-	u64& cycles;
+	timestamp& target_cycles;
+	timestamp& cycles;
 };
 
 void run_dma9(nds_ctx *nds);
