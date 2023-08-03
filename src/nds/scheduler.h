@@ -8,7 +8,7 @@ namespace twice {
 struct nds_ctx;
 
 typedef void (*nds_event_cb)(nds_ctx *);
-typedef void (*cpu_event_cb)(nds_ctx *, int);
+typedef void (*cpu_event_cb)(nds_ctx *nds, int cpuid, intptr_t data);
 
 struct event_scheduler {
 	event_scheduler();
@@ -21,6 +21,10 @@ struct event_scheduler {
 
 	enum {
 		START_IMMEDIATE_DMAS,
+		TIMER0_OVERFLOW,
+		TIMER1_OVERFLOW,
+		TIMER2_OVERFLOW,
+		TIMER3_OVERFLOW,
 		NUM_CPU_EVENTS,
 	};
 
@@ -34,6 +38,7 @@ struct event_scheduler {
 		bool enabled{};
 		timestamp time{};
 		cpu_event_cb cb{};
+		intptr_t data{};
 	};
 
 	timestamp current_time{};
@@ -60,6 +65,7 @@ void schedule_nds_event(nds_ctx *nds, int event, timestamp t);
 void reschedule_nds_event_after(nds_ctx *nds, int event, timestamp dt);
 void schedule_cpu_event_after(
 		nds_ctx *nds, int cpuid, int event, timestamp dt);
+void cancel_cpu_event(nds_ctx *nds, int cpuid, int event);
 
 void run_nds_events(nds_ctx *nds);
 void run_cpu_events(nds_ctx *nds, int cpuid);

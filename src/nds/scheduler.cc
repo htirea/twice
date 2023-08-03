@@ -8,6 +8,12 @@ event_scheduler::event_scheduler()
 	events[HBLANK_END].cb = event_hblank_end;
 	arm_events[0][START_IMMEDIATE_DMAS].cb = event_start_immediate_dmas;
 	arm_events[1][START_IMMEDIATE_DMAS].cb = event_start_immediate_dmas;
+	for (int i = 0; i < 4; i++) {
+		arm_events[0][TIMER0_OVERFLOW + i].cb = event_timer_overflow;
+		arm_events[0][TIMER0_OVERFLOW + i].data = i;
+		arm_events[1][TIMER0_OVERFLOW + i].cb = event_timer_overflow;
+		arm_events[1][TIMER0_OVERFLOW + i].data = i;
+	}
 }
 
 timestamp
@@ -67,6 +73,12 @@ schedule_cpu_event_after(nds_ctx *nds, int cpuid, int event, timestamp dt)
 }
 
 void
+cancel_cpu_event(nds_ctx *nds, int cpuid, int event)
+{
+	nds->scheduler.arm_events[cpuid][event].enabled = false;
+}
+
+void
 run_nds_events(nds_ctx *nds)
 {
 	auto& sc = nds->scheduler;
@@ -95,7 +107,7 @@ run_cpu_events(nds_ctx *nds, int cpuid)
 		if (event.enabled && expired) {
 			event.enabled = false;
 			if (event.cb) {
-				event.cb(nds, cpuid);
+				event.cb(nds, cpuid, event.data);
 			}
 		}
 	}

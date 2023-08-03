@@ -15,6 +15,7 @@ using s16 = int16_t;
 using s32 = int32_t;
 using s64 = int64_t;
 using size_t = std::size_t;
+using intptr_t = std::intptr_t;
 
 } // namespace twice
 

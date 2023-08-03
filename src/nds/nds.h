@@ -8,6 +8,7 @@
 #include "nds/gpu/vram.h"
 #include "nds/ipc.h"
 #include "nds/scheduler.h"
+#include "nds/timer.h"
 
 #include "common/types.h"
 
@@ -56,6 +57,7 @@ struct nds_ctx {
 	timestamp arm_cycles[2]{};
 
 	dma_controller dma[2];
+	timer tmr[2][4];
 
 	/*
 	 * Memory

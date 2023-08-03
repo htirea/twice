@@ -78,6 +78,22 @@ void wramcnt_write(nds_ctx *nds, u8 value);
 		return nds->dmacnt_h[cpuid_][2];                              \
 	case 0x40000DE:                                                       \
 		return nds->dmacnt_h[cpuid_][3];                              \
+	case 0x4000100:                                                       \
+		return read_timer_counter(nds, (cpuid_), 0);                  \
+	case 0x4000102:                                                       \
+		return nds->tmr[cpuid_][0].ctrl;                              \
+	case 0x4000104:                                                       \
+		return read_timer_counter(nds, (cpuid_), 1);                  \
+	case 0x4000106:                                                       \
+		return nds->tmr[cpuid_][1].ctrl;                              \
+	case 0x4000108:                                                       \
+		return read_timer_counter(nds, (cpuid_), 2);                  \
+	case 0x400010A:                                                       \
+		return nds->tmr[cpuid_][2].ctrl;                              \
+	case 0x400010C:                                                       \
+		return read_timer_counter(nds, (cpuid_), 3);                  \
+	case 0x400010E:                                                       \
+		return nds->tmr[cpuid_][3].ctrl;                              \
 	case 0x4000130:                                                       \
 		return nds->keyinput;                                         \
 	case 0x4000180:                                                       \
@@ -120,6 +136,18 @@ void wramcnt_write(nds_ctx *nds, u8 value);
 	case 0x40000DC:                                                       \
 		return (u32)nds->dmacnt_h[cpuid_][3] << 16 |                  \
 		       nds->dmacnt_l[cpuid_][3];                              \
+	case 0x4000100:                                                       \
+		return (u32)nds->tmr[cpuid_][0].ctrl << 16 |                  \
+		       read_timer_counter(nds, (cpuid_), 0);                  \
+	case 0x4000104:                                                       \
+		return (u32)nds->tmr[cpuid_][1].ctrl << 16 |                  \
+		       read_timer_counter(nds, (cpuid_), 1);                  \
+	case 0x4000108:                                                       \
+		return (u32)nds->tmr[cpuid_][2].ctrl << 16 |                  \
+		       read_timer_counter(nds, (cpuid_), 2);                  \
+	case 0x400010C:                                                       \
+		return (u32)nds->tmr[cpuid_][3].ctrl << 16 |                  \
+		       read_timer_counter(nds, (cpuid_), 3);                  \
 	case 0x4000180:                                                       \
 		return nds->ipcsync[(cpuid_)];                                \
 	case 0x4000208:                                                       \
@@ -165,6 +193,30 @@ void wramcnt_write(nds_ctx *nds, u8 value);
 		return;                                                       \
 	case 0x40000DE:                                                       \
 		dmacnt_h_write(nds, (cpuid_), 3, value);                      \
+		return;                                                       \
+	case 0x4000100:                                                       \
+		nds->tmr[cpuid_][0].reload_val = value;                       \
+		return;                                                       \
+	case 0x4000102:                                                       \
+		write_timer_ctrl(nds, (cpuid_), 0, value);                    \
+		return;                                                       \
+	case 0x4000104:                                                       \
+		nds->tmr[cpuid_][1].reload_val = value;                       \
+		return;                                                       \
+	case 0x4000106:                                                       \
+		write_timer_ctrl(nds, (cpuid_), 1, value);                    \
+		return;                                                       \
+	case 0x4000108:                                                       \
+		nds->tmr[cpuid_][2].reload_val = value;                       \
+		return;                                                       \
+	case 0x400010A:                                                       \
+		write_timer_ctrl(nds, (cpuid_), 2, value);                    \
+		return;                                                       \
+	case 0x400010C:                                                       \
+		nds->tmr[cpuid_][3].reload_val = value;                       \
+		return;                                                       \
+	case 0x400010E:                                                       \
+		write_timer_ctrl(nds, (cpuid_), 3, value);                    \
 		return;                                                       \
 	case 0x4000180:                                                       \
 		ipcsync_write(nds, (cpuid_), value);                          \
@@ -221,6 +273,22 @@ void wramcnt_write(nds_ctx *nds, u8 value);
 	case 0x40000DC:                                                       \
 		nds->dmacnt_l[cpuid_][3] = value;                             \
 		dmacnt_h_write(nds, (cpuid_), 3, value >> 16);                \
+		return;                                                       \
+	case 0x4000100:                                                       \
+		nds->tmr[cpuid_][0].reload_val = value;                       \
+		write_timer_ctrl(nds, (cpuid_), 0, value >> 16);              \
+		return;                                                       \
+	case 0x4000104:                                                       \
+		nds->tmr[cpuid_][1].reload_val = value;                       \
+		write_timer_ctrl(nds, (cpuid_), 1, value >> 16);              \
+		return;                                                       \
+	case 0x4000108:                                                       \
+		nds->tmr[cpuid_][2].reload_val = value;                       \
+		write_timer_ctrl(nds, (cpuid_), 2, value >> 16);              \
+		return;                                                       \
+	case 0x400010C:                                                       \
+		nds->tmr[cpuid_][3].reload_val = value;                       \
+		write_timer_ctrl(nds, (cpuid_), 3, value >> 16);              \
 		return;                                                       \
 	case 0x4000180:                                                       \
 		ipcsync_write(nds, (cpuid_), value);                          \
