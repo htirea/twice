@@ -281,10 +281,37 @@ arm9_cpu::cp15_write(u32 reg, u32 value)
 		halted = true;
 		force_stop_cpu(this);
 		break;
+	case 0x200:
+	case 0x201:
+	case 0x300:
+	case 0x500:
+	case 0x501:
+	case 0x502:
+	case 0x503:
+	case 0x600:
+	case 0x610:
+	case 0x620:
+	case 0x630:
+	case 0x640:
+	case 0x650:
+	case 0x660:
+	case 0x670:
+	case 0x601:
+	case 0x611:
+	case 0x621:
+	case 0x631:
+	case 0x641:
+	case 0x651:
+	case 0x661:
+	case 0x671:
+		LOGVV("[protection_unit] unhandled cp15 write to %03X\n", reg);
+		break;
+	case 0x750:
+	case 0x760:
 	case 0x751:
 	case 0x7A4:
 	case 0x7E1:
-		LOGVV("unhandled cp15 write to %03X\n", reg);
+		LOGVV("[cache_control] unhandled cp15 write to %03X\n", reg);
 		break;
 	default:
 		LOG("unhandled cp15 write to %03X\n", reg);

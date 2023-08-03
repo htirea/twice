@@ -82,6 +82,9 @@ io9_read8(nds_ctx *nds, u32 addr)
 		return nds->vram.vramcnt[VRAM_H];
 	case 0x4000249:
 		return nds->vram.vramcnt[VRAM_I];
+	case 0x4004000:
+		LOGVV("[dsi reg] nds 0 read 8 at %08X\n", addr);
+		return 0;
 	}
 
 	if (0x4000008 <= addr && addr < 0x4000058) {
@@ -177,6 +180,9 @@ io9_read32(nds_ctx *nds, u32 addr)
 		return nds->powcnt1;
 	case 0x4001000:
 		return nds->gpu2d[1].dispcnt;
+	case 0x4004008:
+		LOGVV("[dsi reg] nds 0 read 32 at %08X\n", addr);
+		return 0;
 	}
 
 	if (0x4000008 <= addr && addr < 0x4000058) {

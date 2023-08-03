@@ -11,7 +11,7 @@ io7_read8(nds_ctx *nds, u32 addr)
 		IO_READ8_COMMON(1);
 	case 0x4000138:
 		/* TODO: rtc */
-		LOGV("nds 1 read 8 at %08X\n", addr);
+		LOGV("[rtc] nds 1 read 8 at %08X\n", addr);
 		return 0;
 	case 0x4000240:
 		return nds->vramstat;
@@ -33,7 +33,7 @@ io7_read16(nds_ctx *nds, u32 addr)
 	case 0x40001C0:
 	case 0x40001C2:
 		/* TODO: SPI */
-		LOGV("nds 1 read 16 at %08X\n", addr);
+		LOGV("[spi] nds 1 read 16 at %08X\n", addr);
 		return 0;
 	case 0x4000504:
 		return nds->soundbias;
@@ -61,7 +61,7 @@ io7_write8(nds_ctx *nds, u32 addr, u8 value)
 		IO_WRITE8_COMMON(1);
 	case 0x4000138:
 		/* TODO: rtc */
-		LOGV("nds 1 write 8 to %08X\n", addr);
+		LOGV("[rtc] nds 1 write 8 to %08X\n", addr);
 		return;
 	case 0x4000300:
 		if (nds->cpu[1]->gpr[15] < ARM7_BIOS_SIZE) {
@@ -97,7 +97,7 @@ io7_write16(nds_ctx *nds, u32 addr, u16 value)
 	case 0x40001C0:
 	case 0x40001C2:
 		/* TODO: SPI */
-		LOGV("nds 1 write 16 to %08X\n", addr);
+		LOGV("[spi] nds 1 write 16 to %08X\n", addr);
 		return;
 	case 0x4000504:
 		nds->soundbias = value & 0x3FF;
@@ -116,7 +116,7 @@ io7_write32(nds_ctx *nds, u32 addr, u32 value)
 
 	if (0x4000400 <= addr && addr < 0x4000520) {
 		/* TODO: sound registers */
-		LOGV("nds 1 write 32 to %08X\n", addr);
+		LOGV("[sound reg] nds 1 write 32 to %08X\n", addr);
 		return;
 	}
 
