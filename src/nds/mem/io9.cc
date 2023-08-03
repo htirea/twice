@@ -66,6 +66,14 @@ io9_read8(nds_ctx *nds, u32 addr)
 		return nds->wramcnt;
 	}
 
+	if (0x4000008 <= addr && addr < 0x4000058) {
+		return gpu_2d_read8(&nds->gpu2d[0], addr);
+	}
+
+	if (0x4001008 <= addr && addr < 0x4001058) {
+		return gpu_2d_read8(&nds->gpu2d[1], addr);
+	}
+
 	LOG("nds 0 read 8 at %08X\n", addr);
 	return 0;
 }
@@ -206,6 +214,16 @@ io9_write8(nds_ctx *nds, u32 addr, u8 value)
 		 */
 		nds->postflg[0] &= ~BIT(1);
 		nds->postflg[0] |= value & 3;
+		return;
+	}
+
+	if (0x4000008 <= addr && addr < 0x4000058) {
+		gpu_2d_write8(&nds->gpu2d[0], addr, value);
+		return;
+	}
+
+	if (0x4001008 <= addr && addr < 0x4001058) {
+		gpu_2d_write8(&nds->gpu2d[1], addr, value);
 		return;
 	}
 

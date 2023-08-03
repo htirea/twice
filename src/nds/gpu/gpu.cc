@@ -23,6 +23,8 @@ gpu_2d_read32(gpu_2d_engine *gpu, u8 offset)
 		return (u32)gpu->bg_cnt[1] << 16 | gpu->bg_cnt[0];
 	case 0xC:
 		return (u32)gpu->bg_cnt[3] << 16 | gpu->bg_cnt[2];
+	case 0x48:
+		return (u32)gpu->winout << 16 | gpu->winin;
 	}
 
 	LOG("2d engine read 32 at offset %02X\n", offset);
@@ -52,6 +54,13 @@ gpu_2d_read16(gpu_2d_engine *gpu, u8 offset)
 	}
 
 	LOG("2d engine read 16 at offset %02X\n", offset);
+	return 0;
+}
+
+u8
+gpu_2d_read8(gpu_2d_engine *gpu, u8 offset)
+{
+	LOG("2d engine read 8 at offset %02X\n", offset);
 	return 0;
 }
 
@@ -192,6 +201,39 @@ gpu_2d_write16(gpu_2d_engine *gpu, u8 offset, u16 value)
 	}
 
 	LOG("2d engine write 16 to offset %02X\n", offset);
+}
+
+void
+gpu_2d_write8(gpu_2d_engine *gpu, u8 offset, u8 value)
+{
+	switch (offset) {
+	case 0x40:
+		gpu->win_h[0] = (gpu->win_h[0] & 0xFF00) | value;
+		return;
+	case 0x41:
+		gpu->win_h[0] = (gpu->win_h[0] & 0x00FF) | (u16)value << 8;
+		return;
+	case 0x42:
+		gpu->win_h[1] = (gpu->win_h[1] & 0xFF00) | value;
+		return;
+	case 0x43:
+		gpu->win_h[1] = (gpu->win_h[1] & 0x00FF) | (u16)value << 8;
+		return;
+	case 0x44:
+		gpu->win_v[0] = (gpu->win_v[0] & 0xFF00) | value;
+		return;
+	case 0x45:
+		gpu->win_v[0] = (gpu->win_v[0] & 0x00FF) | (u16)value << 8;
+		return;
+	case 0x46:
+		gpu->win_v[1] = (gpu->win_v[0] & 0xFF00) | value;
+		return;
+	case 0x47:
+		gpu->win_v[1] = (gpu->win_v[0] & 0x00FF) | (u16)value << 8;
+		return;
+	}
+
+	LOG("2d engine write 8 to offset %08X\n", offset);
 }
 
 static void draw_scanline(gpu_2d_engine *gpu, u16 scanline);
