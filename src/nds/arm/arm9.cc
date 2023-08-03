@@ -280,6 +280,11 @@ arm9_cpu::cp15_write(u32 reg, u32 value)
 		halted = true;
 		force_stop_cpu(this);
 		break;
+	case 0x751:
+	case 0x7A4:
+	case 0x7E1:
+		LOGVV("unhandled cp15 write to %03X\n", reg);
+		break;
 	default:
 		LOG("unhandled cp15 write to %03X\n", reg);
 	}

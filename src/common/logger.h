@@ -9,6 +9,7 @@ extern int logger_verbose_level;
 
 void LOG(const char *format, ...);
 void LOGV(const char *format, ...);
+void LOGVV(const char *format, ...);
 
 } // namespace twice
 
