@@ -75,6 +75,14 @@ io9_read16(nds_ctx *nds, u32 addr)
 {
 	switch (addr) {
 		IO_READ16_COMMON(0);
+	case 0x40000E0:
+		IO_READ16_FROM_32(0x40000E0, nds->dmafill[0]);
+	case 0x40000E4:
+		IO_READ16_FROM_32(0x40000E4, nds->dmafill[1]);
+	case 0x40000E8:
+		IO_READ16_FROM_32(0x40000E8, nds->dmafill[2]);
+	case 0x40000EC:
+		IO_READ16_FROM_32(0x40000EC, nds->dmafill[3]);
 	case 0x4000280:
 		return nds->divcnt;
 	case 0x40002B0:
@@ -209,6 +217,30 @@ io9_write16(nds_ctx *nds, u32 addr, u16 value)
 {
 	switch (addr) {
 		IO_WRITE16_COMMON(0);
+	case 0x40000E0:
+		nds->dmafill[0] = value;
+		return;
+	case 0x40000E2:
+		nds->dmafill[0] = value >> 16;
+		return;
+	case 0x40000E4:
+		nds->dmafill[1] = value;
+		return;
+	case 0x40000E6:
+		nds->dmafill[1] = value >> 16;
+		return;
+	case 0x40000E8:
+		nds->dmafill[2] = value;
+		return;
+	case 0x40000EA:
+		nds->dmafill[2] = value >> 16;
+		return;
+	case 0x40000EC:
+		nds->dmafill[3] = value;
+		return;
+	case 0x40000EE:
+		nds->dmafill[3] = value >> 16;
+		return;
 	case 0x4000280:
 		/* TODO: div timings */
 		nds->divcnt = (nds->divcnt & 0x8000) | (value & ~0x8000);
