@@ -62,8 +62,26 @@ io9_read8(nds_ctx *nds, u32 addr)
 {
 	switch (addr) {
 		IO_READ8_COMMON(0);
+	case 0x4000240:
+		return nds->vram.vramcnt[VRAM_A];
+	case 0x4000241:
+		return nds->vram.vramcnt[VRAM_B];
+	case 0x4000242:
+		return nds->vram.vramcnt[VRAM_C];
+	case 0x4000243:
+		return nds->vram.vramcnt[VRAM_D];
+	case 0x4000244:
+		return nds->vram.vramcnt[VRAM_E];
+	case 0x4000245:
+		return nds->vram.vramcnt[VRAM_F];
+	case 0x4000246:
+		return nds->vram.vramcnt[VRAM_G];
 	case 0x4000247:
 		return nds->wramcnt;
+	case 0x4000248:
+		return nds->vram.vramcnt[VRAM_H];
+	case 0x4000249:
+		return nds->vram.vramcnt[VRAM_I];
 	}
 
 	if (0x4000008 <= addr && addr < 0x4000058) {
