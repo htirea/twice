@@ -1,5 +1,5 @@
-#ifndef TWICE_LUT_H
-#define TWICE_LUT_H
+#ifndef TWICE_INTERPRETER_LUT_H
+#define TWICE_INTERPRETER_LUT_H
 
 namespace twice {
 

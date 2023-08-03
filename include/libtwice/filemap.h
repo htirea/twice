@@ -1,5 +1,5 @@
-#ifndef TWICE_FILEMAP_H
-#define TWICE_FILEMAP_H
+#ifndef LIBTWICE_FILEMAP_H
+#define LIBTWICE_FILEMAP_H
 
 #include "libtwice/exception.h"
 

@@ -1,5 +1,5 @@
-#ifndef TWICE_ARGS_H
-#define TWICE_ARGS_H
+#ifndef TWICE_SDL_ARGS_H
+#define TWICE_SDL_ARGS_H
 
 #include <set>
 #include <string>

@@ -1,5 +1,5 @@
-#ifndef TWICE_MOVING_AVERAGE_H
-#define TWICE_MOVING_AVERAGE_H
+#ifndef TWICE_SDL_MOVING_AVERAGE_H
+#define TWICE_SDL_MOVING_AVERAGE_H
 
 #include "libtwice/types.h"
 

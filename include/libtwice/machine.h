@@ -1,5 +1,5 @@
-#ifndef TWICE_MACHINE_H
-#define TWICE_MACHINE_H
+#ifndef LIBTWICE_MACHINE_H
+#define LIBTWICE_MACHINE_H
 
 #include <cstddef>
 #include <memory>

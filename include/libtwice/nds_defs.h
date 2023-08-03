@@ -1,5 +1,5 @@
-#ifndef TWICE_NDS_DEFS_H
-#define TWICE_NDS_DEFS_H
+#ifndef LIBTWICE_NDS_DEFS_H
+#define LIBTWICE_NDS_DEFS_H
 
 #include <cstddef>
 
