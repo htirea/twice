@@ -1100,7 +1100,7 @@ render_affine_sprite(gpu_2d_engine *gpu, int obj_num, obj_data *obj)
 				draw_obj_pixel(gpu, i, color, priority);
 			}
 		} else {
-			offset >>= 4 * (px & 1);
+			offset = px & 1 ? offset >> 4 : offset & 0xF;
 			if (offset != 0) {
 				u16 color = obj_get_color_16(
 						gpu, palette_num, offset);
