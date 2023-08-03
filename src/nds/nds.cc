@@ -78,6 +78,25 @@ parse_header(nds_ctx *nds, u32 *entry_addr_ret)
 	entry_addr_ret[1] = entry_addr[1] & ~3;
 }
 
+static u32
+make_chip_id(nds_ctx *nds)
+{
+	u8 byte0 = 0xC2;
+	u8 byte1;
+	if (nds->cartridge_size >> 20 <= 0x80) {
+		byte1 = nds->cartridge_size >> 20;
+		if (byte1 != 0) {
+			byte1--;
+		}
+	} else {
+		byte1 = 0x100 - (nds->cartridge_size >> 28);
+	}
+	u8 byte2 = 0;
+	u8 byte3 = 0;
+
+	return (u32)byte3 << 24 | (u32)byte2 << 16 | (u32)byte1 << 8 | byte0;
+}
+
 void
 nds_direct_boot(nds_ctx *nds)
 {
@@ -88,12 +107,25 @@ nds_direct_boot(nds_ctx *nds)
 	nds->postflg[0] = 0x1;
 	nds->postflg[1] = 0x1;
 
-	nds->arm9->cp15_write(0x100, 0x00012078);
-	nds->arm9->cp15_write(0x910, 0x0300000A);
-	nds->arm9->cp15_write(0x911, 0x00000020);
+	u32 chip_id = make_chip_id(nds);
+	writearr<u32>(nds->main_ram, 0x3FF800, chip_id);
+	writearr<u32>(nds->main_ram, 0x3FF804, chip_id);
+	writearr<u16>(nds->main_ram, 0x3FF850, 0x5835);
+	writearr<u32>(nds->main_ram, 0x3FF880, 0x7);
+	writearr<u32>(nds->main_ram, 0x3FF884, 0x6);
+	writearr<u32>(nds->main_ram, 0x3FFC00, chip_id);
+	writearr<u32>(nds->main_ram, 0x3FFC04, chip_id);
+	writearr<u16>(nds->main_ram, 0x3FFC10, 0x5835);
+	writearr<u16>(nds->main_ram, 0x3FFC40, 0x1);
 
 	u32 entry_addr[2];
 	parse_header(nds, entry_addr);
+	std::memcpy(nds->main_ram + 0x3FFE00, nds->cartridge,
+			std::min((size_t)0x170, nds->cartridge_size));
+
+	nds->arm9->cp15_write(0x100, 0x00012078);
+	nds->arm9->cp15_write(0x910, 0x0300000A);
+	nds->arm9->cp15_write(0x911, 0x00000020);
 
 	nds->arm9->gpr[12] = entry_addr[0];
 	nds->arm9->gpr[13] = 0x03002F7C;
