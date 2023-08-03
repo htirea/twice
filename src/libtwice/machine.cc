@@ -25,7 +25,7 @@ nds_machine::load_cartridge(const std::string& pathname)
 }
 
 void
-nds_machine::direct_boot()
+nds_machine::boot(bool direct_boot)
 {
 	if (!cartridge) {
 		throw twice_error("cartridge not loaded");
@@ -34,7 +34,11 @@ nds_machine::direct_boot()
 	auto ctx = std::make_unique<nds_ctx>(arm7_bios.get_data(),
 			arm9_bios.get_data(), firmware.get_data(),
 			cartridge.get_data(), cartridge.get_size());
-	nds_direct_boot(ctx.get());
+	if (direct_boot) {
+		nds_direct_boot(ctx.get());
+	} else {
+		nds_firmware_boot(ctx.get());
+	}
 	nds = std::move(ctx);
 }
 

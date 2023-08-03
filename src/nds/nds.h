@@ -124,6 +124,7 @@ struct nds_ctx {
 	bool trace{};
 };
 
+void nds_firmware_boot(nds_ctx *nds);
 void nds_direct_boot(nds_ctx *nds);
 void nds_run_frame(nds_ctx *nds);
 

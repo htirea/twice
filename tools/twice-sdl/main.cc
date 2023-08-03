@@ -25,6 +25,7 @@ twice::arg_parser::opt_list twice::arg_parser::options = {
 	{ "2x", '2', 0 },
 	{ "3x", '3', 0 },
 	{ "4x", '4', 0 },
+	{ "boot", 'b', 1 },
 	{ "filter", '\0', 1 },
 	{ "fullscreen", 'f', 0 },
 	{ "help", 'h', 0 },
@@ -33,6 +34,7 @@ twice::arg_parser::opt_list twice::arg_parser::options = {
 
 twice::arg_parser::valid_opt_arg_list twice::arg_parser::valid_option_args = {
 	{ "verbose", { "nearest", "linear" } },
+	{ "boot", { "firmware", "direct" } },
 };
 
 static void
@@ -93,6 +95,13 @@ try {
 		sdl_config.fullscreen = true;
 	}
 
+	bool direct_boot = true;
+	if (auto opt = parser.get_option("boot")) {
+		if (opt->arg == "firmware") {
+			direct_boot = false;
+		}
+	}
+
 	if (data_dir.empty()) {
 		data_dir = twice::get_data_dir();
 		std::cerr << "data dir: " << data_dir << '\n';
@@ -101,7 +110,7 @@ try {
 	twice::nds_config config{ data_dir };
 	twice::nds_machine nds(config);
 	nds.load_cartridge(cartridge_pathname);
-	nds.direct_boot();
+	nds.boot(direct_boot);
 
 	twice::sdl_platform platform;
 	platform.loop(&nds);

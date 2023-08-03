@@ -33,7 +33,7 @@ struct nds_machine {
 	~nds_machine();
 
 	void load_cartridge(const std::string& pathname);
-	void direct_boot();
+	void boot(bool direct_boot);
 	void run_frame();
 	void *get_framebuffer();
 	void button_event(nds_button button, bool down);

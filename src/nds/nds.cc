@@ -36,6 +36,13 @@ nds_ctx::nds_ctx(u8 *arm7_bios, u8 *arm9_bios, u8 *firmware, u8 *cartridge,
 
 nds_ctx::~nds_ctx() = default;
 
+void
+nds_firmware_boot(nds_ctx *nds)
+{
+	nds->arm9->arm_jump(0xFFFF0000);
+	nds->arm7->arm_jump(0x0);
+}
+
 static void
 parse_header(nds_ctx *nds, u32 *entry_addr_ret)
 {

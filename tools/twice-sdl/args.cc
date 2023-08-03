@@ -94,7 +94,7 @@ arg_parser::invalid_option_arg(const std::string& name, const std::string& arg)
 
 	if (it->second.find(arg) == it->second.end()) {
 		std::cerr << "argument to option --" << name
-			  << " must be one of: ";
+			  << " must be one of: \n";
 		for (const auto& x : it->second) {
 			std::cerr << '\t' << x << '\n';
 		}
