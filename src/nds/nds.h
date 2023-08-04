@@ -127,6 +127,8 @@ struct nds_ctx {
 	u8 auxspidata_r{};
 	u8 auxspidata_w{};
 	u32 romctrl{ BIT(23) };
+	u8 cart_command_out[8]{};
+	s32 cart_io_blocks{};
 
 	/*
 	 * MISC

@@ -14,6 +14,8 @@ void auxspicnt_write(nds_ctx *nds, int cpuid, u16 value);
 void auxspidata_write(nds_ctx *nds, int cpuid, u8 value);
 void romctrl_write(nds_ctx *nds, int cpuid, u32 value);
 
+u32 read_cart_bus_data(nds_ctx *nds, int cpuid);
+
 u8 io9_read8(nds_ctx *nds, u32 addr);
 u16 io9_read16(nds_ctx *nds, u32 addr);
 u32 io9_read32(nds_ctx *nds, u32 addr);
@@ -184,7 +186,9 @@ void wramcnt_write(nds_ctx *nds, u8 value);
 	case 0x4000214:                                                       \
 		return nds->cpu[(cpuid_)]->IF;                                \
 	case 0x4100000:                                                       \
-		return ipc_fifo_recv(nds, (cpuid_))
+		return ipc_fifo_recv(nds, (cpuid_));                          \
+	case 0x4100010:                                                       \
+		return read_cart_bus_data(nds, (cpuid_))
 
 #define IO_WRITE8_COMMON(cpuid_)                                              \
 	case 0x40001A0:                                                       \
@@ -195,6 +199,19 @@ void wramcnt_write(nds_ctx *nds, u8 value);
 		return;                                                       \
 	case 0x40001A2:                                                       \
 		auxspidata_write(nds, (cpuid_), value);                       \
+		return;                                                       \
+	case 0x40001A8:                                                       \
+	case 0x40001A9:                                                       \
+	case 0x40001AA:                                                       \
+	case 0x40001AB:                                                       \
+	case 0x40001AC:                                                       \
+	case 0x40001AD:                                                       \
+	case 0x40001AE:                                                       \
+	case 0x40001AF:                                                       \
+		if ((cpuid_) == nds->nds_slot_cpu) {                          \
+			writearr<u8>(nds->cart_command_out, addr & 0x7,       \
+					value);                               \
+		}                                                             \
 		return;                                                       \
 	case 0x4000208:                                                       \
 		nds->cpu[(cpuid_)]->IME = value & 1;                          \
@@ -259,6 +276,15 @@ void wramcnt_write(nds_ctx *nds, u8 value);
 		return;                                                       \
 	case 0x40001A2:                                                       \
 		auxspidata_write(nds, (cpuid_), value);                       \
+		return;                                                       \
+	case 0x40001A8:                                                       \
+	case 0x40001AA:                                                       \
+	case 0x40001AC:                                                       \
+	case 0x40001AE:                                                       \
+		if ((cpuid_) == nds->nds_slot_cpu) {                          \
+			writearr<u16>(nds->cart_command_out, addr & 0x7,      \
+					value);                               \
+		}                                                             \
 		return;                                                       \
 	case 0x4000180:                                                       \
 		ipcsync_write(nds, (cpuid_), value);                          \
@@ -347,6 +373,13 @@ void wramcnt_write(nds_ctx *nds, u8 value);
 		return;                                                       \
 	case 0x40001A4:                                                       \
 		romctrl_write(nds, (cpuid_), value);                          \
+		return;                                                       \
+	case 0x40001A8:                                                       \
+	case 0x40001AC:                                                       \
+		if ((cpuid_) == nds->nds_slot_cpu) {                          \
+			writearr<u32>(nds->cart_command_out, addr & 0x7,      \
+					value);                               \
+		}                                                             \
 		return;                                                       \
 	case 0x4000208:                                                       \
 		nds->cpu[(cpuid_)]->IME = value & 1;                          \
