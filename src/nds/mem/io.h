@@ -7,6 +7,12 @@
 namespace twice {
 
 void ipcsync_write(nds_ctx *nds, int cpuid, u16 value);
+void exmem_write(nds_ctx *nds, int cpuid, u16 value);
+void auxspicnt_write_l(nds_ctx *nds, int cpuid, u8 value);
+void auxspicnt_write_h(nds_ctx *nds, int cpuid, u8 value);
+void auxspicnt_write(nds_ctx *nds, int cpuid, u16 value);
+void auxspidata_write(nds_ctx *nds, int cpuid, u8 value);
+void romctrl_write(nds_ctx *nds, int cpuid, u32 value);
 
 u8 io9_read8(nds_ctx *nds, u32 addr);
 u16 io9_read16(nds_ctx *nds, u32 addr);
@@ -56,6 +62,13 @@ void wramcnt_write(nds_ctx *nds, u8 value);
 		return (dest) >> 8
 
 #define IO_READ8_COMMON(cpuid_)                                               \
+	case 0x40001A0:                                                       \
+		return (cpuid_) == nds->nds_slot_cpu ? nds->auxspicnt : 0;    \
+	case 0x40001A1:                                                       \
+		return (cpuid_) == nds->nds_slot_cpu ? nds->auxspicnt >> 8    \
+		                                     : 0;                     \
+	case 0x40001A2:                                                       \
+		return (cpuid_) == nds->nds_slot_cpu ? nds->auxspidata_r : 0; \
 	case 0x4000208:                                                       \
 		return nds->cpu[(cpuid_)]->IME;                               \
 	case 0x4000210:                                                       \
@@ -100,6 +113,12 @@ void wramcnt_write(nds_ctx *nds, u8 value);
 		return nds->ipcsync[(cpuid_)];                                \
 	case 0x4000184:                                                       \
 		return nds->ipcfifo[(cpuid_)].cnt;                            \
+	case 0x40001A0:                                                       \
+		return (cpuid_) == nds->nds_slot_cpu ? nds->auxspicnt : 0;    \
+	case 0x40001A2:                                                       \
+		return (cpuid_) == nds->nds_slot_cpu ? nds->auxspidata_r : 0; \
+	case 0x4000204:                                                       \
+		return nds->exmem[cpuid_];                                    \
 	case 0x4000208:                                                       \
 		return nds->cpu[(cpuid_)]->IME;                               \
 	case 0x4000210:                                                       \
@@ -150,6 +169,14 @@ void wramcnt_write(nds_ctx *nds, u8 value);
 		       read_timer_counter(nds, (cpuid_), 3);                  \
 	case 0x4000180:                                                       \
 		return nds->ipcsync[(cpuid_)];                                \
+	case 0x40001A0:                                                       \
+		if ((cpuid_) == nds->nds_slot_cpu) {                          \
+			return (u32)nds->auxspidata_r << 16 | nds->auxspicnt; \
+		} else {                                                      \
+			return 0;                                             \
+		}                                                             \
+	case 0x40001A4:                                                       \
+		return (cpuid_) == nds->nds_slot_cpu ? nds->romctrl : 0;      \
 	case 0x4000208:                                                       \
 		return nds->cpu[(cpuid_)]->IME;                               \
 	case 0x4000210:                                                       \
@@ -160,6 +187,15 @@ void wramcnt_write(nds_ctx *nds, u8 value);
 		return ipc_fifo_recv(nds, (cpuid_))
 
 #define IO_WRITE8_COMMON(cpuid_)                                              \
+	case 0x40001A0:                                                       \
+		auxspicnt_write_l(nds, (cpuid_), value);                      \
+		return;                                                       \
+	case 0x40001A1:                                                       \
+		auxspicnt_write_h(nds, (cpuid_), value);                      \
+		return;                                                       \
+	case 0x40001A2:                                                       \
+		auxspidata_write(nds, (cpuid_), value);                       \
+		return;                                                       \
 	case 0x4000208:                                                       \
 		nds->cpu[(cpuid_)]->IME = value & 1;                          \
 		arm_check_interrupt(nds->cpu[cpuid_]);                        \
@@ -218,11 +254,20 @@ void wramcnt_write(nds_ctx *nds, u8 value);
 	case 0x400010E:                                                       \
 		write_timer_ctrl(nds, (cpuid_), 3, value);                    \
 		return;                                                       \
+	case 0x40001A0:                                                       \
+		auxspicnt_write(nds, (cpuid_), value);                        \
+		return;                                                       \
+	case 0x40001A2:                                                       \
+		auxspidata_write(nds, (cpuid_), value);                       \
+		return;                                                       \
 	case 0x4000180:                                                       \
 		ipcsync_write(nds, (cpuid_), value);                          \
 		return;                                                       \
 	case 0x4000184:                                                       \
 		ipc_fifo_cnt_write(nds, (cpuid_), value);                     \
+		return;                                                       \
+	case 0x4000204:                                                       \
+		exmem_write(nds, (cpuid_), value);                            \
 		return;                                                       \
 	case 0x4000208:                                                       \
 		nds->cpu[(cpuid_)]->IME = value & 1;                          \
@@ -295,6 +340,13 @@ void wramcnt_write(nds_ctx *nds, u8 value);
 		return;                                                       \
 	case 0x4000188:                                                       \
 		ipc_fifo_send(nds, (cpuid_), value);                          \
+		return;                                                       \
+	case 0x40001A0:                                                       \
+		auxspicnt_write(nds, (cpuid_), value);                        \
+		auxspidata_write(nds, (cpuid_), value >> 16);                 \
+		return;                                                       \
+	case 0x40001A4:                                                       \
+		romctrl_write(nds, (cpuid_), value);                          \
 		return;                                                       \
 	case 0x4000208:                                                       \
 		nds->cpu[(cpuid_)]->IME = value & 1;                          \

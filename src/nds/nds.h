@@ -117,6 +117,15 @@ struct nds_ctx {
 	u16 keyinput{ 0x3FF };
 	u16 extkeyin{ 0x7F };
 
+	u16 exmem[2]{ 0x6000, 0x6000 };
+	int nds_slot_cpu{};
+	int gba_slot_cpu{};
+
+	u16 auxspicnt{};
+	u8 auxspidata_r{};
+	u8 auxspidata_w{};
+	u32 romctrl{ BIT(23) };
+
 	/*
 	 * MISC
 	 */
