@@ -1,6 +1,7 @@
 #include "nds/mem/io.h"
 
 #include "nds/rtc.h"
+#include "nds/spi.h"
 
 #include "common/logger.h"
 
@@ -13,6 +14,8 @@ io7_read8(nds_ctx *nds, u32 addr)
 		IO_READ8_COMMON(1);
 	case 0x4000138:
 		return rtc_read(nds);
+	case 0x40001C2:
+		return spidata_read(nds);
 	case 0x4000240:
 		return nds->vramstat;
 	case 0x4000241:
@@ -31,9 +34,9 @@ io7_read16(nds_ctx *nds, u32 addr)
 	case 0x4000136:
 		return nds->extkeyin;
 	case 0x40001C0:
+		return nds->spicnt;
 	case 0x40001C2:
-		/* TODO: SPI */
-		LOGV("[spi] nds 1 read 16 at %08X\n", addr);
+		return spidata_read(nds);
 		return 0;
 	case 0x4000504:
 		return nds->soundbias;
@@ -48,6 +51,8 @@ io7_read32(nds_ctx *nds, u32 addr)
 {
 	switch (addr) {
 		IO_READ32_COMMON(1);
+	case 0x40001C0:
+		return (u32)spidata_read(nds) << 16 | nds->spicnt;
 	}
 
 	LOG("nds 1 read 32 at %08X\n", addr);
@@ -61,6 +66,9 @@ io7_write8(nds_ctx *nds, u32 addr, u8 value)
 		IO_WRITE8_COMMON(1);
 	case 0x4000138:
 		rtc_write(nds, value);
+		return;
+	case 0x40001C2:
+		spidata_write(nds, value);
 		return;
 	case 0x4000300:
 		if (nds->cpu[1]->gpr[15] < ARM7_BIOS_SIZE) {
@@ -94,9 +102,10 @@ io7_write16(nds_ctx *nds, u32 addr, u16 value)
 	switch (addr) {
 		IO_WRITE16_COMMON(1);
 	case 0x40001C0:
+		spicnt_write(nds, value);
+		return;
 	case 0x40001C2:
-		/* TODO: SPI */
-		LOGV("[spi] nds 1 write 16 to %08X\n", addr);
+		spidata_write(nds, value);
 		return;
 	case 0x4000504:
 		nds->soundbias = value & 0x3FF;

@@ -1,0 +1,16 @@
+#ifndef TWICE_SPI_H
+#define TWICE_SPI_H
+
+#include "common/types.h"
+
+namespace twice {
+
+struct nds_ctx;
+
+u8 spidata_read(nds_ctx *nds);
+void spidata_write(nds_ctx *nds, u8 value);
+void spicnt_write(nds_ctx *nds, u16 value);
+
+} // namespace twice
+
+#endif

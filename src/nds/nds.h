@@ -130,6 +130,10 @@ struct nds_ctx {
 	u8 cart_command_out[8]{};
 	s32 cart_io_blocks{};
 
+	u16 spicnt{};
+	u8 spidata_r{};
+	u8 spidata_w{};
+
 	/*
 	 * MISC
 	 */

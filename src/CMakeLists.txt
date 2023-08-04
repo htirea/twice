@@ -33,6 +33,7 @@ add_library(twice STATIC
 	nds/nds.cc
 	nds/rtc.cc
 	nds/scheduler.cc
+	nds/spi.cc
 	nds/timer.cc
 	"${CMAKE_CURRENT_BINARY_DIR}/arm_lut.cc"
 	"${CMAKE_CURRENT_BINARY_DIR}/thumb_lut.cc"
