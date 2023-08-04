@@ -31,6 +31,7 @@ add_library(twice STATIC
 	nds/mem/io7.cc
 	nds/mem/io9.cc
 	nds/nds.cc
+	nds/rtc.cc
 	nds/scheduler.cc
 	nds/timer.cc
 	"${CMAKE_CURRENT_BINARY_DIR}/arm_lut.cc"

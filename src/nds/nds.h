@@ -7,6 +7,7 @@
 #include "nds/gpu/gpu.h"
 #include "nds/gpu/vram.h"
 #include "nds/ipc.h"
+#include "nds/rtc.h"
 #include "nds/scheduler.h"
 #include "nds/timer.h"
 
@@ -58,6 +59,7 @@ struct nds_ctx {
 
 	dma_controller dma[2];
 	timer tmr[2][4];
+	real_time_clock rtc;
 
 	/*
 	 * Memory

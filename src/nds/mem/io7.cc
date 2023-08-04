@@ -1,5 +1,7 @@
 #include "nds/mem/io.h"
 
+#include "nds/rtc.h"
+
 #include "common/logger.h"
 
 namespace twice {
@@ -10,9 +12,7 @@ io7_read8(nds_ctx *nds, u32 addr)
 	switch (addr) {
 		IO_READ8_COMMON(1);
 	case 0x4000138:
-		/* TODO: rtc */
-		LOGV("[rtc] nds 1 read 8 at %08X\n", addr);
-		return 0;
+		return rtc_read(nds);
 	case 0x4000240:
 		return nds->vramstat;
 	case 0x4000241:
@@ -60,8 +60,7 @@ io7_write8(nds_ctx *nds, u32 addr, u8 value)
 	switch (addr) {
 		IO_WRITE8_COMMON(1);
 	case 0x4000138:
-		/* TODO: rtc */
-		LOGV("[rtc] nds 1 write 8 to %08X\n", addr);
+		rtc_write(nds, value);
 		return;
 	case 0x4000300:
 		if (nds->cpu[1]->gpr[15] < ARM7_BIOS_SIZE) {
