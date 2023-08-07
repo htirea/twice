@@ -48,12 +48,12 @@ spidata_write(nds_ctx *nds, u8 value)
 void
 spicnt_write(nds_ctx *nds, u16 value)
 {
-	u16 old = nds->spicnt;
 	nds->spicnt = (nds->spicnt & ~0xCF03) | (value & 0xCF03);
 }
 
 void
-event_spi_transfer_complete(nds_ctx *nds, int cpuid, intptr_t data)
+event_spi_transfer_complete(nds_ctx *nds, [[maybe_unused]] int cpuid,
+		[[maybe_unused]] intptr_t data)
 {
 	nds->spicnt &= ~BIT(7);
 	if (nds->spicnt & BIT(14)) {
