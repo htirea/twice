@@ -42,9 +42,8 @@ start_command(nds_ctx *nds, u8 command)
 }
 
 static u32
-get_3_byte_address(nds_ctx *nds)
+get_3_byte_address(u8 *bytes)
 {
-	auto& bytes = nds->firmware.input_bytes;
 	return (u32)bytes[0] << 16 | (u32)bytes[1] << 8 | (u32)bytes[2];
 }
 
@@ -56,7 +55,7 @@ on_all_params_received(nds_ctx *nds)
 	switch (fw.command) {
 	case 0x03:
 	{
-		fw.addr = get_3_byte_address(nds);
+		fw.addr = get_3_byte_address(fw.input_bytes.data());
 		break;
 	}
 	}
@@ -99,11 +98,7 @@ firmware_spi_transfer_byte(nds_ctx *nds, u8 value, bool keep_active)
 		continue_command(nds, value);
 	}
 
-	if (keep_active) {
-		fw.cs_active = true;
-	} else {
-		fw.cs_active = false;
-	}
+	fw.cs_active = keep_active;
 }
 
 } // namespace twice
