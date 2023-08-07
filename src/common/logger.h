@@ -7,9 +7,9 @@ namespace twice {
 
 extern int logger_verbose_level;
 
-void LOG(const char *format, ...);
-void LOGV(const char *format, ...);
-void LOGVV(const char *format, ...);
+[[gnu::format(printf, 1, 2)]] void LOG(const char *format, ...);
+[[gnu::format(printf, 1, 2)]] void LOGV(const char *format, ...);
+[[gnu::format(printf, 1, 2)]] void LOGVV(const char *format, ...);
 
 } // namespace twice
 
