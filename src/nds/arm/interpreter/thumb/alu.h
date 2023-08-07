@@ -213,7 +213,7 @@ thumb_alu5(arm_cpu *cpu)
 		break;
 	case ADC:
 	{
-		u64 r64 = operand + rm + get_c(cpu);
+		u64 r64 = (u64)operand + rm + get_c(cpu);
 		r = cpu->gpr[rd] = r64;
 		ADC_FLAGS_(operand, rm);
 		set_nzcv(cpu, r >> 31, r == 0, carry, overflow);
@@ -221,7 +221,7 @@ thumb_alu5(arm_cpu *cpu)
 	}
 	case SBC:
 	{
-		s64 r64 = operand - rm - !get_c(cpu);
+		s64 r64 = (s64)operand - rm - !get_c(cpu);
 		r = cpu->gpr[rd] = r64;
 		SBC_FLAGS_(operand, rm);
 		set_nzcv(cpu, r >> 31, r == 0, carry, overflow);
