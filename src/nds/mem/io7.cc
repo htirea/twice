@@ -26,6 +26,11 @@ io7_read8(nds_ctx *nds, u32 addr)
 		return nds->soundcnt >> 8;
 	}
 
+	if (0x4000400 <= addr && addr < 0x4000520) {
+		LOGV("[sound reg] nds 1 read 8 at %08X\n", addr);
+		return 0;
+	}
+
 	LOG("nds 1 read 8 at %08X\n", addr);
 	return 0;
 }
