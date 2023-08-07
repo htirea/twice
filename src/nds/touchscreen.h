@@ -12,6 +12,7 @@ struct touchscreen_controller {
 };
 
 void touchscreen_spi_transfer_byte(nds_ctx *nds, u8 value, bool keep_active);
+void touchscreen_spi_reset(nds_ctx *nds);
 
 } // namespace twice
 

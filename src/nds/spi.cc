@@ -45,10 +45,23 @@ spidata_write(nds_ctx *nds, u8 value)
 	nds->spicnt |= BIT(7);
 }
 
+static void
+reset_spi(nds_ctx *nds)
+{
+	firmware_spi_reset(nds);
+	touchscreen_spi_reset(nds);
+	/* TODO: power management device reset */
+}
+
 void
 spicnt_write(nds_ctx *nds, u16 value)
 {
+	bool old_enabled = nds->spicnt & BIT(15);
+	bool new_enabled = value & BIT(15);
 	nds->spicnt = (nds->spicnt & ~0xCF03) | (value & 0xCF03);
+	if (!old_enabled && new_enabled) {
+		reset_spi(nds);
+	}
 }
 
 void

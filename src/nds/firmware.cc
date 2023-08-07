@@ -101,4 +101,11 @@ firmware_spi_transfer_byte(nds_ctx *nds, u8 value, bool keep_active)
 	fw.cs_active = keep_active;
 }
 
+void
+firmware_spi_reset(nds_ctx *nds)
+{
+	auto& fw = nds->firmware;
+	fw.cs_active = false;
+}
+
 } // namespace twice
