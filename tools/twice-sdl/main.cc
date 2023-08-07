@@ -33,7 +33,7 @@ twice::arg_parser::opt_list twice::arg_parser::options = {
 };
 
 twice::arg_parser::valid_opt_arg_list twice::arg_parser::valid_option_args = {
-	{ "verbose", { "nearest", "linear" } },
+	{ "filter", { "nearest", "linear" } },
 	{ "boot", { "firmware", "direct" } },
 };
 
