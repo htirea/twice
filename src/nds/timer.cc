@@ -10,9 +10,9 @@ get_freq_shift(u16 ctrl)
 {
 	u16 bits = ctrl & 3;
 	if (bits == 0) {
-		return 0;
+		return 10;
 	} else {
-		return 4 + (bits << 1);
+		return 10 - (4 + (bits << 1));
 	}
 }
 
@@ -28,7 +28,7 @@ update_timer_counter(nds_ctx *nds, int cpuid, int timer_id)
 			elapsed >>= 1;
 		}
 
-		t.counter += elapsed >> t.shift;
+		t.counter += elapsed << t.shift;
 		t.last_update = current_time;
 	}
 }
@@ -38,7 +38,7 @@ read_timer_counter(nds_ctx *nds, int cpuid, int timer_id)
 {
 	auto& t = nds->tmr[cpuid][timer_id];
 	update_timer_counter(nds, cpuid, timer_id);
-	return t.counter;
+	return t.counter >> 10;
 }
 
 static void
@@ -52,7 +52,8 @@ static void
 schedule_timer_overflow(nds_ctx *nds, int cpuid, int timer_id)
 {
 	auto& t = nds->tmr[cpuid][timer_id];
-	timestamp dt = (0x10000 - t.counter) << t.shift;
+	timestamp dt = ((u32)0x10000 << 10) - t.counter;
+	dt >>= t.shift;
 	int event = event_scheduler::TIMER0_OVERFLOW + timer_id;
 	schedule_cpu_event_after(nds, cpuid, event, dt);
 }
@@ -79,7 +80,7 @@ write_timer_ctrl(nds_ctx *nds, int cpuid, int timer_id, u8 value)
 	}
 
 	if (!old_enabled && new_enabled) {
-		t.counter = t.reload_val;
+		t.counter = t.reload_val << 10;
 		t.last_update = nds->arm_cycles[cpuid];
 	} else if (new_enabled) {
 		update_timer_counter(nds, cpuid, timer_id);
@@ -101,7 +102,7 @@ on_timer_overflow(nds_ctx *nds, int cpuid, int timer_id)
 {
 	auto& t = nds->tmr[cpuid][timer_id];
 	timestamp current_time = nds->arm_cycles[cpuid];
-	t.counter = t.reload_val;
+	t.counter = t.reload_val << 10;
 	t.last_update = current_time;
 
 	if (t.ctrl & BIT(6)) {
@@ -111,8 +112,8 @@ on_timer_overflow(nds_ctx *nds, int cpuid, int timer_id)
 	if (timer_id != 3) {
 		auto& next_t = nds->tmr[cpuid][timer_id + 1];
 		if (next_t.ctrl & BIT(7) && next_t.ctrl & BIT(2)) {
-			next_t.counter += 1;
-			if (next_t.counter == 0) {
+			next_t.counter += 1 << 10;
+			if (next_t.counter >> 10 == 0) {
 				on_timer_overflow(nds, cpuid, timer_id + 1);
 			}
 		}

@@ -8,7 +8,7 @@ namespace twice {
 struct nds_ctx;
 
 struct timer {
-	u16 counter{};
+	u32 counter{};
 	u16 reload_val{};
 	u16 ctrl{};
 	timestamp last_update{};

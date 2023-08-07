@@ -4,12 +4,14 @@
 #include "libtwice/nds_defs.h"
 
 #include "nds/dma.h"
+#include "nds/firmware.h"
 #include "nds/gpu/gpu.h"
 #include "nds/gpu/vram.h"
 #include "nds/ipc.h"
 #include "nds/rtc.h"
 #include "nds/scheduler.h"
 #include "nds/timer.h"
+#include "nds/touchscreen.h"
 
 #include "common/types.h"
 
@@ -31,6 +33,7 @@ enum : u32 {
 	ARM7_WRAM_SIZE = 64_KiB,
 	ARM7_WRAM_MASK = 64_KiB - 1,
 	FIRMWARE_SIZE = 256_KiB,
+	FIRMWARE_MASK = 256_KiB - 1,
 	MAX_CART_SIZE = 512_MiB,
 };
 
@@ -60,6 +63,8 @@ struct nds_ctx {
 	dma_controller dma[2];
 	timer tmr[2][4];
 	real_time_clock rtc;
+	firmware_flash firmware;
+	touchscreen_controller touchscreen;
 
 	/*
 	 * Memory
@@ -76,7 +81,6 @@ struct nds_ctx {
 
 	u8 *arm7_bios{};
 	u8 *arm9_bios{};
-	u8 *firmware{};
 	u8 *cartridge{};
 	size_t cartridge_size{};
 
@@ -112,12 +116,16 @@ struct nds_ctx {
 
 	u8 haltcnt{};
 	u16 powcnt1{};
+	u8 powcnt2{ 0x1 };
+	u8 wifiwaitcnt{};
 	u8 postflg[2]{};
 
+	u16 soundcnt{};
 	u32 soundbias{};
 
 	u16 keyinput{ 0x3FF };
 	u16 extkeyin{ 0x7F };
+	u16 rcnt{};
 
 	u16 exmem[2]{ 0x6000, 0x6000 };
 	int nds_slot_cpu{};
@@ -128,7 +136,7 @@ struct nds_ctx {
 	u8 auxspidata_w{};
 	u32 romctrl{ BIT(23) };
 	u8 cart_command_out[8]{};
-	s32 cart_io_blocks{};
+	s32 cart_bus_transfer_bytes{};
 
 	u16 spicnt{};
 	u8 spidata_r{};

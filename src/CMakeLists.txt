@@ -23,6 +23,7 @@ add_library(twice STATIC
 	nds/arm/arm9.cc
 	nds/dma.cc
 	nds/arm/interpreter/lut.cc
+	nds/firmware.cc
 	nds/gpu/gpu.cc
 	nds/gpu/vram.cc
 	nds/ipc.cc
@@ -35,6 +36,7 @@ add_library(twice STATIC
 	nds/scheduler.cc
 	nds/spi.cc
 	nds/timer.cc
+	nds/touchscreen.cc
 	"${CMAKE_CURRENT_BINARY_DIR}/arm_lut.cc"
 	"${CMAKE_CURRENT_BINARY_DIR}/thumb_lut.cc"
 )

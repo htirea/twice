@@ -283,6 +283,10 @@ io9_write16(nds_ctx *nds, u32 addr, u16 value)
 	case 0x40000EE:
 		nds->dmafill[3] = value >> 16;
 		return;
+	case 0x4000248:
+		vramcnt_h_write(nds, value);
+		vramcnt_i_write(nds, value >> 8);
+		return;
 	case 0x4000280:
 		/* TODO: div timings */
 		nds->divcnt = (nds->divcnt & 0x8000) | (value & ~0x8000);
@@ -292,6 +296,10 @@ io9_write16(nds_ctx *nds, u32 addr, u16 value)
 		/* TODO: sqrt timings */
 		nds->sqrtcnt = (nds->sqrtcnt & 0x8000) | (value & ~0x8000);
 		nds_math_sqrt(nds);
+		return;
+	case 0x4000300:
+		nds->postflg[0] &= ~BIT(1);
+		nds->postflg[1] |= value & 3;
 		return;
 	case 0x4000304:
 		powcnt1_write(nds, value);

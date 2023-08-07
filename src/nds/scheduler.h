@@ -25,6 +25,7 @@ struct event_scheduler {
 		TIMER1_OVERFLOW,
 		TIMER2_OVERFLOW,
 		TIMER3_OVERFLOW,
+		SPI_TRANSFER_COMPLETE,
 		NUM_CPU_EVENTS,
 	};
 
@@ -57,6 +58,12 @@ inline timestamp
 min_time(timestamp a, timestamp b)
 {
 	return cmp_time(a, b) < 0 ? a : b;
+}
+
+inline timestamp
+max_time(timestamp a, timestamp b)
+{
+	return cmp_time(a, b) > 0 ? a : b;
 }
 
 timestamp get_next_event_time(nds_ctx *nds);

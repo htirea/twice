@@ -126,7 +126,9 @@ void wramcnt_write(nds_ctx *nds, u8 value);
 	case 0x4000210:                                                       \
 		IO_READ16_FROM_32(0x4000210, nds->cpu[(cpuid_)]->IE);         \
 	case 0x4000214:                                                       \
-		IO_READ16_FROM_32(0x4000214, nds->cpu[(cpuid_)]->IF)
+		IO_READ16_FROM_32(0x4000214, nds->cpu[(cpuid_)]->IF);         \
+	case 0x4000300:                                                       \
+		return nds->postflg[cpuid_]
 
 #define IO_READ32_COMMON(cpuid_)                                              \
 	case 0x40000B0:                                                       \

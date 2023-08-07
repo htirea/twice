@@ -1,5 +1,7 @@
 #include "nds/nds.h"
 
+#include "nds/spi.h"
+
 namespace twice {
 
 event_scheduler::event_scheduler()
@@ -14,6 +16,7 @@ event_scheduler::event_scheduler()
 		arm_events[1][TIMER0_OVERFLOW + i].cb = event_timer_overflow;
 		arm_events[1][TIMER0_OVERFLOW + i].data = i;
 	}
+	arm_events[1][SPI_TRANSFER_COMPLETE].cb = event_spi_transfer_complete;
 }
 
 timestamp
@@ -21,6 +24,7 @@ get_next_event_time(nds_ctx *nds)
 {
 	auto& sc = nds->scheduler;
 
+	timestamp lower_bound = sc.current_time + 2;
 	timestamp time = sc.current_time + 64;
 
 	for (int i = 0; i < event_scheduler::NUM_NDS_EVENTS; i++) {
@@ -38,7 +42,7 @@ get_next_event_time(nds_ctx *nds)
 		}
 	}
 
-	return time;
+	return max_time(lower_bound, time);
 }
 
 void

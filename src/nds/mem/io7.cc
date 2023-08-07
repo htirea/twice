@@ -20,6 +20,10 @@ io7_read8(nds_ctx *nds, u32 addr)
 		return nds->vramstat;
 	case 0x4000241:
 		return nds->wramcnt;
+	case 0x4000500:
+		return nds->soundcnt;
+	case 0x4000501:
+		return nds->soundcnt >> 8;
 	}
 
 	LOG("nds 1 read 8 at %08X\n", addr);
@@ -31,13 +35,18 @@ io7_read16(nds_ctx *nds, u32 addr)
 {
 	switch (addr) {
 		IO_READ16_COMMON(1);
+	case 0x4000134:
+		return nds->rcnt;
 	case 0x4000136:
 		return nds->extkeyin;
+	case 0x4000138:
+		return rtc_read(nds);
 	case 0x40001C0:
 		return nds->spicnt;
 	case 0x40001C2:
 		return spidata_read(nds);
-		return 0;
+	case 0x4000304:
+		return nds->powcnt2;
 	case 0x4000504:
 		return nds->soundbias;
 	}
@@ -91,6 +100,13 @@ io7_write8(nds_ctx *nds, u32 addr, u8 value)
 		}
 		nds->haltcnt = value;
 		return;
+	case 0x4000500:
+		nds->soundcnt = (nds->soundcnt & ~0x7F) | (value & 0x7F);
+		return;
+	case 0x4000501:
+		nds->soundcnt = (nds->soundcnt & ~0xBF00) |
+		                ((u16)value << 8 & 0xBF00);
+		return;
 	}
 
 	LOG("nds 1 write 8 to %08X\n", addr);
@@ -101,11 +117,30 @@ io7_write16(nds_ctx *nds, u32 addr, u16 value)
 {
 	switch (addr) {
 		IO_WRITE16_COMMON(1);
+	case 0x4000134:
+		nds->rcnt = value;
+		return;
+	case 0x4000138:
+		rtc_write(nds, value);
+		return;
 	case 0x40001C0:
 		spicnt_write(nds, value);
 		return;
 	case 0x40001C2:
 		spidata_write(nds, value);
+		return;
+	case 0x4000206:
+		if (nds->powcnt2 & BIT(1)) {
+			nds->wifiwaitcnt = value & 0x3F;
+		}
+		return;
+	case 0x4000300:
+		if (nds->cpu[1]->gpr[15] < ARM7_BIOS_SIZE) {
+			nds->postflg[1] |= value & 1;
+		}
+		return;
+	case 0x4000304:
+		nds->powcnt2 = value & 0x3;
 		return;
 	case 0x4000504:
 		nds->soundbias = value & 0x3FF;

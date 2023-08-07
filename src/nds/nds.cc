@@ -17,9 +17,9 @@ nds_ctx::nds_ctx(u8 *arm7_bios, u8 *arm9_bios, u8 *firmware, u8 *cartridge,
 	  arm7(std::make_unique<arm7_cpu>(this)),
 	  gpu2d{ { this, 0 }, { this, 1 } },
 	  dma{ { this, 0 }, { this, 1 } },
+	  firmware(firmware),
 	  arm7_bios(arm7_bios),
 	  arm9_bios(arm9_bios),
-	  firmware(firmware),
 	  cartridge(cartridge),
 	  cartridge_size(cartridge_size)
 {
@@ -157,7 +157,6 @@ nds_run_frame(nds_ctx *nds)
 	nds->frame_finished = false;
 
 	while (!nds->frame_finished) {
-		timestamp arm9_start_cycles = nds->arm_cycles[0];
 		nds->arm_target_cycles[0] = get_next_event_time(nds);
 		if (nds->dma[0].active) {
 			run_dma9(nds);
@@ -167,8 +166,8 @@ nds_run_frame(nds_ctx *nds)
 
 		run_cpu_events(nds, 0);
 
-		timestamp elapsed = nds->arm_cycles[0] - arm9_start_cycles;
-		timestamp arm7_target = nds->arm_cycles[1] + (elapsed >> 1);
+		/* TODO: handle case when arm9 overflows */
+		timestamp arm7_target = nds->arm_cycles[0] >> 1;
 		while (cmp_time(nds->arm_cycles[1], arm7_target) < 0) {
 			nds->arm_target_cycles[1] = arm7_target;
 			if (nds->dma[1].active) {

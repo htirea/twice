@@ -11,6 +11,8 @@ u8 spidata_read(nds_ctx *nds);
 void spidata_write(nds_ctx *nds, u8 value);
 void spicnt_write(nds_ctx *nds, u16 value);
 
+void event_spi_transfer_complete(nds_ctx *nds, int cpuid, intptr_t data);
+
 } // namespace twice
 
 #endif
