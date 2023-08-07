@@ -41,11 +41,14 @@ class sdl_platform {
 			std::uint64_t ticks_per_frame, std::uint64_t freq);
 	void add_controller(int joystick_index);
 	void remove_controller(SDL_JoystickID id);
+	void update_touchscreen_state(nds_machine *nds);
 
 	SDL_Window *window{};
 	SDL_Renderer *renderer{};
 	SDL_Texture *texture{};
 	std::unordered_set<SDL_JoystickID> controllers;
+	int window_x{};
+	int window_y{};
 
 	bool running{};
 	bool throttle{};

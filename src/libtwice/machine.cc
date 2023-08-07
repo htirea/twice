@@ -110,4 +110,19 @@ nds_machine::button_event(nds_button button, bool down)
 	}
 }
 
+void
+nds_machine::update_touchscreen_state(
+		[[maybe_unused]] int x, [[maybe_unused]] int y, bool down)
+{
+	if (!nds) {
+		return;
+	}
+
+	if (down) {
+		nds->extkeyin &= ~BIT(6);
+	} else {
+		nds->extkeyin |= BIT(6);
+	}
+}
+
 } // namespace twice

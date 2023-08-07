@@ -37,6 +37,7 @@ struct nds_machine {
 	void run_frame();
 	void *get_framebuffer();
 	void button_event(nds_button button, bool down);
+	void update_touchscreen_state(int x, int y, bool down);
 
       private:
 	nds_config config;

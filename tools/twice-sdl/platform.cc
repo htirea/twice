@@ -2,6 +2,7 @@
 
 #include <cstring>
 #include <format>
+#include <iostream>
 
 #include "libtwice/machine.h"
 #include "libtwice/nds_defs.h"
@@ -20,10 +21,11 @@ sdl_platform::sdl_platform()
 	if (sdl_config.fullscreen) {
 		window_flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
 	}
+	window_x = NDS_FB_W * sdl_config.window_scale;
+	window_y = NDS_FB_H * sdl_config.window_scale;
 	window = SDL_CreateWindow("Twice", SDL_WINDOWPOS_UNDEFINED,
-			SDL_WINDOWPOS_UNDEFINED,
-			NDS_FB_W * sdl_config.window_scale,
-			NDS_FB_H * sdl_config.window_scale, window_flags);
+			SDL_WINDOWPOS_UNDEFINED, window_x, window_y,
+			window_flags);
 	if (!window) {
 		throw sdl_error("create window failed");
 	}
@@ -259,8 +261,18 @@ sdl_platform::handle_events(twice::nds_machine *nds)
 			nds->button_event(button, 0);
 			break;
 		}
+		case SDL_WINDOWEVENT:
+			switch (e.window.event) {
+			case SDL_WINDOWEVENT_SIZE_CHANGED:
+				window_x = e.window.data1;
+				window_y = e.window.data2;
+				break;
+			}
+			break;
 		}
 	}
+
+	update_touchscreen_state(nds);
 }
 
 void
@@ -283,6 +295,18 @@ sdl_platform::remove_controller(SDL_JoystickID id)
 	if (gc) {
 		SDL_GameControllerClose(gc);
 	}
+}
+
+void
+sdl_platform::update_touchscreen_state(twice::nds_machine *nds)
+{
+	int touch_x, touch_y;
+	u32 mouse_buttons = SDL_GetMouseState(&touch_x, &touch_y);
+
+	/* TODO: transform window coords into nds screen coords */
+
+	nds->update_touchscreen_state(
+			touch_x, touch_y, mouse_buttons & SDL_BUTTON_LEFT);
 }
 
 } // namespace twice
