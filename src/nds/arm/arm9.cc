@@ -307,10 +307,27 @@ arm9_cpu::cp15_write(u32 reg, u32 value)
 		LOGVV("[protection_unit] unhandled cp15 write to %03X\n", reg);
 		break;
 	case 0x750:
-	case 0x760:
 	case 0x751:
+	case 0x752:
+	case 0x754:
+	case 0x756:
+	case 0x757:
+	case 0x760:
+	case 0x761:
+	case 0x762:
+	case 0x770:
+	case 0x771:
+	case 0x772:
+	case 0x7A1:
+	case 0x7A2:
 	case 0x7A4:
+	case 0x7B1:
+	case 0x7B2:
+	case 0x7D1:
 	case 0x7E1:
+	case 0x7E2:
+	case 0x7F1:
+	case 0x7F2:
 		LOGVV("[cache_control] unhandled cp15 write to %03X\n", reg);
 		break;
 	default:
