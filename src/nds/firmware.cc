@@ -2,11 +2,51 @@
 
 #include "common/logger.h"
 
+#include "libtwice/exception.h"
+
 namespace twice {
+
+static u16
+calculate_crc16(u8 *p, size_t num_bytes)
+{
+	u16 v[] = { 0xC0C1, 0xC181, 0xC301, 0xC601, 0xCC01, 0xD801, 0xF001,
+		0xA001 };
+
+	u32 crc = 0xFFFF;
+	for (size_t i = 0; i < num_bytes; i++) {
+		crc ^= p[i];
+		for (int j = 0; j < 8; j++) {
+			bool carry = crc & 1;
+			crc >>= 1;
+			if (carry) {
+				crc ^= v[j] << (7 - j);
+			}
+		}
+	}
+
+	return crc;
+}
 
 firmware_flash::firmware_flash(u8 *data)
 	: data(data)
 {
+	u32 user_settings_offset = readarr<u16>(data, 0x20) << 3;
+	if (user_settings_offset != 0x3FE00) {
+		throw twice_error("unhandled firmware user settings offset");
+	}
+
+	user_settings = data + user_settings_offset;
+	writearr<u16>(user_settings, 0x58, 0);
+	writearr<u16>(user_settings, 0x5A, 0);
+	writearr<u8>(user_settings, 0x5C, 0);
+	writearr<u8>(user_settings, 0x5D, 0);
+	writearr<u16>(user_settings, 0x5E, 255 << 4);
+	writearr<u16>(user_settings, 0x60, 191 << 4);
+	writearr<u8>(user_settings, 0x62, 255);
+	writearr<u8>(user_settings, 0x63, 191);
+
+	u16 checksum = calculate_crc16(user_settings, 0x70);
+	writearr<u16>(user_settings, 0x72, checksum);
 }
 
 static void

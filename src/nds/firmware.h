@@ -11,6 +11,7 @@ struct firmware_flash {
 	firmware_flash(u8 *data);
 
 	u8 *data{};
+	u8 *user_settings{};
 	int state{};
 	u8 command{};
 	int num_params{};

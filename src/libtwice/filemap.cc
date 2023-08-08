@@ -38,7 +38,8 @@ file_map::file_map(const std::string& pathname, std::size_t limit, int mode)
 		throw file_map_error("file exceeds size: " + pathname);
 	}
 
-	void *addr = mmap(NULL, actual_size, PROT_READ, MAP_PRIVATE, fd, 0);
+	void *addr = mmap(NULL, actual_size, PROT_READ | PROT_WRITE,
+			MAP_PRIVATE, fd, 0);
 	if (addr == MAP_FAILED) {
 		close(fd);
 		throw file_map_error("mmap failed: " + pathname);

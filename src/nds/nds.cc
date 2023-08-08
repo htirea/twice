@@ -125,6 +125,9 @@ nds_direct_boot(nds_ctx *nds)
 	writearr<u16>(nds->main_ram, 0x3FFC10, 0x5835);
 	writearr<u16>(nds->main_ram, 0x3FFC40, 0x1);
 
+	std::memcpy(nds->main_ram + 0x3FFC80, nds->firmware.user_settings,
+			0x70);
+
 	u32 entry_addr[2];
 	parse_header(nds, entry_addr);
 	std::memcpy(nds->main_ram + 0x3FFE00, nds->cartridge,
