@@ -1,5 +1,6 @@
 #include "platform.h"
 
+#include <chrono>
 #include <cstring>
 #include <format>
 #include <iostream>
@@ -146,6 +147,7 @@ sdl_platform::loop(twice::nds_machine *nds)
 		if (ticks_elapsed >= freq) {
 			ticks_elapsed -= freq;
 			arm_set_title_fps(fps_counter.get_average(), freq);
+			update_rtc(nds);
 		}
 	}
 }
@@ -307,6 +309,24 @@ sdl_platform::update_touchscreen_state(twice::nds_machine *nds)
 
 	nds->update_touchscreen_state(
 			touch_x, touch_y, mouse_buttons & SDL_BUTTON_LEFT);
+}
+
+void
+sdl_platform::update_rtc(twice::nds_machine *nds)
+{
+	using namespace std::chrono;
+
+	auto tp = zoned_time{ current_zone(), system_clock::now() }
+	                          .get_local_time();
+	auto dp = floor<days>(tp);
+	year_month_day date{ dp };
+	hh_mm_ss time{ tp - dp };
+	weekday wday{ dp };
+
+	nds->update_real_time_clock((int)date.year(), (unsigned)date.month(),
+			(unsigned)date.day(), wday.iso_encoding(),
+			time.hours().count(), time.minutes().count(),
+			time.seconds().count());
 }
 
 } // namespace twice

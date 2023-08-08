@@ -39,6 +39,20 @@ struct nds_machine {
 	void button_event(nds_button button, bool down);
 	void update_touchscreen_state(int x, int y, bool down);
 
+	/*
+	 * Update the current real world time used by the RTC.
+	 *
+	 * year: [2000 - 2099]
+	 * month: [1 - 12]
+	 * day: [1 - 31]
+	 * weekday: [1 - 7] (Monday is 1)
+	 * hour: [0 - 23]
+	 * minute: [0 - 59]
+	 * second: [0- 59]
+	 */
+	void update_real_time_clock(int year, int month, int day, int weekday,
+			int hour, int minute, int second);
+
       private:
 	nds_config config;
 	file_map arm7_bios;

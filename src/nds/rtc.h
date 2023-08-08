@@ -11,6 +11,13 @@ struct real_time_clock {
 	u8 clock_reg{};
 	u8 stat1{};
 	u8 stat2{};
+	int year{ 2000 };
+	int month{ 1 };
+	int day{ 1 };
+	int weekday{ 5 };
+	int hour{ 0 };
+	int minute{ 0 };
+	int second{ 0 };
 
 	std::vector<u8> output_bytes;
 	size_t output_byte_num{};

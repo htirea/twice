@@ -125,4 +125,49 @@ nds_machine::update_touchscreen_state(
 	}
 }
 
+static bool
+is_leap_year(int year)
+{
+	if (year % 400 == 0) {
+		return true;
+	}
+	if (year % 100 == 0) {
+		return false;
+	}
+	return year % 4 == 0;
+}
+
+void
+nds_machine::update_real_time_clock(int year, int month, int day, int weekday,
+		int hour, int minute, int second)
+{
+	if (!nds) return;
+
+	if (!(2000 <= year && year <= 2099)) return;
+	if (!(1 <= month && month <= 12)) return;
+	if (!(1 <= day && day <= 31)) return;
+	if (!(1 <= weekday && weekday <= 7)) return;
+	if (!(0 <= hour && hour <= 23)) return;
+	if (!(0 <= minute && minute <= 59)) return;
+	if (!(0 <= second && second <= 59)) return;
+
+	switch (month) {
+	case 2:
+		if (is_leap_year(year)) {
+			if (day > 29) return;
+		} else {
+			if (day > 28) return;
+		}
+		break;
+	case 4:
+	case 6:
+	case 9:
+	case 11:
+		if (day > 30) return;
+	}
+
+	nds_set_rtc_time(nds.get(), year, month, day, weekday, hour, minute,
+			second);
+}
+
 } // namespace twice

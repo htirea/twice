@@ -78,6 +78,29 @@ process_command_byte(real_time_clock *rtc)
 	}
 }
 
+static u8
+convert_bcd(int x)
+{
+	return (x / 10) << 4 | x % 10;
+}
+
+static void
+output_datetime_bytes(real_time_clock *rtc)
+{
+	rtc->output_bytes.push_back(convert_bcd(rtc->year - 2000));
+	rtc->output_bytes.push_back(convert_bcd(rtc->month));
+	rtc->output_bytes.push_back(convert_bcd(rtc->day));
+	rtc->output_bytes.push_back(convert_bcd(rtc->weekday));
+	u8 hour_byte = rtc->stat1 & BIT(1) ? convert_bcd(rtc->hour)
+	                                   : convert_bcd(rtc->hour % 12);
+	if (rtc->hour >= 12) {
+		hour_byte |= BIT(6);
+	}
+	rtc->output_bytes.push_back(hour_byte);
+	rtc->output_bytes.push_back(convert_bcd(rtc->minute));
+	rtc->output_bytes.push_back(convert_bcd(rtc->second));
+}
+
 static void
 command_read_params(real_time_clock *rtc)
 {
@@ -93,8 +116,7 @@ command_read_params(real_time_clock *rtc)
 		rtc->output_bytes.push_back(rtc->stat2);
 		break;
 	case 2:
-		rtc->output_bytes.insert(rtc->output_bytes.end(),
-				{ 0x23, 0x8, 0x4, 0x4, 0x3, 0x51, 0x11 });
+		output_datetime_bytes(rtc);
 		break;
 	default:
 		LOG("rtc command read %02X\n", rtc->input_byte);
@@ -182,6 +204,21 @@ rtc_write(nds_ctx *nds, u8 value)
 	if (value & DATA_WRITE) {
 		rtc.clock_reg = (rtc.clock_reg & ~DATA) | (value & DATA);
 	}
+}
+
+void
+nds_set_rtc_time(nds_ctx *nds, int year, int month, int day, int weekday,
+		int hour, int minute, int second)
+{
+	auto& rtc = nds->rtc;
+
+	rtc.year = year;
+	rtc.month = month;
+	rtc.day = day;
+	rtc.weekday = weekday - 1;
+	rtc.hour = hour;
+	rtc.minute = minute;
+	rtc.second = second;
 }
 
 } // namespace twice
