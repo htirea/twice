@@ -48,8 +48,8 @@ class sdl_platform {
 	SDL_Renderer *renderer{};
 	SDL_Texture *texture{};
 	std::unordered_set<SDL_JoystickID> controllers;
-	int window_x{};
-	int window_y{};
+	int window_w{};
+	int window_h{};
 
 	bool running{};
 	bool throttle{};

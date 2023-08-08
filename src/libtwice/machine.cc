@@ -111,14 +111,17 @@ nds_machine::button_event(nds_button button, bool down)
 }
 
 void
-nds_machine::update_touchscreen_state(
-		[[maybe_unused]] int x, [[maybe_unused]] int y, bool down)
+nds_machine::update_touchscreen_state(int x, int y, bool down)
 {
-	if (!nds) {
-		return;
+	if (!nds) return;
+
+	if (down) {
+		if (!(0 <= x && x <= 255)) return;
+		if (!(0 <= y && y <= 191)) return;
 	}
 
 	if (down) {
+		nds_set_touchscreen_state(nds.get(), x, y, down);
 		nds->extkeyin &= ~BIT(6);
 	} else {
 		nds->extkeyin |= BIT(6);

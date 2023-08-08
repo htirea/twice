@@ -22,10 +22,10 @@ sdl_platform::sdl_platform()
 	if (sdl_config.fullscreen) {
 		window_flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
 	}
-	window_x = NDS_FB_W * sdl_config.window_scale;
-	window_y = NDS_FB_H * sdl_config.window_scale;
+	window_w = NDS_FB_W * sdl_config.window_scale;
+	window_h = NDS_FB_H * sdl_config.window_scale;
 	window = SDL_CreateWindow("Twice", SDL_WINDOWPOS_UNDEFINED,
-			SDL_WINDOWPOS_UNDEFINED, window_x, window_y,
+			SDL_WINDOWPOS_UNDEFINED, window_w, window_h,
 			window_flags);
 	if (!window) {
 		throw sdl_error("create window failed");
@@ -266,8 +266,8 @@ sdl_platform::handle_events(twice::nds_machine *nds)
 		case SDL_WINDOWEVENT:
 			switch (e.window.event) {
 			case SDL_WINDOWEVENT_SIZE_CHANGED:
-				window_x = e.window.data1;
-				window_y = e.window.data2;
+				window_w = e.window.data1;
+				window_h = e.window.data2;
 				break;
 			}
 			break;
@@ -305,7 +305,19 @@ sdl_platform::update_touchscreen_state(twice::nds_machine *nds)
 	int touch_x, touch_y;
 	u32 mouse_buttons = SDL_GetMouseState(&touch_x, &touch_y);
 
-	/* TODO: transform window coords into nds screen coords */
+	int ratio_cmp = window_w * 384 - window_h * 256;
+	if (ratio_cmp == 0) {
+		touch_x = touch_x * 256 / window_w;
+		touch_y = (touch_y - window_h / 2) * 192 / (window_h / 2);
+	} else if (ratio_cmp < 0) {
+		touch_x = touch_x * 256 / window_w;
+		int h = window_w * 384 / 256;
+		touch_y = (touch_y - window_h / 2) * 192 / (h / 2);
+	} else {
+		int w = window_h * 256 / 384;
+		touch_x = (touch_x - (window_w - w) / 2) * 256 / w;
+		touch_y = (touch_y - window_h / 2) * 192 / (window_h / 2);
+	}
 
 	nds->update_touchscreen_state(
 			touch_x, touch_y, mouse_buttons & SDL_BUTTON_LEFT);

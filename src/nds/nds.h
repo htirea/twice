@@ -154,6 +154,7 @@ void nds_direct_boot(nds_ctx *nds);
 void nds_run_frame(nds_ctx *nds);
 void nds_set_rtc_time(nds_ctx *nds, int year, int month, int day, int weekday,
 		int hour, int minute, int second);
+void nds_set_touchscreen_state(nds_ctx *nds, int x, int y, bool down);
 
 void event_hblank_start(nds_ctx *nds);
 void event_hblank_end(nds_ctx *nds);
