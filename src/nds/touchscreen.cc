@@ -8,7 +8,7 @@ static void
 output_12_bit_value(touchscreen_controller *ts, u16 value)
 {
 	ts->output_bytes.push(value >> 5);
-	ts->output_bytes.push(value & 0x1F);
+	ts->output_bytes.push((value & 0x1F) << 3);
 }
 
 void
