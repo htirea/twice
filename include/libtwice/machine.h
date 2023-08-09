@@ -32,30 +32,64 @@ struct nds_machine {
 	nds_machine(const nds_config& config);
 	~nds_machine();
 
+	/**
+	 * Load a cartridge into the NDS.
+	 *
+	 * \param pathname the file to open
+	 */
 	void load_cartridge(const std::string& pathname);
+
 	void boot(bool direct_boot);
+
+	/**
+	 * Emulate one frame.
+	 */
 	void run_frame();
+
+	/**
+	 * Get the rendered framebuffer.
+	 *
+	 * The framebuffer is stored as an array of 32 bit pixels in BGR888
+	 * format, with the most significant 8 bits left unused.
+	 * The framebuffer has dimensions 256x384.
+	 *
+	 * \returns a pointer to the framebuffer
+	 */
 	void *get_framebuffer();
+
+	/**
+	 * Update the state of a button.
+	 *
+	 * \param button the button to update the state for
+	 * \param down true if the button is pressed,
+	 *             false if the button is released
+	 */
 	void button_event(nds_button button, bool down);
 
-	/*
-	 * Update the current touchscreen state
+	/**
+	 * Update the current touchscreen state.
 	 *
-	 * x [0 - 255]
-	 * y [0 - 191]
+	 * If `down` is false, then the x and y coordinates are ignored.
+	 *
+	 * \param x [0..255]
+	 * \param y [0..191]
+	 * \param down true if the touchscreen is pressed,
+	 *             false if the touchscreen is released
 	 */
 	void update_touchscreen_state(int x, int y, bool down);
 
-	/*
-	 * Update the current real world time used by the RTC.
+	/**
+	 * Update the current real world date and time used by the RTC.
 	 *
-	 * year: [2000 - 2099]
-	 * month: [1 - 12]
-	 * day: [1 - 31]
-	 * weekday: [1 - 7] (Monday is 1)
-	 * hour: [0 - 23]
-	 * minute: [0 - 59]
-	 * second: [0- 59]
+	 * The date and time provided must be valid.
+	 *
+	 * \param year [2000..2099]
+	 * \param month [1..12]
+	 * \param day [1..31]
+	 * \param weekday [1..7], where Monday is 1
+	 * \param hour [0..23]
+	 * \param minute [0..59]
+	 * \param second [0..59]
 	 */
 	void update_real_time_clock(int year, int month, int day, int weekday,
 			int hour, int minute, int second);
