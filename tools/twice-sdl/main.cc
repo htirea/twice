@@ -61,12 +61,9 @@ try {
 		return 0;
 	}
 
-	if (parser.num_args() == 0) {
-		print_usage();
-		return 1;
+	if (parser.num_args() > 0) {
+		cartridge_pathname = parser.get_arg(0);
 	}
-
-	cartridge_pathname = parser.get_arg(0);
 	if (auto opt = parser.get_option("verbose")) {
 		twice::set_logger_verbose_level(opt->count);
 	}
@@ -95,11 +92,17 @@ try {
 		sdl_config.fullscreen = true;
 	}
 
-	bool direct_boot = true;
+	bool direct_boot = !cartridge_pathname.empty();
 	if (auto opt = parser.get_option("boot")) {
 		if (opt->arg == "firmware") {
 			direct_boot = false;
+		} else {
+			direct_boot = true;
 		}
+	}
+	if (direct_boot && cartridge_pathname.empty()) {
+		print_usage();
+		return 1;
 	}
 
 	if (data_dir.empty()) {
@@ -109,7 +112,9 @@ try {
 
 	twice::nds_config config{ data_dir };
 	twice::nds_machine nds(config);
-	nds.load_cartridge(cartridge_pathname);
+	if (!cartridge_pathname.empty()) {
+		nds.load_cartridge(cartridge_pathname);
+	}
 	nds.boot(direct_boot);
 
 	twice::sdl_platform platform;

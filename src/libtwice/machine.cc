@@ -27,7 +27,7 @@ nds_machine::load_cartridge(const std::string& pathname)
 void
 nds_machine::boot(bool direct_boot)
 {
-	if (!cartridge) {
+	if (direct_boot && !cartridge) {
 		throw twice_error("cartridge not loaded");
 	}
 

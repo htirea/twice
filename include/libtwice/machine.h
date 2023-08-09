@@ -39,6 +39,14 @@ struct nds_machine {
 	 */
 	void load_cartridge(const std::string& pathname);
 
+	/**
+	 * Boot up the NDS.
+	 *
+	 * If `direct_boot` is true, then a cartridge must already be loaded.
+	 *
+	 * \param direct_boot true to boot the cartridge directly,
+	 *                    false to boot the firmware
+	 */
 	void boot(bool direct_boot);
 
 	/**
