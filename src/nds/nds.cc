@@ -18,10 +18,9 @@ nds_ctx::nds_ctx(u8 *arm7_bios, u8 *arm9_bios, u8 *firmware, u8 *cartridge,
 	  gpu2d{ { this, 0 }, { this, 1 } },
 	  dma{ { this, 0 }, { this, 1 } },
 	  firmware(firmware),
+	  cart(cartridge, cartridge_size),
 	  arm7_bios(arm7_bios),
-	  arm9_bios(arm9_bios),
-	  cartridge(cartridge),
-	  cartridge_size(cartridge_size)
+	  arm9_bios(arm9_bios)
 {
 	cpu[0] = arm9.get();
 	cpu[1] = arm7.get();
@@ -46,62 +45,45 @@ nds_firmware_boot(nds_ctx *nds)
 static void
 parse_header(nds_ctx *nds, u32 *entry_addr_ret)
 {
-	u32 rom_offset[2]{ readarr<u32>(nds->cartridge, 0x20),
-		readarr<u32>(nds->cartridge, 0x30) };
-	u32 entry_addr[2]{ readarr<u32>(nds->cartridge, 0x24),
-		readarr<u32>(nds->cartridge, 0x34) };
-	u32 ram_addr[2]{ readarr<u32>(nds->cartridge, 0x28),
-		readarr<u32>(nds->cartridge, 0x38) };
-	u32 transfer_size[2]{ readarr<u32>(nds->cartridge, 0x2C),
-		readarr<u32>(nds->cartridge, 0x3C) };
+	auto& cart = nds->cart;
 
-	if (rom_offset[0] >= nds->cartridge_size) {
+	u32 rom_offset[2]{ readarr<u32>(cart.data, 0x20),
+		readarr<u32>(cart.data, 0x30) };
+	u32 entry_addr[2]{ readarr<u32>(cart.data, 0x24),
+		readarr<u32>(cart.data, 0x34) };
+	u32 ram_addr[2]{ readarr<u32>(cart.data, 0x28),
+		readarr<u32>(cart.data, 0x38) };
+	u32 transfer_size[2]{ readarr<u32>(cart.data, 0x2C),
+		readarr<u32>(cart.data, 0x3C) };
+
+	if (rom_offset[0] >= cart.size) {
 		throw twice_error("arm9 rom offset too large");
 	}
 
-	if (rom_offset[0] + transfer_size[0] > nds->cartridge_size) {
+	if (rom_offset[0] + transfer_size[0] > cart.size) {
 		throw twice_error("arm9 transfer size too large");
 	}
 
-	if (rom_offset[1] >= nds->cartridge_size) {
+	if (rom_offset[1] >= cart.size) {
 		throw twice_error("arm7 rom offset too large");
 	}
 
-	if (rom_offset[1] + transfer_size[1] > nds->cartridge_size) {
+	if (rom_offset[1] + transfer_size[1] > cart.size) {
 		throw twice_error("arm7 transfer size too large");
 	}
 
 	for (u32 i = 0; i < transfer_size[0]; i++) {
-		u8 value = readarr<u8>(nds->cartridge, rom_offset[0] + i);
+		u8 value = readarr<u8>(cart.data, rom_offset[0] + i);
 		bus9_write<u8>(nds, ram_addr[0] + i, value);
 	}
 
 	for (u32 i = 0; i < transfer_size[1]; i++) {
-		u8 value = readarr<u8>(nds->cartridge, rom_offset[1] + i);
+		u8 value = readarr<u8>(cart.data, rom_offset[1] + i);
 		bus7_write<u8>(nds, ram_addr[1] + i, value);
 	}
 
 	entry_addr_ret[0] = entry_addr[0] & ~3;
 	entry_addr_ret[1] = entry_addr[1] & ~3;
-}
-
-static u32
-make_chip_id(nds_ctx *nds)
-{
-	u8 byte0 = 0xC2;
-	u8 byte1;
-	if (nds->cartridge_size >> 20 <= 0x80) {
-		byte1 = nds->cartridge_size >> 20;
-		if (byte1 != 0) {
-			byte1--;
-		}
-	} else {
-		byte1 = 0x100 - (nds->cartridge_size >> 28);
-	}
-	u8 byte2 = 0;
-	u8 byte3 = 0;
-
-	return (u32)byte3 << 24 | (u32)byte2 << 16 | (u32)byte1 << 8 | byte0;
 }
 
 void
@@ -114,7 +96,7 @@ nds_direct_boot(nds_ctx *nds)
 	nds->postflg[0] = 0x1;
 	nds->postflg[1] = 0x1;
 
-	u32 chip_id = make_chip_id(nds);
+	u32 chip_id = cartridge_make_chip_id(nds);
 	writearr<u32>(nds->main_ram, 0x3FF800, chip_id);
 	writearr<u32>(nds->main_ram, 0x3FF804, chip_id);
 	writearr<u16>(nds->main_ram, 0x3FF850, 0x5835);
@@ -130,8 +112,8 @@ nds_direct_boot(nds_ctx *nds)
 
 	u32 entry_addr[2];
 	parse_header(nds, entry_addr);
-	std::memcpy(nds->main_ram + 0x3FFE00, nds->cartridge,
-			std::min((size_t)0x170, nds->cartridge_size));
+	std::memcpy(nds->main_ram + 0x3FFE00, nds->cart.data,
+			std::min((size_t)0x170, nds->cart.size));
 
 	nds->arm9->cp15_write(0x100, 0x00012078);
 	nds->arm9->cp15_write(0x910, 0x0300000A);

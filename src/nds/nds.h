@@ -3,6 +3,7 @@
 
 #include "libtwice/nds_defs.h"
 
+#include "nds/cartridge.h"
 #include "nds/dma.h"
 #include "nds/firmware.h"
 #include "nds/gpu/gpu.h"
@@ -65,6 +66,7 @@ struct nds_ctx {
 	real_time_clock rtc;
 	firmware_flash firmware;
 	touchscreen_controller touchscreen;
+	cartridge cart;
 
 	/*
 	 * Memory
@@ -81,8 +83,6 @@ struct nds_ctx {
 
 	u8 *arm7_bios{};
 	u8 *arm9_bios{};
-	u8 *cartridge{};
-	size_t cartridge_size{};
 
 	u32 fb[NDS_FB_SZ]{};
 
@@ -136,7 +136,6 @@ struct nds_ctx {
 	u8 auxspidata_w{};
 	u32 romctrl{ BIT(23) };
 	u8 cart_command_out[8]{};
-	s32 cart_bus_transfer_bytes{};
 
 	u16 spicnt{};
 	u8 spidata_r{};

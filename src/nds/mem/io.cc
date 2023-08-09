@@ -70,40 +70,8 @@ romctrl_write(nds_ctx *nds, int cpuid, u32 value)
 	nds->romctrl = (nds->romctrl & (BIT(23) | BIT(29))) |
 	               (value & ~BIT(23));
 	if (nds->romctrl & BIT(31)) {
-		u64 command = readarr<u64>(nds->cart_command_out, 0);
-		command = byteswap64(command);
-		u32 bs_bits = nds->romctrl >> 24 & 7;
-		LOG("cart command %016lX, bits: %u\n", command, bs_bits);
-		if (bs_bits == 0) {
-			nds->cart_bus_transfer_bytes = 0;
-			nds->romctrl &= ~BIT(31);
-			if (nds->auxspicnt & BIT(14)) {
-				request_interrupt(nds->cpu[cpuid], 19);
-			}
-		} else if (bs_bits < 7) {
-			nds->cart_bus_transfer_bytes = 0x100 << bs_bits;
-		} else {
-			nds->cart_bus_transfer_bytes = 4;
-		}
+		cartridge_start_command(nds, cpuid);
 	}
-}
-
-u32
-read_cart_bus_data(nds_ctx *nds, int cpuid)
-{
-	if (cpuid != nds->nds_slot_cpu) return 0;
-
-	nds->cart_bus_transfer_bytes -= 4;
-	if (nds->cart_bus_transfer_bytes == 0) {
-		nds->romctrl &= ~BIT(31);
-		if (nds->auxspicnt & BIT(14)) {
-			request_interrupt(nds->cpu[cpuid], 19);
-		}
-	} else if (nds->cart_bus_transfer_bytes < 0) {
-		nds->cart_bus_transfer_bytes = 0;
-	}
-
-	return -1;
 }
 
 } // namespace twice

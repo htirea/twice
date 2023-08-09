@@ -14,8 +14,6 @@ void auxspicnt_write(nds_ctx *nds, int cpuid, u16 value);
 void auxspidata_write(nds_ctx *nds, int cpuid, u8 value);
 void romctrl_write(nds_ctx *nds, int cpuid, u32 value);
 
-u32 read_cart_bus_data(nds_ctx *nds, int cpuid);
-
 u8 io9_read8(nds_ctx *nds, u32 addr);
 u16 io9_read16(nds_ctx *nds, u32 addr);
 u32 io9_read32(nds_ctx *nds, u32 addr);
