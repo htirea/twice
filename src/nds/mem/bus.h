@@ -20,6 +20,20 @@ gpu_2d_memory_access_disabled(nds_ctx *nds, u32 addr)
 
 template <typename T>
 T
+read_gba_rom_open_bus(u32 addr)
+{
+	if constexpr (sizeof(T) == 1) {
+		return (addr >> 1) >> 8 * (addr & 1);
+	} else if constexpr (sizeof(T) == 2) {
+		return addr >> 1;
+	} else {
+		u16 lo = addr >> 1;
+		return (u32)(lo + 1) << 16 | lo;
+	}
+}
+
+template <typename T>
+T
 bus9_read(nds_ctx *nds, u32 addr)
 {
 	T value = 0;
@@ -61,6 +75,11 @@ bus9_read(nds_ctx *nds, u32 addr)
 		} else {
 			value = readarr<T>(nds->oam, addr & OAM_MASK);
 		}
+		break;
+	case 0x8:
+	case 0x9:
+		value = nds->gba_slot_cpu == 0 ? read_gba_rom_open_bus<T>(addr)
+		                               : 0;
 		break;
 	case 0xFF:
 		if (addr < 0xFFFF0000) {
@@ -178,6 +197,13 @@ bus7_read(nds_ctx *nds, u32 addr)
 	case 0x60 >> 3:
 	case 0x68 >> 3:
 		value = vram_arm7_read<T>(nds, addr);
+		break;
+	case 0x80 >> 3:
+	case 0x88 >> 3:
+	case 0x90 >> 3:
+	case 0x98 >> 3:
+		value = nds->gba_slot_cpu == 1 ? read_gba_rom_open_bus<T>(addr)
+		                               : 0;
 		break;
 	default:
 		undef = true;
