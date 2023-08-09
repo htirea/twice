@@ -96,7 +96,7 @@ nds_direct_boot(nds_ctx *nds)
 	nds->postflg[0] = 0x1;
 	nds->postflg[1] = 0x1;
 
-	u32 chip_id = cartridge_make_chip_id(nds);
+	u32 chip_id = nds->cart.chip_id;
 	writearr<u32>(nds->main_ram, 0x3FF800, chip_id);
 	writearr<u32>(nds->main_ram, 0x3FF804, chip_id);
 	writearr<u16>(nds->main_ram, 0x3FF850, 0x5835);

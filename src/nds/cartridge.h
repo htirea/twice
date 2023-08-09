@@ -12,13 +12,17 @@ struct cartridge {
 
 	u8 *data{};
 	size_t size{};
+	u32 chip_id{};
 
 	s32 bus_transfer_bytes_left{};
+	u64 command{};
+
+	u32 start_addr{};
+	u32 addr_offset{};
 };
 
 u32 read_cart_bus_data(nds_ctx *nds, int cpuid);
 void cartridge_start_command(nds_ctx *nds, int cpuid);
-u32 cartridge_make_chip_id(nds_ctx *nds);
 
 } // namespace twice
 

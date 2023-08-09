@@ -67,9 +67,12 @@ romctrl_write(nds_ctx *nds, int cpuid, u32 value)
 {
 	if (cpuid != nds->nds_slot_cpu) return;
 
+	bool old_start = nds->romctrl & BIT(31);
+
 	nds->romctrl = (nds->romctrl & (BIT(23) | BIT(29))) |
-	               (value & ~BIT(23));
-	if (nds->romctrl & BIT(31)) {
+	               (value & ~(BIT(23) | BIT(31)));
+	if (!old_start && value & BIT(31)) {
+		nds->romctrl |= BIT(31);
 		cartridge_start_command(nds, cpuid);
 	}
 }
