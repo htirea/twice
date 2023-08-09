@@ -43,6 +43,7 @@ class sdl_platform {
 	void remove_controller(SDL_JoystickID id);
 	void update_touchscreen_state(nds_machine *nds);
 	void update_rtc(nds_machine *nds);
+	void take_screenshot(void *fb);
 
 	SDL_Window *window{};
 	SDL_Renderer *renderer{};

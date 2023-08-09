@@ -8,6 +8,8 @@
 #include "libtwice/machine.h"
 #include "libtwice/nds_defs.h"
 
+#include "screenshot.h"
+
 namespace twice {
 
 sdl_platform::sdl_platform()
@@ -238,6 +240,9 @@ sdl_platform::handle_events(twice::nds_machine *nds)
 			case SDLK_0:
 				throttle = !throttle;
 				break;
+			case SDLK_o:
+				take_screenshot(nds->get_framebuffer());
+				break;
 			}
 			break;
 		case SDL_KEYUP:
@@ -339,6 +344,21 @@ sdl_platform::update_rtc(twice::nds_machine *nds)
 			(unsigned)date.day(), wday.iso_encoding(),
 			time.hours().count(), time.minutes().count(),
 			time.seconds().count());
+}
+
+void
+sdl_platform::take_screenshot(void *fb)
+{
+	using namespace std::chrono;
+
+	auto const tp = zoned_time{ current_zone(), system_clock::now() }
+	                                .get_local_time();
+	std::string filename =
+			std::format("twice_screenshot_{:%Y%m%d-%H%M%S}.png",
+					floor<seconds>(tp));
+	if (write_nds_bitmap_to_png(fb, filename)) {
+		std::cerr << "screenshot failed\n";
+	}
 }
 
 } // namespace twice
