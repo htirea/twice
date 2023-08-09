@@ -2,6 +2,8 @@
 
 #include "nds/spi.h"
 
+#include "libtwice/exception.h"
+
 namespace twice {
 
 event_scheduler::event_scheduler()
@@ -24,25 +26,30 @@ get_next_event_time(nds_ctx *nds)
 {
 	auto& sc = nds->scheduler;
 
-	timestamp lower_bound = sc.current_time + 2;
-	timestamp time = sc.current_time + 64;
+	timestamp curr = sc.current_time;
+	timestamp target = sc.current_time + 64;
 
 	for (int i = 0; i < event_scheduler::NUM_NDS_EVENTS; i++) {
 		if (sc.events[i].enabled) {
-			time = min_time(time, sc.events[i].time);
+			target = min_time(target, sc.events[i].time);
 		}
 	}
 
 	for (int i = 0; i < event_scheduler::NUM_CPU_EVENTS; i++) {
 		if (sc.arm_events[0][i].enabled) {
-			time = min_time(time, sc.arm_events[0][i].time);
+			target = min_time(target, sc.arm_events[0][i].time);
 		}
 		if (sc.arm_events[1][i].enabled) {
-			time = min_time(time, sc.arm_events[1][i].time << 1);
+			target = min_time(
+					target, sc.arm_events[1][i].time << 1);
 		}
 	}
 
-	return max_time(lower_bound, time);
+	if (target == curr) {
+		throw twice_error("target timestamp == curr");
+	}
+
+	return target;
 }
 
 void
