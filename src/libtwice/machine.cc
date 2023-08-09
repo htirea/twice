@@ -116,8 +116,8 @@ nds_machine::update_touchscreen_state(int x, int y, bool down)
 	if (!nds) return;
 
 	if (down) {
-		if (!(0 <= x && x <= 255)) return;
-		if (!(0 <= y && y <= 191)) return;
+		x = std::clamp(x, 0, 255);
+		y = std::clamp(y, 0, 191);
 	}
 
 	if (down) {
