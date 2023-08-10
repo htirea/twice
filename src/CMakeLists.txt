@@ -10,13 +10,14 @@ CHECK_INCLUDE_FILE_CXX(sys/mman.h HAVE_POSIX_MMAP)
 if(HAVE_POSIX_MMAP)
 	set(FILEMAP_SOURCE libtwice/filemap.cc)
 else()
-	set(FILEMAP_SOURCE libtwice/filemap_default.cc)
+	set(FILEMAP_SOURCE libtwice/filemap_fstream.cc)
 endif()
 
 add_library(twice STATIC
 	common/logger.cc
-	${FILEMAP_SOURCE}
 	libtwice/config.cc
+	libtwice/filemap_common.cc
+	${FILEMAP_SOURCE}
 	libtwice/machine.cc
 	nds/arm/arm.cc
 	nds/arm/arm7.cc

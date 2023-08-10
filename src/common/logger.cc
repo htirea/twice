@@ -11,7 +11,9 @@ LOG(const char *format, ...)
 {
 	va_list args;
 	va_start(args, format);
-	vfprintf(stderr, format, args);
+	if (logger_verbose_level >= 0) {
+		vfprintf(stderr, format, args);
+	}
 	va_end(args);
 }
 

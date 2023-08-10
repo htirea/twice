@@ -12,6 +12,16 @@ namespace twice {
 
 struct nds_ctx;
 
+/**
+ * The configuration to use when creating the NDS machine.
+ */
+struct nds_config {
+	std::string data_dir;
+};
+
+/**
+ * Represents an NDS machine.
+ */
 struct nds_machine {
 	enum class nds_button {
 		A,
@@ -29,18 +39,31 @@ struct nds_machine {
 		NONE,
 	};
 
+	/**
+	 * Create the machine.
+	 *
+	 * The following files are required for initialization:
+	 * `bios7.bin`: the arm7 bios
+	 * `bios9.bin`: the arm9 bios
+	 * `firmware.bin`: the NDS firmware
+	 *
+	 * These files should be placed in the directory specified by
+	 * `data_dir` in the configuration.
+	 *
+	 * \param config the configuration to use
+	 */
 	nds_machine(const nds_config& config);
 	~nds_machine();
 
 	/**
-	 * Load a cartridge into the NDS.
+	 * Load a cartridge into the machine.
 	 *
 	 * \param pathname the file to open
 	 */
 	void load_cartridge(const std::string& pathname);
 
 	/**
-	 * Boot up the NDS.
+	 * Boot up the machine.
 	 *
 	 * If `direct_boot` is true, then a cartridge must already be loaded.
 	 *
@@ -59,7 +82,10 @@ struct nds_machine {
 	 *
 	 * The framebuffer is stored as an array of 32 bit pixels in BGR888
 	 * format, with the most significant 8 bits left unused.
-	 * The framebuffer has dimensions 256x384.
+	 *
+	 * The framebuffer has a width of 256 pixels, and a height of 384
+	 * pixels. The first half of the framebuffer contains the top screen,
+	 * and the second half contains the bottom screen.
 	 *
 	 * \returns a pointer to the framebuffer
 	 */

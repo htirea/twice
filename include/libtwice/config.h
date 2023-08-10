@@ -5,10 +5,14 @@
 
 namespace twice {
 
-struct nds_config {
-	std::string data_dir;
-};
-
+/**
+ * Set the verbosity level of the log messages.
+ *
+ * The default level is set to 0. Increase the level to increase the verbosity.
+ * A level of -1 or less will silence log messages.
+ *
+ * \param level the verbosity level
+ */
 void set_logger_verbose_level(int level);
 
 } // namespace twice
