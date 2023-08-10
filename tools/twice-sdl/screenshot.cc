@@ -1,5 +1,6 @@
 #include "screenshot.h"
 
+#include <cerrno>
 #include <cstdio>
 #include <iostream>
 #include <png.h>
@@ -53,9 +54,9 @@ write_png(void *fb, FILE *fp)
 int
 write_nds_bitmap_to_png(void *fb, const std::string& filename)
 {
-	FILE *fp = fopen(filename.c_str(), "wb");
+	FILE *fp = fopen(filename.c_str(), "wxb");
 	if (!fp) {
-		return 1;
+		return errno;
 	}
 
 	if (write_png(fb, fp)) {
@@ -63,6 +64,7 @@ write_nds_bitmap_to_png(void *fb, const std::string& filename)
 		return 1;
 	}
 
+	fclose(fp);
 	return 0;
 }
 

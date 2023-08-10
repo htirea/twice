@@ -1,5 +1,6 @@
 #include "platform.h"
 
+#include <cerrno>
 #include <chrono>
 #include <cstring>
 #include <format>
@@ -353,12 +354,32 @@ sdl_platform::take_screenshot(void *fb)
 
 	auto const tp = zoned_time{ current_zone(), system_clock::now() }
 	                                .get_local_time();
-	std::string filename =
-			std::format("twice_screenshot_{:%Y%m%d-%H%M%S}.png",
-					floor<seconds>(tp));
-	if (write_nds_bitmap_to_png(fb, filename)) {
-		std::cerr << "screenshot failed\n";
+
+	std::string filename = std::format("twice_screenshot_{:%Y%m%d-%H%M%S}",
+			floor<seconds>(tp));
+	std::string suffix = ".png";
+
+	int err = write_nds_bitmap_to_png(fb, filename + suffix);
+	if (!err) {
+		return;
 	}
+	if (err != EEXIST) {
+		goto error;
+	}
+
+	for (int i = 1; i < 10; i++) {
+		suffix = std::format("_({}).png", i);
+		err = write_nds_bitmap_to_png(fb, filename + suffix);
+		if (!err) {
+			return;
+		}
+		if (err != EEXIST) {
+			goto error;
+		}
+	}
+
+error:
+	std::cout << "screenshot failed\n";
 }
 
 } // namespace twice
