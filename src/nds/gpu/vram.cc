@@ -297,6 +297,68 @@ unmap_bobj_palette(nds_ctx *nds)
 	nds->vram.bobj_palette_pt = nullptr;
 }
 
+static void
+map_texture(nds_ctx *nds, int bank, u8 *base, int i)
+{
+	auto& mask = nds->vram.texture_bank[i];
+
+	if (mask == 0) {
+		nds->vram.texture_pt[i] = base;
+	} else {
+		nds->vram.texture_pt[i] = nullptr;
+	}
+
+	mask |= BIT(bank);
+}
+
+static void
+unmap_texture(nds_ctx *nds, int bank, int i)
+{
+	auto& mask = nds->vram.texture_bank[i];
+	mask &= ~BIT(bank);
+
+	if (std::has_single_bit(mask)) {
+		int only_bank = std::countr_zero(mask);
+		nds->vram.texture_pt[i] =
+				nds->vram.bank_to_base_ptr[only_bank];
+	} else {
+		nds->vram.texture_pt[i] = nullptr;
+	}
+}
+
+static void
+map_texture_palette(nds_ctx *nds, int bank, u8 *base, int start, int len)
+{
+	for (int i = start; i < start + len; i++, base += 16_KiB) {
+		auto& mask = nds->vram.texture_palette_bank[i];
+
+		if (mask == 0) {
+			nds->vram.texture_palette_pt[i] = base;
+		} else {
+			nds->vram.texture_palette_pt[i] = nullptr;
+		}
+
+		mask |= BIT(bank);
+	}
+}
+
+static void
+unmap_texture_palette(nds_ctx *nds, int bank, int start, int len)
+{
+	for (int i = start; i < start + len; i++) {
+		auto& mask = nds->vram.texture_palette_bank[i];
+		mask &= ~BIT(bank);
+
+		if (std::has_single_bit(mask)) {
+			int only_bank = std::countr_zero(mask);
+			nds->vram.texture_palette_pt[i] =
+					get_vram_ptr(nds, only_bank, i);
+		} else {
+			nds->vram.texture_palette_pt[i] = nullptr;
+		}
+	}
+}
+
 template <int bank>
 static void
 vramcnt_ab_write(nds_ctx *nds, u8 value)
@@ -326,7 +388,8 @@ vramcnt_ab_write(nds_ctx *nds, u8 value)
 			unmap_aobj(nds, bank, (ofs & 1) << 3, 8);
 			break;
 		case 3:
-			throw twice_error("unmap vram bank a/b to texture");
+			unmap_texture(nds, bank, ofs);
+			break;
 		}
 
 		vram.bank_mapped[bank] = false;
@@ -347,7 +410,8 @@ vramcnt_ab_write(nds_ctx *nds, u8 value)
 			map_aobj(nds, bank, base, (ofs & 1) << 3, 8);
 			break;
 		case 3:
-			throw twice_error("map vram bank a/b to texture");
+			map_texture(nds, bank, base, ofs);
+			break;
 		}
 
 		vram.bank_mapped[bank] = true;
@@ -385,7 +449,8 @@ vramcnt_cd_write(nds_ctx *nds, u8 value)
 			unmap_arm7(nds, bank, ofs & 1);
 			break;
 		case 3:
-			throw twice_error("unmap vram bank c/d to texture");
+			unmap_texture(nds, bank, ofs);
+			break;
 		case 4:
 			if (bank == VRAM_C) {
 				unmap_bbg(nds, bank, 0, 8);
@@ -416,7 +481,8 @@ vramcnt_cd_write(nds_ctx *nds, u8 value)
 			nds->vramstat |= BIT(bank - VRAM_C);
 			break;
 		case 3:
-			throw twice_error("map vram bank c/d to texture");
+			map_texture(nds, bank, base, ofs);
+			break;
 		case 4:
 			if (bank == VRAM_C) {
 				map_bbg(nds, bank, base, 0, 8);
@@ -461,7 +527,8 @@ vramcnt_e_write(nds_ctx *nds, u8 value)
 			unmap_aobj(nds, VRAM_E, 0, 4);
 			break;
 		case 3:
-			throw twice_error("unmap vram bank e tex pal");
+			unmap_texture_palette(nds, VRAM_E, 0, 4);
+			break;
 		case 4:
 			unmap_abg_palette(nds, VRAM_E, 0, 2);
 			break;
@@ -484,7 +551,8 @@ vramcnt_e_write(nds_ctx *nds, u8 value)
 			map_aobj(nds, VRAM_E, base, 0, 4);
 			break;
 		case 3:
-			throw twice_error("map vram bank e tex pal");
+			map_texture_palette(nds, VRAM_E, base, 0, 4);
+			break;
 		case 4:
 			map_abg_palette(nds, VRAM_E, base, 0, 2);
 			break;
@@ -530,7 +598,8 @@ vramcnt_fg_write(nds_ctx *nds, u8 value)
 			map_aobj(nds, bank, base, offset | 2, 1);
 			break;
 		case 3:
-			throw twice_error("unmap vram bank f/g tex pal");
+			unmap_texture_palette(nds, bank, offset, 1);
+			break;
 		case 4:
 			unmap_abg_palette(nds, bank, ofs & 1, 1);
 			break;
@@ -559,7 +628,8 @@ vramcnt_fg_write(nds_ctx *nds, u8 value)
 			map_aobj(nds, bank, base, offset | 2, 1);
 			break;
 		case 3:
-			throw twice_error("map vram bank f/g tex pal");
+			map_texture_palette(nds, bank, base, offset, 1);
+			break;
 		case 4:
 			map_abg_palette(nds, bank, base, ofs & 1, 1);
 			break;
