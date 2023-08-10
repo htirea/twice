@@ -134,7 +134,7 @@ struct nds_ctx {
 	u16 auxspicnt{};
 	u8 auxspidata_r{};
 	u8 auxspidata_w{};
-	u32 romctrl{ BIT(23) };
+	u32 romctrl{};
 	u8 cart_command_out[8]{};
 
 	u16 spicnt{};

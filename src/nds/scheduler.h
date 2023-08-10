@@ -16,6 +16,7 @@ struct event_scheduler {
 	enum {
 		HBLANK_START,
 		HBLANK_END,
+		ROM_ADVANCE_TRANSFER,
 		NUM_NDS_EVENTS,
 	};
 
@@ -69,6 +70,8 @@ max_time(timestamp a, timestamp b)
 timestamp get_next_event_time(nds_ctx *nds);
 
 void schedule_nds_event(nds_ctx *nds, int event, timestamp t);
+void schedule_nds_event_after(
+		nds_ctx *nds, int cpuid, int event, timestamp dt);
 void reschedule_nds_event_after(nds_ctx *nds, int event, timestamp dt);
 void schedule_cpu_event_after(
 		nds_ctx *nds, int cpuid, int event, timestamp dt);

@@ -10,6 +10,7 @@ event_scheduler::event_scheduler()
 {
 	events[HBLANK_START].cb = event_hblank_start;
 	events[HBLANK_END].cb = event_hblank_end;
+	events[ROM_ADVANCE_TRANSFER].cb = event_advance_rom_transfer;
 	arm_events[0][START_IMMEDIATE_DMAS].cb = event_start_immediate_dmas;
 	arm_events[1][START_IMMEDIATE_DMAS].cb = event_start_immediate_dmas;
 	for (int i = 0; i < 4; i++) {
@@ -57,6 +58,23 @@ schedule_nds_event(nds_ctx *nds, int event, timestamp t)
 {
 	nds->scheduler.events[event].enabled = true;
 	nds->scheduler.events[event].time = t << 1;
+}
+
+void
+schedule_nds_event_after(nds_ctx *nds, int cpuid, int event, timestamp dt)
+{
+	if (cpuid == 0) {
+		dt <<= 1;
+	}
+
+	timestamp event_time = nds->arm_cycles[cpuid] + dt;
+
+	if (cmp_time(event_time, nds->arm_target_cycles[cpuid]) < 0) {
+		nds->arm_target_cycles[cpuid] = event_time;
+	}
+
+	nds->scheduler.events[event].enabled = true;
+	nds->scheduler.events[event].time = event_time;
 }
 
 void

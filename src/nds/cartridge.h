@@ -14,15 +14,19 @@ struct cartridge {
 	size_t size{};
 	u32 chip_id{};
 
-	s32 bus_transfer_bytes_left{};
-	u64 command{};
+	struct rom_transfer {
+		u8 command[8]{};
+		u32 transfer_size{};
+		u32 bytes_read{};
+		u32 bus_data_r{};
 
-	u32 start_addr{};
-	u32 addr_offset{};
+		u32 start_addr{};
+	} transfer;
 };
 
 u32 read_cart_bus_data(nds_ctx *nds, int cpuid);
 void cartridge_start_command(nds_ctx *nds, int cpuid);
+void event_advance_rom_transfer(nds_ctx *nds);
 
 } // namespace twice
 
