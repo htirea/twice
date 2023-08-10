@@ -484,7 +484,7 @@ fetch_char_row(gpu_2d_engine *gpu, u16 se, u32 char_base, u32 bg_y,
 static void
 render_text_bg(gpu_2d_engine *gpu, int bg)
 {
-	if (gpu->engineid == 0 && (gpu->dispcnt & BIT(3))) {
+	if (gpu->engineid == 0 && bg == 0 && (gpu->dispcnt & BIT(3))) {
 		render_3d(gpu);
 		return;
 	}
