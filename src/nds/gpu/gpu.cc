@@ -58,7 +58,7 @@ gpu_2d_read16(gpu_2d_engine *gpu, u8 offset)
 }
 
 u8
-gpu_2d_read8(gpu_2d_engine *gpu, u8 offset)
+gpu_2d_read8(gpu_2d_engine *, u8 offset)
 {
 	LOG("2d engine read 8 at offset %02X\n", offset);
 	return 0;
@@ -812,7 +812,7 @@ render_large_bitmap_bg(gpu_2d_engine *gpu)
 }
 
 static void
-render_3d(gpu_2d_engine *gpu)
+render_3d(gpu_2d_engine *)
 {
 }
 
@@ -892,7 +892,7 @@ fetch_obj_char_row(gpu_2d_engine *gpu, u32 tile_offset, u32 py, bool hflip,
 }
 
 static void
-render_normal_sprite(gpu_2d_engine *gpu, int obj_num, obj_data *obj)
+render_normal_sprite(gpu_2d_engine *gpu, obj_data *obj)
 {
 	u32 obj_w, obj_h;
 	get_obj_size(obj, &obj_w, &obj_h);
@@ -1005,7 +1005,7 @@ render_normal_sprite(gpu_2d_engine *gpu, int obj_num, obj_data *obj)
 }
 
 static void
-render_bitmap_sprite(gpu_2d_engine *gpu, int obj_num, obj_data *obj)
+render_bitmap_sprite(gpu_2d_engine *, obj_data *)
 {
 	throw twice_error("bitmap sprite");
 }
@@ -1076,7 +1076,7 @@ init_affine_sprite_data(
 }
 
 static void
-render_affine_sprite(gpu_2d_engine *gpu, int obj_num, obj_data *obj)
+render_affine_sprite(gpu_2d_engine *gpu, obj_data *obj)
 {
 	affine_sprite_data affine;
 	if (init_affine_sprite_data(gpu, obj, &affine)) {
@@ -1153,7 +1153,7 @@ render_affine_sprite(gpu_2d_engine *gpu, int obj_num, obj_data *obj)
 }
 
 static void
-render_affine_bitmap_sprite(gpu_2d_engine *gpu, int obj_num, obj_data *obj)
+render_affine_bitmap_sprite(gpu_2d_engine *gpu, obj_data *obj)
 {
 	affine_sprite_data affine;
 	if (init_affine_sprite_data(gpu, obj, &affine)) {
@@ -1161,7 +1161,6 @@ render_affine_bitmap_sprite(gpu_2d_engine *gpu, int obj_num, obj_data *obj)
 	}
 
 	u32 priority = obj->attr2 >> 10 & 3;
-	u32 alpha_oam = obj->attr2 >> 12;
 	u32 obj_char_name = obj->attr2 & 0x3FF;
 
 	bool map_1d = gpu->dispcnt & BIT(6);
@@ -1214,13 +1213,13 @@ render_sprites(gpu_2d_engine *gpu)
 		bool is_bitmap = (obj.attr0 >> 10 & 3) == 3;
 
 		if (is_affine && is_bitmap) {
-			render_affine_bitmap_sprite(gpu, i, &obj);
+			render_affine_bitmap_sprite(gpu, &obj);
 		} else if (is_affine) {
-			render_affine_sprite(gpu, i, &obj);
+			render_affine_sprite(gpu, &obj);
 		} else if (is_bitmap) {
-			render_bitmap_sprite(gpu, i, &obj);
+			render_bitmap_sprite(gpu, &obj);
 		} else {
-			render_normal_sprite(gpu, i, &obj);
+			render_normal_sprite(gpu, &obj);
 		}
 	}
 }

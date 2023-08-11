@@ -36,9 +36,8 @@ thumb_swi(arm_cpu *cpu)
 }
 
 inline void
-thumb_bkpt(arm_cpu *cpu)
+thumb_bkpt(arm_cpu *)
 {
-	(void)cpu;
 	throw twice_error("thumb bkpt not implemented");
 }
 

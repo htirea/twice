@@ -128,7 +128,6 @@ read_cart_bus_data(nds_ctx *nds, int cpuid)
 {
 	if (cpuid != nds->nds_slot_cpu) return 0;
 
-	auto& cart = nds->cart;
 	auto& t = nds->cart.transfer;
 
 	t.bytes_read += 4;

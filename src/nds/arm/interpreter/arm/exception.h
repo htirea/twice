@@ -36,9 +36,8 @@ arm_swi(arm_cpu *cpu)
 }
 
 inline void
-arm_bkpt(arm_cpu *cpu)
+arm_bkpt(arm_cpu *)
 {
-	(void)cpu;
 	throw twice_error("arm bkpt not implemented");
 }
 

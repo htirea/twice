@@ -57,7 +57,7 @@ auxspicnt_write(nds_ctx *nds, int cpuid, u16 value)
 }
 
 void
-auxspidata_write(nds_ctx *nds, int cpuid, u8 value)
+auxspidata_write(nds_ctx *, int, u8 value)
 {
 	LOGV("auxspidata write value %02X\n", value);
 }

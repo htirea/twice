@@ -288,10 +288,8 @@ generate_thumb_lut(FILE *f)
 }
 
 int
-main(int argc, char **argv)
+main(int, char **argv)
 {
-	(void)argc;
-
 	FILE *f1 = fopen(argv[1], "w");
 	if (!f1) {
 		fprintf(stderr, "could not open file: %s\n", argv[1]);

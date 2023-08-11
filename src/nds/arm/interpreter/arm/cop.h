@@ -77,37 +77,32 @@ arm_cop_reg(arm_cpu *cpu)
 }
 
 inline void
-arm_cdp(arm_cpu *cpu)
+arm_cdp(arm_cpu *)
 {
-	(void)cpu;
 	throw twice_error("arm cdp");
 }
 
 inline void
-arm_ldc(arm_cpu *cpu)
+arm_ldc(arm_cpu *)
 {
-	(void)cpu;
 	throw twice_error("arm ldc");
 }
 
 inline void
-arm_stc(arm_cpu *cpu)
+arm_stc(arm_cpu *)
 {
-	(void)cpu;
 	throw twice_error("arm stc");
 }
 
 inline void
-arm_mcrr(arm_cpu *cpu)
+arm_mcrr(arm_cpu *)
 {
-	(void)cpu;
 	throw twice_error("arm mcrr");
 }
 
 inline void
-arm_mrrc(arm_cpu *cpu)
+arm_mrrc(arm_cpu *)
 {
-	(void)cpu;
 	throw twice_error("arm mrrc");
 }
 
