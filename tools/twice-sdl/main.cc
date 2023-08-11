@@ -118,8 +118,8 @@ try {
 	}
 	nds.boot(direct_boot);
 
-	twice::sdl_platform platform;
-	platform.loop(&nds);
+	twice::sdl_platform platform(&nds);
+	platform.loop();
 
 	return EXIT_SUCCESS;
 } catch (const twice::twice_exception& e) {

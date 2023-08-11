@@ -10,10 +10,9 @@
 
 namespace twice {
 
-sdl_platform::sdl_platform()
+sdl_platform::sdl_platform(nds_machine *nds)
+	: nds(nds)
 {
-	using namespace twice;
-
 	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER)) {
 		throw sdl_error("init failed");
 	}
@@ -95,7 +94,7 @@ sdl_platform::render(void *fb)
 	int pitch;
 	void *p;
 	SDL_LockTexture(texture, NULL, &p, &pitch);
-	std::memcpy(p, fb, twice::NDS_FB_SZ_BYTES);
+	std::memcpy(p, fb, NDS_FB_SZ_BYTES);
 	SDL_UnlockTexture(texture);
 
 	SDL_RenderCopy(renderer, texture, NULL, NULL);
@@ -114,7 +113,7 @@ sdl_platform::arm_set_title_fps(
 }
 
 void
-sdl_platform::loop(twice::nds_machine *nds)
+sdl_platform::loop()
 {
 	std::uint64_t freq = SDL_GetPerformanceFrequency();
 	std::uint64_t tframe = freq / 59.8261;
@@ -125,7 +124,7 @@ sdl_platform::loop(twice::nds_machine *nds)
 	throttle = true;
 
 	while (running) {
-		handle_events(nds);
+		handle_events();
 		nds->run_frame();
 		render(nds->get_framebuffer());
 
@@ -149,7 +148,7 @@ sdl_platform::loop(twice::nds_machine *nds)
 		if (ticks_elapsed >= freq) {
 			ticks_elapsed -= freq;
 			arm_set_title_fps(fps_counter.get_average(), freq);
-			update_rtc(nds);
+			update_rtc();
 		}
 	}
 }
@@ -191,7 +190,7 @@ sdl_platform::setup_default_binds()
 }
 
 void
-sdl_platform::handle_events(twice::nds_machine *nds)
+sdl_platform::handle_events()
 {
 	SDL_Event e;
 
@@ -201,10 +200,10 @@ sdl_platform::handle_events(twice::nds_machine *nds)
 			running = false;
 			break;
 		case SDL_KEYDOWN:
-			handle_key_event(nds, e.key.keysym.sym, true);
+			handle_key_event(e.key.keysym.sym, true);
 			break;
 		case SDL_KEYUP:
-			handle_key_event(nds, e.key.keysym.sym, false);
+			handle_key_event(e.key.keysym.sym, false);
 			break;
 		case SDL_CONTROLLERDEVICEADDED:
 			add_controller(e.cdevice.which);
@@ -214,14 +213,13 @@ sdl_platform::handle_events(twice::nds_machine *nds)
 			break;
 		case SDL_CONTROLLERBUTTONDOWN:
 		{
-			handle_controller_button_event(
-					nds, e.cbutton.button, true);
+			handle_controller_button_event(e.cbutton.button, true);
 			break;
 		}
 		case SDL_CONTROLLERBUTTONUP:
 		{
 			handle_controller_button_event(
-					nds, e.cbutton.button, false);
+					e.cbutton.button, false);
 			break;
 		}
 		case SDL_WINDOWEVENT:
@@ -235,11 +233,11 @@ sdl_platform::handle_events(twice::nds_machine *nds)
 		}
 	}
 
-	update_touchscreen_state(nds);
+	update_touchscreen_state();
 }
 
 void
-sdl_platform::handle_key_event(nds_machine *nds, SDL_Keycode key, bool down)
+sdl_platform::handle_key_event(SDL_Keycode key, bool down)
 {
 	auto it = key_map.find(key);
 	if (it != key_map.end()) {
@@ -249,17 +247,16 @@ sdl_platform::handle_key_event(nds_machine *nds, SDL_Keycode key, bool down)
 
 	switch (key) {
 	case SDLK_0:
-		throttle = !throttle;
+		if (down) throttle = !throttle;
 		break;
 	case SDLK_o:
-		take_screenshot(nds->get_framebuffer());
+		if (down) take_screenshot(nds->get_framebuffer());
 		break;
 	}
 }
 
 void
-sdl_platform::handle_controller_button_event(
-		nds_machine *nds, int button, bool down)
+sdl_platform::handle_controller_button_event(int button, bool down)
 {
 	auto it = button_map.find(button);
 	if (it != button_map.end()) {
@@ -290,7 +287,7 @@ sdl_platform::remove_controller(SDL_JoystickID id)
 }
 
 void
-sdl_platform::update_touchscreen_state(twice::nds_machine *nds)
+sdl_platform::update_touchscreen_state()
 {
 	int touch_x, touch_y;
 	u32 mouse_buttons = SDL_GetMouseState(&touch_x, &touch_y);
@@ -314,7 +311,7 @@ sdl_platform::update_touchscreen_state(twice::nds_machine *nds)
 }
 
 void
-sdl_platform::update_rtc(twice::nds_machine *nds)
+sdl_platform::update_rtc()
 {
 	using namespace std::chrono;
 

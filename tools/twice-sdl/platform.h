@@ -31,24 +31,23 @@ class sdl_platform {
 		using twice_exception::twice_exception;
 	};
 
-	sdl_platform();
+	sdl_platform(nds_machine *nds);
 	~sdl_platform();
 
-	void loop(nds_machine *nds);
+	void loop();
 
       private:
 	void render(void *fb);
 	void setup_default_binds();
-	void handle_events(nds_machine *nds);
-	void handle_key_event(nds_machine *nds, SDL_Keycode key, bool down);
-	void handle_controller_button_event(
-			nds_machine *nds, int button, bool down);
+	void handle_events();
+	void handle_key_event(SDL_Keycode key, bool down);
+	void handle_controller_button_event(int button, bool down);
 	void arm_set_title_fps(
 			std::uint64_t ticks_per_frame, std::uint64_t freq);
 	void add_controller(int joystick_index);
 	void remove_controller(SDL_JoystickID id);
-	void update_touchscreen_state(nds_machine *nds);
-	void update_rtc(nds_machine *nds);
+	void update_touchscreen_state();
+	void update_rtc();
 	void take_screenshot(void *fb);
 
 	SDL_Window *window{};
@@ -57,6 +56,7 @@ class sdl_platform {
 	std::unordered_set<SDL_JoystickID> controllers;
 	int window_w{};
 	int window_h{};
+	nds_machine *nds{};
 
 	std::unordered_map<SDL_Keycode, nds_button> key_map;
 	std::unordered_map<int, nds_button> button_map;
