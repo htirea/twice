@@ -21,6 +21,7 @@ sdl_platform::sdl_platform(nds_machine *nds)
 	if (sdl_config.fullscreen) {
 		window_flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
 	}
+
 	window_w = NDS_FB_W * sdl_config.window_scale;
 	window_h = NDS_FB_H * sdl_config.window_scale;
 	window = SDL_CreateWindow("Twice", SDL_WINDOWPOS_UNDEFINED,
@@ -240,18 +241,57 @@ void
 sdl_platform::handle_key_event(SDL_Keycode key, bool down)
 {
 	auto it = key_map.find(key);
-	if (it != key_map.end()) {
+	if (!ctrl_down && it != key_map.end()) {
 		nds->button_event(it->second, down);
 		return;
 	}
 
 	switch (key) {
-	case SDLK_0:
-		if (down) throttle = !throttle;
+	case SDLK_LCTRL:
+		ctrl_down = down;
 		break;
-	case SDLK_o:
-		if (down) take_screenshot(nds->get_framebuffer());
-		break;
+	}
+
+	if (!down) {
+		return;
+	}
+
+	if (ctrl_down) {
+		switch (key) {
+		case SDLK_0:
+			reset_window_size(sdl_config.window_scale);
+			break;
+		case SDLK_1:
+			reset_window_size(1);
+			break;
+		case SDLK_2:
+			reset_window_size(2);
+			break;
+		case SDLK_3:
+			reset_window_size(3);
+			break;
+		case SDLK_4:
+			reset_window_size(4);
+			break;
+		case SDLK_EQUALS:
+			adjust_window_size(1);
+			break;
+		case SDLK_MINUS:
+			adjust_window_size(-1);
+			break;
+		case SDLK_s:
+			take_screenshot(nds->get_framebuffer());
+			break;
+		}
+	} else {
+		switch (key) {
+		case SDLK_0:
+			throttle = !throttle;
+			break;
+		case SDLK_f:
+			toggle_fullscreen();
+			break;
+		}
 	}
 }
 
@@ -361,6 +401,36 @@ sdl_platform::take_screenshot(void *fb)
 
 error:
 	std::cout << "screenshot failed\n";
+}
+
+void
+sdl_platform::reset_window_size(int scale)
+{
+	SDL_SetWindowSize(window, NDS_FB_W * scale, NDS_FB_H * scale);
+}
+
+void
+sdl_platform::adjust_window_size(int step)
+{
+	int w = window_w + NDS_FB_W * step;
+	int h = window_h + NDS_FB_H * step;
+
+	if (w < 0 || h < 0 || w > 16384 || h > 16384) {
+		return;
+	}
+
+	SDL_SetWindowSize(window, w, h);
+}
+
+void
+sdl_platform::toggle_fullscreen()
+{
+	u32 flags = SDL_GetWindowFlags(window);
+	if (flags & SDL_WINDOW_FULLSCREEN) {
+		SDL_SetWindowFullscreen(window, 0);
+	} else {
+		SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN_DESKTOP);
+	}
 }
 
 } // namespace twice
