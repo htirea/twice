@@ -7,6 +7,7 @@
 #include <string>
 #include <unordered_map>
 
+#include "libtwice/config.h"
 #include "libtwice/exception.h"
 #include "libtwice/machine.h"
 #include "libtwice/nds_defs.h"

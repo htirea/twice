@@ -5,7 +5,6 @@
 #include <memory>
 #include <string>
 
-#include "libtwice/config.h"
 #include "libtwice/filemap.h"
 
 namespace twice {
