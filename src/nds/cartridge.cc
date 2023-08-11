@@ -28,12 +28,10 @@ cartridge_make_chip_id(size_t size)
 
 cartridge::cartridge(u8 *data, size_t size)
 	: data(data),
-	  size(size)
+	  size(size),
+	  read_mask(std::bit_ceil(size) - 1),
+	  chip_id(cartridge_make_chip_id(size))
 {
-	chip_id = cartridge_make_chip_id(size);
-	if (!std::has_single_bit(size) && size != 0) {
-		throw twice_error("cartridge size not a power of 2");
-	}
 }
 
 static void
@@ -59,7 +57,11 @@ event_advance_rom_transfer(nds_ctx *nds)
 	{
 		u32 offset = (t.start_addr & ~0xFFF) |
 		             ((t.start_addr + t.bytes_read) & 0xFFF);
-		t.bus_data_r = readarr<u32>(cart.data, offset);
+		if (offset < cart.size) {
+			t.bus_data_r = readarr<u32>(cart.data, offset);
+		} else {
+			t.bus_data_r = -1;
+		}
 		break;
 	}
 	case 0xB8:
@@ -99,7 +101,7 @@ cartridge_start_command(nds_ctx *nds, int cpuid)
 		t.start_addr = (u32)t.command[1] << 24 |
 		               (u32)t.command[2] << 16 |
 		               (u32)t.command[3] << 8 | t.command[4];
-		t.start_addr &= (cart.size - 1);
+		t.start_addr &= cart.read_mask;
 		if (t.start_addr < 0x8000) {
 			t.start_addr = 0x8000 + (t.start_addr & 0x1FF);
 		}

@@ -12,6 +12,7 @@ struct cartridge {
 
 	u8 *data{};
 	size_t size{};
+	size_t read_mask{};
 	u32 chip_id{};
 
 	struct rom_transfer {
