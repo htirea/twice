@@ -3,11 +3,13 @@
 
 #include <cstdint>
 #include <string>
+#include <unordered_map>
 #include <unordered_set>
 
 #include "SDL.h"
 
 #include "libtwice/exception.h"
+#include "libtwice/machine.h"
 
 #include "moving_average.h"
 
@@ -36,7 +38,11 @@ class sdl_platform {
 
       private:
 	void render(void *fb);
+	void setup_default_binds();
 	void handle_events(nds_machine *nds);
+	void handle_key_event(nds_machine *nds, SDL_Keycode key, bool down);
+	void handle_controller_button_event(
+			nds_machine *nds, int button, bool down);
 	void arm_set_title_fps(
 			std::uint64_t ticks_per_frame, std::uint64_t freq);
 	void add_controller(int joystick_index);
@@ -51,6 +57,9 @@ class sdl_platform {
 	std::unordered_set<SDL_JoystickID> controllers;
 	int window_w{};
 	int window_h{};
+
+	std::unordered_map<SDL_Keycode, nds_button> key_map;
+	std::unordered_map<int, nds_button> button_map;
 
 	bool running{};
 	bool throttle{};

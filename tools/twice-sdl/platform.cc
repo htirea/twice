@@ -6,9 +6,6 @@
 #include <format>
 #include <iostream>
 
-#include "libtwice/machine.h"
-#include "libtwice/nds_defs.h"
-
 #include "screenshot.h"
 
 namespace twice {
@@ -58,6 +55,8 @@ sdl_platform::sdl_platform()
 			add_controller(i);
 		}
 	}
+
+	setup_default_binds();
 }
 
 sdl_platform::~sdl_platform()
@@ -155,74 +154,40 @@ sdl_platform::loop(twice::nds_machine *nds)
 	}
 }
 
-static nds_machine::nds_button
-get_nds_button(SDL_Keycode key)
+void
+sdl_platform::setup_default_binds()
 {
-	using enum twice::nds_machine::nds_button;
+	using enum nds_button;
 
-	switch (key) {
-	case SDLK_x:
-		return A;
-	case SDLK_z:
-		return B;
-	case SDLK_s:
-		return X;
-	case SDLK_a:
-		return Y;
-	case SDLK_w:
-		return R;
-	case SDLK_q:
-		return L;
-	case SDLK_1:
-		return START;
-	case SDLK_2:
-		return SELECT;
-	case SDLK_LEFT:
-		return LEFT;
-	case SDLK_RIGHT:
-		return RIGHT;
-	case SDLK_UP:
-		return UP;
-	case SDLK_DOWN:
-		return DOWN;
-	default:
-		return NONE;
-	}
-}
+	key_map = {
+		{ SDLK_x, A },
+		{ SDLK_z, B },
+		{ SDLK_s, X },
+		{ SDLK_a, Y },
+		{ SDLK_w, R },
+		{ SDLK_q, L },
+		{ SDLK_1, START },
+		{ SDLK_2, SELECT },
+		{ SDLK_LEFT, LEFT },
+		{ SDLK_RIGHT, RIGHT },
+		{ SDLK_UP, UP },
+		{ SDLK_DOWN, DOWN },
+	};
 
-static nds_machine::nds_button
-controller_button_to_nds(int button)
-{
-	using enum twice::nds_machine::nds_button;
-
-	switch (button) {
-	case SDL_CONTROLLER_BUTTON_B:
-		return A;
-	case SDL_CONTROLLER_BUTTON_A:
-		return B;
-	case SDL_CONTROLLER_BUTTON_Y:
-		return X;
-	case SDL_CONTROLLER_BUTTON_X:
-		return Y;
-	case SDL_CONTROLLER_BUTTON_RIGHTSHOULDER:
-		return R;
-	case SDL_CONTROLLER_BUTTON_LEFTSHOULDER:
-		return L;
-	case SDL_CONTROLLER_BUTTON_START:
-		return START;
-	case SDL_CONTROLLER_BUTTON_BACK:
-		return SELECT;
-	case SDL_CONTROLLER_BUTTON_DPAD_LEFT:
-		return LEFT;
-	case SDL_CONTROLLER_BUTTON_DPAD_RIGHT:
-		return RIGHT;
-	case SDL_CONTROLLER_BUTTON_DPAD_UP:
-		return UP;
-	case SDL_CONTROLLER_BUTTON_DPAD_DOWN:
-		return DOWN;
-	default:
-		return NONE;
-	}
+	button_map = {
+		{ SDL_CONTROLLER_BUTTON_B, A },
+		{ SDL_CONTROLLER_BUTTON_A, B },
+		{ SDL_CONTROLLER_BUTTON_Y, X },
+		{ SDL_CONTROLLER_BUTTON_X, Y },
+		{ SDL_CONTROLLER_BUTTON_RIGHTSHOULDER, R },
+		{ SDL_CONTROLLER_BUTTON_LEFTSHOULDER, L },
+		{ SDL_CONTROLLER_BUTTON_START, START },
+		{ SDL_CONTROLLER_BUTTON_BACK, SELECT },
+		{ SDL_CONTROLLER_BUTTON_DPAD_LEFT, LEFT },
+		{ SDL_CONTROLLER_BUTTON_DPAD_RIGHT, RIGHT },
+		{ SDL_CONTROLLER_BUTTON_DPAD_UP, UP },
+		{ SDL_CONTROLLER_BUTTON_DPAD_DOWN, DOWN },
+	};
 }
 
 void
@@ -236,18 +201,10 @@ sdl_platform::handle_events(twice::nds_machine *nds)
 			running = false;
 			break;
 		case SDL_KEYDOWN:
-			nds->button_event(get_nds_button(e.key.keysym.sym), 1);
-			switch (e.key.keysym.sym) {
-			case SDLK_0:
-				throttle = !throttle;
-				break;
-			case SDLK_o:
-				take_screenshot(nds->get_framebuffer());
-				break;
-			}
+			handle_key_event(nds, e.key.keysym.sym, true);
 			break;
 		case SDL_KEYUP:
-			nds->button_event(get_nds_button(e.key.keysym.sym), 0);
+			handle_key_event(nds, e.key.keysym.sym, false);
 			break;
 		case SDL_CONTROLLERDEVICEADDED:
 			add_controller(e.cdevice.which);
@@ -257,16 +214,14 @@ sdl_platform::handle_events(twice::nds_machine *nds)
 			break;
 		case SDL_CONTROLLERBUTTONDOWN:
 		{
-			auto button = controller_button_to_nds(
-					e.cbutton.button);
-			nds->button_event(button, 1);
+			handle_controller_button_event(
+					nds, e.cbutton.button, true);
 			break;
 		}
 		case SDL_CONTROLLERBUTTONUP:
 		{
-			auto button = controller_button_to_nds(
-					e.cbutton.button);
-			nds->button_event(button, 0);
+			handle_controller_button_event(
+					nds, e.cbutton.button, false);
 			break;
 		}
 		case SDL_WINDOWEVENT:
@@ -281,6 +236,35 @@ sdl_platform::handle_events(twice::nds_machine *nds)
 	}
 
 	update_touchscreen_state(nds);
+}
+
+void
+sdl_platform::handle_key_event(nds_machine *nds, SDL_Keycode key, bool down)
+{
+	auto it = key_map.find(key);
+	if (it != key_map.end()) {
+		nds->button_event(it->second, down);
+		return;
+	}
+
+	switch (key) {
+	case SDLK_0:
+		throttle = !throttle;
+		break;
+	case SDLK_o:
+		take_screenshot(nds->get_framebuffer());
+		break;
+	}
+}
+
+void
+sdl_platform::handle_controller_button_event(
+		nds_machine *nds, int button, bool down)
+{
+	auto it = button_map.find(button);
+	if (it != button_map.end()) {
+		nds->button_event(it->second, down);
+	}
 }
 
 void

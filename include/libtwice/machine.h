@@ -6,6 +6,7 @@
 #include <string>
 
 #include "libtwice/filemap.h"
+#include "libtwice/nds_defs.h"
 
 namespace twice {
 
@@ -19,25 +20,28 @@ struct nds_config {
 };
 
 /**
+ * The buttons of the NDS machine.
+ */
+enum class nds_button {
+	A,
+	B,
+	SELECT,
+	START,
+	RIGHT,
+	LEFT,
+	UP,
+	DOWN,
+	R,
+	L,
+	X,
+	Y,
+	NONE,
+};
+
+/**
  * Represents an NDS machine.
  */
 struct nds_machine {
-	enum class nds_button {
-		A,
-		B,
-		SELECT,
-		START,
-		RIGHT,
-		LEFT,
-		UP,
-		DOWN,
-		R,
-		L,
-		X,
-		Y,
-		NONE,
-	};
-
 	/**
 	 * Create the machine.
 	 *
