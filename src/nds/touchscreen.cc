@@ -26,11 +26,17 @@ touchscreen_spi_transfer_byte(nds_ctx *nds, u8 value, bool keep_active)
 	if (value & BIT(7)) {
 		u8 channel = value >> 4 & 7;
 		switch (channel) {
+		case 0:
+			output_12_bit_value(&ts, 0);
+			break;
 		case 1:
 			output_12_bit_value(&ts, ts.down ? ts.raw_y : 0xFFF);
 			break;
 		case 5:
 			output_12_bit_value(&ts, ts.down ? ts.raw_x : 0);
+			break;
+		case 7:
+			output_12_bit_value(&ts, 142);
 			break;
 		default:
 			LOG("touchscreen channel %d\n", (int)channel);
