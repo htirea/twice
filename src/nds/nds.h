@@ -9,6 +9,7 @@
 #include "nds/gpu/gpu.h"
 #include "nds/gpu/vram.h"
 #include "nds/ipc.h"
+#include "nds/powerman.h"
 #include "nds/rtc.h"
 #include "nds/scheduler.h"
 #include "nds/timer.h"
@@ -67,6 +68,7 @@ struct nds_ctx {
 	firmware_flash firmware;
 	touchscreen_controller touchscreen;
 	cartridge cart;
+	power_management_device powerman;
 
 	/*
 	 * Memory
@@ -148,6 +150,7 @@ struct nds_ctx {
 	 */
 	bool frame_finished{};
 	bool trace{};
+	bool shutdown{};
 };
 
 void nds_firmware_boot(nds_ctx *nds);

@@ -81,6 +81,14 @@ struct nds_machine {
 	void run_frame();
 
 	/**
+	 * Check whether the machine is shutdown.
+	 *
+	 * \returns true if the machine is shutdown
+	 *          false otherwise
+	 */
+	bool is_shutdown();
+
+	/**
 	 * Get the rendered framebuffer.
 	 *
 	 * The framebuffer is stored as an array of 32 bit pixels in BGR888

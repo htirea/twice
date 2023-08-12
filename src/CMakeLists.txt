@@ -35,6 +35,7 @@ add_library(twice STATIC
 	nds/mem/io7.cc
 	nds/mem/io9.cc
 	nds/nds.cc
+	nds/powerman.cc
 	nds/rtc.cc
 	nds/scheduler.cc
 	nds/spi.cc

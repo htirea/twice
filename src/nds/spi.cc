@@ -27,16 +27,17 @@ spidata_write(nds_ctx *nds, u8 value)
 
 	switch (device) {
 	case 0:
-	case 3:
-		LOG("spi write device %d pc %08X\n", device,
-				nds->cpu[1]->pc());
-		return;
+		powerman_spi_transfer_byte(nds, value, keep_active);
+		break;
 	case 1:
 		firmware_spi_transfer_byte(nds, value, keep_active);
 		break;
 	case 2:
 		touchscreen_spi_transfer_byte(nds, value, keep_active);
 		break;
+	case 3:
+		LOG("spi write device 3 at pc %08X\n", nds->cpu[1]->pc());
+		return;
 	}
 
 	schedule_cpu_event_after(nds, 1,
@@ -50,7 +51,7 @@ reset_spi(nds_ctx *nds)
 {
 	firmware_spi_reset(nds);
 	touchscreen_spi_reset(nds);
-	/* TODO: power management device reset */
+	powerman_spi_reset(nds);
 }
 
 void

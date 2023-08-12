@@ -52,6 +52,16 @@ nds_machine::run_frame()
 	nds_run_frame(nds.get());
 }
 
+bool
+nds_machine::is_shutdown()
+{
+	if (!nds) {
+		return true;
+	}
+
+	return nds->shutdown;
+}
+
 void *
 nds_machine::get_framebuffer()
 {

@@ -168,6 +168,9 @@ sdl_platform::loop()
 		handle_events();
 		nds->run_frame();
 		render(nds->get_framebuffer());
+		if (nds->is_shutdown()) {
+			break;
+		}
 
 		if (throttle) {
 			std::uint64_t elapsed =
@@ -192,6 +195,8 @@ sdl_platform::loop()
 			update_rtc();
 		}
 	}
+
+	running = false;
 }
 
 void
