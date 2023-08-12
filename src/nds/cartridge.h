@@ -7,6 +7,28 @@ namespace twice {
 
 struct nds_ctx;
 
+enum cartridge_save_type {
+	SAVETYPE_UNKNOWN = -1,
+	SAVETYPE_NONE = 0,
+	SAVETYPE_EEPROM_512B,
+	SAVETYPE_EEPROM_8K,
+	SAVETYPE_EEPROM_64K,
+	SAVETYPE_EEPROM_128K,
+	SAVETYPE_FLASH_256K,
+	SAVETYPE_FLASH_512K,
+	SAVETYPE_FLASH_1M,
+	SAVETYPE_FLASH_8M,
+	SAVETYPE_NAND,
+};
+
+struct cartridge_db_entry {
+	u32 gamecode;
+	u32 size;
+	int save_type;
+};
+
+extern const std::vector<cartridge_db_entry> game_db;
+
 struct cartridge {
 	cartridge(u8 *data, size_t size);
 

@@ -26,6 +26,7 @@ add_library(twice STATIC
 	nds/arm/interpreter/lut.cc
 	nds/cartridge.cc
 	nds/firmware.cc
+	nds/game_db.cc
 	nds/gpu/gpu.cc
 	nds/gpu/vram.cc
 	nds/ipc.cc
