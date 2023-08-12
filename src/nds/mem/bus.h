@@ -194,6 +194,9 @@ bus7_read(nds_ctx *nds, u32 addr)
 			value = io7_read32(nds, addr);
 		}
 		break;
+	case 0x48 >> 3:
+		LOGV("wifi read from %08X\n", addr);
+		break;
 	case 0x60 >> 3:
 	case 0x68 >> 3:
 		value = vram_arm7_read<T>(nds, addr);
@@ -247,6 +250,9 @@ bus7_write(nds_ctx *nds, u32 addr, T value)
 		} else {
 			io7_write32(nds, addr, value);
 		}
+		break;
+	case 0x48 >> 3:
+		LOGV("wifi write to %08X\n", addr);
 		break;
 	case 0x60 >> 3:
 	case 0x68 >> 3:
