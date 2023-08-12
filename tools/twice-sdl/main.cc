@@ -34,7 +34,7 @@ twice::arg_parser::opt_list twice::arg_parser::options = {
 };
 
 twice::arg_parser::valid_opt_arg_list twice::arg_parser::valid_option_args = {
-	{ "filter", { "nearest", "linear" } },
+	{ "filter", { "nearest", "linear", "hybrid" } },
 	{ "boot", { "firmware", "direct" } },
 };
 
@@ -71,9 +71,11 @@ try {
 
 	if (auto opt = parser.get_option("filter")) {
 		if (opt->arg == "nearest") {
-			sdl_config.scale_mode = SDL_ScaleModeNearest;
+			sdl_config.scale_mode = twice::SCALE_MODE_NEAREST;
 		} else if (opt->arg == "linear") {
-			sdl_config.scale_mode = SDL_ScaleModeLinear;
+			sdl_config.scale_mode = twice::SCALE_MODE_LINEAR;
+		} else if (opt->arg == "hybrid") {
+			sdl_config.scale_mode = twice::SCALE_MODE_HYBRID;
 		}
 	}
 

@@ -17,8 +17,14 @@ namespace twice {
 
 struct nds_machine;
 
+enum {
+	SCALE_MODE_NEAREST,
+	SCALE_MODE_LINEAR,
+	SCALE_MODE_HYBRID,
+};
+
 struct sdl_platform_config {
-	SDL_ScaleMode scale_mode{ SDL_ScaleModeLinear };
+	int scale_mode{ SCALE_MODE_HYBRID };
 	int window_scale{ 2 };
 	bool fullscreen{ false };
 };
@@ -49,6 +55,7 @@ class sdl_platform {
 	void update_touchscreen_state();
 	void update_rtc();
 	void take_screenshot(void *fb);
+	void event_window_size_changed(int w, int h);
 	void reset_window_size(int scale);
 	void adjust_window_size(int step);
 	void toggle_fullscreen();
@@ -56,6 +63,7 @@ class sdl_platform {
 	SDL_Window *window{};
 	SDL_Renderer *renderer{};
 	SDL_Texture *texture{};
+	SDL_Texture *scaled_texture{};
 	std::unordered_set<SDL_JoystickID> controllers;
 	std::unordered_map<SDL_Keycode, nds_button> key_map;
 	std::unordered_map<int, nds_button> button_map;
@@ -64,6 +72,7 @@ class sdl_platform {
 	bool throttle{};
 	int window_w{};
 	int window_h{};
+	int texture_scale{};
 
 	moving_average<std::uint64_t> fps_counter;
 	nds_machine *nds{};
