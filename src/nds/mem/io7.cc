@@ -56,6 +56,11 @@ io7_read16(nds_ctx *nds, u32 addr)
 		return nds->soundbias;
 	}
 
+	if (0x4000400 <= addr && addr < 0x4000520) {
+		LOGV("[sound reg] nds 1 read 16 at %08X\n", addr);
+		return 0;
+	}
+
 	LOG("nds 1 read 16 at %08X\n", addr);
 	return 0;
 }
@@ -67,6 +72,11 @@ io7_read32(nds_ctx *nds, u32 addr)
 		IO_READ32_COMMON(1);
 	case 0x40001C0:
 		return (u32)spidata_read(nds) << 16 | nds->spicnt;
+	}
+
+	if (0x4000400 <= addr && addr < 0x4000520) {
+		LOGV("[sound reg] nds 1 read 32 at %08X\n", addr);
+		return 0;
 	}
 
 	LOG("nds 1 read 32 at %08X\n", addr);
@@ -114,6 +124,11 @@ io7_write8(nds_ctx *nds, u32 addr, u8 value)
 		return;
 	}
 
+	if (0x4000400 <= addr && addr < 0x4000520) {
+		LOGV("[sound reg] nds 1 write 8 to %08X\n", addr);
+		return;
+	}
+
 	LOG("nds 1 write 8 to %08X\n", addr);
 }
 
@@ -149,6 +164,11 @@ io7_write16(nds_ctx *nds, u32 addr, u16 value)
 		return;
 	case 0x4000504:
 		nds->soundbias = value & 0x3FF;
+		return;
+	}
+
+	if (0x4000400 <= addr && addr < 0x4000520) {
+		LOGV("[sound reg] nds 1 write 16 to %08X\n", addr);
 		return;
 	}
 

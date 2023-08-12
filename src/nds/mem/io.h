@@ -286,6 +286,16 @@ void wramcnt_write(nds_ctx *nds, u8 value);
 					value);                               \
 		}                                                             \
 		return;                                                       \
+	case 0x40001B8:                                                       \
+		if ((cpuid_) == nds->nds_slot_cpu) {                          \
+			nds->encryption_seed_h[0] = value & 0xFF;             \
+		}                                                             \
+		return;                                                       \
+	case 0x40001BA:                                                       \
+		if ((cpuid_) == nds->nds_slot_cpu) {                          \
+			nds->encryption_seed_h[1] = value & 0xFF;             \
+		}                                                             \
+		return;                                                       \
 	case 0x4000180:                                                       \
 		ipcsync_write(nds, (cpuid_), value);                          \
 		return;                                                       \
@@ -379,6 +389,16 @@ void wramcnt_write(nds_ctx *nds, u8 value);
 		if ((cpuid_) == nds->nds_slot_cpu) {                          \
 			writearr<u32>(nds->cart_command_out, addr & 0x7,      \
 					value);                               \
+		}                                                             \
+		return;                                                       \
+	case 0x40001B0:                                                       \
+		if ((cpuid_) == nds->nds_slot_cpu) {                          \
+			nds->encryption_seed_l[0] = value;                    \
+		}                                                             \
+		return;                                                       \
+	case 0x40001B4:                                                       \
+		if ((cpuid_) == nds->nds_slot_cpu) {                          \
+			nds->encryption_seed_l[1] = value;                    \
 		}                                                             \
 		return;                                                       \
 	case 0x4000208:                                                       \

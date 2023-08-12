@@ -136,6 +136,8 @@ struct nds_ctx {
 	u8 auxspidata_w{};
 	u32 romctrl{};
 	u8 cart_command_out[8]{};
+	u32 encryption_seed_l[2]{};
+	u16 encryption_seed_h[2]{};
 
 	u16 spicnt{};
 	u8 spidata_r{};
