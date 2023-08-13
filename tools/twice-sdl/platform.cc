@@ -65,6 +65,8 @@ sdl_platform::sdl_platform(nds_machine *nds)
 	case SCALE_MODE_LINEAR:
 		sdl_scale_mode = SDL_ScaleModeLinear;
 		break;
+	default:
+		throw sdl_error("unknown scale mode");
 	}
 	if (SDL_SetTextureScaleMode(texture, sdl_scale_mode)) {
 		throw sdl_error("set texture scale mode failed");
