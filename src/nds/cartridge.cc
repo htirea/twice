@@ -26,12 +26,69 @@ cartridge_make_chip_id(size_t size)
 	return (u32)byte3 << 24 | (u32)byte2 << 16 | (u32)byte1 << 8 | byte0;
 }
 
+static const char *
+save_type_to_str(int savetype)
+{
+	switch (savetype) {
+	case SAVETYPE_UNKNOWN:
+		return "unknown";
+	case SAVETYPE_NONE:
+		return "none";
+	case SAVETYPE_EEPROM_512B:
+		return "eeprom 512B";
+	case SAVETYPE_EEPROM_8K:
+		return "eeprom 8K";
+	case SAVETYPE_EEPROM_64K:
+		return "eeprom 64K";
+	case SAVETYPE_EEPROM_128K:
+		return "eeprom 128K";
+	case SAVETYPE_FLASH_256K:
+		return "flash 256K";
+	case SAVETYPE_FLASH_512K:
+		return "flash 512K";
+	case SAVETYPE_FLASH_1M:
+		return "flash 1M";
+	case SAVETYPE_FLASH_8M:
+		return "flash 8M";
+	case SAVETYPE_NAND:
+		return "nand";
+	default:
+		return "invalid";
+	}
+}
+
+static int
+lookup_save_type(u32 gamecode)
+{
+	auto it = std::lower_bound(game_db.begin(), game_db.end(), gamecode,
+			[](const auto& entry, const auto& gamecode) {
+				return entry.gamecode < gamecode;
+			});
+	if (it == game_db.end() || gamecode < it->gamecode) {
+		LOG("unknown save type: gamecode %08X\n", gamecode);
+		return SAVETYPE_UNKNOWN;
+	}
+
+	LOG("detected save type: %s\n", save_type_to_str(it->savetype));
+	return it->savetype;
+}
+
 cartridge::cartridge(u8 *data, size_t size)
 	: data(data),
 	  size(size),
 	  read_mask(std::bit_ceil(size) - 1),
 	  chip_id(cartridge_make_chip_id(size))
 {
+	if (data && size < 0x160) {
+		throw twice_error("cartridge size too small");
+	}
+
+	if (data) {
+		gamecode = readarr<u32>(data, 0xC);
+		savetype = lookup_save_type(gamecode);
+	} else {
+		savetype = SAVETYPE_NONE;
+	}
 }
 
 static void

@@ -7,7 +7,7 @@ namespace twice {
 
 struct nds_ctx;
 
-enum cartridge_save_type {
+enum {
 	SAVETYPE_UNKNOWN = -1,
 	SAVETYPE_NONE = 0,
 	SAVETYPE_EEPROM_512B,
@@ -24,7 +24,7 @@ enum cartridge_save_type {
 struct cartridge_db_entry {
 	u32 gamecode;
 	u32 size;
-	int save_type;
+	int savetype;
 };
 
 extern const std::vector<cartridge_db_entry> game_db;
@@ -36,6 +36,8 @@ struct cartridge {
 	size_t size{};
 	size_t read_mask{};
 	u32 chip_id{};
+	u32 gamecode{};
+	int savetype{};
 
 	struct rom_transfer {
 		u8 command[8]{};
