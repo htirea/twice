@@ -123,6 +123,21 @@ cartridge_start_command(nds_ctx *nds, int cpuid)
 	nds->romctrl &= ~BIT(23);
 }
 
+void
+romctrl_write(nds_ctx *nds, int cpuid, u32 value)
+{
+	if (cpuid != nds->nds_slot_cpu) return;
+
+	bool old_start = nds->romctrl & BIT(31);
+
+	nds->romctrl = (nds->romctrl & (BIT(23) | BIT(29))) |
+	               (value & ~(BIT(23) | BIT(31)));
+	if (!old_start && value & BIT(31)) {
+		nds->romctrl |= BIT(31);
+		cartridge_start_command(nds, cpuid);
+	}
+}
+
 u32
 read_cart_bus_data(nds_ctx *nds, int cpuid)
 {
@@ -144,6 +159,37 @@ read_cart_bus_data(nds_ctx *nds, int cpuid)
 	}
 
 	return t.bus_data_r;
+}
+
+void
+auxspicnt_write_l(nds_ctx *nds, int cpuid, u8 value)
+{
+	if (cpuid != nds->nds_slot_cpu) return;
+
+	nds->auxspicnt = (nds->auxspicnt & ~0x43) | (value & 0x43);
+}
+
+void
+auxspicnt_write_h(nds_ctx *nds, int cpuid, u8 value)
+{
+	if (cpuid != nds->nds_slot_cpu) return;
+
+	nds->auxspicnt = (nds->auxspicnt & ~0xE000) |
+	                 ((u16)value << 8 & 0xE000);
+}
+
+void
+auxspicnt_write(nds_ctx *nds, int cpuid, u16 value)
+{
+	if (cpuid != nds->nds_slot_cpu) return;
+
+	nds->auxspicnt = (nds->auxspicnt & ~0xE043) | (value & 0xE043);
+}
+
+void
+auxspidata_write(nds_ctx *, int, u8 value)
+{
+	LOGV("auxspidata write value %02X\n", value);
 }
 
 } // namespace twice

@@ -6,13 +6,7 @@
 
 namespace twice {
 
-void ipcsync_write(nds_ctx *nds, int cpuid, u16 value);
 void exmem_write(nds_ctx *nds, int cpuid, u16 value);
-void auxspicnt_write_l(nds_ctx *nds, int cpuid, u8 value);
-void auxspicnt_write_h(nds_ctx *nds, int cpuid, u8 value);
-void auxspicnt_write(nds_ctx *nds, int cpuid, u16 value);
-void auxspidata_write(nds_ctx *nds, int cpuid, u8 value);
-void romctrl_write(nds_ctx *nds, int cpuid, u32 value);
 
 u8 io9_read8(nds_ctx *nds, u32 addr);
 u16 io9_read16(nds_ctx *nds, u32 addr);

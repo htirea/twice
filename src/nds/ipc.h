@@ -20,6 +20,8 @@ u32 ipc_fifo_recv(nds_ctx *nds, int cpuid);
 void ipc_fifo_send(nds_ctx *nds, int cpuid, u32 value);
 void ipc_fifo_cnt_write(nds_ctx *nds, int cpuid, u16 value);
 
+void ipcsync_write(nds_ctx *nds, int cpuid, u16 value);
+
 } // namespace twice
 
 #endif
