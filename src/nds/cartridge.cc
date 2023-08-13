@@ -187,9 +187,28 @@ auxspicnt_write(nds_ctx *nds, int cpuid, u16 value)
 }
 
 void
-auxspidata_write(nds_ctx *, int, u8 value)
+auxspidata_write(nds_ctx *nds, int cpuid, u8 value)
 {
-	LOGV("auxspidata write value %02X\n", value);
+	if (cpuid != nds->nds_slot_cpu) return;
+
+	if (!(nds->auxspicnt & BIT(15))) {
+		return;
+	}
+
+	nds->auxspidata_w = value;
+
+	/* TODO: transfer byte */
+
+	schedule_nds_event_after(nds, cpuid,
+			event_scheduler::AUXSPI_TRANSFER_COMPLETE,
+			64 << (nds->auxspicnt & 3));
+	nds->auxspicnt |= BIT(7);
+}
+
+void
+event_auxspi_transfer_complete(nds_ctx *nds)
+{
+	nds->auxspicnt &= ~BIT(7);
 }
 
 } // namespace twice

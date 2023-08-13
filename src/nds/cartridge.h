@@ -50,6 +50,7 @@ struct cartridge {
 u32 read_cart_bus_data(nds_ctx *nds, int cpuid);
 void cartridge_start_command(nds_ctx *nds, int cpuid);
 void event_advance_rom_transfer(nds_ctx *nds);
+void event_auxspi_transfer_complete(nds_ctx *nds);
 
 void auxspicnt_write_l(nds_ctx *nds, int cpuid, u8 value);
 void auxspicnt_write_h(nds_ctx *nds, int cpuid, u8 value);
