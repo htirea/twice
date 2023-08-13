@@ -58,6 +58,7 @@ struct arm_cpu {
 
 	u32& spsr() { return bankedr[0][2]; }
 
+	virtual void run() = 0;
 	virtual void step() = 0;
 	virtual void arm_jump(u32 addr) = 0;
 	virtual void thumb_jump(u32 addr) = 0;
@@ -80,7 +81,6 @@ void arm_check_interrupt(arm_cpu *cpu);
 void arm_on_cpsr_write(arm_cpu *cpu);
 void arm_do_irq(arm_cpu *cpu);
 
-void run_cpu(arm_cpu *cpu);
 void force_stop_cpu(arm_cpu *cpu);
 void request_interrupt(arm_cpu *cpu, int bit);
 

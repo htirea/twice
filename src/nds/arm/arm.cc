@@ -130,19 +130,6 @@ arm_do_irq(arm_cpu *cpu)
 }
 
 void
-run_cpu(arm_cpu *cpu)
-{
-	if (cpu->stopped || cpu->halted) {
-		cpu->cycles = cpu->target_cycles;
-		return;
-	}
-
-	while (cmp_time(cpu->cycles, cpu->target_cycles) < 0) {
-		cpu->step();
-	}
-}
-
-void
 force_stop_cpu(arm_cpu *cpu)
 {
 	cpu->target_cycles = cpu->cycles;

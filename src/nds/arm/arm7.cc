@@ -18,6 +18,19 @@ check_cond(u32 cond, u32 cpsr)
 }
 
 void
+arm7_cpu::run()
+{
+	if (stopped || halted) {
+		cycles = target_cycles;
+		return;
+	}
+
+	while (cmp_time(cycles, target_cycles) < 0) {
+		step();
+	}
+}
+
+void
 arm7_cpu::step()
 {
 	if (cpsr & 0x20) {

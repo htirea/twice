@@ -8,6 +8,7 @@ namespace twice {
 struct arm7_cpu final : arm_cpu {
 	arm7_cpu(nds_ctx *nds);
 
+	void run() override;
 	void step() override;
 	void arm_jump(u32 addr) override;
 	void thumb_jump(u32 addr) override;

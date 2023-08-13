@@ -20,6 +20,19 @@ check_cond(u32 cond, u32 cpsr)
 }
 
 void
+arm9_cpu::run()
+{
+	if (halted) {
+		cycles = target_cycles;
+		return;
+	}
+
+	while (cmp_time(cycles, target_cycles) < 0) {
+		step();
+	}
+}
+
+void
 arm9_cpu::step()
 {
 	if (cpsr & 0x20) {

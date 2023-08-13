@@ -146,7 +146,7 @@ nds_run_frame(nds_ctx *nds)
 		if (nds->dma[0].active) {
 			run_dma9(nds);
 		} else {
-			run_cpu(nds->cpu[0]);
+			nds->arm9->run();
 		}
 
 		run_cpu_events(nds, 0);
@@ -158,7 +158,7 @@ nds_run_frame(nds_ctx *nds)
 			if (nds->dma[1].active) {
 				run_dma7(nds);
 			} else {
-				run_cpu(nds->cpu[1]);
+				nds->arm7->run();
 			}
 
 			run_cpu_events(nds, 1);
