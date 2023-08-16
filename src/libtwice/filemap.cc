@@ -38,9 +38,9 @@ safe_convert(From x)
 
 file_map::file_map(const std::string& pathname, std::size_t limit, int flags)
 {
-	if (flags & MAP_SHARED) {
+	if (flags & FILEMAP_SHARED) {
 		create_shared_mapping(pathname, limit);
-	} else if (flags & MAP_PRIVATE) {
+	} else if (flags & FILEMAP_PRIVATE) {
 		create_private_mapping(pathname, limit, flags);
 	} else {
 		throw file_map_error("map mode not specified: " + pathname);
@@ -92,7 +92,7 @@ void
 file_map::create_shared_mapping(const std::string& pathname, std::size_t limit)
 {
 	bool created = false;
-	int fd = open(pathname.c_str(), O_RDWR | O_CREAT | O_EXCL, 0x644);
+	int fd = open(pathname.c_str(), O_RDWR | O_CREAT | O_EXCL, 0644);
 	if (fd >= 0) {
 		created = true;
 	} else if (fd == -1 && errno == EEXIST) {
