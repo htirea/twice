@@ -17,8 +17,10 @@ struct file_map {
 	};
 
 	enum map_flags {
-		MAP_EXACT_SIZE = 0x1,
-		MAP_MAX_SIZE = 0x2,
+		FILEMAP_PRIVATE = 0x1,
+		FILEMAP_SHARED = 0x2,
+		FILEMAP_EXACT = 0x4,
+		FILEMAP_LIMIT = 0x8,
 	};
 
 	/**
@@ -34,8 +36,23 @@ struct file_map {
 	 * The `flags` parameter can be used control the behaviour of the file
 	 * mapping. The following flags can be used:
 	 *
-	 * `MAP_EXACT_SIZE`: the size of the file must match the limit
-	 * `MAP_MAX_SIZE`: the size of the must not exceed the limit
+	 * `FILEMAP_PRIVATE`: changes to the mapped region are not carried
+	 *                    through to the underlying file
+	 * `FILEMAP_SHARED`: changes to the mapped region are carried through
+	 *                   to the underlying file
+	 * `FILEMAP_EXACT`: the size of the file must match the limit
+	 * `FILEMAP_LIMIT`: the size of the must not exceed the limit
+	 *
+	 * If `FILEMAP_PRIVATE` is specified, the underlying file will be
+	 * opened in read-only mode. The file must exist.
+	 *
+	 * If `FILEMAP_SHARED` is specified, the underlying file will be opened
+	 * in read/write mode. If the file doesn't exist, then it will be
+	 * created. The underlying file will be truncated/extended so that its
+	 * size is at least `limit`.
+	 *
+	 * The mapped region is read/write-able regardless of permissions on
+	 * the underlying file.
 	 *
 	 * \param pathname the path to the file
 	 * \param limit the maximum size of the mapping
@@ -54,26 +71,30 @@ struct file_map {
 	 * \returns true if there is an underlying file
 	 *          false otherwise
 	 */
-	explicit operator bool() noexcept { return data; }
+	explicit operator bool() noexcept { return data_p; }
 
 	/**
 	 * Get a pointer to the underlying file.
 	 *
 	 * \returns a pointer to the underlying file
 	 */
-	unsigned char *get_data() noexcept { return data; }
+	unsigned char *data() noexcept { return data_p; }
 
 	/**
 	 * Get the size of the underlying file.
 	 *
 	 * \returns the size of the underlying file
 	 */
-	size_t get_size() noexcept { return size; }
+	size_t size() noexcept { return mapped_size; }
 
       private:
-	unsigned char *data{};
-	std::size_t size{};
+	unsigned char *data_p{};
+	std::size_t mapped_size{};
 
+	void create_shared_mapping(
+			const std::string& pathname, std::size_t limit);
+	void create_private_mapping(const std::string& pathname,
+			std::size_t limit, int flags);
 	void destroy() noexcept;
 };
 

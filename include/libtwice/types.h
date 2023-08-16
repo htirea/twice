@@ -16,6 +16,8 @@ using s32 = int32_t;
 using s64 = int64_t;
 using size_t = std::size_t;
 using intptr_t = std::intptr_t;
+using intmax_t = std::intmax_t;
+using uintmax_t = std::uintmax_t;
 
 } // namespace twice
 

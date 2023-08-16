@@ -8,11 +8,11 @@ namespace twice {
 nds_machine::nds_machine(const nds_config& config)
 	: config(config),
 	  arm7_bios(config.data_dir + "bios7.bin", ARM7_BIOS_SIZE,
-			  file_map::MAP_EXACT_SIZE),
+			  file_map::FILEMAP_PRIVATE | file_map::FILEMAP_EXACT),
 	  arm9_bios(config.data_dir + "bios9.bin", ARM9_BIOS_SIZE,
-			  file_map::MAP_EXACT_SIZE),
+			  file_map::FILEMAP_PRIVATE | file_map::FILEMAP_EXACT),
 	  firmware(config.data_dir + "firmware.bin", FIRMWARE_SIZE,
-			  file_map::MAP_EXACT_SIZE)
+			  file_map::FILEMAP_PRIVATE | file_map::FILEMAP_EXACT)
 {
 }
 
@@ -21,7 +21,8 @@ nds_machine::~nds_machine() = default;
 void
 nds_machine::load_cartridge(const std::string& pathname)
 {
-	cartridge = file_map(pathname, MAX_CART_SIZE, file_map::MAP_MAX_SIZE);
+	cartridge = file_map(pathname, MAX_CART_SIZE,
+			file_map::FILEMAP_PRIVATE | file_map::FILEMAP_LIMIT);
 }
 
 void
@@ -31,9 +32,9 @@ nds_machine::boot(bool direct_boot)
 		throw twice_error("cartridge not loaded");
 	}
 
-	auto ctx = std::make_unique<nds_ctx>(arm7_bios.get_data(),
-			arm9_bios.get_data(), firmware.get_data(),
-			cartridge.get_data(), cartridge.get_size());
+	auto ctx = std::make_unique<nds_ctx>(arm7_bios.data(),
+			arm9_bios.data(), firmware.data(), cartridge.data(),
+			cartridge.size());
 	if (direct_boot) {
 		nds_direct_boot(ctx.get());
 	} else {
