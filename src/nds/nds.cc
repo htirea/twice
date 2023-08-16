@@ -12,13 +12,14 @@
 namespace twice {
 
 nds_ctx::nds_ctx(u8 *arm7_bios, u8 *arm9_bios, u8 *firmware, u8 *cartridge,
-		size_t cartridge_size)
+		size_t cartridge_size, u8 *savefile, size_t savefile_size,
+		int savetype)
 	: arm9(std::make_unique<arm9_cpu>(this)),
 	  arm7(std::make_unique<arm7_cpu>(this)),
 	  gpu2d{ { this, 0 }, { this, 1 } },
 	  dma{ { this, 0 }, { this, 1 } },
 	  firmware(firmware),
-	  cart(cartridge, cartridge_size),
+	  cart(cartridge, cartridge_size, savefile, savefile_size, savetype),
 	  arm7_bios(arm7_bios),
 	  arm9_bios(arm9_bios)
 {

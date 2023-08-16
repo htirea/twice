@@ -3,6 +3,8 @@
 
 #include "nds/nds.h"
 
+#include <filesystem>
+
 namespace twice {
 
 nds_machine::nds_machine(const nds_config& config)
@@ -18,11 +20,38 @@ nds_machine::nds_machine(const nds_config& config)
 
 nds_machine::~nds_machine() = default;
 
+static std::string
+make_savefile_pathname(const std::string& pathname)
+{
+	namespace fs = std::filesystem;
+	return fs::path(pathname).replace_extension(".sav");
+}
+
 void
 nds_machine::load_cartridge(const std::string& pathname)
 {
-	cartridge = file_map(pathname, MAX_CART_SIZE,
+	auto cartridge = file_map(pathname, MAX_CART_SIZE,
 			file_map::FILEMAP_PRIVATE | file_map::FILEMAP_LIMIT);
+	if (cartridge.size() < 0x160) {
+		throw twice_error("cartridge size too small: " + pathname);
+	}
+
+	int savetype = nds_get_savetype(cartridge.data());
+	if (savetype == SAVETYPE_UNKNOWN) {
+		throw twice_error("unknown save type");
+	}
+
+	file_map savefile;
+	if (savetype != SAVETYPE_NONE) {
+		std::string savepath = make_savefile_pathname(pathname);
+		size_t savefile_size = nds_get_savefile_size(savetype);
+		savefile = file_map(savepath, savefile_size,
+				file_map::FILEMAP_SHARED);
+	}
+
+	this->cartridge = std::move(cartridge);
+	this->savefile = std::move(savefile);
+	this->savetype = savetype;
 }
 
 void
@@ -34,7 +63,8 @@ nds_machine::boot(bool direct_boot)
 
 	auto ctx = std::make_unique<nds_ctx>(arm7_bios.data(),
 			arm9_bios.data(), firmware.data(), cartridge.data(),
-			cartridge.size());
+			cartridge.size(), savefile.data(), savefile.size(),
+			savetype);
 	if (direct_boot) {
 		nds_direct_boot(ctx.get());
 	} else {

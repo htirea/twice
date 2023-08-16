@@ -30,13 +30,16 @@ struct cartridge_db_entry {
 extern const std::vector<cartridge_db_entry> game_db;
 
 struct cartridge {
-	cartridge(u8 *data, size_t size);
+	cartridge(u8 *data, size_t size, u8 *save_data, size_t save_size,
+			int savetype);
 
 	u8 *data{};
 	size_t size{};
 	size_t read_mask{};
 	u32 chip_id{};
 	u32 gamecode{};
+	u8 *save_data{};
+	size_t save_size{};
 	int savetype{};
 
 	struct rom_transfer {

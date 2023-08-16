@@ -45,7 +45,8 @@ struct arm7_cpu;
 
 struct nds_ctx {
 	nds_ctx(u8 *arm7_bios, u8 *arm9_bios, u8 *firmware, u8 *cartridge,
-			size_t cartridge_size);
+			size_t cartridge_size, u8 *savefile,
+			size_t savefile_size, int savetype);
 	~nds_ctx();
 
 	/*
@@ -159,6 +160,8 @@ void nds_run_frame(nds_ctx *nds);
 void nds_set_rtc_time(nds_ctx *nds, int year, int month, int day, int weekday,
 		int hour, int minute, int second);
 void nds_set_touchscreen_state(nds_ctx *nds, int x, int y, bool down);
+int nds_get_savetype(u8 *cartridge_data);
+size_t nds_get_savefile_size(int savetype);
 
 void event_hblank_start(nds_ctx *nds);
 void event_hblank_end(nds_ctx *nds);

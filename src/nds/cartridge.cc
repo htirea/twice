@@ -27,7 +27,7 @@ cartridge_make_chip_id(size_t size)
 }
 
 static const char *
-save_type_to_str(int savetype)
+savetype_to_str(int savetype)
 {
 	switch (savetype) {
 	case SAVETYPE_UNKNOWN:
@@ -57,9 +57,45 @@ save_type_to_str(int savetype)
 	}
 }
 
-static int
-lookup_save_type(u32 gamecode)
+static size_t
+savetype_to_size(int savetype)
 {
+	switch (savetype) {
+	case SAVETYPE_UNKNOWN:
+		throw twice_error("unknown size");
+	case SAVETYPE_NONE:
+		return 0;
+	case SAVETYPE_EEPROM_512B:
+		return 512;
+	case SAVETYPE_EEPROM_8K:
+		return 8_KiB;
+	case SAVETYPE_EEPROM_64K:
+		return 64_KiB;
+	case SAVETYPE_EEPROM_128K:
+		return 128_KiB;
+	case SAVETYPE_FLASH_256K:
+		return 256_KiB;
+	case SAVETYPE_FLASH_512K:
+		return 512_KiB;
+	case SAVETYPE_FLASH_1M:
+		return 1_MiB;
+	case SAVETYPE_FLASH_8M:
+		return 8_MiB;
+	case SAVETYPE_NAND:
+		throw twice_error("nand save is unsupported");
+	default:
+		throw twice_error("invalid savetype");
+	}
+}
+
+static int
+lookup_savetype(u32 gamecode)
+{
+	if (gamecode == 0 || gamecode == 0x23232323) {
+		LOG("detected homebrew: assuming save type: none\n");
+		return SAVETYPE_NONE;
+	}
+
 	auto it = std::lower_bound(game_db.begin(), game_db.end(), gamecode,
 			[](const auto& entry, const auto& gamecode) {
 				return entry.gamecode < gamecode;
@@ -69,25 +105,35 @@ lookup_save_type(u32 gamecode)
 		return SAVETYPE_UNKNOWN;
 	}
 
-	LOG("detected save type: %s\n", save_type_to_str(it->savetype));
+	LOG("detected save type: %s\n", savetype_to_str(it->savetype));
 	return it->savetype;
 }
 
-cartridge::cartridge(u8 *data, size_t size)
+int
+nds_get_savetype(u8 *data)
+{
+	u32 gamecode = readarr<u32>(data, 0xC);
+	return lookup_savetype(gamecode);
+}
+
+size_t
+nds_get_savefile_size(int savetype)
+{
+	return savetype_to_size(savetype);
+}
+
+cartridge::cartridge(u8 *data, size_t size, u8 *save_data, size_t save_size,
+		int savetype)
 	: data(data),
 	  size(size),
 	  read_mask(std::bit_ceil(size) - 1),
-	  chip_id(cartridge_make_chip_id(size))
+	  chip_id(cartridge_make_chip_id(size)),
+	  save_data(save_data),
+	  save_size(save_size),
+	  savetype(savetype)
 {
-	if (data && size < 0x160) {
-		throw twice_error("cartridge size too small");
-	}
-
 	if (data) {
 		gamecode = readarr<u32>(data, 0xC);
-		savetype = lookup_save_type(gamecode);
-	} else {
-		savetype = SAVETYPE_NONE;
 	}
 }
 

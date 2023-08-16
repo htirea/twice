@@ -145,6 +145,8 @@ struct nds_machine {
 	file_map arm9_bios;
 	file_map firmware;
 	file_map cartridge;
+	file_map savefile;
+	int savetype;
 	std::unique_ptr<nds_ctx> nds;
 };
 
