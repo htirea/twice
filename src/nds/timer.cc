@@ -113,7 +113,7 @@ on_timer_overflow(nds_ctx *nds, int cpuid, int timer_id)
 		auto& next_t = nds->tmr[cpuid][timer_id + 1];
 		if (next_t.ctrl & BIT(7) && next_t.ctrl & BIT(2)) {
 			next_t.counter += 1 << 10;
-			if (next_t.counter >> 10 == 0) {
+			if ((next_t.counter >> 10 & 0xFFFF) == 0) {
 				on_timer_overflow(nds, cpuid, timer_id + 1);
 			}
 		}
