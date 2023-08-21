@@ -92,7 +92,7 @@ gpu_2d_write32(gpu_2d_engine *gpu, u8 offset, u32 value)
 		gpu->mosaic = value;
 		return;
 	case 0x54:
-		gpu->bldy = value;
+		gpu->bldy = value & 0x1F;
 		return;
 	}
 
@@ -196,7 +196,7 @@ gpu_2d_write16(gpu_2d_engine *gpu, u8 offset, u16 value)
 		gpu->bldalpha = value & 0x1F1F;
 		return;
 	case 0x54:
-		gpu->bldy = value;
+		gpu->bldy = value & 0x1F;
 		return;
 	}
 
