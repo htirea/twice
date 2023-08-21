@@ -21,6 +21,28 @@ writearr(u8 *arr, u32 offset, T data)
 	std::memcpy(arr + offset, &data, sizeof(T));
 }
 
+template <typename T>
+T
+readarr_checked(u8 *arr, u32 offset, size_t size, T default_value)
+{
+	if (offset + sizeof(T) >= size) {
+		return default_value;
+	}
+
+	return readarr<T>(arr, offset);
+}
+
+template <typename T>
+void
+writearr_checked(u8 *arr, u32 offset, T data, size_t size)
+{
+	if (offset + sizeof(T) >= size) {
+		return;
+	}
+
+	writearr(arr, offset, data);
+}
+
 constexpr u64
 BIT(int x)
 {

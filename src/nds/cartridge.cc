@@ -135,6 +135,16 @@ cartridge::cartridge(u8 *data, size_t size, u8 *save_data, size_t save_size,
 	if (data) {
 		gamecode = readarr<u32>(data, 0xC);
 	}
+
+	switch (savetype) {
+	case SAVETYPE_EEPROM_512B:
+		backup.status_reg = 0xF0;
+		break;
+	case SAVETYPE_EEPROM_8K:
+	case SAVETYPE_EEPROM_64K:
+		backup.status_reg = 0;
+		break;
+	}
 }
 
 static void
@@ -232,13 +242,15 @@ romctrl_write(nds_ctx *nds, int cpuid, u32 value)
 	if (cpuid != nds->nds_slot_cpu) return;
 
 	bool old_start = nds->romctrl & BIT(31);
-
+	bool new_start = value & BIT(31);
 	nds->romctrl = (nds->romctrl & (BIT(23) | BIT(29))) |
 	               (value & ~(BIT(23) | BIT(31)));
-	if (!old_start && value & BIT(31)) {
-		nds->romctrl |= BIT(31);
-		cartridge_start_command(nds, cpuid);
-	}
+
+	if (!(!old_start && new_start)) return;
+	if (!(nds->auxspicnt & BIT(15))) return;
+	if (nds->auxspicnt & BIT(13)) return;
+
+	cartridge_start_command(nds, cpuid);
 }
 
 u32
@@ -272,13 +284,24 @@ auxspicnt_write_l(nds_ctx *nds, int cpuid, u8 value)
 	nds->auxspicnt = (nds->auxspicnt & ~0x43) | (value & 0x43);
 }
 
+static void
+reset_auxspi(nds_ctx *nds)
+{
+	nds->cart.backup.cs_active = false;
+}
+
 void
 auxspicnt_write_h(nds_ctx *nds, int cpuid, u8 value)
 {
 	if (cpuid != nds->nds_slot_cpu) return;
 
+	bool old_enabled = nds->auxspicnt & BIT(15);
+	bool new_enabled = value & BIT(7);
 	nds->auxspicnt = (nds->auxspicnt & ~0xE000) |
 	                 ((u16)value << 8 & 0xE000);
+	if (!old_enabled && new_enabled) {
+		reset_auxspi(nds);
+	}
 }
 
 void
@@ -286,21 +309,106 @@ auxspicnt_write(nds_ctx *nds, int cpuid, u16 value)
 {
 	if (cpuid != nds->nds_slot_cpu) return;
 
+	bool old_enabled = nds->auxspicnt & BIT(15);
+	bool new_enabled = value & BIT(15);
 	nds->auxspicnt = (nds->auxspicnt & ~0xE043) | (value & 0xE043);
+	if (!old_enabled && new_enabled) {
+		reset_auxspi(nds);
+	}
+}
+
+static void
+eeprom_8k_transfer_byte(nds_ctx *nds, u8 value, bool keep_active)
+{
+	auto& cart = nds->cart;
+	auto& bk = nds->cart.backup;
+
+	if (!bk.cs_active) {
+		bk.input_bytes.clear();
+		bk.command = value;
+		bk.count = 0;
+	}
+
+	switch (bk.command) {
+	case 0x6:
+		bk.status_reg |= BIT(1);
+		break;
+	case 0x4:
+		bk.status_reg &= ~BIT(1);
+		break;
+	case 0x5:
+		if (bk.count > 0) {
+			nds->auxspidata_r = bk.status_reg;
+		}
+		break;
+	case 0x1:
+		if (bk.count == 1) {
+			bk.status_reg = (bk.status_reg & ~0xC) | (value & 0xC);
+		}
+		break;
+	case 0x9F:
+		if (bk.count > 0) {
+			nds->auxspidata_r = -1;
+		}
+		break;
+	case 0x3:
+		switch (bk.count) {
+		case 0:
+			break;
+		case 1:
+			bk.addr = (u16)value << 8;
+			break;
+		case 2:
+			bk.addr |= value;
+			break;
+		default:
+			nds->auxspidata_r = readarr_checked<u8>(cart.save_data,
+					bk.addr, cart.save_size, -1);
+			bk.addr += 1;
+		}
+		break;
+	case 0x2:
+		switch (bk.count) {
+		case 0:
+			break;
+		case 1:
+			bk.addr = (u16)value << 8;
+			break;
+		case 2:
+			bk.addr |= value;
+			break;
+		default:
+			writearr_checked<u8>(cart.save_data, bk.addr, value,
+					cart.save_size);
+			bk.addr += 1;
+		}
+		break;
+	default:
+		LOG("unknown eeprom command %02X\n", bk.command);
+		throw twice_error("unknown eeprom command");
+	}
+
+	bk.count++;
+	bk.cs_active = keep_active;
 }
 
 void
 auxspidata_write(nds_ctx *nds, int cpuid, u8 value)
 {
 	if (cpuid != nds->nds_slot_cpu) return;
-
-	if (!(nds->auxspicnt & BIT(15))) {
-		return;
-	}
+	if (!(nds->auxspicnt & BIT(15))) return;
+	if (!(nds->auxspicnt & BIT(13))) return;
 
 	nds->auxspidata_w = value;
 
-	/* TODO: transfer byte */
+	bool keep_active = nds->auxspicnt & BIT(6);
+
+	switch (nds->cart.savetype) {
+	case SAVETYPE_EEPROM_8K:
+	case SAVETYPE_EEPROM_64K:
+		eeprom_8k_transfer_byte(nds, value, keep_active);
+		break;
+	}
 
 	schedule_nds_event_after(nds, cpuid,
 			event_scheduler::AUXSPI_TRANSFER_COMPLETE,
