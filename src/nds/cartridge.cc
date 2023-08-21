@@ -122,15 +122,20 @@ nds_get_savefile_size(int savetype)
 	return savetype_to_size(savetype);
 }
 
+cartridge_backup::cartridge_backup(u8 *data, size_t size, int savetype)
+	: data(data),
+	  size(size),
+	  savetype(savetype)
+{
+}
+
 cartridge::cartridge(u8 *data, size_t size, u8 *save_data, size_t save_size,
 		int savetype)
 	: data(data),
 	  size(size),
 	  read_mask(std::bit_ceil(size) - 1),
 	  chip_id(cartridge_make_chip_id(size)),
-	  save_data(save_data),
-	  save_size(save_size),
-	  savetype(savetype)
+	  backup(save_data, save_size, savetype)
 {
 	if (data) {
 		gamecode = readarr<u32>(data, 0xC);
@@ -138,11 +143,11 @@ cartridge::cartridge(u8 *data, size_t size, u8 *save_data, size_t save_size,
 
 	switch (savetype) {
 	case SAVETYPE_EEPROM_512B:
-		backup.status_reg = 0xF0;
+		backup.status = 0xF0;
 		break;
 	case SAVETYPE_EEPROM_8K:
 	case SAVETYPE_EEPROM_64K:
-		backup.status_reg = 0;
+		backup.status = 0;
 		break;
 	}
 }
@@ -320,30 +325,28 @@ auxspicnt_write(nds_ctx *nds, int cpuid, u16 value)
 static void
 eeprom_8k_transfer_byte(nds_ctx *nds, u8 value, bool keep_active)
 {
-	auto& cart = nds->cart;
 	auto& bk = nds->cart.backup;
 
 	if (!bk.cs_active) {
-		bk.input_bytes.clear();
 		bk.command = value;
 		bk.count = 0;
 	}
 
 	switch (bk.command) {
 	case 0x6:
-		bk.status_reg |= BIT(1);
+		bk.status |= BIT(1);
 		break;
 	case 0x4:
-		bk.status_reg &= ~BIT(1);
+		bk.status &= ~BIT(1);
 		break;
 	case 0x5:
 		if (bk.count > 0) {
-			nds->auxspidata_r = bk.status_reg;
+			nds->auxspidata_r = bk.status;
 		}
 		break;
 	case 0x1:
 		if (bk.count == 1) {
-			bk.status_reg = (bk.status_reg & ~0xC) | (value & 0xC);
+			bk.status = (bk.status & ~0xC) | (value & 0xC);
 		}
 		break;
 	case 0x9F:
@@ -362,9 +365,9 @@ eeprom_8k_transfer_byte(nds_ctx *nds, u8 value, bool keep_active)
 			bk.addr |= value;
 			break;
 		default:
-			nds->auxspidata_r = readarr_checked<u8>(cart.save_data,
-					bk.addr, cart.save_size, -1);
-			bk.addr += 1;
+			nds->auxspidata_r = readarr_checked<u8>(
+					bk.data, bk.addr, bk.size, -1);
+			bk.addr++;
 		}
 		break;
 	case 0x2:
@@ -378,9 +381,8 @@ eeprom_8k_transfer_byte(nds_ctx *nds, u8 value, bool keep_active)
 			bk.addr |= value;
 			break;
 		default:
-			writearr_checked<u8>(cart.save_data, bk.addr, value,
-					cart.save_size);
-			bk.addr += 1;
+			writearr_checked<u8>(bk.data, bk.addr, value, bk.size);
+			bk.addr++;
 		}
 		break;
 	default:
@@ -400,10 +402,9 @@ auxspidata_write(nds_ctx *nds, int cpuid, u8 value)
 	if (!(nds->auxspicnt & BIT(13))) return;
 
 	nds->auxspidata_w = value;
-
 	bool keep_active = nds->auxspicnt & BIT(6);
 
-	switch (nds->cart.savetype) {
+	switch (nds->cart.backup.savetype) {
 	case SAVETYPE_EEPROM_8K:
 	case SAVETYPE_EEPROM_64K:
 		eeprom_8k_transfer_byte(nds, value, keep_active);

@@ -12,15 +12,12 @@ struct firmware_flash {
 
 	u8 *data{};
 	u8 *user_settings{};
-	int state{};
-	u8 command{};
-	int num_params{};
-	int num_params_left{};
-	bool cs_active{};
-	std::vector<u8> input_bytes;
 
+	u8 command{};
+	u32 count{};
 	u32 addr{};
 	u8 status{};
+	bool cs_active{};
 };
 
 void firmware_spi_transfer_byte(nds_ctx *nds, u8 value, bool keep_active);
