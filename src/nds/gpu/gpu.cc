@@ -231,6 +231,12 @@ gpu_2d_write8(gpu_2d_engine *gpu, u8 offset, u8 value)
 	case 0x47:
 		gpu->win_v[1] = (gpu->win_v[0] & 0x00FF) | (u16)value << 8;
 		return;
+	case 0x4C:
+		gpu->mosaic = (gpu->mosaic & 0xFF00) | value;
+		return;
+	case 0x4D:
+		gpu->mosaic = (gpu->mosaic & 0x00FF) | (u16)value << 8;
+		return;
 	}
 
 	LOG("2d engine write 8 to offset %08X\n", offset);
