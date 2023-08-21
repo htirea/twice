@@ -252,10 +252,10 @@ static void render_extended_bg(gpu_2d_engine *gpu, int bg);
 static void render_large_bitmap_bg(gpu_2d_engine *gpu);
 static void render_3d(gpu_2d_engine *gpu);
 
-static void draw_bg_pixel(
-		gpu_2d_engine *gpu, u32 fb_x, u16 color, u8 priority);
-static void draw_obj_pixel(
-		gpu_2d_engine *gpu, u32 fb_x, u16 color, u8 priority);
+static void draw_bg_pixel(gpu_2d_engine *gpu, u32 fb_x, u16 color, u8 priority,
+		bool effect_top, bool effect_bottom);
+static void draw_obj_pixel(gpu_2d_engine *gpu, u32 fb_x, u16 color,
+		u8 priority, bool force_blend);
 static u16 bg_get_color_256(gpu_2d_engine *gpu, u32 color_num);
 static u16 obj_get_color_256(gpu_2d_engine *gpu, u32 color_num);
 static u16 bg_get_color_extended(
@@ -348,14 +348,67 @@ static void
 clear_buffers(gpu_2d_engine *gpu)
 {
 	u16 backdrop_color = bg_get_color_256(gpu, 0);
+	bool bd_effect_top = gpu->bldcnt & BIT(5);
+	bool bd_effect_bottom = gpu->bldcnt & BIT(13);
+
 	for (u32 i = 0; i < 256; i++) {
 		gpu->buffer_top[i].color = backdrop_color;
 		gpu->buffer_top[i].priority = 4;
+		gpu->buffer_top[i].effect_top = bd_effect_top;
+		gpu->buffer_top[i].effect_bottom = bd_effect_bottom;
+		gpu->buffer_top[i].force_blend = 0;
 		gpu->buffer_bottom[i] = gpu->buffer_top[i];
 
 		gpu->obj_buffer[i].color = 0;
 		gpu->obj_buffer[i].priority = 7;
+		gpu->obj_buffer[i].force_blend = 0;
 	}
+}
+
+static u16
+alpha_blend(u16 color1, u16 color2, u8 eva, u8 evb)
+{
+	u16 r1 = color1 & 0x1F;
+	u16 g1 = color1 >> 5 & 0x1F;
+	u16 b1 = color1 >> 10 & 0x1F;
+
+	u16 r2 = color2 & 0x1F;
+	u16 g2 = color2 >> 5 & 0x1F;
+	u16 b2 = color2 >> 10 & 0x1F;
+
+	u16 r = std::min(31, (r1 * eva + r2 * evb) >> 4);
+	u16 g = std::min(31, (g1 * eva + g2 * evb) >> 4);
+	u16 b = std::min(31, (b1 * eva + b2 * evb) >> 4);
+
+	return b << 10 | g << 5 | r;
+}
+
+static u16
+increase_brightness(u16 color, u8 evy)
+{
+	u16 r = color & 0x1F;
+	u16 g = color >> 5 & 0x1F;
+	u16 b = color >> 10 & 0x1F;
+
+	r += (31 - r) * evy >> 4;
+	g += (31 - g) * evy >> 4;
+	b += (31 - b) * evy >> 4;
+
+	return b << 10 | g << 5 | r;
+}
+
+static u16
+decrease_brightness(u16 color, u8 evy)
+{
+	u16 r = color & 0x1F;
+	u16 g = color >> 5 & 0x1F;
+	u16 b = color >> 10 & 0x1F;
+
+	r -= r * evy >> 4;
+	g -= g * evy >> 4;
+	b -= b * evy >> 4;
+
+	return b << 10 | g << 5 | r;
 }
 
 static void
@@ -417,8 +470,13 @@ graphics_display_scanline(gpu_2d_engine *gpu)
 		throw twice_error("bg mode 7 invalid");
 	}
 
+	bool obj_effect_top = gpu->bldcnt & BIT(4);
+	bool obj_effect_bottom = gpu->bldcnt & BIT(12);
+
 	for (u32 i = 0; i < 256; i++) {
 		auto& obj = gpu->obj_buffer[i];
+		obj.effect_top = obj_effect_top;
+		obj.effect_bottom = obj_effect_bottom;
 
 		if (obj.priority <= gpu->buffer_top[i].priority) {
 			gpu->buffer_bottom[i] = gpu->buffer_top[i];
@@ -430,9 +488,48 @@ graphics_display_scanline(gpu_2d_engine *gpu)
 
 	/* TODO: figure out what format to store pixel colors in */
 
+	u8 effect = gpu->bldcnt >> 6 & 3;
+	u8 eva = std::min(gpu->bldalpha & 0x1F, 16);
+	u8 evb = std::min(gpu->bldalpha >> 8 & 0x1F, 16);
+	u8 evy = std::min(gpu->bldy & 0x1F, 16);
+
 	for (u32 i = 0; i < 256; i++) {
+		auto& top = gpu->buffer_top[i];
+		auto& bottom = gpu->buffer_bottom[i];
+
+		u16 color_result = top.color;
+
+		if (top.force_blend) {
+			/* TODO: alpha blending */
+		} else {
+			switch (effect) {
+			case 0:
+				color_result = top.color;
+				break;
+			case 1:
+				if (top.effect_top && bottom.effect_bottom) {
+					color_result = alpha_blend(top.color,
+							bottom.color, eva,
+							evb);
+				}
+				break;
+			case 2:
+				if (top.effect_top) {
+					color_result = increase_brightness(
+							top.color, evy);
+				}
+				break;
+			case 3:
+				if (top.effect_top) {
+					color_result = decrease_brightness(
+							top.color, evy);
+				}
+				break;
+			}
+		}
+
 		gpu->fb[gpu->nds->vcount * 256 + i] =
-				bgr555_to_bgr888(gpu->buffer_top[i].color);
+				bgr555_to_bgr888(color_result);
 	}
 }
 
@@ -534,6 +631,9 @@ render_text_bg(gpu_2d_engine *gpu, int bg)
 		slot |= 2;
 	}
 
+	bool effect_top = gpu->bldcnt & BIT(0 + bg);
+	bool effect_bottom = gpu->bldcnt & BIT(8 + bg);
+
 	for (u32 i = 0; i < 256;) {
 		if (px == 0 || i == 0) {
 			u32 se_offset = screen_base + 0x800 * screen +
@@ -558,7 +658,8 @@ render_text_bg(gpu_2d_engine *gpu, int bg)
 				} else {
 					color = bg_get_color_256(gpu, offset);
 				}
-				draw_bg_pixel(gpu, i, color, bg_priority);
+				draw_bg_pixel(gpu, i, color, bg_priority,
+						effect_top, effect_bottom);
 			}
 		} else {
 			for (; px < 8 && i < 256; px++, i++, char_row >>= 4) {
@@ -567,7 +668,9 @@ render_text_bg(gpu_2d_engine *gpu, int bg)
 					u16 color = bg_get_color_16(gpu,
 							palette_num, offset);
 					draw_bg_pixel(gpu, i, color,
-							bg_priority);
+							bg_priority,
+							effect_top,
+							effect_bottom);
 				}
 			}
 		}
@@ -606,6 +709,8 @@ render_affine_bg(gpu_2d_engine *gpu, int bg)
 	s16 pc = gpu->bg_pc[bg - 2];
 
 	bool wrap_bg = gpu->bg_cnt[bg] & BIT(13);
+	bool effect_top = gpu->bldcnt & BIT(0 + bg);
+	bool effect_bottom = gpu->bldcnt & BIT(8 + bg);
 
 	for (int i = 0; i < 256; i++, ref_x += pa, ref_y += pc) {
 		u32 bg_x = ref_x >> 8;
@@ -631,7 +736,8 @@ render_affine_bg(gpu_2d_engine *gpu, int bg)
 				gpu, char_base + 64 * se + 8 * py + px);
 		if (color_num != 0) {
 			u16 color = bg_get_color_256(gpu, color_num);
-			draw_bg_pixel(gpu, i, color, bg_priority);
+			draw_bg_pixel(gpu, i, color, bg_priority, effect_top,
+					effect_bottom);
 		}
 	}
 }
@@ -659,6 +765,8 @@ render_extended_text_bg(gpu_2d_engine *gpu, int bg)
 	s16 pc = gpu->bg_pc[bg - 2];
 
 	bool wrap_bg = gpu->bg_cnt[bg] & BIT(13);
+	bool effect_top = gpu->bldcnt & BIT(0 + bg);
+	bool effect_bottom = gpu->bldcnt & BIT(8 + bg);
 
 	bool extended_palettes = gpu->dispcnt & BIT(30);
 	u32 slot = bg;
@@ -704,7 +812,8 @@ render_extended_text_bg(gpu_2d_engine *gpu, int bg)
 			} else {
 				color = bg_get_color_256(gpu, color_num);
 			}
-			draw_bg_pixel(gpu, i, color, bg_priority);
+			draw_bg_pixel(gpu, i, color, bg_priority, effect_top,
+					effect_bottom);
 		}
 	}
 }
@@ -727,6 +836,8 @@ render_extended_bitmap_bg(gpu_2d_engine *gpu, int bg, bool direct_color)
 	s16 pc = gpu->bg_pc[bg - 2];
 
 	bool wrap_bg = gpu->bg_cnt[bg] & BIT(13);
+	bool effect_top = gpu->bldcnt & BIT(0 + bg);
+	bool effect_bottom = gpu->bldcnt & BIT(8 + bg);
 
 	for (int i = 0; i < 256; i++, ref_x += pa, ref_y += pc) {
 		u32 bg_x = ref_x >> 8;
@@ -744,14 +855,16 @@ render_extended_bitmap_bg(gpu_2d_engine *gpu, int bg, bool direct_color)
 			u16 color = read_bg_data<u16>(
 					gpu, screen_base, bg_w, bg_x, bg_y);
 			if (color & BIT(15)) {
-				draw_bg_pixel(gpu, i, color, bg_priority);
+				draw_bg_pixel(gpu, i, color, bg_priority,
+						effect_top, effect_bottom);
 			}
 		} else {
 			u8 color_num = read_bg_data<u8>(
 					gpu, screen_base, bg_w, bg_x, bg_y);
 			if (color_num != 0) {
 				u16 color = bg_get_color_256(gpu, color_num);
-				draw_bg_pixel(gpu, i, color, bg_priority);
+				draw_bg_pixel(gpu, i, color, bg_priority,
+						effect_top, effect_bottom);
 			}
 		}
 	}
@@ -796,6 +909,8 @@ render_large_bitmap_bg(gpu_2d_engine *gpu)
 	s16 pc = gpu->bg_pc[bg - 2];
 
 	bool wrap_bg = gpu->bg_cnt[bg] & BIT(13);
+	bool effect_top = gpu->bldcnt & BIT(0 + bg);
+	bool effect_bottom = gpu->bldcnt & BIT(8 + bg);
 
 	for (int i = 0; i < 256; i++, ref_x += pa, ref_y += pc) {
 		u32 bg_x = ref_x >> 8;
@@ -812,7 +927,8 @@ render_large_bitmap_bg(gpu_2d_engine *gpu)
 		u8 color_num = vram_read<u8>(gpu->nds, bg_w * bg_y + bg_x);
 		if (color_num != 0) {
 			u16 color = bg_get_color_256(gpu, color_num);
-			draw_bg_pixel(gpu, i, color, bg_priority);
+			draw_bg_pixel(gpu, i, color, bg_priority, effect_top,
+					effect_bottom);
 		}
 	}
 }
@@ -828,6 +944,7 @@ struct obj_data {
 	u16 attr2;
 	u32 w;
 	u32 h;
+	u8 mode;
 };
 
 static void
@@ -842,6 +959,7 @@ read_oam_attrs(gpu_2d_engine *gpu, int obj_num, obj_data *obj)
 	obj->attr0 = data;
 	obj->attr1 = data >> 16;
 	obj->attr2 = data >> 32;
+	obj->mode = obj->attr0 >> 10 & 3;
 }
 
 static void
@@ -944,6 +1062,7 @@ render_normal_sprite(gpu_2d_engine *gpu, obj_data *obj)
 	u32 obj_char_name = obj->attr2 & 0x3FF;
 	bool map_1d = gpu->dispcnt & BIT(4);
 	bool extended_palettes = gpu->dispcnt & BIT(31);
+	bool force_blend = obj->mode == 1;
 
 	u32 tile_offset;
 	if (map_1d) {
@@ -984,7 +1103,8 @@ render_normal_sprite(gpu_2d_engine *gpu, obj_data *obj)
 				} else {
 					color = obj_get_color_256(gpu, offset);
 				}
-				draw_obj_pixel(gpu, draw_x, color, priority);
+				draw_obj_pixel(gpu, draw_x, color, priority,
+						force_blend);
 			}
 		} else {
 			for (; px < 8 && draw_x != draw_x_end;
@@ -994,7 +1114,7 @@ render_normal_sprite(gpu_2d_engine *gpu, obj_data *obj)
 					u16 color = obj_get_color_16(gpu,
 							palette_num, offset);
 					draw_obj_pixel(gpu, draw_x, color,
-							priority);
+							priority, force_blend);
 				}
 			}
 		}
@@ -1096,6 +1216,7 @@ render_affine_sprite(gpu_2d_engine *gpu, obj_data *obj)
 	bool map_1d = gpu->dispcnt & BIT(4);
 	bool extended_palettes = gpu->dispcnt & BIT(31);
 	bool color_256 = obj->attr0 & BIT(13);
+	bool force_blend = obj->mode == 1;
 
 	for (u32 i = affine.draw_start, end = affine.draw_end; i != end; i++,
 		 affine.ref_x += affine.pa, affine.ref_y += affine.pc) {
@@ -1145,14 +1266,16 @@ render_affine_sprite(gpu_2d_engine *gpu, obj_data *obj)
 				} else {
 					color = obj_get_color_256(gpu, offset);
 				}
-				draw_obj_pixel(gpu, i, color, priority);
+				draw_obj_pixel(gpu, i, color, priority,
+						force_blend);
 			}
 		} else {
 			offset = px & 1 ? offset >> 4 : offset & 0xF;
 			if (offset != 0) {
 				u16 color = obj_get_color_16(
 						gpu, palette_num, offset);
-				draw_obj_pixel(gpu, i, color, priority);
+				draw_obj_pixel(gpu, i, color, priority,
+						force_blend);
 			}
 		}
 	}
@@ -1199,7 +1322,7 @@ render_affine_bitmap_sprite(gpu_2d_engine *gpu, obj_data *obj)
 
 		u16 color = read_obj_data<u16>(gpu, offset);
 		if (color & BIT(15)) {
-			draw_obj_pixel(gpu, i, color, priority);
+			draw_obj_pixel(gpu, i, color, priority, true);
 		}
 	}
 }
@@ -1216,7 +1339,7 @@ render_sprites(gpu_2d_engine *gpu)
 		}
 
 		bool is_affine = obj.attr0 & BIT(8);
-		bool is_bitmap = (obj.attr0 >> 10 & 3) == 3;
+		bool is_bitmap = obj.mode == 3;
 
 		if (is_affine && is_bitmap) {
 			render_affine_bitmap_sprite(gpu, &obj);
@@ -1245,7 +1368,8 @@ vram_display_scanline(gpu_2d_engine *gpu)
 }
 
 static void
-draw_bg_pixel(gpu_2d_engine *gpu, u32 fb_x, u16 color, u8 priority)
+draw_bg_pixel(gpu_2d_engine *gpu, u32 fb_x, u16 color, u8 priority,
+		bool effect_top, bool effect_bottom)
 {
 	auto& top = gpu->buffer_top[fb_x];
 	auto& bottom = gpu->buffer_bottom[fb_x];
@@ -1254,20 +1378,28 @@ draw_bg_pixel(gpu_2d_engine *gpu, u32 fb_x, u16 color, u8 priority)
 		bottom = top;
 		top.color = color;
 		top.priority = priority;
+		top.effect_top = effect_top;
+		top.effect_bottom = effect_bottom;
+		top.force_blend = 0;
 	} else if (priority < bottom.priority) {
 		bottom.color = color;
 		bottom.priority = priority;
+		bottom.effect_top = effect_top;
+		bottom.effect_bottom = effect_bottom;
+		bottom.force_blend = 0;
 	}
 }
 
 static void
-draw_obj_pixel(gpu_2d_engine *gpu, u32 fb_x, u16 color, u8 priority)
+draw_obj_pixel(gpu_2d_engine *gpu, u32 fb_x, u16 color, u8 priority,
+		bool force_blend)
 {
 	auto& top = gpu->obj_buffer[fb_x];
 
 	if (priority < top.priority) {
 		top.color = color;
 		top.priority = priority;
+		top.force_blend = force_blend;
 	}
 }
 

@@ -38,7 +38,10 @@ struct gpu_2d_engine {
 
 	struct pixel {
 		u32 color{};
-		u8 priority{};
+		u32 priority : 3;
+		u32 effect_top : 1;
+		u32 effect_bottom : 1;
+		u32 force_blend : 1;
 	};
 
 	pixel buffer_top[256]{};

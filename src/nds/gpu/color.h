@@ -8,9 +8,9 @@ namespace twice {
 inline u32
 bgr555_to_bgr888(u16 color)
 {
-	u8 r = color & 0x1F;
-	u8 g = color >> 5 & 0x1F;
-	u8 b = color >> 10 & 0x1F;
+	u32 r = color & 0x1F;
+	u32 g = color >> 5 & 0x1F;
+	u32 b = color >> 10 & 0x1F;
 
 	r = (r * 527 + 23) >> 6;
 	g = (g * 527 + 23) >> 6;
