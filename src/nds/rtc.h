@@ -9,7 +9,7 @@ struct nds_ctx;
 
 struct real_time_clock {
 	u8 clock_reg{};
-	u8 stat1{};
+	u8 stat1{ 0x2 };
 	u8 stat2{};
 	int year{ 2000 };
 	int month{ 1 };
