@@ -189,6 +189,8 @@ event_advance_rom_transfer(nds_ctx *nds)
 		t.bus_data_r = -1;
 	}
 
+	start_cartridge_dmas(nds, nds->nds_slot_cpu);
+
 	if (t.transfer_size == 0) {
 		finish_rom_transfer(nds);
 		return;
@@ -387,7 +389,6 @@ eeprom_8k_transfer_byte(nds_ctx *nds, u8 value, bool keep_active)
 		break;
 	default:
 		LOG("unknown eeprom command %02X\n", bk.command);
-		throw twice_error("unknown eeprom command");
 	}
 
 	bk.count++;

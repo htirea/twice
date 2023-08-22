@@ -41,6 +41,7 @@ void dma_on_vblank(nds_ctx *nds);
 void dma_on_hblank_start(nds_ctx *nds);
 void dma_on_scanline_start(nds_ctx *nds);
 void event_start_immediate_dmas(nds_ctx *nds, int cpuid, intptr_t data);
+void start_cartridge_dmas(nds_ctx *nds, int cpuid);
 
 } // namespace twice
 

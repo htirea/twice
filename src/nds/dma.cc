@@ -187,6 +187,7 @@ dma9_dmacnt_h_write(nds_ctx *nds, int channel, u16 value)
 		case 1:
 		case 2:
 		case 3:
+		case 5:
 			break;
 		default:
 			throw twice_error("arm9 dma mode not implemented");
@@ -229,9 +230,8 @@ dma7_dmacnt_h_write(nds_ctx *nds, int channel, u16 value)
 					2);
 			break;
 		case 1:
-			break;
 		case 2:
-			throw twice_error("arm7 dma mode 2 not implemented");
+			break;
 		case 3:
 			throw twice_error("arm7 dma mode 3 not implemented");
 		}
@@ -328,6 +328,20 @@ event_start_immediate_dmas(nds_ctx *nds, int cpuid, intptr_t)
 	/* TODO: don't start all requested dmas */
 	dma.active |= dma.requested_imm_dmas;
 	dma.requested_imm_dmas = 0;
+}
+
+void
+start_cartridge_dmas(nds_ctx *nds, int cpuid)
+{
+	int mode = cpuid == 0 ? 5 : 2;
+
+	for (int channel = 0; channel < 4; channel++) {
+		if (nds->dma[cpuid].transfers[channel].enabled) {
+			if (nds->dma[cpuid].transfers[channel].mode == mode) {
+				start_transfer(nds, cpuid, channel);
+			}
+		}
+	}
 }
 
 } // namespace twice
