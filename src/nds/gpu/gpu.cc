@@ -552,6 +552,18 @@ setup_window_info(gpu_2d_engine *gpu)
 }
 
 static void
+clear_obj_buffer(gpu_2d_engine *gpu)
+{
+	for (u32 i = 0; i < 256; i++) {
+		gpu->obj_buffer[i].color = 0;
+		gpu->obj_buffer[i].priority = 7;
+		gpu->obj_buffer[i].effect_top = 0;
+		gpu->obj_buffer[i].effect_bottom = 0;
+		gpu->obj_buffer[i].force_blend = 0;
+	}
+}
+
+static void
 set_active_window(gpu_2d_engine *gpu)
 {
 	for (int w = 1; w >= 0; w--) {
@@ -620,6 +632,7 @@ graphics_display_scanline(gpu_2d_engine *gpu)
 
 	setup_window_info(gpu);
 
+	clear_obj_buffer(gpu);
 	if (dispcnt & BIT(12)) {
 		render_sprites(gpu);
 	}
@@ -1564,14 +1577,6 @@ render_affine_bitmap_sprite(gpu_2d_engine *gpu, obj_data *obj)
 static void
 render_sprites(gpu_2d_engine *gpu)
 {
-	for (u32 i = 0; i < 256; i++) {
-		gpu->obj_buffer[i].color = 0;
-		gpu->obj_buffer[i].priority = 7;
-		gpu->obj_buffer[i].effect_top = 0;
-		gpu->obj_buffer[i].effect_bottom = 0;
-		gpu->obj_buffer[i].force_blend = 0;
-	}
-
 	for (int i = 0; i < 128; i++) {
 		obj_data obj;
 		read_oam_attrs(gpu, i, &obj);
