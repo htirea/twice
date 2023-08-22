@@ -429,34 +429,6 @@ draw_scanline(gpu_2d_engine *gpu, u16 scanline)
 	adjust_master_brightness(gpu, scanline);
 }
 
-static void
-clear_buffers(gpu_2d_engine *gpu)
-{
-	u16 backdrop_color = bg_get_color_256(gpu, 0);
-	bool bd_effect_top = gpu->bldcnt & BIT(5);
-	bool bd_effect_bottom = gpu->bldcnt & BIT(13);
-
-	for (u32 i = 0; i < 256; i++) {
-		gpu->buffer_top[i].color = backdrop_color;
-		gpu->buffer_top[i].priority = 4;
-		gpu->buffer_top[i].effect_top = bd_effect_top;
-		gpu->buffer_top[i].effect_bottom = bd_effect_bottom;
-		gpu->buffer_top[i].force_blend = 0;
-		gpu->buffer_bottom[i] = gpu->buffer_top[i];
-
-		gpu->obj_buffer[i].color = 0;
-		gpu->obj_buffer[i].priority = 7;
-		gpu->obj_buffer[i].force_blend = 0;
-
-		gpu->window_buffer[i].window = 3;
-	}
-
-	gpu->window[0].enable_bits = gpu->winin;
-	gpu->window[1].enable_bits = gpu->winin >> 8;
-	gpu->window[2].enable_bits = gpu->winout >> 8;
-	gpu->window[3].enable_bits = gpu->winout;
-}
-
 static u16
 alpha_blend(u16 color1, u16 color2, u8 eva, u8 evb)
 {
@@ -504,15 +476,28 @@ decrease_brightness(u16 color, u8 evy)
 }
 
 static void
-set_active_window(gpu_2d_engine *gpu)
+setup_window_info(gpu_2d_engine *gpu)
 {
+	for (u32 i = 0; i < 256; i++) {
+		gpu->window_buffer[i].window = 3;
+	}
+
+	gpu->window[0].enable_bits = gpu->winin;
+	gpu->window[1].enable_bits = gpu->winin >> 8;
+	gpu->window[2].enable_bits = gpu->winout >> 8;
+	gpu->window[3].enable_bits = gpu->winout;
+
 	gpu->window_enabled[0] = gpu->dispcnt & BIT(13);
 	gpu->window_enabled[1] = gpu->dispcnt & BIT(14);
 	gpu->window_enabled[2] = gpu->dispcnt & BIT(15);
 	gpu->window_any_enabled = gpu->window_enabled[0] ||
 	                          gpu->window_enabled[1] ||
 	                          gpu->window_enabled[2];
+}
 
+static void
+set_active_window(gpu_2d_engine *gpu)
+{
 	for (int w = 1; w >= 0; w--) {
 		if (!gpu->window_enabled[w]) continue;
 		if (!gpu->window_y_in_range[w]) continue;
@@ -524,6 +509,37 @@ set_active_window(gpu_2d_engine *gpu)
 		}
 		for (u32 i = x1; i < x2; i++) {
 			gpu->window_buffer[i].window = w;
+		}
+	}
+}
+
+static void
+set_backdrop(gpu_2d_engine *gpu)
+{
+	u16 color = bg_get_color_256(gpu, 0);
+	bool effect_top = gpu->bldcnt & BIT(5);
+	bool effect_bottom = gpu->bldcnt & BIT(13);
+
+	if (gpu->window_any_enabled) {
+		for (u32 i = 0; i < 256; i++) {
+			u32 w = gpu->window_buffer[i].window;
+			bool wfx = gpu->window[w].enable_bits & BIT(5);
+
+			gpu->buffer_top[i].color = color;
+			gpu->buffer_top[i].priority = 4;
+			gpu->buffer_top[i].effect_top = effect_top & wfx;
+			gpu->buffer_top[i].effect_bottom = effect_bottom & wfx;
+			gpu->buffer_top[i].force_blend = 0;
+			gpu->buffer_bottom[i] = gpu->buffer_top[i];
+		}
+	} else {
+		for (u32 i = 0; i < 256; i++) {
+			gpu->buffer_top[i].color = color;
+			gpu->buffer_top[i].priority = 4;
+			gpu->buffer_top[i].effect_top = effect_top;
+			gpu->buffer_top[i].effect_bottom = effect_bottom;
+			gpu->buffer_top[i].force_blend = 0;
+			gpu->buffer_bottom[i] = gpu->buffer_top[i];
 		}
 	}
 }
@@ -546,13 +562,14 @@ graphics_display_scanline(gpu_2d_engine *gpu)
 {
 	auto& dispcnt = gpu->dispcnt;
 
-	clear_buffers(gpu);
+	setup_window_info(gpu);
 
 	if (dispcnt & BIT(12)) {
 		render_sprites(gpu);
 	}
 
 	set_active_window(gpu);
+	set_backdrop(gpu);
 
 	switch (dispcnt & 0x7) {
 	case 0:
@@ -1491,6 +1508,14 @@ render_affine_bitmap_sprite(gpu_2d_engine *gpu, obj_data *obj)
 static void
 render_sprites(gpu_2d_engine *gpu)
 {
+	for (u32 i = 0; i < 256; i++) {
+		gpu->obj_buffer[i].color = 0;
+		gpu->obj_buffer[i].priority = 7;
+		gpu->obj_buffer[i].effect_top = 0;
+		gpu->obj_buffer[i].effect_bottom = 0;
+		gpu->obj_buffer[i].force_blend = 0;
+	}
+
 	for (int i = 0; i < 128; i++) {
 		obj_data obj;
 		read_oam_attrs(gpu, i, &obj);
