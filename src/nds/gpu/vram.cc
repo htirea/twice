@@ -587,15 +587,15 @@ vramcnt_fg_write(nds_ctx *nds, u8 value)
 
 		switch (mst) {
 		case 0:
-			map_lcdc(nds, base, 0x24 + bank - VRAM_F, 1);
+			unmap_lcdc(nds, 0x24 + bank - VRAM_F, 1);
 			break;
 		case 1:
-			map_abg(nds, bank, base, offset, 1);
-			map_abg(nds, bank, base, offset | 2, 1);
+			unmap_abg(nds, bank, offset, 1);
+			unmap_abg(nds, bank, offset | 2, 1);
 			break;
 		case 2:
-			map_aobj(nds, bank, base, offset, 1);
-			map_aobj(nds, bank, base, offset | 2, 1);
+			unmap_aobj(nds, bank, offset, 1);
+			unmap_aobj(nds, bank, offset | 2, 1);
 			break;
 		case 3:
 			unmap_texture_palette(nds, bank, offset, 1);
