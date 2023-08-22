@@ -104,6 +104,8 @@ io9_read16(nds_ctx *nds, u32 addr)
 {
 	switch (addr) {
 		IO_READ16_COMMON(0);
+	case 0x4000000:
+		return nds->gpu2d[0].dispcnt;
 	case 0x400006C:
 		return nds->gpu2d[0].master_bright;
 	case 0x40000E0:
@@ -120,6 +122,8 @@ io9_read16(nds_ctx *nds, u32 addr)
 		return nds->sqrtcnt;
 	case 0x4000304:
 		return nds->powcnt1;
+	case 0x4001000:
+		return nds->gpu2d[1].dispcnt;
 	case 0x400106C:
 		return nds->gpu2d[1].master_bright;
 	}
@@ -267,6 +271,14 @@ io9_write16(nds_ctx *nds, u32 addr, u16 value)
 {
 	switch (addr) {
 		IO_WRITE16_COMMON(0);
+	case 0x4000000:
+		nds->gpu2d[0].dispcnt &= ~0xFFFF;
+		nds->gpu2d[0].dispcnt |= value;
+		return;
+	case 0x4000002:
+		nds->gpu2d[0].dispcnt &= 0xFFFF;
+		nds->gpu2d[0].dispcnt |= (u32)value << 16;
+		return;
 	case 0x400006C:
 		nds->gpu2d[0].master_bright = value & 0xC01F;
 		return;
@@ -294,6 +306,22 @@ io9_write16(nds_ctx *nds, u32 addr, u16 value)
 	case 0x40000EE:
 		nds->dmafill[3] = value >> 16;
 		return;
+	case 0x4000240:
+		vramcnt_a_write(nds, value);
+		vramcnt_b_write(nds, value >> 8);
+		return;
+	case 0x4000242:
+		vramcnt_c_write(nds, value);
+		vramcnt_d_write(nds, value >> 8);
+		return;
+	case 0x4000244:
+		vramcnt_e_write(nds, value);
+		vramcnt_f_write(nds, value >> 8);
+		return;
+	case 0x4000246:
+		vramcnt_g_write(nds, value);
+		wramcnt_write(nds, value >> 8);
+		return;
 	case 0x4000248:
 		vramcnt_h_write(nds, value);
 		vramcnt_i_write(nds, value >> 8);
@@ -314,6 +342,14 @@ io9_write16(nds_ctx *nds, u32 addr, u16 value)
 		return;
 	case 0x4000304:
 		powcnt1_write(nds, value);
+		return;
+	case 0x4001000:
+		nds->gpu2d[1].dispcnt &= ~0xFFFF;
+		nds->gpu2d[1].dispcnt |= value;
+		return;
+	case 0x4001002:
+		nds->gpu2d[1].dispcnt &= 0xFFFF;
+		nds->gpu2d[1].dispcnt |= (u32)value << 16;
 		return;
 	case 0x400106C:
 		nds->gpu2d[1].master_bright = value & 0xC01F;

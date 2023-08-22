@@ -51,6 +51,22 @@ gpu_2d_read16(gpu_2d_engine *gpu, u8 offset)
 		return gpu->bg_cnt[2];
 	case 0xE:
 		return gpu->bg_cnt[3];
+	case 0x10:
+		return gpu->bg_hofs[0];
+	case 0x12:
+		return gpu->bg_vofs[0];
+	case 0x14:
+		return gpu->bg_hofs[1];
+	case 0x16:
+		return gpu->bg_vofs[1];
+	case 0x18:
+		return gpu->bg_hofs[2];
+	case 0x1A:
+		return gpu->bg_vofs[2];
+	case 0x1C:
+		return gpu->bg_hofs[3];
+	case 0x1E:
+		return gpu->bg_vofs[3];
 	case 0x44:
 		return gpu->win_v[0];
 	case 0x46:
@@ -168,6 +184,26 @@ gpu_2d_write16(gpu_2d_engine *gpu, u8 offset, u16 value)
 	case 0x26:
 		gpu->bg_pd[0] = value;
 		return;
+	case 0x28:
+		gpu->bg_ref_x_latch[0] &= ~0xFFFF;
+		gpu->bg_ref_x_latch[0] |= value;
+		gpu->bg_ref_x_reload[0] = true;
+		return;
+	case 0x2A:
+		gpu->bg_ref_x_latch[0] &= 0xFFFF;
+		gpu->bg_ref_x_latch[0] |= (u32)value << 16;
+		gpu->bg_ref_x_reload[0] = true;
+		return;
+	case 0x2C:
+		gpu->bg_ref_y_latch[0] &= ~0xFFFF;
+		gpu->bg_ref_y_latch[0] |= value;
+		gpu->bg_ref_y_reload[0] = true;
+		return;
+	case 0x2E:
+		gpu->bg_ref_y_latch[0] &= 0xFFFF;
+		gpu->bg_ref_y_latch[0] |= (u32)value << 16;
+		gpu->bg_ref_y_reload[0] = true;
+		return;
 	case 0x30:
 		gpu->bg_pa[1] = value;
 		return;
@@ -179,6 +215,26 @@ gpu_2d_write16(gpu_2d_engine *gpu, u8 offset, u16 value)
 		return;
 	case 0x36:
 		gpu->bg_pd[1] = value;
+		return;
+	case 0x38:
+		gpu->bg_ref_x_latch[1] &= ~0xFFFF;
+		gpu->bg_ref_x_latch[1] |= value;
+		gpu->bg_ref_x_reload[1] = true;
+		return;
+	case 0x3A:
+		gpu->bg_ref_x_latch[1] &= 0xFFFF;
+		gpu->bg_ref_x_latch[1] |= (u32)value << 16;
+		gpu->bg_ref_x_reload[1] = true;
+		return;
+	case 0x3C:
+		gpu->bg_ref_y_latch[1] &= ~0xFFFF;
+		gpu->bg_ref_y_latch[1] |= value;
+		gpu->bg_ref_y_reload[1] = true;
+		return;
+	case 0x3E:
+		gpu->bg_ref_y_latch[1] &= 0xFFFF;
+		gpu->bg_ref_y_latch[1] |= (u32)value << 16;
+		gpu->bg_ref_y_reload[1] = true;
 		return;
 	case 0x40:
 		gpu->win_h[0] = value;
