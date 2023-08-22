@@ -49,6 +49,18 @@ struct gpu_2d_engine {
 	pixel buffer_bottom[256]{};
 	pixel obj_buffer[256]{};
 
+	bool window_y_in_range[2]{};
+	bool window_enabled[3]{};
+	bool window_any_enabled{};
+
+	struct {
+		u8 window{};
+	} window_buffer[256];
+
+	struct {
+		u8 enable_bits;
+	} window[4];
+
 	bool enabled{};
 	nds_ctx *nds{};
 	int engineid{};

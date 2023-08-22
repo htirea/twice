@@ -264,8 +264,8 @@ static void render_extended_bg(gpu_2d_engine *gpu, int bg);
 static void render_large_bitmap_bg(gpu_2d_engine *gpu);
 static void render_3d(gpu_2d_engine *gpu);
 
-static void draw_bg_pixel(gpu_2d_engine *gpu, u32 fb_x, u16 color, u8 priority,
-		bool effect_top, bool effect_bottom);
+static void draw_bg_pixel(gpu_2d_engine *gpu, int bg, u32 fb_x, u16 color,
+		u8 priority, bool effect_top, bool effect_bottom);
 static void draw_obj_pixel(gpu_2d_engine *gpu, u32 fb_x, u16 color,
 		u8 priority, bool force_blend);
 static u16 bg_get_color_256(gpu_2d_engine *gpu, u32 color_num);
@@ -277,6 +277,22 @@ static u16 obj_get_color_extended(
 static u16 bg_get_color_16(gpu_2d_engine *gpu, u32 palette_num, u32 color_num);
 static u16 obj_get_color_16(
 		gpu_2d_engine *gpu, u32 palette_num, u32 color_num);
+
+static void
+update_window_y_in_range(gpu_2d_engine *gpu, u16 scanline)
+{
+	for (int i = 0; i < 2; i++) {
+		u8 y1 = gpu->win_v[i] >> 8;
+		u8 y2 = gpu->win_v[i];
+
+		if ((scanline & 0xFF) == y1) {
+			gpu->window_y_in_range[i] = true;
+		}
+		if ((scanline & 0xFF) == y2) {
+			gpu->window_y_in_range[i] = false;
+		}
+	}
+}
 
 static void
 reload_bg_ref_xy(gpu_2d_engine *gpu, bool force_reload)
@@ -305,6 +321,9 @@ increment_bg_ref_xy(gpu_2d_engine *gpu)
 void
 gpu_on_scanline_start(nds_ctx *nds)
 {
+	update_window_y_in_range(&nds->gpu2d[0], nds->vcount);
+	update_window_y_in_range(&nds->gpu2d[1], nds->vcount);
+
 	if (nds->vcount < 192) {
 		bool force_reload = nds->vcount == 0;
 		reload_bg_ref_xy(&nds->gpu2d[0], force_reload);
@@ -428,7 +447,14 @@ clear_buffers(gpu_2d_engine *gpu)
 		gpu->obj_buffer[i].color = 0;
 		gpu->obj_buffer[i].priority = 7;
 		gpu->obj_buffer[i].force_blend = 0;
+
+		gpu->window_buffer[i].window = 3;
 	}
+
+	gpu->window[0].enable_bits = gpu->winin;
+	gpu->window[1].enable_bits = gpu->winin >> 8;
+	gpu->window[2].enable_bits = gpu->winout >> 8;
+	gpu->window[3].enable_bits = gpu->winout;
 }
 
 static u16
@@ -478,6 +504,44 @@ decrease_brightness(u16 color, u8 evy)
 }
 
 static void
+set_active_window(gpu_2d_engine *gpu)
+{
+	gpu->window_enabled[0] = gpu->dispcnt & BIT(13);
+	gpu->window_enabled[1] = gpu->dispcnt & BIT(14);
+	gpu->window_enabled[2] = gpu->dispcnt & BIT(15);
+	gpu->window_any_enabled = gpu->window_enabled[0] ||
+	                          gpu->window_enabled[1] ||
+	                          gpu->window_enabled[2];
+
+	for (int w = 1; w >= 0; w--) {
+		if (!gpu->window_enabled[w]) continue;
+		if (!gpu->window_y_in_range[w]) continue;
+
+		u32 x1 = gpu->win_h[w] >> 8;
+		u32 x2 = gpu->win_h[w] & 0xFF;
+		if (x1 > x2 || (x2 == 0 && x1 != 0)) {
+			x2 = 256;
+		}
+		for (u32 i = x1; i < x2; i++) {
+			gpu->window_buffer[i].window = w;
+		}
+	}
+}
+
+static void
+push_obj_pixel(gpu_2d_engine *gpu, u32 i)
+{
+	auto& obj = gpu->obj_buffer[i];
+
+	if (obj.priority <= gpu->buffer_top[i].priority) {
+		gpu->buffer_bottom[i] = gpu->buffer_top[i];
+		gpu->buffer_top[i] = obj;
+	} else if (obj.priority <= gpu->buffer_bottom[i].priority) {
+		gpu->buffer_bottom[i] = obj;
+	}
+}
+
+static void
 graphics_display_scanline(gpu_2d_engine *gpu)
 {
 	auto& dispcnt = gpu->dispcnt;
@@ -487,6 +551,8 @@ graphics_display_scanline(gpu_2d_engine *gpu)
 	if (dispcnt & BIT(12)) {
 		render_sprites(gpu);
 	}
+
+	set_active_window(gpu);
 
 	switch (dispcnt & 0x7) {
 	case 0:
@@ -539,16 +605,25 @@ graphics_display_scanline(gpu_2d_engine *gpu)
 	bool obj_effect_top = gpu->bldcnt & BIT(4);
 	bool obj_effect_bottom = gpu->bldcnt & BIT(12);
 
-	for (u32 i = 0; i < 256; i++) {
-		auto& obj = gpu->obj_buffer[i];
-		obj.effect_top = obj_effect_top;
-		obj.effect_bottom = obj_effect_bottom;
-
-		if (obj.priority <= gpu->buffer_top[i].priority) {
-			gpu->buffer_bottom[i] = gpu->buffer_top[i];
-			gpu->buffer_top[i] = obj;
-		} else if (obj.priority <= gpu->buffer_bottom[i].priority) {
-			gpu->buffer_bottom[i] = obj;
+	if (gpu->window_any_enabled) {
+		for (u32 i = 0; i < 256; i++) {
+			u32 w = gpu->window_buffer[i].window;
+			u8 bits = gpu->window[w].enable_bits;
+			if (bits & BIT(4)) {
+				auto& obj = gpu->obj_buffer[i];
+				bool effects = bits & BIT(5);
+				obj.effect_top = obj_effect_top && effects;
+				obj.effect_bottom =
+						obj_effect_bottom && effects;
+				push_obj_pixel(gpu, i);
+			}
+		}
+	} else {
+		for (u32 i = 0; i < 256; i++) {
+			auto& obj = gpu->obj_buffer[i];
+			obj.effect_top = obj_effect_top;
+			obj.effect_bottom = obj_effect_bottom;
+			push_obj_pixel(gpu, i);
 		}
 	}
 
@@ -566,7 +641,10 @@ graphics_display_scanline(gpu_2d_engine *gpu)
 		u16 color_result = top.color;
 
 		if (top.force_blend) {
-			/* TODO: alpha blending */
+			if (bottom.effect_bottom) {
+				color_result = alpha_blend(top.color,
+						bottom.color, eva, evb);
+			}
 		} else {
 			switch (effect) {
 			case 0:
@@ -724,7 +802,7 @@ render_text_bg(gpu_2d_engine *gpu, int bg)
 				} else {
 					color = bg_get_color_256(gpu, offset);
 				}
-				draw_bg_pixel(gpu, i, color, bg_priority,
+				draw_bg_pixel(gpu, bg, i, color, bg_priority,
 						effect_top, effect_bottom);
 			}
 		} else {
@@ -733,7 +811,7 @@ render_text_bg(gpu_2d_engine *gpu, int bg)
 				if (offset != 0) {
 					u16 color = bg_get_color_16(gpu,
 							palette_num, offset);
-					draw_bg_pixel(gpu, i, color,
+					draw_bg_pixel(gpu, bg, i, color,
 							bg_priority,
 							effect_top,
 							effect_bottom);
@@ -802,8 +880,8 @@ render_affine_bg(gpu_2d_engine *gpu, int bg)
 				gpu, char_base + 64 * se + 8 * py + px);
 		if (color_num != 0) {
 			u16 color = bg_get_color_256(gpu, color_num);
-			draw_bg_pixel(gpu, i, color, bg_priority, effect_top,
-					effect_bottom);
+			draw_bg_pixel(gpu, bg, i, color, bg_priority,
+					effect_top, effect_bottom);
 		}
 	}
 }
@@ -878,8 +956,8 @@ render_extended_text_bg(gpu_2d_engine *gpu, int bg)
 			} else {
 				color = bg_get_color_256(gpu, color_num);
 			}
-			draw_bg_pixel(gpu, i, color, bg_priority, effect_top,
-					effect_bottom);
+			draw_bg_pixel(gpu, bg, i, color, bg_priority,
+					effect_top, effect_bottom);
 		}
 	}
 }
@@ -921,7 +999,7 @@ render_extended_bitmap_bg(gpu_2d_engine *gpu, int bg, bool direct_color)
 			u16 color = read_bg_data<u16>(
 					gpu, screen_base, bg_w, bg_x, bg_y);
 			if (color & BIT(15)) {
-				draw_bg_pixel(gpu, i, color, bg_priority,
+				draw_bg_pixel(gpu, bg, i, color, bg_priority,
 						effect_top, effect_bottom);
 			}
 		} else {
@@ -929,7 +1007,7 @@ render_extended_bitmap_bg(gpu_2d_engine *gpu, int bg, bool direct_color)
 					gpu, screen_base, bg_w, bg_x, bg_y);
 			if (color_num != 0) {
 				u16 color = bg_get_color_256(gpu, color_num);
-				draw_bg_pixel(gpu, i, color, bg_priority,
+				draw_bg_pixel(gpu, bg, i, color, bg_priority,
 						effect_top, effect_bottom);
 			}
 		}
@@ -993,8 +1071,8 @@ render_large_bitmap_bg(gpu_2d_engine *gpu)
 		u8 color_num = vram_read<u8>(gpu->nds, bg_w * bg_y + bg_x);
 		if (color_num != 0) {
 			u16 color = bg_get_color_256(gpu, color_num);
-			draw_bg_pixel(gpu, i, color, bg_priority, effect_top,
-					effect_bottom);
+			draw_bg_pixel(gpu, bg, i, color, bg_priority,
+					effect_top, effect_bottom);
 		}
 	}
 }
@@ -1129,6 +1207,7 @@ render_normal_sprite(gpu_2d_engine *gpu, obj_data *obj)
 	bool map_1d = gpu->dispcnt & BIT(4);
 	bool extended_palettes = gpu->dispcnt & BIT(31);
 	bool force_blend = obj->mode == 1;
+	bool obj_window = obj->mode == 2;
 
 	u32 tile_offset;
 	if (map_1d) {
@@ -1169,16 +1248,23 @@ render_normal_sprite(gpu_2d_engine *gpu, obj_data *obj)
 				} else {
 					color = obj_get_color_256(gpu, offset);
 				}
-				draw_obj_pixel(gpu, draw_x, color, priority,
-						force_blend);
+				if (obj_window && gpu->window_enabled[2]) {
+					gpu->window_buffer[draw_x].window = 2;
+				} else if (!obj_window) {
+					draw_obj_pixel(gpu, draw_x, color,
+							priority, force_blend);
+				}
 			}
 		} else {
 			for (; px < 8 && draw_x != draw_x_end;
 					px++, draw_x++, char_row >>= 4) {
 				u32 offset = char_row & 0xF;
-				if (offset != 0) {
-					u16 color = obj_get_color_16(gpu,
-							palette_num, offset);
+				if (offset == 0) continue;
+				u16 color = obj_get_color_16(
+						gpu, palette_num, offset);
+				if (obj_window && gpu->window_enabled[2]) {
+					gpu->window_buffer[draw_x].window = 2;
+				} else if (!obj_window) {
 					draw_obj_pixel(gpu, draw_x, color,
 							priority, force_blend);
 				}
@@ -1283,6 +1369,7 @@ render_affine_sprite(gpu_2d_engine *gpu, obj_data *obj)
 	bool extended_palettes = gpu->dispcnt & BIT(31);
 	bool color_256 = obj->attr0 & BIT(13);
 	bool force_blend = obj->mode == 1;
+	bool obj_window = obj->mode == 2;
 
 	for (u32 i = affine.draw_start, end = affine.draw_end; i != end; i++,
 		 affine.ref_x += affine.pa, affine.ref_y += affine.pc) {
@@ -1332,16 +1419,24 @@ render_affine_sprite(gpu_2d_engine *gpu, obj_data *obj)
 				} else {
 					color = obj_get_color_256(gpu, offset);
 				}
-				draw_obj_pixel(gpu, i, color, priority,
-						force_blend);
+				if (obj_window && gpu->window_enabled[2]) {
+					gpu->window_buffer[i].window = 2;
+				} else if (!obj_window) {
+					draw_obj_pixel(gpu, i, color, priority,
+							force_blend);
+				}
 			}
 		} else {
 			offset = px & 1 ? offset >> 4 : offset & 0xF;
 			if (offset != 0) {
 				u16 color = obj_get_color_16(
 						gpu, palette_num, offset);
-				draw_obj_pixel(gpu, i, color, priority,
-						force_blend);
+				if (obj_window && gpu->window_enabled[2]) {
+					gpu->window_buffer[i].window = 2;
+				} else if (!obj_window) {
+					draw_obj_pixel(gpu, i, color, priority,
+							force_blend);
+				}
 			}
 		}
 	}
@@ -1434,11 +1529,22 @@ vram_display_scanline(gpu_2d_engine *gpu)
 }
 
 static void
-draw_bg_pixel(gpu_2d_engine *gpu, u32 fb_x, u16 color, u8 priority,
+draw_bg_pixel(gpu_2d_engine *gpu, int bg, u32 fb_x, u16 color, u8 priority,
 		bool effect_top, bool effect_bottom)
 {
 	auto& top = gpu->buffer_top[fb_x];
 	auto& bottom = gpu->buffer_bottom[fb_x];
+
+	if (gpu->window_any_enabled) {
+		u32 w = gpu->window_buffer[fb_x].window;
+		u8 bits = gpu->window[w].enable_bits;
+		if (!(bits & BIT(bg))) {
+			return;
+		}
+		bool effect = bits & BIT(5);
+		effect_top &= effect;
+		effect_bottom &= effect;
+	}
 
 	if (priority < top.priority) {
 		bottom = top;
