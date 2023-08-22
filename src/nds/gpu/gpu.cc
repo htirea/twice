@@ -23,6 +23,14 @@ gpu_2d_read32(gpu_2d_engine *gpu, u8 offset)
 		return (u32)gpu->bg_cnt[1] << 16 | gpu->bg_cnt[0];
 	case 0xC:
 		return (u32)gpu->bg_cnt[3] << 16 | gpu->bg_cnt[2];
+	case 0x10:
+		return (u32)gpu->bg_vofs[0] << 16 | gpu->bg_hofs[0];
+	case 0x14:
+		return (u32)gpu->bg_vofs[1] << 16 | gpu->bg_hofs[1];
+	case 0x18:
+		return (u32)gpu->bg_vofs[2] << 16 | gpu->bg_hofs[2];
+	case 0x1C:
+		return (u32)gpu->bg_vofs[3] << 16 | gpu->bg_hofs[3];
 	case 0x48:
 		return (u32)gpu->winout << 16 | gpu->winin;
 	}
@@ -43,6 +51,10 @@ gpu_2d_read16(gpu_2d_engine *gpu, u8 offset)
 		return gpu->bg_cnt[2];
 	case 0xE:
 		return gpu->bg_cnt[3];
+	case 0x44:
+		return gpu->win_v[0];
+	case 0x46:
+		return gpu->win_v[1];
 	case 0x48:
 		return gpu->winin;
 	case 0x4A:
