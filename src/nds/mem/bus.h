@@ -95,7 +95,7 @@ bus9_read(nds_ctx *nds, u32 addr)
 		undef = true;
 	}
 
-	if (undef) {
+	if (undef && addr != 0) {
 		LOG("undefined nds9 read at %08X\n", addr);
 	}
 
@@ -150,7 +150,7 @@ bus9_write(nds_ctx *nds, u32 addr, T value)
 		undef = true;
 	}
 
-	if (undef) {
+	if (undef && addr != 0) {
 		LOG("undefined nds9 write to %08X\n", addr);
 	}
 }
