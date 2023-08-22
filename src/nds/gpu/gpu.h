@@ -33,6 +33,7 @@ struct gpu_2d_engine {
 	u16 bldcnt{};
 	u16 bldalpha{};
 	u16 bldy{};
+	u16 master_bright{};
 
 	u32 *fb{};
 

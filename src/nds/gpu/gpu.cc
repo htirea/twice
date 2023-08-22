@@ -329,6 +329,58 @@ fb_fill_white(u32 *fb, u16 scanline)
 	}
 }
 
+static u32
+increase_master_brightness(u32 color, u8 factor)
+{
+	u32 r = color & 0xFF;
+	u32 g = color >> 8 & 0xFF;
+	u32 b = color >> 16 & 0xFF;
+
+	r += (0xFF - r) * factor >> 4;
+	g += (0xFF - g) * factor >> 4;
+	b += (0xFF - b) * factor >> 4;
+
+	return b << 16 | g << 8 | r;
+}
+
+static u32
+decrease_master_brightness(u32 color, u8 factor)
+{
+	u32 r = color & 0xFF;
+	u32 g = color >> 8 & 0xFF;
+	u32 b = color >> 16 & 0xFF;
+
+	r -= r * factor >> 4;
+	g -= g * factor >> 4;
+	b -= b * factor >> 4;
+
+	return b << 16 | g << 8 | r;
+}
+
+static void
+adjust_master_brightness(gpu_2d_engine *gpu, u16 scanline)
+{
+	u8 factor = std::min(gpu->master_bright & 0x1F, 16);
+	u8 mode = gpu->master_bright >> 14 & 3;
+	u32 start = 256 * scanline;
+	u32 end = start + 256;
+
+	switch (mode) {
+	case 1:
+		for (u32 i = start; i < end; i++) {
+			gpu->fb[i] = increase_master_brightness(
+					gpu->fb[i], factor);
+		}
+		break;
+	case 2:
+		for (u32 i = start; i < end; i++) {
+			gpu->fb[i] = decrease_master_brightness(
+					gpu->fb[i], factor);
+		}
+		break;
+	}
+}
+
 static void
 draw_scanline(gpu_2d_engine *gpu, u16 scanline)
 {
@@ -354,6 +406,8 @@ draw_scanline(gpu_2d_engine *gpu, u16 scanline)
 	case 3:
 		throw twice_error("display mode 3 not implemented");
 	}
+
+	adjust_master_brightness(gpu, scanline);
 }
 
 static void
