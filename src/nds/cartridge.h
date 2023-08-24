@@ -27,7 +27,7 @@ struct cartridge_db_entry {
 	int savetype;
 };
 
-extern const std::vector<cartridge_db_entry> game_db;
+extern std::vector<cartridge_db_entry> game_db;
 
 struct cartridge_backup {
 	cartridge_backup(u8 *data, size_t size, int savetype);

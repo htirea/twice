@@ -16,6 +16,19 @@ nds_machine::nds_machine(const nds_config& config)
 	  firmware(config.data_dir + "firmware.bin", FIRMWARE_SIZE,
 			  file_map::FILEMAP_PRIVATE | file_map::FILEMAP_EXACT)
 {
+	try {
+		auto game_db = file_map(config.data_dir + "game_db.bin", 1_MiB,
+				file_map::FILEMAP_PRIVATE |
+						file_map::FILEMAP_LIMIT);
+		int err = nds_initialize_game_db(
+				game_db.data(), game_db.size());
+		if (err) {
+			throw twice_error(
+					"could not initialize game database");
+		}
+	} catch (const file_map::file_map_error& e) {
+		;
+	}
 }
 
 nds_machine::~nds_machine() = default;

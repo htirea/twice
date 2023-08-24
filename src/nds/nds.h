@@ -162,6 +162,7 @@ void nds_set_rtc_time(nds_ctx *nds, int year, int month, int day, int weekday,
 void nds_set_touchscreen_state(nds_ctx *nds, int x, int y, bool down);
 int nds_get_savetype(u8 *cartridge_data);
 size_t nds_get_savefile_size(int savetype);
+int nds_initialize_game_db(u8 *data, size_t size);
 
 void event_hblank_start(nds_ctx *nds);
 void event_hblank_end(nds_ctx *nds);
