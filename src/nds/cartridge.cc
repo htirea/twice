@@ -141,13 +141,23 @@ cartridge::cartridge(u8 *data, size_t size, u8 *save_data, size_t save_size,
 		gamecode = readarr<u32>(data, 0xC);
 	}
 
+	backup.status = 0;
+
 	switch (savetype) {
 	case SAVETYPE_EEPROM_512B:
 		backup.status = 0xF0;
 		break;
-	case SAVETYPE_EEPROM_8K:
-	case SAVETYPE_EEPROM_64K:
-		backup.status = 0;
+	case SAVETYPE_FLASH_256K:
+		backup.jedec_id = 0x204012;
+		break;
+	case SAVETYPE_FLASH_512K:
+		backup.jedec_id = 0x204013;
+		break;
+	case SAVETYPE_FLASH_1M:
+		backup.jedec_id = 0x204014;
+		break;
+	case SAVETYPE_FLASH_8M:
+		backup.jedec_id = 0x204015;
 		break;
 	}
 }
@@ -325,14 +335,9 @@ auxspicnt_write(nds_ctx *nds, int cpuid, u16 value)
 }
 
 static void
-eeprom_8k_transfer_byte(nds_ctx *nds, u8 value, bool keep_active)
+eeprom_common_transfer_byte(nds_ctx *nds, u8 value)
 {
 	auto& bk = nds->cart.backup;
-
-	if (!bk.cs_active) {
-		bk.command = value;
-		bk.count = 0;
-	}
 
 	switch (bk.command) {
 	case 0x6:
@@ -356,6 +361,74 @@ eeprom_8k_transfer_byte(nds_ctx *nds, u8 value, bool keep_active)
 			nds->auxspidata_r = -1;
 		}
 		break;
+	default:
+		LOG("unknown eeprom command %02X\n", bk.command);
+	}
+}
+
+static void
+eeprom_512b_transfer_byte(nds_ctx *nds, u8 value, bool keep_active)
+{
+	auto& bk = nds->cart.backup;
+
+	if (!bk.cs_active) {
+		bk.command = value;
+		bk.count = 0;
+	}
+
+	switch (bk.command) {
+	case 0x3:
+	case 0xB:
+		switch (bk.count) {
+		case 0:
+			break;
+		case 1:
+			bk.addr = value;
+			if (bk.command == 0xB) {
+				bk.addr |= 0x100;
+			}
+			break;
+		default:
+			nds->auxspidata_r = readarr_checked<u8>(
+					bk.data, bk.addr, bk.size, -1);
+			bk.addr++;
+		}
+		break;
+	case 0x2:
+	case 0xA:
+		switch (bk.count) {
+		case 0:
+			break;
+		case 1:
+			bk.addr = value;
+			if (bk.command == 0xA) {
+				bk.addr |= 0x100;
+			}
+			break;
+		default:
+			writearr_checked<u8>(bk.data, bk.addr, value, bk.size);
+			bk.addr++;
+		}
+		break;
+	default:
+		eeprom_common_transfer_byte(nds, value);
+	}
+
+	bk.count++;
+	bk.cs_active = keep_active;
+}
+
+static void
+eeprom_8k_transfer_byte(nds_ctx *nds, u8 value, bool keep_active)
+{
+	auto& bk = nds->cart.backup;
+
+	if (!bk.cs_active) {
+		bk.command = value;
+		bk.count = 0;
+	}
+
+	switch (bk.command) {
 	case 0x3:
 		switch (bk.count) {
 		case 0:
@@ -388,7 +461,96 @@ eeprom_8k_transfer_byte(nds_ctx *nds, u8 value, bool keep_active)
 		}
 		break;
 	default:
-		LOG("unknown eeprom command %02X\n", bk.command);
+		eeprom_common_transfer_byte(nds, value);
+	}
+
+	bk.count++;
+	bk.cs_active = keep_active;
+}
+
+static void
+flash_transfer_byte(nds_ctx *nds, u8 value, bool keep_active)
+{
+	auto& bk = nds->cart.backup;
+
+	if (!bk.cs_active) {
+		bk.command = value;
+		bk.count = 0;
+	}
+
+	switch (bk.command) {
+	case 0x6:
+		bk.status |= BIT(1);
+		break;
+	case 0x4:
+		bk.status &= ~BIT(0);
+		break;
+	case 0x9F:
+		switch (bk.count) {
+		case 0:
+			break;
+		case 1:
+			nds->auxspidata_r = bk.jedec_id >> 16 & 0xFF;
+			break;
+		case 2:
+			nds->auxspidata_r = bk.jedec_id >> 8 & 0xFF;
+			break;
+		case 3:
+			nds->auxspidata_r = bk.jedec_id & 0xFF;
+			break;
+		}
+		break;
+	case 0x5:
+		if (bk.count > 0) {
+			nds->auxspidata_r = bk.status;
+		}
+		break;
+	case 0x3:
+	case 0xB:
+		switch (bk.count) {
+		case 0:
+			break;
+		case 1:
+			bk.addr = (u32)value << 16;
+			break;
+		case 2:
+			bk.addr |= (u32)value << 8;
+			break;
+		case 3:
+			bk.addr |= value;
+			break;
+		case 4:
+			if (bk.command == 0xB) {
+				break;
+			}
+			[[fallthrough]];
+		default:
+			nds->auxspidata_r = readarr_checked<u8>(
+					bk.data, bk.addr, bk.size, 0);
+			bk.addr++;
+		}
+		break;
+	case 0xA:
+		switch (bk.count) {
+		case 0:
+			break;
+		case 1:
+			bk.addr = (u32)value << 16;
+			break;
+		case 2:
+			bk.addr |= (u32)value << 8;
+			break;
+		case 3:
+			bk.addr |= value;
+			break;
+		default:
+			writearr_checked<u8>(bk.data, bk.addr, value, bk.size);
+			bk.addr++;
+		}
+		break;
+	default:
+		LOG("unknown flash command %02X\n", bk.command);
+		throw twice_error("unknown flash command");
 	}
 
 	bk.count++;
@@ -406,9 +568,18 @@ auxspidata_write(nds_ctx *nds, int cpuid, u8 value)
 	bool keep_active = nds->auxspicnt & BIT(6);
 
 	switch (nds->cart.backup.savetype) {
+	case SAVETYPE_EEPROM_512B:
+		eeprom_512b_transfer_byte(nds, value, keep_active);
+		break;
 	case SAVETYPE_EEPROM_8K:
 	case SAVETYPE_EEPROM_64K:
 		eeprom_8k_transfer_byte(nds, value, keep_active);
+		break;
+	case SAVETYPE_FLASH_256K:
+	case SAVETYPE_FLASH_512K:
+	case SAVETYPE_FLASH_1M:
+	case SAVETYPE_FLASH_8M:
+		flash_transfer_byte(nds, value, keep_active);
 		break;
 	}
 

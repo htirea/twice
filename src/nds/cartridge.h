@@ -40,6 +40,7 @@ struct cartridge_backup {
 	u32 count{};
 	u32 addr{};
 	u8 status{};
+	u32 jedec_id{};
 	bool cs_active{};
 };
 
