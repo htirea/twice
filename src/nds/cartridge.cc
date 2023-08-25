@@ -478,7 +478,14 @@ flash_transfer_byte(nds_ctx *nds, u8 value, bool keep_active)
 		bk.count = 0;
 	}
 
+	if (bk.command == 0 && bk.count == 1) {
+		bk.command = value;
+		bk.count = 0;
+	}
+
 	switch (bk.command) {
+	case 0x0:
+		break;
 	case 0x6:
 		bk.status |= BIT(1);
 		break;
