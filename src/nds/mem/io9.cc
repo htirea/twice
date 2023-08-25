@@ -126,6 +126,9 @@ io9_read16(nds_ctx *nds, u32 addr)
 		return nds->gpu2d[1].dispcnt;
 	case 0x400106C:
 		return nds->gpu2d[1].master_bright;
+	case 0x4004010:
+		LOGVV("[dsi reg] nds 0 read 16 at %08X\n", addr);
+		return 0;
 	}
 
 	if (0x4000008 <= addr && addr < 0x4000058) {
