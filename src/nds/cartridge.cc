@@ -180,7 +180,7 @@ event_advance_rom_transfer(nds_ctx *nds)
 
 	nds->romctrl |= BIT(23);
 
-	switch (t.command[0]) {
+	switch (t.command[7]) {
 	case 0x00:
 		t.bus_data_r = readarr_checked<u32>(cart.data,
 				t.bytes_read & 0xFFF, cart.size, -1);
@@ -216,7 +216,9 @@ cartridge_start_command(nds_ctx *nds, int cpuid)
 	auto& cart = nds->cart;
 	auto& t = nds->cart.transfer;
 
-	std::memcpy(t.command, nds->cart_command_out, 8);
+	for (u32 i = 0; i < 8; i++) {
+		t.command[i] = nds->cart_command_out[7 - i];
+	}
 
 	u32 bs_bits = nds->romctrl >> 24 & 7;
 	if (bs_bits == 0) {
@@ -229,15 +231,15 @@ cartridge_start_command(nds_ctx *nds, int cpuid)
 
 	t.bytes_read = 0;
 
-	switch (t.command[0]) {
+	switch (t.command[7]) {
 	case 0x9F:
 	case 0x00:
 	case 0x90:
 		break;
 	case 0xB7:
-		t.start_addr = (u32)t.command[1] << 24 |
-		               (u32)t.command[2] << 16 |
-		               (u32)t.command[3] << 8 | t.command[4];
+		t.start_addr = (u32)t.command[6] << 24 |
+		               (u32)t.command[5] << 16 |
+		               (u32)t.command[4] << 8 | t.command[3];
 		t.start_addr &= cart.read_mask;
 		if (t.start_addr < 0x8000) {
 			t.start_addr = 0x8000 + (t.start_addr & 0x1FF);
@@ -246,8 +248,7 @@ cartridge_start_command(nds_ctx *nds, int cpuid)
 	case 0xB8:
 		break;
 	default:
-		LOG("unhandled command %016lX\n",
-				byteswap64(readarr<u64>(t.command, 0)));
+		LOG("unhandled command %016lX\n", readarr<u64>(t.command, 0));
 	}
 
 	u32 cycles_per_byte = nds->romctrl & BIT(27) ? 8 : 5;
