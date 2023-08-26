@@ -181,6 +181,10 @@ event_advance_rom_transfer(nds_ctx *nds)
 	nds->romctrl |= BIT(23);
 
 	switch (t.command[0]) {
+	case 0x00:
+		t.bus_data_r = readarr_checked<u32>(cart.data,
+				t.bytes_read & 0xFFF, cart.size, -1);
+		break;
 	case 0xB7:
 	{
 		u32 offset = (t.start_addr & ~0xFFF) |
@@ -189,9 +193,11 @@ event_advance_rom_transfer(nds_ctx *nds)
 				cart.data, offset, cart.size, -1);
 		break;
 	}
+	case 0x90:
 	case 0xB8:
 		t.bus_data_r = cart.chip_id;
 		break;
+	case 0x9F:
 	default:
 		t.bus_data_r = -1;
 	}
@@ -224,6 +230,10 @@ cartridge_start_command(nds_ctx *nds, int cpuid)
 	t.bytes_read = 0;
 
 	switch (t.command[0]) {
+	case 0x9F:
+	case 0x00:
+	case 0x90:
+		break;
 	case 0xB7:
 		t.start_addr = (u32)t.command[1] << 24 |
 		               (u32)t.command[2] << 16 |
