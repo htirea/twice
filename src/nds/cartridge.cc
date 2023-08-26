@@ -185,11 +185,8 @@ event_advance_rom_transfer(nds_ctx *nds)
 	{
 		u32 offset = (t.start_addr & ~0xFFF) |
 		             ((t.start_addr + t.bytes_read) & 0xFFF);
-		if (offset < cart.size) {
-			t.bus_data_r = readarr<u32>(cart.data, offset);
-		} else {
-			t.bus_data_r = -1;
-		}
+		t.bus_data_r = readarr_checked<u32>(
+				cart.data, offset, cart.size, -1);
 		break;
 	}
 	case 0xB8:
