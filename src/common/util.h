@@ -25,7 +25,7 @@ template <typename T>
 T
 readarr_checked(u8 *arr, u32 offset, size_t size, T default_value)
 {
-	if (offset + sizeof(T) >= size) {
+	if (offset + sizeof(T) > size) {
 		return default_value;
 	}
 
@@ -36,7 +36,7 @@ template <typename T>
 void
 writearr_checked(u8 *arr, u32 offset, T data, size_t size)
 {
-	if (offset + sizeof(T) >= size) {
+	if (offset + sizeof(T) > size) {
 		return;
 	}
 
