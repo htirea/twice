@@ -71,21 +71,21 @@ struct file_map {
 	 * \returns true if there is an underlying file
 	 *          false otherwise
 	 */
-	explicit operator bool() noexcept { return data_p; }
+	explicit operator bool() const noexcept { return data_p; }
 
 	/**
 	 * Get a pointer to the underlying file.
 	 *
 	 * \returns a pointer to the underlying file
 	 */
-	unsigned char *data() noexcept { return data_p; }
+	unsigned char *data() const noexcept { return data_p; }
 
 	/**
 	 * Get the size of the underlying file.
 	 *
 	 * \returns the size of the underlying file
 	 */
-	size_t size() noexcept { return mapped_size; }
+	size_t size() const noexcept { return mapped_size; }
 
       private:
 	unsigned char *data_p{};

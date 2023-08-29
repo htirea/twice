@@ -18,6 +18,7 @@ add_library(twice STATIC
 	libtwice/config.cc
 	libtwice/filemap_common.cc
 	${FILEMAP_SOURCE}
+	libtwice/game_db.cc
 	libtwice/machine.cc
 	nds/arm/arm.cc
 	nds/arm/arm7.cc
@@ -26,7 +27,6 @@ add_library(twice STATIC
 	nds/arm/interpreter/lut.cc
 	nds/cartridge.cc
 	nds/firmware.cc
-	nds/game_db.cc
 	nds/gpu/gpu.cc
 	nds/gpu/vram.cc
 	nds/ipc.cc

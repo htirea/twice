@@ -9,8 +9,9 @@
 
 #include "libtwice/config.h"
 #include "libtwice/exception.h"
-#include "libtwice/machine.h"
-#include "libtwice/nds_defs.h"
+#include "libtwice/nds/defs.h"
+#include "libtwice/nds/game_db.h"
+#include "libtwice/nds/machine.h"
 
 #include "args.h"
 #include "platform.h"
@@ -113,6 +114,7 @@ try {
 		std::cerr << "data dir: " << data_dir << '\n';
 	}
 
+	twice::nds_load_game_db(data_dir + "game_db.bin");
 	twice::nds_config config{ data_dir };
 	twice::nds_machine nds(config);
 	if (!cartridge_pathname.empty()) {

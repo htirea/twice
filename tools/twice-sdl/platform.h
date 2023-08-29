@@ -9,7 +9,7 @@
 #include "SDL.h"
 
 #include "libtwice/exception.h"
-#include "libtwice/machine.h"
+#include "libtwice/nds/machine.h"
 
 #include "moving_average.h"
 

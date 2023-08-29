@@ -1,12 +1,13 @@
-#ifndef LIBTWICE_MACHINE_H
-#define LIBTWICE_MACHINE_H
+#ifndef LIBTWICE_NDS_MACHINE_H
+#define LIBTWICE_NDS_MACHINE_H
 
 #include <cstddef>
 #include <memory>
 #include <string>
 
 #include "libtwice/filemap.h"
-#include "libtwice/nds_defs.h"
+#include "libtwice/nds/defs.h"
+#include "libtwice/nds/game_db.h"
 
 namespace twice {
 
@@ -146,7 +147,7 @@ struct nds_machine {
 	file_map firmware;
 	file_map cartridge;
 	file_map savefile;
-	int savetype;
+	nds_save_info save_info;
 	std::unique_ptr<nds_ctx> nds;
 };
 

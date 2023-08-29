@@ -1,4 +1,4 @@
-#include "libtwice/machine.h"
+#include "libtwice/nds/machine.h"
 #include "libtwice/exception.h"
 
 #include "nds/nds.h"
@@ -16,19 +16,6 @@ nds_machine::nds_machine(const nds_config& config)
 	  firmware(config.data_dir + "firmware.bin", FIRMWARE_SIZE,
 			  file_map::FILEMAP_PRIVATE | file_map::FILEMAP_EXACT)
 {
-	try {
-		auto game_db = file_map(config.data_dir + "game_db.bin", 1_MiB,
-				file_map::FILEMAP_PRIVATE |
-						file_map::FILEMAP_LIMIT);
-		int err = nds_initialize_game_db(
-				game_db.data(), game_db.size());
-		if (err) {
-			throw twice_error(
-					"could not initialize game database");
-		}
-	} catch (const file_map::file_map_error& e) {
-		;
-	}
 }
 
 nds_machine::~nds_machine() = default;
@@ -49,22 +36,21 @@ nds_machine::load_cartridge(const std::string& pathname)
 		throw twice_error("cartridge size too small: " + pathname);
 	}
 
-	int savetype = nds_get_savetype(cartridge.data());
-	if (savetype == SAVETYPE_UNKNOWN) {
+	nds_save_info save_info = nds_get_save_info(cartridge);
+	if (save_info.type == SAVETYPE_UNKNOWN) {
 		throw twice_error("unknown save type");
 	}
 
 	file_map savefile;
-	if (savetype != SAVETYPE_NONE) {
+	if (save_info.type != SAVETYPE_NONE) {
 		std::string savepath = make_savefile_pathname(pathname);
-		size_t savefile_size = nds_get_savefile_size(savetype);
-		savefile = file_map(savepath, savefile_size,
+		savefile = file_map(savepath, save_info.size,
 				file_map::FILEMAP_SHARED);
 	}
 
 	this->cartridge = std::move(cartridge);
 	this->savefile = std::move(savefile);
-	this->savetype = savetype;
+	this->save_info = save_info;
 }
 
 void
@@ -77,7 +63,7 @@ nds_machine::boot(bool direct_boot)
 	auto ctx = std::make_unique<nds_ctx>(arm7_bios.data(),
 			arm9_bios.data(), firmware.data(), cartridge.data(),
 			cartridge.size(), savefile.data(), savefile.size(),
-			savetype);
+			save_info.type);
 	if (direct_boot) {
 		nds_direct_boot(ctx.get());
 	} else {

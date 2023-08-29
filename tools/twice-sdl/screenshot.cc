@@ -5,7 +5,7 @@
 #include <iostream>
 #include <png.h>
 
-#include "libtwice/nds_defs.h"
+#include "libtwice/nds/defs.h"
 #include "libtwice/types.h"
 
 namespace twice {
