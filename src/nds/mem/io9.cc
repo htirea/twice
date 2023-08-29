@@ -341,7 +341,7 @@ io9_write16(nds_ctx *nds, u32 addr, u16 value)
 		return;
 	case 0x4000300:
 		nds->postflg[0] &= ~BIT(1);
-		nds->postflg[1] |= value & 3;
+		nds->postflg[0] |= value & 3;
 		return;
 	case 0x4000304:
 		powcnt1_write(nds, value);
