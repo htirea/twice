@@ -78,7 +78,9 @@ struct file_map {
 	 *
 	 * \returns a pointer to the underlying file
 	 */
-	unsigned char *data() const noexcept { return data_p; }
+	unsigned char *data() noexcept { return data_p; }
+
+	const unsigned char *data() const noexcept { return data_p; }
 
 	/**
 	 * Get the size of the underlying file.

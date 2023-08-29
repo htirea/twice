@@ -7,7 +7,7 @@ namespace twice {
 
 template <typename T>
 T
-readarr(u8 *arr, u32 offset)
+readarr(const u8 *arr, u32 offset)
 {
 	T x;
 	std::memcpy(&x, arr + offset, sizeof(T));
@@ -23,7 +23,7 @@ writearr(u8 *arr, u32 offset, T data)
 
 template <typename T>
 T
-readarr_checked(u8 *arr, u32 offset, size_t size, T default_value)
+readarr_checked(const u8 *arr, u32 offset, size_t size, T default_value)
 {
 	if (offset + sizeof(T) > size) {
 		return default_value;
