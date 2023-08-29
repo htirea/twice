@@ -46,7 +46,7 @@ struct cartridge_backup {
 
 struct cartridge {
 	cartridge(u8 *data, size_t size, u8 *save_data, size_t save_size,
-			int savetype);
+			int savetype, u8 *arm7_bios);
 
 	u8 *data{};
 	size_t size{};
@@ -61,11 +61,17 @@ struct cartridge {
 		u32 bus_data_r{};
 
 		u32 start_addr{};
+		bool key1{};
 	} transfer;
 
 	cartridge_backup backup;
+
+	u8 *arm7_bios{};
+	u32 keybuf[0x412]{};
+	u8 keycode[16]{};
 };
 
+void encrypt_secure_area(cartridge *cart);
 u32 read_cart_bus_data(nds_ctx *nds, int cpuid);
 void cartridge_start_command(nds_ctx *nds, int cpuid);
 void event_advance_rom_transfer(nds_ctx *nds);

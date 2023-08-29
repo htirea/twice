@@ -19,7 +19,8 @@ nds_ctx::nds_ctx(u8 *arm7_bios, u8 *arm9_bios, u8 *firmware, u8 *cartridge,
 	  gpu2d{ { this, 0 }, { this, 1 } },
 	  dma{ { this, 0 }, { this, 1 } },
 	  firmware(firmware),
-	  cart(cartridge, cartridge_size, savefile, savefile_size, savetype),
+	  cart(cartridge, cartridge_size, savefile, savefile_size, savetype,
+			  arm7_bios),
 	  arm7_bios(arm7_bios),
 	  arm9_bios(arm9_bios)
 {
@@ -39,6 +40,7 @@ nds_ctx::~nds_ctx() = default;
 void
 nds_firmware_boot(nds_ctx *nds)
 {
+	encrypt_secure_area(&nds->cart);
 	nds->arm9->arm_jump(0xFFFF0000);
 	nds->arm7->arm_jump(0x0);
 }

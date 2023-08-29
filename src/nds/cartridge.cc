@@ -122,6 +122,102 @@ nds_get_savefile_size(int savetype)
 	return savetype_to_size(savetype);
 }
 
+static void
+encrypt64(u8 *p, u32 *keybuf)
+{
+	u32 y = readarr<u32>(p, 0);
+	u32 x = readarr<u32>(p, 4);
+
+	for (u32 i = 0; i <= 0xF; i++) {
+		u32 z = keybuf[i] ^ x;
+		x = keybuf[0x012 + (z >> 24 & 0xFF)];
+		x += keybuf[0x112 + (z >> 16 & 0xFF)];
+		x ^= keybuf[0x212 + (z >> 8 & 0xFF)];
+		x += keybuf[0x312 + (z & 0xFF)];
+		x ^= y;
+		y = z;
+	}
+
+	writearr<u32>(p, 0, x ^ keybuf[0x10]);
+	writearr<u32>(p, 4, y ^ keybuf[0x11]);
+}
+
+static void
+decrypt64(u8 *p, u32 *keybuf)
+{
+	u32 y = readarr<u32>(p, 0);
+	u32 x = readarr<u32>(p, 4);
+
+	for (u32 i = 0x11; i >= 0x2; i--) {
+		u32 z = keybuf[i] ^ x;
+		x = keybuf[0x012 + (z >> 24 & 0xFF)];
+		x += keybuf[0x112 + (z >> 16 & 0xFF)];
+		x ^= keybuf[0x212 + (z >> 8 & 0xFF)];
+		x += keybuf[0x312 + (z & 0xFF)];
+		x ^= y;
+		y = z;
+	}
+
+	writearr<u32>(p, 0, x ^ keybuf[0x1]);
+	writearr<u32>(p, 4, y ^ keybuf[0x0]);
+}
+
+static void
+apply_keycode(cartridge *cart, u32 modulo)
+{
+	encrypt64(cart->keycode + 4, cart->keybuf);
+	encrypt64(cart->keycode, cart->keybuf);
+	u8 scratch[8]{};
+	for (u32 i = 0; i <= 0x11; i++) {
+		cart->keybuf[i] ^= byteswap32(
+				readarr<u32>(cart->keycode, i * 4 % modulo));
+	}
+	for (u32 i = 0; i <= 0x410; i += 2) {
+		encrypt64(&scratch[0], cart->keybuf);
+		cart->keybuf[i] = readarr<u32>(scratch, 4);
+		cart->keybuf[i + 1] = readarr<u32>(scratch, 0);
+	}
+}
+
+static void
+init_keycode(cartridge *cart, u32 gamecode, int level, u32 modulo)
+{
+	for (u32 i = 0; i < 0x412; i++) {
+		u32 v = readarr<u32>(cart->arm7_bios, 0x30 + i * 4);
+		cart->keybuf[i] = v;
+	}
+
+	writearr<u32>(cart->keycode, 0, gamecode);
+	writearr<u32>(cart->keycode, 4, gamecode / 2);
+	writearr<u32>(cart->keycode, 8, gamecode * 2);
+	if (level >= 1) apply_keycode(cart, modulo);
+	if (level >= 2) apply_keycode(cart, modulo);
+	writearr<u32>(cart->keycode, 4, readarr<u32>(cart->keycode, 4) * 2);
+	writearr<u32>(cart->keycode, 8, readarr<u32>(cart->keycode, 8) / 2);
+	if (level >= 3) apply_keycode(cart, modulo);
+}
+
+void
+encrypt_secure_area(cartridge *cart)
+{
+	if (cart->size < 0x8000) {
+		return;
+	}
+	u64 id = readarr<u64>(cart->data, 0x4000);
+	if (id != 0xE7FFDEFFE7FFDEFF) {
+		return;
+	}
+
+	init_keycode(cart, cart->gamecode, 3, 8);
+	std::memcpy(cart->data + 0x4000, "encryObj", 8);
+	for (u32 i = 0; i < 0x800; i += 8) {
+		encrypt64(cart->data + 0x4000 + i, cart->keybuf);
+	}
+
+	init_keycode(cart, cart->gamecode, 2, 8);
+	encrypt64(cart->data + 0x4000, cart->keybuf);
+}
+
 cartridge_backup::cartridge_backup(u8 *data, size_t size, int savetype)
 	: data(data),
 	  size(size),
@@ -130,15 +226,17 @@ cartridge_backup::cartridge_backup(u8 *data, size_t size, int savetype)
 }
 
 cartridge::cartridge(u8 *data, size_t size, u8 *save_data, size_t save_size,
-		int savetype)
+		int savetype, u8 *arm7_bios)
 	: data(data),
 	  size(size),
 	  read_mask(std::bit_ceil(size) - 1),
 	  chip_id(cartridge_make_chip_id(size)),
-	  backup(save_data, save_size, savetype)
+	  backup(save_data, save_size, savetype),
+	  arm7_bios(arm7_bios)
 {
 	if (data) {
 		gamecode = readarr<u32>(data, 0xC);
+		init_keycode(this, gamecode, 1, 8);
 	}
 
 	backup.status = 0;
@@ -180,26 +278,48 @@ event_advance_rom_transfer(nds_ctx *nds)
 
 	nds->romctrl |= BIT(23);
 
-	switch (t.command[7]) {
-	case 0x00:
-		t.bus_data_r = readarr_checked<u32>(cart.data,
-				t.bytes_read & 0xFFF, cart.size, -1);
-		break;
-	case 0xB7:
-	{
-		u32 offset = (t.start_addr & ~0xFFF) |
-		             ((t.start_addr + t.bytes_read) & 0xFFF);
-		t.bus_data_r = readarr_checked<u32>(
-				cart.data, offset, cart.size, -1);
-		break;
-	}
-	case 0x90:
-	case 0xB8:
-		t.bus_data_r = cart.chip_id;
-		break;
-	case 0x9F:
-	default:
-		t.bus_data_r = -1;
+	if (t.key1) {
+		switch (t.command[7] >> 4) {
+		case 0x1:
+			t.bus_data_r = cart.chip_id;
+			break;
+		case 0x2:
+		{
+			u32 offset = (t.start_addr & ~0xFFF) |
+			             ((t.start_addr + t.bytes_read) & 0xFFF);
+			t.bus_data_r = readarr_checked<u32>(
+					cart.data, offset, cart.size, -1);
+			break;
+		}
+		case 0xA:
+			t.bus_data_r = 0;
+			break;
+		default:
+			t.bus_data_r = -1;
+		}
+	} else {
+		switch (t.command[7]) {
+		case 0x00:
+			t.bus_data_r = readarr_checked<u32>(cart.data,
+					t.bytes_read & 0xFFF, cart.size, -1);
+			break;
+		case 0xB7:
+		{
+			u32 offset = (t.start_addr & ~0xFFF) |
+			             ((t.start_addr + t.bytes_read) & 0xFFF);
+			t.bus_data_r = readarr_checked<u32>(
+					cart.data, offset, cart.size, -1);
+			break;
+		}
+		case 0x90:
+		case 0xB8:
+			t.bus_data_r = cart.chip_id;
+			break;
+		case 0x9F:
+		case 0x3C:
+		default:
+			t.bus_data_r = -1;
+		}
 	}
 
 	start_cartridge_dmas(nds, nds->nds_slot_cpu);
@@ -219,6 +339,9 @@ cartridge_start_command(nds_ctx *nds, int cpuid)
 	for (u32 i = 0; i < 8; i++) {
 		t.command[i] = nds->cart_command_out[7 - i];
 	}
+	if (t.key1) {
+		decrypt64(t.command, cart.keybuf);
+	}
 
 	u32 bs_bits = nds->romctrl >> 24 & 7;
 	if (bs_bits == 0) {
@@ -231,24 +354,47 @@ cartridge_start_command(nds_ctx *nds, int cpuid)
 
 	t.bytes_read = 0;
 
-	switch (t.command[7]) {
-	case 0x9F:
-	case 0x00:
-	case 0x90:
-		break;
-	case 0xB7:
-		t.start_addr = (u32)t.command[6] << 24 |
-		               (u32)t.command[5] << 16 |
-		               (u32)t.command[4] << 8 | t.command[3];
-		t.start_addr &= cart.read_mask;
-		if (t.start_addr < 0x8000) {
-			t.start_addr = 0x8000 + (t.start_addr & 0x1FF);
+	if (t.key1) {
+		switch (t.command[7] >> 4) {
+		case 0x4:
+		case 0x1:
+			break;
+		case 0xA:
+			t.key1 = false;
+			break;
+		case 0x2:
+			t.start_addr = t.command[5] >> 4 & 7;
+			t.start_addr <<= 12;
+			break;
+		default:
+			LOG("unhandled command %016lX\n",
+					readarr<u64>(t.command, 0));
 		}
-		break;
-	case 0xB8:
-		break;
-	default:
-		LOG("unhandled command %016lX\n", readarr<u64>(t.command, 0));
+	} else {
+		switch (t.command[7]) {
+		case 0x9F:
+		case 0x00:
+		case 0x90:
+			break;
+		case 0x3C:
+			t.key1 = true;
+			init_keycode(&cart, cart.gamecode, 2, 8);
+			break;
+		case 0xB7:
+			t.start_addr = (u32)t.command[6] << 24 |
+			               (u32)t.command[5] << 16 |
+			               (u32)t.command[4] << 8 | t.command[3];
+			t.start_addr &= cart.read_mask;
+			if (t.start_addr < 0x8000) {
+				t.start_addr = 0x8000 + (t.start_addr & 0x1FF);
+			}
+			break;
+		case 0xB8:
+			break;
+		default:
+			LOG("unhandled command %016lX\n",
+					readarr<u64>(t.command, 0));
+		}
 	}
 
 	u32 cycles_per_byte = nds->romctrl & BIT(27) ? 8 : 5;
