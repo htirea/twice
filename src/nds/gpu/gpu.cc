@@ -485,50 +485,34 @@ draw_scanline(gpu_2d_engine *gpu, u16 scanline)
 	adjust_master_brightness(gpu, scanline);
 }
 
-static u16
-alpha_blend(u16 color1, u16 color2, u8 eva, u8 evb)
+static color6
+alpha_blend(color6 color1, color6 color2, u8 eva, u8 evb)
 {
-	u16 r1 = color1 & 0x1F;
-	u16 g1 = color1 >> 5 & 0x1F;
-	u16 b1 = color1 >> 10 & 0x1F;
+	u8 r = std::min(63, (color1.r * eva + color2.r * evb + 8) >> 4);
+	u8 g = std::min(63, (color1.g * eva + color2.g * evb + 8) >> 4);
+	u8 b = std::min(63, (color1.b * eva + color2.b * evb + 8) >> 4);
 
-	u16 r2 = color2 & 0x1F;
-	u16 g2 = color2 >> 5 & 0x1F;
-	u16 b2 = color2 >> 10 & 0x1F;
-
-	u16 r = std::min(31, (r1 * eva + r2 * evb) >> 4);
-	u16 g = std::min(31, (g1 * eva + g2 * evb) >> 4);
-	u16 b = std::min(31, (b1 * eva + b2 * evb) >> 4);
-
-	return b << 10 | g << 5 | r;
+	return { r, g, b };
 }
 
-static u16
-increase_brightness(u16 color, u8 evy)
+static color6
+increase_brightness(color6 color, u8 evy)
 {
-	u16 r = color & 0x1F;
-	u16 g = color >> 5 & 0x1F;
-	u16 b = color >> 10 & 0x1F;
+	color.r += ((63 - color.r) * evy + 8) >> 4;
+	color.g += ((63 - color.g) * evy + 8) >> 4;
+	color.b += ((63 - color.b) * evy + 8) >> 4;
 
-	r += (31 - r) * evy >> 4;
-	g += (31 - g) * evy >> 4;
-	b += (31 - b) * evy >> 4;
-
-	return b << 10 | g << 5 | r;
+	return color;
 }
 
-static u16
-decrease_brightness(u16 color, u8 evy)
+static color6
+decrease_brightness(color6 color, u8 evy)
 {
-	u16 r = color & 0x1F;
-	u16 g = color >> 5 & 0x1F;
-	u16 b = color >> 10 & 0x1F;
+	color.r -= (color.r * evy + 7) >> 4;
+	color.g -= (color.g * evy + 7) >> 4;
+	color.b -= (color.b * evy + 7) >> 4;
 
-	r -= r * evy >> 4;
-	g -= g * evy >> 4;
-	b -= b * evy >> 4;
-
-	return b << 10 | g << 5 | r;
+	return color;
 }
 
 static void
@@ -560,6 +544,7 @@ clear_obj_buffer(gpu_2d_engine *gpu)
 		gpu->obj_buffer[i].effect_top = 0;
 		gpu->obj_buffer[i].effect_bottom = 0;
 		gpu->obj_buffer[i].force_blend = 0;
+		gpu->obj_buffer[i].convert_to_6bit = 0;
 	}
 }
 
@@ -598,6 +583,7 @@ set_backdrop(gpu_2d_engine *gpu)
 			gpu->buffer_top[i].effect_top = effect_top & wfx;
 			gpu->buffer_top[i].effect_bottom = effect_bottom & wfx;
 			gpu->buffer_top[i].force_blend = 0;
+			gpu->buffer_top[i].convert_to_6bit = 1;
 			gpu->buffer_bottom[i] = gpu->buffer_top[i];
 		}
 	} else {
@@ -607,6 +593,7 @@ set_backdrop(gpu_2d_engine *gpu)
 			gpu->buffer_top[i].effect_top = effect_top;
 			gpu->buffer_top[i].effect_bottom = effect_bottom;
 			gpu->buffer_top[i].force_blend = 0;
+			gpu->buffer_top[i].convert_to_6bit = 1;
 			gpu->buffer_bottom[i] = gpu->buffer_top[i];
 		}
 	}
@@ -622,6 +609,22 @@ push_obj_pixel(gpu_2d_engine *gpu, u32 i)
 		gpu->buffer_top[i] = obj;
 	} else if (obj.priority <= gpu->buffer_bottom[i].priority) {
 		gpu->buffer_bottom[i] = obj;
+	}
+}
+
+static color6
+pixel_to_color(gpu_2d_engine::pixel p)
+{
+	if (!p.convert_to_6bit) {
+		u8 r = p.color & 0x3F;
+		u8 g = p.color >> 6 & 0x3F;
+		u8 b = p.color >> 12 & 0x3F;
+		return { r, g, b };
+	} else {
+		u8 r = (p.color & 0x1F) << 1;
+		u8 g = (p.color >> 5 & 0x1F) << 1;
+		u8 b = (p.color >> 10 & 0x1F) << 1;
+		return { r, g, b };
 	}
 }
 
@@ -713,8 +716,6 @@ graphics_display_scanline(gpu_2d_engine *gpu)
 		}
 	}
 
-	/* TODO: figure out what format to store pixel colors in */
-
 	u8 effect = gpu->bldcnt >> 6 & 3;
 	u8 eva = std::min(gpu->bldalpha & 0x1F, 16);
 	u8 evb = std::min(gpu->bldalpha >> 8 & 0x1F, 16);
@@ -724,42 +725,45 @@ graphics_display_scanline(gpu_2d_engine *gpu)
 		auto& top = gpu->buffer_top[i];
 		auto& bottom = gpu->buffer_bottom[i];
 
-		u16 color_result = top.color;
+		color6 top_color = pixel_to_color(top);
+		color6 bottom_color = pixel_to_color(bottom);
+
+		color6 color_result = top_color;
 
 		if (top.force_blend) {
 			if (bottom.effect_bottom) {
-				color_result = alpha_blend(top.color,
-						bottom.color, eva, evb);
+				color_result = alpha_blend(top_color,
+						bottom_color, eva, evb);
 			}
 		} else {
 			switch (effect) {
 			case 0:
-				color_result = top.color;
+				color_result = top_color;
 				break;
 			case 1:
 				if (top.effect_top && bottom.effect_bottom) {
-					color_result = alpha_blend(top.color,
-							bottom.color, eva,
+					color_result = alpha_blend(top_color,
+							bottom_color, eva,
 							evb);
 				}
 				break;
 			case 2:
 				if (top.effect_top) {
 					color_result = increase_brightness(
-							top.color, evy);
+							top_color, evy);
 				}
 				break;
 			case 3:
 				if (top.effect_top) {
 					color_result = decrease_brightness(
-							top.color, evy);
+							top_color, evy);
 				}
 				break;
 			}
 		}
 
 		gpu->fb[gpu->nds->vcount * 256 + i] =
-				bgr555_to_bgr888(color_result);
+				color6_to_bgr888(color_result);
 	}
 }
 
@@ -1639,12 +1643,14 @@ draw_bg_pixel(gpu_2d_engine *gpu, int bg, u32 fb_x, u16 color, u8 priority,
 		top.effect_top = effect_top;
 		top.effect_bottom = effect_bottom;
 		top.force_blend = 0;
+		top.convert_to_6bit = 1;
 	} else if (priority < bottom.priority) {
 		bottom.color = color;
 		bottom.priority = priority;
 		bottom.effect_top = effect_top;
 		bottom.effect_bottom = effect_bottom;
 		bottom.force_blend = 0;
+		bottom.convert_to_6bit = 1;
 	}
 }
 
@@ -1658,6 +1664,7 @@ draw_obj_pixel(gpu_2d_engine *gpu, u32 fb_x, u16 color, u8 priority,
 		top.color = color;
 		top.priority = priority;
 		top.force_blend = force_blend;
+		top.convert_to_6bit = 1;
 	}
 }
 
