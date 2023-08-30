@@ -405,6 +405,7 @@ void wramcnt_write(nds_ctx *nds, u8 value);
 		return;                                                       \
 	case 0x4000214:                                                       \
 		nds->cpu[(cpuid_)]->IF &= ~value;                             \
+		if (cpuid_ == 0) gxfifo_check_irq(&nds->gpu3d);               \
 		arm_check_interrupt(nds->cpu[cpuid_]);                        \
 		return
 

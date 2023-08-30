@@ -1,5 +1,7 @@
 #include "nds/nds.h"
 
+#include "nds/arm/arm.h"
+
 #include "common/logger.h"
 
 namespace twice {
@@ -12,7 +14,11 @@ gpu_3d_engine::gpu_3d_engine(nds_ctx *nds)
 static void
 update_gxstat_fifo_bits(gpu_3d_engine *gpu)
 {
-	u32 fifo_size = std::min((u32)256, gpu->fifo.size);
+	u32 fifo_size = gpu->fifo.buffer.size();
+	if (fifo_size > 256) {
+		fifo_size = 256;
+	}
+
 	gpu->gxstat &= ~0x7FF0000;
 	gpu->gxstat |= fifo_size << 16;
 	gpu->gxstat |= (u32)(fifo_size < 128) << 25;
@@ -30,8 +36,171 @@ gxstat_write(gpu_3d_engine *gpu, u32 value)
 	}
 
 	update_gxstat_fifo_bits(gpu);
+	gxfifo_check_irq(gpu);
+}
 
-	/* TODO: FIFO IRQ */
+static bool
+valid_command(u8 cmd)
+{
+	return (cmd == 0) || (0x10 <= cmd && cmd <= 0x1C) ||
+	       (0x20 <= cmd && cmd <= 0x2B) || (0x30 <= cmd && cmd <= 0x34) ||
+	       (0x40 <= cmd && cmd <= 0x41) || (cmd == 0x50) ||
+	       (cmd == 0x60) || (0x70 <= cmd && cmd <= 0x72);
+}
+
+static u32
+get_num_params(u8 cmd)
+{
+	switch (cmd) {
+	case 0x0:
+		return 0;
+	case 0x11:
+	case 0x15:
+	case 0x41:
+		return 0;
+	case 0x16:
+	case 0x18:
+		return 16;
+	case 0x17:
+	case 0x19:
+		return 12;
+	case 0x1A:
+		return 9;
+	case 0x1B:
+	case 0x1C:
+	case 0x70:
+		return 3;
+	case 0x23:
+	case 0x71:
+		return 2;
+	case 0x34:
+		return 32;
+	default:
+		return 1;
+	}
+}
+
+static void
+execute_command(gpu_3d_engine *, u8)
+{
+}
+
+void
+gxfifo_check_irq(gpu_3d_engine *gpu)
+{
+	auto& fifo = gpu->fifo;
+
+	switch (gpu->gxstat >> 30) {
+	case 1:
+		if (fifo.buffer.size() < 128) {
+			request_interrupt(gpu->nds->cpu[0], 21);
+		}
+		break;
+	case 2:
+		if (fifo.buffer.size() == 0) {
+			request_interrupt(gpu->nds->cpu[0], 21);
+		}
+		break;
+	}
+}
+
+static void
+gxfifo_run_commands(gpu_3d_engine *gpu)
+{
+	auto& fifo = gpu->fifo;
+
+	while (!fifo.buffer.empty()) {
+		auto entry = fifo.buffer.front();
+		u32 num_params = get_num_params(entry.command);
+		if (num_params == 0) {
+			fifo.buffer.pop();
+			execute_command(gpu, entry.command);
+		} else if (fifo.buffer.size() >= num_params) {
+			for (u32 i = 0; i < num_params; i++) {
+				fifo.params[i] = fifo.buffer.front().param;
+				fifo.buffer.pop();
+			}
+		} else {
+			break;
+		}
+	}
+
+	gxfifo_check_irq(gpu);
+}
+
+static void
+gxfifo_push(gpu_3d_engine *gpu, u8 command, u32 param, bool run_commands)
+{
+	auto& fifo = gpu->fifo;
+
+	if (fifo.buffer.size() >= gxfifo::MAX_BUFFER_SIZE) {
+		LOG("gxfifo buffer full\n");
+	}
+
+	fifo.buffer.push({ command, param });
+	if (run_commands) {
+		gxfifo_run_commands(gpu);
+	}
+}
+
+static void
+unpack_and_run_commands(gpu_3d_engine *gpu)
+{
+	auto& cfifo = gpu->cmd_fifo;
+	cfifo.count = 0;
+
+	u32 param_idx = 0;
+	for (int i = 0; i < 4; i++) {
+		u8 command = cfifo.commands[i];
+		if (!valid_command(command)) {
+			throw twice_error("invalid command");
+		}
+		u32 num_params = cfifo.num_params[i];
+		for (; num_params--; param_idx++) {
+			gxfifo_push(gpu, command, cfifo.params[param_idx],
+					false);
+		}
+	}
+	gxfifo_run_commands(gpu);
+}
+
+static void
+gxfifo_write(gpu_3d_engine *gpu, u32 value)
+{
+	auto& cfifo = gpu->cmd_fifo;
+
+	if (cfifo.count == 0) {
+		cfifo.packed = value;
+		cfifo.total_params = 0;
+		for (int i = 0; i < 4; i++) {
+			u8 command = cfifo.packed >> 8 * i;
+			if (!valid_command(command)) {
+				LOG("invalid command %02X\n", command);
+				cfifo.num_params[i] = 0;
+				cfifo.commands[i] = 0;
+			} else {
+				cfifo.commands[i] = command;
+				cfifo.num_params[i] = get_num_params(command);
+			}
+		}
+		cfifo.total_params = cfifo.num_params[0] +
+		                     cfifo.num_params[1] +
+		                     cfifo.num_params[2] + cfifo.num_params[3];
+		cfifo.params.clear();
+		cfifo.count++;
+
+		if (cfifo.total_params == 0) {
+			unpack_and_run_commands(gpu);
+		}
+	} else if (cfifo.count < cfifo.total_params) {
+		cfifo.params.push_back(value);
+		cfifo.count++;
+	} else if (cfifo.count == cfifo.total_params) {
+		cfifo.params.push_back(value);
+		unpack_and_run_commands(gpu);
+	} else {
+		throw twice_error("bad cmd gxfifo state");
+	}
 }
 
 u32
@@ -63,11 +232,21 @@ gpu_3d_read8(gpu_3d_engine *, u16 offset)
 void
 gpu_3d_write32(gpu_3d_engine *gpu, u16 offset, u32 value)
 {
+	u8 command = offset >> 2 & 0xFF;
+	if (valid_command(command)) {
+		gxfifo_push(gpu, command, value, true);
+		return;
+	}
+
 	switch (offset) {
+	case 0x400:
+		gxfifo_write(gpu, value);
+		break;
 	case 0x600:
 		gxstat_write(gpu, value);
 		return;
 	}
+
 	LOG("3d engine write 32 at offset %03X, value %08X\n", offset, value);
 }
 
