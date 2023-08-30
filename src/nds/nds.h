@@ -8,6 +8,7 @@
 #include "nds/dma.h"
 #include "nds/firmware.h"
 #include "nds/gpu/gpu.h"
+#include "nds/gpu/gpu3d.h"
 #include "nds/gpu/vram.h"
 #include "nds/ipc.h"
 #include "nds/powerman.h"
@@ -59,6 +60,7 @@ struct nds_ctx {
 
 	gpu_vram vram;
 	gpu_2d_engine gpu2d[2];
+	gpu_3d_engine gpu3d;
 
 	event_scheduler scheduler;
 	timestamp arm_target_cycles[2]{};

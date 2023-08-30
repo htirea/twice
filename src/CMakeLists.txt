@@ -28,6 +28,7 @@ add_library(twice STATIC
 	nds/cartridge.cc
 	nds/firmware.cc
 	nds/gpu/gpu.cc
+	nds/gpu/gpu3d.cc
 	nds/gpu/vram.cc
 	nds/ipc.cc
 	nds/math.cc
