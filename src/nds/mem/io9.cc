@@ -95,6 +95,10 @@ io9_read8(nds_ctx *nds, u32 addr)
 		return gpu_2d_read8(&nds->gpu2d[1], addr);
 	}
 
+	if (0x4000320 <= addr && addr < 0x40006A4) {
+		return gpu_3d_read8(&nds->gpu3d, addr);
+	}
+
 	LOG("nds 0 read 8 at %08X\n", addr);
 	return 0;
 }
@@ -137,6 +141,10 @@ io9_read16(nds_ctx *nds, u32 addr)
 
 	if (0x4001008 <= addr && addr < 0x4001058) {
 		return gpu_2d_read16(&nds->gpu2d[1], addr);
+	}
+
+	if (0x4000320 <= addr && addr < 0x40006A4) {
+		return gpu_3d_read16(&nds->gpu3d, addr);
 	}
 
 	LOG("nds 0 read 16 at %08X\n", addr);
@@ -208,6 +216,10 @@ io9_read32(nds_ctx *nds, u32 addr)
 		return gpu_2d_read32(&nds->gpu2d[1], addr);
 	}
 
+	if (0x4000320 <= addr && addr < 0x40006A4) {
+		return gpu_3d_read32(&nds->gpu3d, addr);
+	}
+
 	LOG("nds 0 read 32 at %08X\n", addr);
 	return 0;
 }
@@ -263,6 +275,11 @@ io9_write8(nds_ctx *nds, u32 addr, u8 value)
 
 	if (0x4001008 <= addr && addr < 0x4001058) {
 		gpu_2d_write8(&nds->gpu2d[1], addr, value);
+		return;
+	}
+
+	if (0x4000320 <= addr && addr < 0x40006A4) {
+		gpu_3d_write8(&nds->gpu3d, addr, value);
 		return;
 	}
 
@@ -369,6 +386,11 @@ io9_write16(nds_ctx *nds, u32 addr, u16 value)
 		return;
 	}
 
+	if (0x4000320 <= addr && addr < 0x40006A4) {
+		gpu_3d_write16(&nds->gpu3d, addr, value);
+		return;
+	}
+
 	LOG("nds 0 write 16 to %08X\n", addr);
 }
 
@@ -459,6 +481,11 @@ io9_write32(nds_ctx *nds, u32 addr, u32 value)
 
 	if (0x4001008 <= addr && addr < 0x4001058) {
 		gpu_2d_write32(&nds->gpu2d[1], addr, value);
+		return;
+	}
+
+	if (0x4000320 <= addr && addr < 0x40006A4) {
+		gpu_3d_write32(&nds->gpu3d, addr, value);
 		return;
 	}
 
