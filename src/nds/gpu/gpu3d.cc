@@ -25,6 +25,13 @@ update_gxstat_fifo_bits(gpu_3d_engine *gpu)
 	gpu->gxstat |= (u32)(fifo_size == 0) << 26;
 }
 
+static u32
+gxstat_read(gpu_3d_engine *gpu)
+{
+	update_gxstat_fifo_bits(gpu);
+	return gpu->gxstat;
+}
+
 static void
 gxstat_write(gpu_3d_engine *gpu, u32 value)
 {
@@ -35,7 +42,6 @@ gxstat_write(gpu_3d_engine *gpu, u32 value)
 		/* TODO: reset texture stack pointer */
 	}
 
-	update_gxstat_fifo_bits(gpu);
 	gxfifo_check_irq(gpu);
 }
 
@@ -110,7 +116,7 @@ gxfifo_run_commands(gpu_3d_engine *gpu)
 	auto& fifo = gpu->fifo;
 
 	while (!fifo.buffer.empty()) {
-		auto entry = fifo.buffer.front();
+		gxfifo::fifo_entry entry = fifo.buffer.front();
 		u32 num_params = get_num_params(entry.command);
 		if (num_params == 0) {
 			fifo.buffer.pop();
@@ -120,6 +126,7 @@ gxfifo_run_commands(gpu_3d_engine *gpu)
 				fifo.params[i] = fifo.buffer.front().param;
 				fifo.buffer.pop();
 			}
+			execute_command(gpu, entry.command);
 		} else {
 			break;
 		}
@@ -208,7 +215,7 @@ gpu_3d_read32(gpu_3d_engine *gpu, u16 offset)
 {
 	switch (offset) {
 	case 0x600:
-		return gpu->gxstat;
+		return gxstat_read(gpu);
 	}
 
 	LOG("3d engine read 32 at offset %03X\n", offset);
