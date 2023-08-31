@@ -95,11 +95,14 @@ init_keycode(cartridge *cart, u32 gamecode, int level, u32 modulo)
 	writearr<u32>(cart->keycode, 0, gamecode);
 	writearr<u32>(cart->keycode, 4, gamecode / 2);
 	writearr<u32>(cart->keycode, 8, gamecode * 2);
-	if (level >= 1) apply_keycode(cart, modulo);
-	if (level >= 2) apply_keycode(cart, modulo);
+	if (level >= 1)
+		apply_keycode(cart, modulo);
+	if (level >= 2)
+		apply_keycode(cart, modulo);
 	writearr<u32>(cart->keycode, 4, readarr<u32>(cart->keycode, 4) * 2);
 	writearr<u32>(cart->keycode, 8, readarr<u32>(cart->keycode, 8) / 2);
-	if (level >= 3) apply_keycode(cart, modulo);
+	if (level >= 3)
+		apply_keycode(cart, modulo);
 }
 
 void
@@ -320,16 +323,20 @@ cartridge_start_command(nds_ctx *nds, int cpuid)
 void
 romctrl_write(nds_ctx *nds, int cpuid, u32 value)
 {
-	if (cpuid != nds->nds_slot_cpu) return;
+	if (cpuid != nds->nds_slot_cpu)
+		return;
 
 	bool old_start = nds->romctrl & BIT(31);
 	bool new_start = value & BIT(31);
 	nds->romctrl = (nds->romctrl & (BIT(23) | BIT(29))) |
 	               (value & ~(BIT(23) | BIT(31)));
 
-	if (!(!old_start && new_start)) return;
-	if (!(nds->auxspicnt & BIT(15))) return;
-	if (nds->auxspicnt & BIT(13)) return;
+	if (!(!old_start && new_start))
+		return;
+	if (!(nds->auxspicnt & BIT(15)))
+		return;
+	if (nds->auxspicnt & BIT(13))
+		return;
 
 	cartridge_start_command(nds, cpuid);
 }
@@ -337,7 +344,8 @@ romctrl_write(nds_ctx *nds, int cpuid, u32 value)
 u32
 read_cart_bus_data(nds_ctx *nds, int cpuid)
 {
-	if (cpuid != nds->nds_slot_cpu) return 0;
+	if (cpuid != nds->nds_slot_cpu)
+		return 0;
 
 	auto& t = nds->cart.transfer;
 
@@ -360,7 +368,8 @@ read_cart_bus_data(nds_ctx *nds, int cpuid)
 void
 auxspicnt_write_l(nds_ctx *nds, int cpuid, u8 value)
 {
-	if (cpuid != nds->nds_slot_cpu) return;
+	if (cpuid != nds->nds_slot_cpu)
+		return;
 
 	nds->auxspicnt = (nds->auxspicnt & ~0x43) | (value & 0x43);
 }
@@ -374,7 +383,8 @@ reset_auxspi(nds_ctx *nds)
 void
 auxspicnt_write_h(nds_ctx *nds, int cpuid, u8 value)
 {
-	if (cpuid != nds->nds_slot_cpu) return;
+	if (cpuid != nds->nds_slot_cpu)
+		return;
 
 	bool old_enabled = nds->auxspicnt & BIT(15);
 	bool new_enabled = value & BIT(7);
@@ -388,7 +398,8 @@ auxspicnt_write_h(nds_ctx *nds, int cpuid, u8 value)
 void
 auxspicnt_write(nds_ctx *nds, int cpuid, u16 value)
 {
-	if (cpuid != nds->nds_slot_cpu) return;
+	if (cpuid != nds->nds_slot_cpu)
+		return;
 
 	bool old_enabled = nds->auxspicnt & BIT(15);
 	bool new_enabled = value & BIT(15);
@@ -668,9 +679,12 @@ infrared_transfer_byte(nds_ctx *nds, u8 value, bool keep_active)
 void
 auxspidata_write(nds_ctx *nds, int cpuid, u8 value)
 {
-	if (cpuid != nds->nds_slot_cpu) return;
-	if (!(nds->auxspicnt & BIT(15))) return;
-	if (!(nds->auxspicnt & BIT(13))) return;
+	if (cpuid != nds->nds_slot_cpu)
+		return;
+	if (!(nds->auxspicnt & BIT(15)))
+		return;
+	if (!(nds->auxspicnt & BIT(13)))
+		return;
 
 	nds->auxspidata_w = value;
 	bool keep_active = nds->auxspicnt & BIT(6);

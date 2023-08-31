@@ -552,8 +552,10 @@ static void
 set_active_window(gpu_2d_engine *gpu)
 {
 	for (int w = 1; w >= 0; w--) {
-		if (!gpu->window_enabled[w]) continue;
-		if (!gpu->window_y_in_range[w]) continue;
+		if (!gpu->window_enabled[w])
+			continue;
+		if (!gpu->window_y_in_range[w])
+			continue;
 
 		u32 x1 = gpu->win_h[w] >> 8;
 		u32 x2 = gpu->win_h[w] & 0xFF;
@@ -645,47 +647,73 @@ graphics_display_scanline(gpu_2d_engine *gpu)
 
 	switch (dispcnt & 0x7) {
 	case 0:
-		if (dispcnt & BIT(8)) render_text_bg(gpu, 0);
-		if (dispcnt & BIT(9)) render_text_bg(gpu, 1);
-		if (dispcnt & BIT(10)) render_text_bg(gpu, 2);
-		if (dispcnt & BIT(11)) render_text_bg(gpu, 3);
+		if (dispcnt & BIT(8))
+			render_text_bg(gpu, 0);
+		if (dispcnt & BIT(9))
+			render_text_bg(gpu, 1);
+		if (dispcnt & BIT(10))
+			render_text_bg(gpu, 2);
+		if (dispcnt & BIT(11))
+			render_text_bg(gpu, 3);
 		break;
 	case 1:
-		if (dispcnt & BIT(8)) render_text_bg(gpu, 0);
-		if (dispcnt & BIT(9)) render_text_bg(gpu, 1);
-		if (dispcnt & BIT(10)) render_text_bg(gpu, 2);
-		if (dispcnt & BIT(11)) render_affine_bg(gpu, 3);
+		if (dispcnt & BIT(8))
+			render_text_bg(gpu, 0);
+		if (dispcnt & BIT(9))
+			render_text_bg(gpu, 1);
+		if (dispcnt & BIT(10))
+			render_text_bg(gpu, 2);
+		if (dispcnt & BIT(11))
+			render_affine_bg(gpu, 3);
 		break;
 	case 2:
-		if (dispcnt & BIT(8)) render_text_bg(gpu, 0);
-		if (dispcnt & BIT(9)) render_text_bg(gpu, 1);
-		if (dispcnt & BIT(10)) render_affine_bg(gpu, 2);
-		if (dispcnt & BIT(11)) render_affine_bg(gpu, 3);
+		if (dispcnt & BIT(8))
+			render_text_bg(gpu, 0);
+		if (dispcnt & BIT(9))
+			render_text_bg(gpu, 1);
+		if (dispcnt & BIT(10))
+			render_affine_bg(gpu, 2);
+		if (dispcnt & BIT(11))
+			render_affine_bg(gpu, 3);
 		break;
 	case 3:
-		if (dispcnt & BIT(8)) render_text_bg(gpu, 0);
-		if (dispcnt & BIT(9)) render_text_bg(gpu, 1);
-		if (dispcnt & BIT(10)) render_text_bg(gpu, 2);
-		if (dispcnt & BIT(11)) render_extended_bg(gpu, 3);
+		if (dispcnt & BIT(8))
+			render_text_bg(gpu, 0);
+		if (dispcnt & BIT(9))
+			render_text_bg(gpu, 1);
+		if (dispcnt & BIT(10))
+			render_text_bg(gpu, 2);
+		if (dispcnt & BIT(11))
+			render_extended_bg(gpu, 3);
 		break;
 	case 4:
-		if (dispcnt & BIT(8)) render_text_bg(gpu, 0);
-		if (dispcnt & BIT(9)) render_text_bg(gpu, 1);
-		if (dispcnt & BIT(10)) render_affine_bg(gpu, 2);
-		if (dispcnt & BIT(11)) render_extended_bg(gpu, 3);
+		if (dispcnt & BIT(8))
+			render_text_bg(gpu, 0);
+		if (dispcnt & BIT(9))
+			render_text_bg(gpu, 1);
+		if (dispcnt & BIT(10))
+			render_affine_bg(gpu, 2);
+		if (dispcnt & BIT(11))
+			render_extended_bg(gpu, 3);
 		break;
 	case 5:
-		if (dispcnt & BIT(8)) render_text_bg(gpu, 0);
-		if (dispcnt & BIT(9)) render_text_bg(gpu, 1);
-		if (dispcnt & BIT(10)) render_extended_bg(gpu, 2);
-		if (dispcnt & BIT(11)) render_extended_bg(gpu, 3);
+		if (dispcnt & BIT(8))
+			render_text_bg(gpu, 0);
+		if (dispcnt & BIT(9))
+			render_text_bg(gpu, 1);
+		if (dispcnt & BIT(10))
+			render_extended_bg(gpu, 2);
+		if (dispcnt & BIT(11))
+			render_extended_bg(gpu, 3);
 		break;
 	case 6:
 		if (gpu->engineid == 1) {
 			throw twice_error("bg mode 6 invalid for engine B");
 		}
-		if (dispcnt & BIT(8)) render_3d(gpu);
-		if (dispcnt & BIT(10)) render_large_bitmap_bg(gpu);
+		if (dispcnt & BIT(8))
+			render_3d(gpu);
+		if (dispcnt & BIT(10))
+			render_large_bitmap_bg(gpu);
 		break;
 	case 7:
 		throw twice_error("bg mode 7 invalid");
@@ -882,7 +910,8 @@ render_text_bg(gpu_2d_engine *gpu, int bg)
 		if (color_256) {
 			for (; px < 8 && i < 256; px++, i++, char_row >>= 8) {
 				u32 offset = char_row & 0xFF;
-				if (offset == 0) continue;
+				if (offset == 0)
+					continue;
 
 				u16 color;
 				if (extended_palettes) {
@@ -1329,7 +1358,8 @@ render_normal_sprite(gpu_2d_engine *gpu, obj_data *obj)
 			for (; px < 8 && draw_x != draw_x_end;
 					px++, draw_x++, char_row >>= 8) {
 				u32 offset = char_row & 0xFF;
-				if (offset == 0) continue;
+				if (offset == 0)
+					continue;
 
 				u16 color;
 				if (extended_palettes) {
@@ -1349,7 +1379,8 @@ render_normal_sprite(gpu_2d_engine *gpu, obj_data *obj)
 			for (; px < 8 && draw_x != draw_x_end;
 					px++, draw_x++, char_row >>= 4) {
 				u32 offset = char_row & 0xF;
-				if (offset == 0) continue;
+				if (offset == 0)
+					continue;
 				u16 color = obj_get_color_16(
 						gpu, palette_num, offset);
 				if (obj_window && gpu->window_enabled[2]) {

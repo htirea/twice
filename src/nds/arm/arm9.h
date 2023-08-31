@@ -59,9 +59,12 @@ struct arm9_cpu final : arm_cpu {
 	u32 cp15_read(u32 reg);
 	void cp15_write(u32 reg, u32 value);
 
-	template <typename T> T fetch(u32 addr);
-	template <typename T> T load(u32 addr);
-	template <typename T> void store(u32 addr, T value);
+	template <typename T>
+	T fetch(u32 addr);
+	template <typename T>
+	T load(u32 addr);
+	template <typename T>
+	void store(u32 addr, T value);
 };
 
 } // namespace twice

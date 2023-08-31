@@ -16,7 +16,6 @@ template <typename From, typename To>
 std::pair<bool, To>
 safe_convert(From x)
 {
-
 	constexpr bool fs = std::numeric_limits<From>::is_signed;
 	constexpr bool ts = std::numeric_limits<To>::is_signed;
 	constexpr To low = std::numeric_limits<To>::min();
@@ -100,21 +99,24 @@ file_map::create_shared_mapping(const std::string& pathname, std::size_t limit)
 	}
 	if (fd == -1) {
 		close(fd);
-		if (created) unlink(pathname.c_str());
+		if (created)
+			unlink(pathname.c_str());
 		throw file_map_error("could not open file: " + pathname);
 	}
 
 	struct stat s;
 	if (fstat(fd, &s)) {
 		close(fd);
-		if (created) unlink(pathname.c_str());
+		if (created)
+			unlink(pathname.c_str());
 		throw file_map_error("could not stat file: " + pathname);
 	}
 
 	auto [safe, filesize] = safe_convert<off_t, size_t>(s.st_size);
 	if (!safe) {
 		close(fd);
-		if (created) unlink(pathname.c_str());
+		if (created)
+			unlink(pathname.c_str());
 		throw file_map_error("filesize out of range: " + pathname);
 	}
 
@@ -122,7 +124,8 @@ file_map::create_shared_mapping(const std::string& pathname, std::size_t limit)
 		auto [safe, new_size] = safe_convert<size_t, off_t>(limit);
 		if (!safe || ftruncate(fd, new_size)) {
 			close(fd);
-			if (created) unlink(pathname.c_str());
+			if (created)
+				unlink(pathname.c_str());
 			throw file_map_error("ftruncate failed: " + pathname);
 		}
 		filesize = limit;
@@ -132,7 +135,8 @@ file_map::create_shared_mapping(const std::string& pathname, std::size_t limit)
 			fd, 0);
 	if (addr == MAP_FAILED) {
 		close(fd);
-		if (created) unlink(pathname.c_str());
+		if (created)
+			unlink(pathname.c_str());
 		throw file_map_error("mmap failed: " + pathname);
 	}
 

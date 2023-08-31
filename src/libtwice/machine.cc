@@ -75,9 +75,8 @@ nds_machine::boot(bool direct_boot)
 void
 nds_machine::run_frame()
 {
-	if (!nds) {
+	if (!nds)
 		return;
-	}
 
 	nds_run_frame(nds.get());
 }
@@ -85,9 +84,8 @@ nds_machine::run_frame()
 bool
 nds_machine::is_shutdown()
 {
-	if (!nds) {
+	if (!nds)
 		return true;
-	}
 
 	return nds->shutdown;
 }
@@ -95,9 +93,8 @@ nds_machine::is_shutdown()
 void *
 nds_machine::get_framebuffer()
 {
-	if (!nds) {
+	if (!nds)
 		return nullptr;
-	}
 
 	return nds->fb;
 }
@@ -105,15 +102,10 @@ nds_machine::get_framebuffer()
 void
 nds_machine::button_event(nds_button button, bool down)
 {
-	if (!nds) {
+	if (!nds)
 		return;
-	}
 
 	using enum nds_button;
-
-	if (button == NONE) {
-		return;
-	}
 
 	switch (button) {
 	case A:
@@ -153,7 +145,8 @@ nds_machine::button_event(nds_button button, bool down)
 void
 nds_machine::update_touchscreen_state(int x, int y, bool down)
 {
-	if (!nds) return;
+	if (!nds)
+		return;
 
 	if (down) {
 		x = std::clamp(x, 0, 255);
@@ -171,12 +164,12 @@ nds_machine::update_touchscreen_state(int x, int y, bool down)
 static bool
 is_leap_year(int year)
 {
-	if (year % 400 == 0) {
+	if (year % 400 == 0)
 		return true;
-	}
-	if (year % 100 == 0) {
+
+	if (year % 100 == 0)
 		return false;
-	}
+
 	return year % 4 == 0;
 }
 
@@ -184,29 +177,40 @@ void
 nds_machine::update_real_time_clock(int year, int month, int day, int weekday,
 		int hour, int minute, int second)
 {
-	if (!nds) return;
+	if (!nds)
+		return;
 
-	if (!(2000 <= year && year <= 2099)) return;
-	if (!(1 <= month && month <= 12)) return;
-	if (!(1 <= day && day <= 31)) return;
-	if (!(1 <= weekday && weekday <= 7)) return;
-	if (!(0 <= hour && hour <= 23)) return;
-	if (!(0 <= minute && minute <= 59)) return;
-	if (!(0 <= second && second <= 59)) return;
+	if (!(2000 <= year && year <= 2099))
+		return;
+	if (!(1 <= month && month <= 12))
+		return;
+	if (!(1 <= day && day <= 31))
+		return;
+	if (!(1 <= weekday && weekday <= 7))
+		return;
+	if (!(0 <= hour && hour <= 23))
+		return;
+	if (!(0 <= minute && minute <= 59))
+		return;
+	if (!(0 <= second && second <= 59))
+		return;
 
 	switch (month) {
 	case 2:
 		if (is_leap_year(year)) {
-			if (day > 29) return;
+			if (day > 29)
+				return;
 		} else {
-			if (day > 28) return;
+			if (day > 28)
+				return;
 		}
 		break;
 	case 4:
 	case 6:
 	case 9:
 	case 11:
-		if (day > 30) return;
+		if (day > 30)
+			return;
 	}
 
 	nds_set_rtc_time(nds.get(), year, month, day, weekday, hour, minute,
