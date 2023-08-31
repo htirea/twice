@@ -52,7 +52,7 @@ static void
 schedule_timer_overflow(nds_ctx *nds, int cpuid, int timer_id)
 {
 	auto& t = nds->tmr[cpuid][timer_id];
-	timestamp dt = ((u32)0x10000 << 10) - t.counter;
+	timestamp dt = ((u32)0x10000 << 10) - (t.counter & MASK(26));
 	dt >>= t.shift;
 	int event = event_scheduler::TIMER0_OVERFLOW + timer_id;
 	schedule_cpu_event_after(nds, cpuid, event, dt);
@@ -80,7 +80,7 @@ write_timer_ctrl(nds_ctx *nds, int cpuid, int timer_id, u8 value)
 	}
 
 	if (!old_enabled && new_enabled) {
-		t.counter = t.reload_val << 10;
+		t.counter = (u32)t.reload_val << 10;
 		t.last_update = nds->arm_cycles[cpuid];
 	} else if (new_enabled) {
 		update_timer_counter(nds, cpuid, timer_id);
@@ -101,8 +101,13 @@ static void
 on_timer_overflow(nds_ctx *nds, int cpuid, int timer_id)
 {
 	auto& t = nds->tmr[cpuid][timer_id];
+
+	if (!(t.ctrl & BIT(7))) {
+		throw twice_error("timer should not be enabled");
+	}
+
 	timestamp current_time = nds->arm_cycles[cpuid];
-	t.counter = t.reload_val << 10;
+	t.counter = (u32)t.reload_val << 10;
 	t.last_update = current_time;
 
 	if (t.ctrl & BIT(6)) {
