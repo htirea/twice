@@ -1404,9 +1404,63 @@ render_normal_sprite(gpu_2d_engine *gpu, obj_data *obj)
 }
 
 static void
-render_bitmap_sprite(gpu_2d_engine *, obj_data *)
+render_bitmap_sprite(gpu_2d_engine *gpu, obj_data *obj)
 {
-	throw twice_error("bitmap sprite");
+	get_obj_size(obj, &obj->w, &obj->h);
+
+	u32 obj_attr_y = obj->attr0 & 0xFF;
+	u32 obj_y = (gpu->nds->vcount - obj_attr_y) & 0xFF;
+	if (obj_y >= obj->h) {
+		return;
+	}
+	if (obj->attr1 & BIT(13)) {
+		obj_y = obj->h - 1 - obj_y;
+	}
+	bool hflip = obj->attr1 & BIT(12);
+
+	u32 obj_attr_x = obj->attr1 & 0x1FF;
+	u32 obj_x, draw_x, draw_x_end;
+	if (obj_attr_x < 256) {
+		obj_x = 0;
+		draw_x = obj_attr_x;
+		draw_x_end = std::min(obj_attr_x + obj->w, (u32)256);
+	} else {
+		obj_x = 512 - obj_attr_x;
+		if (obj_x >= obj->w) {
+			return;
+		}
+		draw_x = 0;
+		draw_x_end = obj->w - obj_x;
+	}
+
+	if (hflip) {
+		obj_x = obj->w - 1 - obj_x;
+	}
+
+	u32 priority = obj->attr2 >> 10 & 3;
+	u32 obj_char_name = obj->attr2 & 0x3FF;
+	bool map_1d = gpu->dispcnt & BIT(6);
+	u32 width_2d = 128 << (gpu->dispcnt >> 5 & 1);
+
+	u32 offset;
+	if (map_1d) {
+		offset = obj_char_name << 7 << (gpu->dispcnt >> 22 & 1);
+		offset += obj->w * 2 * obj_y + 2 * obj_x;
+	} else {
+		u32 mask_x = gpu->dispcnt & BIT(5) ? 0x1F : 0xF;
+		offset = 0x10 * (obj_char_name & mask_x) +
+		         0x80 * (obj_char_name & ~mask_x);
+		offset += width_2d * 2 * obj_y + 2 * obj_x;
+	}
+
+	for (u32 i = draw_x; i < draw_x_end; i++) {
+		u16 color = read_obj_data<u16>(gpu, offset);
+		if (color & BIT(15)) {
+			draw_obj_pixel(gpu, i, color, priority, true);
+		}
+
+		offset = hflip ? offset - 2 : offset + 2;
+	}
 }
 
 struct affine_sprite_data {
