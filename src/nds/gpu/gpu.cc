@@ -323,7 +323,7 @@ static void render_3d(gpu_2d_engine *gpu);
 static void draw_bg_pixel(gpu_2d_engine *gpu, int bg, u32 fb_x, u16 color,
 		u8 priority, bool effect_top, bool effect_bottom);
 static void draw_obj_pixel(gpu_2d_engine *gpu, u32 fb_x, u16 color,
-		u8 priority, bool force_blend);
+		u8 priority, bool force_blend, u8 alpha_oam);
 static u16 bg_get_color_256(gpu_2d_engine *gpu, u32 color_num);
 static u16 obj_get_color_256(gpu_2d_engine *gpu, u32 color_num);
 static u16 bg_get_color_extended(
@@ -544,6 +544,7 @@ clear_obj_buffer(gpu_2d_engine *gpu)
 		gpu->obj_buffer[i].effect_top = 0;
 		gpu->obj_buffer[i].effect_bottom = 0;
 		gpu->obj_buffer[i].force_blend = 0;
+		gpu->obj_buffer[i].alpha_oam = 0;
 		gpu->obj_buffer[i].convert_to_6bit = 0;
 	}
 }
@@ -585,6 +586,7 @@ set_backdrop(gpu_2d_engine *gpu)
 			gpu->buffer_top[i].effect_top = effect_top & wfx;
 			gpu->buffer_top[i].effect_bottom = effect_bottom & wfx;
 			gpu->buffer_top[i].force_blend = 0;
+			gpu->buffer_top[i].alpha_oam = 0;
 			gpu->buffer_top[i].convert_to_6bit = 1;
 			gpu->buffer_bottom[i] = gpu->buffer_top[i];
 		}
@@ -595,6 +597,7 @@ set_backdrop(gpu_2d_engine *gpu)
 			gpu->buffer_top[i].effect_top = effect_top;
 			gpu->buffer_top[i].effect_bottom = effect_bottom;
 			gpu->buffer_top[i].force_blend = 0;
+			gpu->buffer_top[i].alpha_oam = 0;
 			gpu->buffer_top[i].convert_to_6bit = 1;
 			gpu->buffer_bottom[i] = gpu->buffer_top[i];
 		}
@@ -760,8 +763,12 @@ graphics_display_scanline(gpu_2d_engine *gpu)
 
 		if (top.force_blend) {
 			if (bottom.effect_bottom) {
+				u8 ta = top.alpha_oam ? top.alpha_oam + 1
+				                      : eva;
+				u8 tb = top.alpha_oam ? 15 - top.alpha_oam
+				                      : evb;
 				color_result = alpha_blend(top_color,
-						bottom_color, eva, evb);
+						bottom_color, ta, tb);
 			}
 		} else {
 			switch (effect) {
@@ -1372,7 +1379,8 @@ render_normal_sprite(gpu_2d_engine *gpu, obj_data *obj)
 					gpu->window_buffer[draw_x].window = 2;
 				} else if (!obj_window) {
 					draw_obj_pixel(gpu, draw_x, color,
-							priority, force_blend);
+							priority, force_blend,
+							0);
 				}
 			}
 		} else {
@@ -1387,7 +1395,8 @@ render_normal_sprite(gpu_2d_engine *gpu, obj_data *obj)
 					gpu->window_buffer[draw_x].window = 2;
 				} else if (!obj_window) {
 					draw_obj_pixel(gpu, draw_x, color,
-							priority, force_blend);
+							priority, force_blend,
+							0);
 				}
 			}
 		}
@@ -1406,6 +1415,11 @@ render_normal_sprite(gpu_2d_engine *gpu, obj_data *obj)
 static void
 render_bitmap_sprite(gpu_2d_engine *gpu, obj_data *obj)
 {
+	u16 alpha_oam = obj->attr2 >> 12;
+	if (alpha_oam == 0) {
+		return;
+	}
+
 	get_obj_size(obj, &obj->w, &obj->h);
 
 	u32 obj_attr_y = obj->attr0 & 0xFF;
@@ -1456,7 +1470,8 @@ render_bitmap_sprite(gpu_2d_engine *gpu, obj_data *obj)
 	for (u32 i = draw_x; i < draw_x_end; i++) {
 		u16 color = read_obj_data<u16>(gpu, offset);
 		if (color & BIT(15)) {
-			draw_obj_pixel(gpu, i, color, priority, true);
+			draw_obj_pixel(gpu, i, color, priority, true,
+					alpha_oam);
 		}
 
 		offset = hflip ? offset - 2 : offset + 2;
@@ -1598,7 +1613,7 @@ render_affine_sprite(gpu_2d_engine *gpu, obj_data *obj)
 					gpu->window_buffer[i].window = 2;
 				} else if (!obj_window) {
 					draw_obj_pixel(gpu, i, color, priority,
-							force_blend);
+							force_blend, 0);
 				}
 			}
 		} else {
@@ -1610,7 +1625,7 @@ render_affine_sprite(gpu_2d_engine *gpu, obj_data *obj)
 					gpu->window_buffer[i].window = 2;
 				} else if (!obj_window) {
 					draw_obj_pixel(gpu, i, color, priority,
-							force_blend);
+							force_blend, 0);
 				}
 			}
 		}
@@ -1620,6 +1635,11 @@ render_affine_sprite(gpu_2d_engine *gpu, obj_data *obj)
 static void
 render_affine_bitmap_sprite(gpu_2d_engine *gpu, obj_data *obj)
 {
+	u16 alpha_oam = obj->attr2 >> 12;
+	if (alpha_oam == 0) {
+		return;
+	}
+
 	affine_sprite_data affine;
 	if (init_affine_sprite_data(gpu, obj, &affine)) {
 		return;
@@ -1658,7 +1678,8 @@ render_affine_bitmap_sprite(gpu_2d_engine *gpu, obj_data *obj)
 
 		u16 color = read_obj_data<u16>(gpu, offset);
 		if (color & BIT(15)) {
-			draw_obj_pixel(gpu, i, color, priority, true);
+			draw_obj_pixel(gpu, i, color, priority, true,
+					alpha_oam);
 		}
 	}
 }
@@ -1728,6 +1749,7 @@ draw_bg_pixel(gpu_2d_engine *gpu, int bg, u32 fb_x, u16 color, u8 priority,
 		top.effect_top = effect_top;
 		top.effect_bottom = effect_bottom;
 		top.force_blend = 0;
+		top.alpha_oam = 0;
 		top.convert_to_6bit = 1;
 	} else if (priority < bottom.priority) {
 		bottom.color = color;
@@ -1735,13 +1757,14 @@ draw_bg_pixel(gpu_2d_engine *gpu, int bg, u32 fb_x, u16 color, u8 priority,
 		bottom.effect_top = effect_top;
 		bottom.effect_bottom = effect_bottom;
 		bottom.force_blend = 0;
+		bottom.alpha_oam = 0;
 		bottom.convert_to_6bit = 1;
 	}
 }
 
 static void
 draw_obj_pixel(gpu_2d_engine *gpu, u32 fb_x, u16 color, u8 priority,
-		bool force_blend)
+		bool force_blend, u8 alpha_oam)
 {
 	auto& top = gpu->obj_buffer[fb_x];
 
@@ -1749,6 +1772,7 @@ draw_obj_pixel(gpu_2d_engine *gpu, u32 fb_x, u16 color, u8 priority,
 		top.color = color;
 		top.priority = priority;
 		top.force_blend = force_blend;
+		top.alpha_oam = alpha_oam;
 		top.convert_to_6bit = 1;
 	}
 }
