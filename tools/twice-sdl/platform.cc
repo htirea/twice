@@ -178,10 +178,10 @@ sdl_platform::loop()
 			std::uint64_t elapsed =
 					SDL_GetPerformanceCounter() - start;
 			if (elapsed < tframe) {
-				std::uint64_t remaining = (tframe - elapsed) *
-				                          1000.0 / freq;
-				if (remaining > 12) {
-					SDL_Delay(remaining - 2);
+				double remaining_ns = (tframe - elapsed) *
+				                      1e9 / freq;
+				if (remaining_ns > 4e6) {
+					SDL_Delay((remaining_ns - 4e6) / 1e6);
 				}
 			}
 			while (SDL_GetPerformanceCounter() - start < tframe)
