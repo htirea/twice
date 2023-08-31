@@ -109,7 +109,6 @@ arm_dsp_multiply(arm_cpu *cpu)
 		} else {
 			cpu->gpr[rd] = sticky_add(cpu, r, cpu->gpr[rn]);
 		}
-
 		break;
 	}
 	case 0x2:

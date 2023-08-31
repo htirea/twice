@@ -56,7 +56,7 @@ arm_alu(arm_cpu *cpu)
 			break;
 		default:
 			if (shift_imm == 0) {
-				operand = get_c(cpu) << 31 | rm >> 1;
+				operand = (u32)get_c(cpu) << 31 | rm >> 1;
 				carry = rm & 1;
 			} else {
 				operand = std::rotr(rm, shift_imm);
