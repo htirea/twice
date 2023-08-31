@@ -163,6 +163,11 @@ cartridge::cartridge(u8 *data, size_t size, u8 *save_data, size_t save_size,
 		backup.jedec_id = 0x204015;
 		break;
 	}
+
+	if ((gamecode & 0xFF) == 'I') {
+		backup.infrared = true;
+		LOG("deteced infrared cart\n");
+	}
 }
 
 static void
@@ -528,19 +533,9 @@ eeprom_8k_transfer_byte(nds_ctx *nds, u8 value, bool keep_active)
 }
 
 static void
-flash_transfer_byte(nds_ctx *nds, u8 value, bool keep_active)
+flash_common_transfer_byte(nds_ctx *nds, u8 value)
 {
 	auto& bk = nds->cart.backup;
-
-	if (!bk.cs_active) {
-		bk.command = value;
-		bk.count = 0;
-	}
-
-	if (bk.command == 0 && bk.count == 1) {
-		bk.command = value;
-		bk.count = 0;
-	}
 
 	switch (bk.command) {
 	case 0x0:
@@ -618,8 +613,55 @@ flash_transfer_byte(nds_ctx *nds, u8 value, bool keep_active)
 		LOG("unknown flash command %02X\n", bk.command);
 		throw twice_error("unknown flash command");
 	}
+}
+
+static void
+flash_transfer_byte(nds_ctx *nds, u8 value, bool keep_active)
+{
+	auto& bk = nds->cart.backup;
+
+	if (!bk.cs_active) {
+		bk.command = value;
+		bk.count = 0;
+	}
+
+	flash_common_transfer_byte(nds, value);
 
 	bk.count++;
+	bk.cs_active = keep_active;
+}
+
+static void
+infrared_transfer_byte(nds_ctx *nds, u8 value, bool keep_active)
+{
+	auto& bk = nds->cart.backup;
+
+	if (!bk.cs_active) {
+		bk.ir_command = value;
+		bk.ir_count = 0;
+	}
+
+	switch (bk.ir_command) {
+	case 0x0:
+		if (bk.ir_count == 1) {
+			bk.command = value;
+			bk.count = 0;
+		}
+		if (bk.ir_count > 0) {
+			flash_common_transfer_byte(nds, value);
+			bk.count++;
+		}
+		break;
+	case 0x8:
+		if (bk.ir_count > 0) {
+			nds->auxspidata_r = 0xAA;
+		}
+		break;
+	default:
+		LOG("unhandled IR command %02X\n", bk.ir_command);
+	}
+
+	bk.ir_count++;
 	bk.cs_active = keep_active;
 }
 
@@ -645,7 +687,11 @@ auxspidata_write(nds_ctx *nds, int cpuid, u8 value)
 	case SAVETYPE_FLASH_512K:
 	case SAVETYPE_FLASH_1M:
 	case SAVETYPE_FLASH_8M:
-		flash_transfer_byte(nds, value, keep_active);
+		if (nds->cart.backup.infrared) {
+			infrared_transfer_byte(nds, value, keep_active);
+		} else {
+			flash_transfer_byte(nds, value, keep_active);
+		}
 		break;
 	}
 

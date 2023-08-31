@@ -19,6 +19,9 @@ struct cartridge_backup {
 	u32 addr{};
 	u8 status{};
 	u32 jedec_id{};
+	bool infrared{};
+	u8 ir_command{};
+	u32 ir_count{};
 	bool cs_active{};
 };
 
