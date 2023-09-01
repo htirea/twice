@@ -39,7 +39,8 @@ gxstat_write(gpu_3d_engine *gpu, u32 value)
 	if (value & BIT(15)) {
 		gpu->gxstat &= ~BIT(15);
 		gpu->gxstat &= ~BIT(13);
-		/* TODO: reset texture stack pointer */
+		gpu->projection_sp = 0;
+		gpu->texture_sp = 0;
 	}
 
 	gxfifo_check_irq(gpu);

@@ -44,6 +44,13 @@ struct gpu_3d_engine {
 	ge_matrix texture_mtx;
 	ge_matrix clip_mtx;
 	u32 mtx_mode{};
+	ge_matrix projection_stack[1]{};
+	ge_matrix position_stack[32]{};
+	ge_matrix vector_stack[32]{};
+	ge_matrix texture_stack[1]{};
+	u32 projection_sp{};
+	u32 position_sp{};
+	u32 texture_sp{};
 
 	nds_ctx *nds{};
 };
