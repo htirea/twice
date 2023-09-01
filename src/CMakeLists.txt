@@ -30,6 +30,7 @@ add_library(twice STATIC
 	nds/gpu/2d/gpu2d.cc
 	nds/gpu/3d/ge.cc
 	nds/gpu/3d/gpu3d.cc
+	nds/gpu/3d/matrix.cc
 	nds/gpu/vram.cc
 	nds/ipc.cc
 	nds/math.cc

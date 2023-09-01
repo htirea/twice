@@ -212,6 +212,16 @@ gxfifo_write(gpu_3d_engine *gpu, u32 value)
 u32
 gpu_3d_read32(gpu_3d_engine *gpu, u16 offset)
 {
+	if (0x640 <= offset && offset < 0x680) {
+		u32 idx = offset >> 2 & 0xF;
+		return gpu->clip_mtx.v[idx / 4][idx % 4];
+	}
+
+	if (0x680 <= offset && offset < 0x6A4) {
+		u32 idx = offset >> 2 & 0xF;
+		return gpu->vector_mtx.v[idx / 3][idx % 3];
+	}
+
 	switch (offset) {
 	case 0x600:
 		return gxstat_read(gpu);

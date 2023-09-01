@@ -3,6 +3,8 @@
 
 #include "common/types.h"
 
+#include "nds/gpu/3d/matrix.h"
+
 namespace twice {
 
 struct nds_ctx;
@@ -35,6 +37,13 @@ struct gpu_3d_engine {
 	} cmd_fifo;
 
 	u32 cmd_params[32]{};
+
+	ge_matrix projection_mtx;
+	ge_matrix position_mtx;
+	ge_matrix vector_mtx;
+	ge_matrix texture_mtx;
+	ge_matrix clip_mtx;
+	u32 mtx_mode{};
 
 	nds_ctx *nds{};
 };
