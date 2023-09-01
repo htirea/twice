@@ -371,6 +371,9 @@ ge_execute_command(gpu_3d_engine *gpu, u8 command)
 	case 0x1C:
 		cmd_mtx_trans(gpu);
 		break;
+	case 0x50:
+		gpu->halted = true;
+		break;
 	default:
 		LOG("unhandled ge command %02X\n", command);
 	}

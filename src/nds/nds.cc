@@ -228,6 +228,7 @@ nds_on_vblank(nds_ctx *nds)
 		request_interrupt(nds->cpu[1], 0);
 	}
 
+	gpu3d_on_vblank(&nds->gpu3d);
 	dma_on_vblank(nds);
 
 	nds->frame_finished = true;

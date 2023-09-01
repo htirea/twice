@@ -12,6 +12,22 @@ gpu_3d_engine::gpu_3d_engine(nds_ctx *nds)
 }
 
 static void
+execute_swap_buffers(gpu_3d_engine *gpu)
+{
+}
+
+void
+gpu3d_on_vblank(gpu_3d_engine *gpu)
+{
+	if (gpu->halted) {
+		execute_swap_buffers(gpu);
+		gpu->halted = false;
+	}
+
+	gpu->re.r = gpu->re.shadow;
+}
+
+static void
 update_gxstat_fifo_bits(gpu_3d_engine *gpu)
 {
 	u32 fifo_size = gpu->fifo.buffer.size();
@@ -113,6 +129,10 @@ gxfifo_check_irq(gpu_3d_engine *gpu)
 static void
 gxfifo_run_commands(gpu_3d_engine *gpu)
 {
+	if (gpu->halted) {
+		return;
+	}
+
 	auto& fifo = gpu->fifo;
 
 	while (!fifo.buffer.empty()) {

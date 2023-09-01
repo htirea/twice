@@ -20,12 +20,23 @@ struct gxfifo {
 	std::queue<fifo_entry> buffer;
 };
 
+struct rendering_engine {
+	struct registers {
+		u16 disp3dcnt;
+	};
+
+	registers shadow;
+	registers r;
+};
+
 struct gpu_3d_engine {
 	gpu_3d_engine(nds_ctx *nds);
 
+	rendering_engine re;
+
 	u32 gxstat{};
-	u16 disp3dcnt{};
 	gxfifo fifo;
+	bool halted{};
 
 	struct {
 		u32 count{};
@@ -55,6 +66,7 @@ struct gpu_3d_engine {
 	nds_ctx *nds{};
 };
 
+void gpu3d_on_vblank(gpu_3d_engine *gpu);
 void gxfifo_check_irq(gpu_3d_engine *gpu);
 
 u32 gpu_3d_read32(gpu_3d_engine *gpu, u16 offset);
