@@ -1,5 +1,5 @@
-#ifndef TWICE_GPU_3D_H
-#define TWICE_GPU_3D_H
+#ifndef TWICE_GPU3D_H
+#define TWICE_GPU3D_H
 
 #include "common/types.h"
 
@@ -16,7 +16,6 @@ struct gxfifo {
 	};
 
 	std::queue<fifo_entry> buffer;
-	u32 params[32]{};
 };
 
 struct gpu_3d_engine {
@@ -35,6 +34,8 @@ struct gpu_3d_engine {
 		u8 commands[4]{};
 	} cmd_fifo;
 
+	u32 cmd_params[32]{};
+
 	nds_ctx *nds{};
 };
 
@@ -46,6 +47,8 @@ u8 gpu_3d_read8(gpu_3d_engine *gpu, u16 offset);
 void gpu_3d_write32(gpu_3d_engine *gpu, u16 offset, u32 value);
 void gpu_3d_write16(gpu_3d_engine *gpu, u16 offset, u16 value);
 void gpu_3d_write8(gpu_3d_engine *gpu, u16 offset, u8 value);
+
+void ge_execute_command(gpu_3d_engine *gpu, u8 cmd);
 
 } // namespace twice
 

@@ -46,12 +46,16 @@ gxstat_write(gpu_3d_engine *gpu, u32 value)
 }
 
 static bool
-valid_command(u8 cmd)
+valid_command(u8 command)
 {
-	return (cmd == 0) || (0x10 <= cmd && cmd <= 0x1C) ||
-	       (0x20 <= cmd && cmd <= 0x2B) || (0x30 <= cmd && cmd <= 0x34) ||
-	       (0x40 <= cmd && cmd <= 0x41) || (cmd == 0x50) ||
-	       (cmd == 0x60) || (0x70 <= cmd && cmd <= 0x72);
+	return (command == 0) ||                       //
+	       (0x10 <= command && command <= 0x1C) || //
+	       (0x20 <= command && command <= 0x2B) || //
+	       (0x30 <= command && command <= 0x34) || //
+	       (0x40 <= command && command <= 0x41) || //
+	       (command == 0x50) ||                    //
+	       (command == 0x60) ||                    //
+	       (0x70 <= command && command <= 0x72);
 }
 
 static u32
@@ -86,11 +90,6 @@ get_num_params(u8 cmd)
 	}
 }
 
-static void
-execute_command(gpu_3d_engine *, u8)
-{
-}
-
 void
 gxfifo_check_irq(gpu_3d_engine *gpu)
 {
@@ -120,13 +119,13 @@ gxfifo_run_commands(gpu_3d_engine *gpu)
 		u32 num_params = get_num_params(entry.command);
 		if (num_params == 0) {
 			fifo.buffer.pop();
-			execute_command(gpu, entry.command);
+			ge_execute_command(gpu, entry.command);
 		} else if (fifo.buffer.size() >= num_params) {
 			for (u32 i = 0; i < num_params; i++) {
-				fifo.params[i] = fifo.buffer.front().param;
+				gpu->cmd_params[i] = fifo.buffer.front().param;
 				fifo.buffer.pop();
 			}
-			execute_command(gpu, entry.command);
+			ge_execute_command(gpu, entry.command);
 		} else {
 			break;
 		}

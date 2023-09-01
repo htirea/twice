@@ -1,5 +1,5 @@
-#ifndef TWICE_GPU_H
-#define TWICE_GPU_H
+#ifndef TWICE_GPU2D_H
+#define TWICE_GPU2D_H
 
 #include "common/types.h"
 #include "common/util.h"
