@@ -30,6 +30,9 @@ gpu3d_on_vblank(gpu_3d_engine *gpu)
 		gpu->halted = false;
 	}
 
+	/* TODO: sort polygons */
+
+	gpu->ge.swap_bits = gpu->ge.swap_bits_s;
 	gpu->re.r = gpu->re.shadow;
 }
 

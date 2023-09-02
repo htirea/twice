@@ -2,31 +2,30 @@
 
 namespace twice {
 
+using vertex = gpu_3d_engine::vertex;
+using polygon = gpu_3d_engine::polygon;
+
+static u32
+color6_to_abgr666(color6 color)
+{
+	return (u32)(0x1F) << 18 | (u32)color.b << 12 | (u32)color.g << 6 |
+	       (u32)color.r;
+}
+
 static void
 render_3d_scanline(gpu_3d_engine *gpu, u32 scanline)
 {
 	auto& vr = gpu->vtx_ram[gpu->re_buf];
 
-	s32 viewport_w = gpu->viewport_x[1] - gpu->viewport_x[0];
-	s32 viewport_h = gpu->viewport_y[1] - gpu->viewport_y[0];
-
 	for (u32 i = 0; i < vr.count; i++) {
-		auto& v = vr.vertices[i];
+		vertex *v = &vr.vertices[i];
 
-		if (v.w == 0)
+		if (v->sx < 0 || v->sx >= 256)
 			continue;
 
-		s32 sx = (v.x + v.w) * viewport_w / (2 * v.w) +
-		         gpu->viewport_x[0];
-		s32 sy = (v.y + v.w) * viewport_h / (2 * v.w) +
-		         gpu->viewport_y[0];
-		sy = 192 - sy;
-
-		if (sx < 0 || sx >= 256)
-			continue;
-
-		if (sy == (s32)scanline) {
-			gpu->color_buf[sy][sx] = MASK(23);
+		if (v->sy == (s32)scanline) {
+			gpu->color_buf[v->sy][v->sx] =
+					color6_to_abgr666(v->color);
 		}
 	}
 }

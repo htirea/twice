@@ -4,6 +4,9 @@
 
 namespace twice {
 
+using vertex = gpu_3d_engine::vertex;
+using polygon = gpu_3d_engine::polygon;
+
 static void
 update_clip_matrix(gpu_3d_engine *gpu)
 {
@@ -346,38 +349,64 @@ add_polygon(gpu_3d_engine *gpu)
 		return;
 	}
 
-	auto& poly = pr.polygons[pr.count++];
-	auto last_vtx = &vr.vertices[vr.count - 1];
+	u32 num_vertices = 0;
+	vertex *vertices[4]{};
+	vertex *last_vtx = &vr.vertices[vr.count - 1];
 
 	switch (ge.primitive_type) {
 	case 0:
-		poly.num_vertices = 3;
+		num_vertices = 3;
 		for (u32 i = 3; i--;)
-			poly.vertices[i] = last_vtx--;
+			vertices[i] = last_vtx--;
 		break;
 	case 1:
-		poly.num_vertices = 4;
+		num_vertices = 4;
 		for (u32 i = 4; i--;)
-			poly.vertices[i] = last_vtx--;
+			vertices[i] = last_vtx--;
 		break;
 	case 2:
-		poly.num_vertices = 3;
+		num_vertices = 3;
 		if (ge.vtx_count % 2 == 1) {
 			for (u32 i = 3; i--;)
-				poly.vertices[i] = last_vtx--;
+				vertices[i] = last_vtx--;
 		} else {
-			poly.vertices[0] = last_vtx - 2;
-			poly.vertices[1] = last_vtx;
-			poly.vertices[2] = last_vtx - 1;
+			vertices[0] = last_vtx - 2;
+			vertices[1] = last_vtx;
+			vertices[2] = last_vtx - 1;
 		}
 		break;
 	case 3:
-		poly.num_vertices = 4;
-		poly.vertices[0] = last_vtx - 3;
-		poly.vertices[1] = last_vtx - 2;
-		poly.vertices[2] = last_vtx;
-		poly.vertices[3] = last_vtx - 1;
+		num_vertices = 4;
+		vertices[0] = last_vtx - 3;
+		vertices[1] = last_vtx - 2;
+		vertices[2] = last_vtx;
+		vertices[3] = last_vtx - 1;
 	}
+
+	/* TODO: face culling */
+	/* TODO: clipping */
+
+	polygon *poly = &pr.polygons[pr.count++];
+	for (u32 i = 0; i < num_vertices; i++) {
+		poly->vertices[i] = vertices[i];
+	}
+	poly->num_vertices = num_vertices;
+
+	for (u32 i = 0; i < poly->num_vertices; i++) {
+		vertex *v = poly->vertices[i];
+		if (v->w == 0) {
+			v->sx = 0;
+			v->sy = 0;
+		} else {
+			v->sx = (v->x + v->w) * gpu->viewport_w / (2 * v->w) +
+			        gpu->viewport_x[0];
+			v->sy = (v->y + v->w) * gpu->viewport_h / (2 * v->w) +
+			        gpu->viewport_y[0];
+			v->sy = 192 - v->sy;
+		}
+	}
+
+	poly->attr = ge.polygon_attr;
 }
 
 static void
@@ -497,6 +526,7 @@ static void
 cmd_swap_buffers(gpu_3d_engine *gpu)
 {
 	gpu->halted = true;
+	gpu->ge.swap_bits_s = gpu->cmd_params[0] & 3;
 }
 
 static void
@@ -506,6 +536,8 @@ cmd_viewport(gpu_3d_engine *gpu)
 	gpu->viewport_y[0] = gpu->cmd_params[0] >> 8;
 	gpu->viewport_x[1] = gpu->cmd_params[0] >> 16;
 	gpu->viewport_y[1] = gpu->cmd_params[0] >> 24;
+	gpu->viewport_w = gpu->viewport_x[1] - gpu->viewport_x[0] + 1;
+	gpu->viewport_h = gpu->viewport_y[1] - gpu->viewport_y[0] + 1;
 }
 
 void

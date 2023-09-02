@@ -19,11 +19,14 @@ struct gpu_3d_engine {
 		s32 z;
 		s32 w;
 		color6 color;
+		s32 sx{};
+		s32 sy{};
 	};
 
 	struct polygon {
 		u32 num_vertices;
 		vertex *vertices[10];
+		u32 attr;
 	};
 
 	struct vertex_ram {
@@ -46,6 +49,8 @@ struct gpu_3d_engine {
 		s32 vx;
 		s32 vy;
 		s32 vz;
+		u32 swap_bits{};
+		u32 swap_bits_s{};
 	} ge;
 
 	struct rendering_engine {
@@ -76,6 +81,8 @@ struct gpu_3d_engine {
 	u32 gxstat{};
 	u8 viewport_x[2]{};
 	u8 viewport_y[2]{};
+	u16 viewport_w{};
+	u16 viewport_h{};
 	bool halted{};
 
 	struct {
