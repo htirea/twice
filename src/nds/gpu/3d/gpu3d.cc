@@ -295,6 +295,9 @@ gpu_3d_write32(gpu_3d_engine *gpu, u16 offset, u32 value)
 	}
 
 	switch (offset) {
+	case 0x350:
+		gpu->re.shadow.clear_color = value & 0x3F1FFFFF;
+		return;
 	case 0x600:
 		gxstat_write(gpu, value);
 		return;
@@ -304,8 +307,14 @@ gpu_3d_write32(gpu_3d_engine *gpu, u16 offset, u32 value)
 }
 
 void
-gpu_3d_write16(gpu_3d_engine *, u16 offset, u16 value)
+gpu_3d_write16(gpu_3d_engine *gpu, u16 offset, u16 value)
 {
+	switch (offset) {
+	case 0x354:
+		gpu->re.shadow.clear_depth = value & 0x7FFF;
+		return;
+	}
+
 	LOG("3d engine write 16 at offset %03X, value %04X\n", offset, value);
 }
 

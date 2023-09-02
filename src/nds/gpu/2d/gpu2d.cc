@@ -1239,7 +1239,7 @@ render_3d(gpu_2d_engine *gpu)
 	bool effect_bottom = gpu->bldcnt & BIT(8);
 
 	for (; draw_x != draw_x_end; draw_x++, x++) {
-		u32 color = gpu->nds->gpu3d.color_buffer[gpu->nds->vcount][x];
+		u32 color = gpu->nds->gpu3d.color_buf[gpu->nds->vcount][x];
 		if (color >> 18 & 0x1F) {
 			draw_3d_bg_pixel(gpu, draw_x, color, priority,
 					effect_top, effect_bottom);

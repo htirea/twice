@@ -51,6 +51,8 @@ struct gpu_3d_engine {
 	struct rendering_engine {
 		struct registers {
 			u16 disp3dcnt{};
+			u32 clear_color{};
+			u16 clear_depth{};
 		};
 
 		registers shadow;
@@ -101,7 +103,9 @@ struct gpu_3d_engine {
 	u32 position_sp{};
 	u32 texture_sp{};
 
-	u32 color_buffer[192][256]{};
+	u32 color_buf[192][256]{};
+	u32 depth_buf[192][256]{};
+	u32 attr_buf[192][256]{};
 
 	nds_ctx *nds{};
 };
