@@ -328,6 +328,141 @@ cmd_mtx_trans(gpu_3d_engine *gpu)
 	}
 }
 
+static void
+cmd_color(gpu_3d_engine *gpu)
+{
+	gpu->ge.vertex_color = bgr555_to_color6_3d(gpu->cmd_params[0]);
+}
+
+static void
+add_polygon(gpu_3d_engine *gpu)
+{
+	auto& ge = gpu->ge;
+	auto& pr = gpu->poly_ram[gpu->ge_buf];
+	auto& vr = gpu->vtx_ram[gpu->ge_buf];
+
+	if (pr.count >= 6144) {
+		LOG("polygon ram full\n");
+		return;
+	}
+
+	auto& poly = pr.polygons[pr.count++];
+	auto last_vtx = &vr.vertices[vr.count - 1];
+
+	switch (ge.primitive_type) {
+	case 0:
+		poly.num_vertices = 3;
+		for (u32 i = 3; i--;)
+			poly.vertices[i] = last_vtx--;
+		break;
+	case 1:
+		poly.num_vertices = 4;
+		for (u32 i = 4; i--;)
+			poly.vertices[i] = last_vtx--;
+		break;
+	case 2:
+		poly.num_vertices = 3;
+		if (ge.vtx_count % 2 == 1) {
+			for (u32 i = 3; i--;)
+				poly.vertices[i] = last_vtx--;
+		} else {
+			poly.vertices[0] = last_vtx - 2;
+			poly.vertices[1] = last_vtx;
+			poly.vertices[2] = last_vtx - 1;
+		}
+		break;
+	case 3:
+		poly.num_vertices = 4;
+		poly.vertices[0] = last_vtx - 3;
+		poly.vertices[1] = last_vtx - 2;
+		poly.vertices[2] = last_vtx;
+		poly.vertices[3] = last_vtx - 1;
+	}
+}
+
+static void
+add_vertex(gpu_3d_engine *gpu)
+{
+	auto& ge = gpu->ge;
+	auto& vr = gpu->vtx_ram[gpu->ge_buf];
+
+	if (vr.count >= 2048) {
+		LOG("vertex ram full\n");
+		return;
+	}
+
+	ge_vector vtx_point = { ge.vx, ge.vy, ge.vz, 1 << 12 };
+	ge_vector result;
+	mtx_mult_vec(&result, &gpu->clip_mtx, &vtx_point);
+
+	vr.vertices[vr.count++] = { result.v[0], result.v[1], result.v[2],
+		result.v[3], ge.vertex_color };
+	ge.vtx_count++;
+
+	switch (ge.primitive_type) {
+	case 0:
+		if (ge.vtx_count % 3 == 0) {
+			add_polygon(gpu);
+		}
+		break;
+	case 1:
+		if (ge.vtx_count % 4 == 0) {
+			add_polygon(gpu);
+		}
+		break;
+	case 2:
+		if (ge.vtx_count >= 3) {
+			add_polygon(gpu);
+		}
+		break;
+	case 4:
+		if (ge.vtx_count >= 4 && ge.vtx_count % 2 == 0) {
+			add_polygon(gpu);
+		}
+	}
+}
+
+static void
+cmd_vtx_16(gpu_3d_engine *gpu)
+{
+	gpu->ge.vx = (s32)(gpu->cmd_params[0] << 16) >> 16;
+	gpu->ge.vy = (s32)(gpu->cmd_params[0]) >> 16;
+	gpu->ge.vz = (s32)(gpu->cmd_params[1] << 16) >> 16;
+	add_vertex(gpu);
+}
+
+static void
+cmd_polygon_attr(gpu_3d_engine *gpu)
+{
+	gpu->ge.polygon_attr_shadow = gpu->cmd_params[0];
+}
+
+static void
+cmd_teximage_param(gpu_3d_engine *gpu)
+{
+	gpu->ge.teximage_param = gpu->cmd_params[0];
+}
+
+static void
+cmd_begin_vtxs(gpu_3d_engine *gpu)
+{
+	gpu->ge.polygon_attr = gpu->ge.polygon_attr_shadow;
+	gpu->ge.primitive_type = gpu->cmd_params[0] & 3;
+	gpu->ge.vtx_count = 0;
+}
+
+static void
+cmd_swap_buffers(gpu_3d_engine *gpu)
+{
+	gpu->halted = true;
+}
+
+static void
+cmd_viewport(gpu_3d_engine *gpu)
+{
+	gpu->viewport = gpu->cmd_params[0];
+}
+
 void
 ge_execute_command(gpu_3d_engine *gpu, u8 command)
 {
@@ -371,8 +506,28 @@ ge_execute_command(gpu_3d_engine *gpu, u8 command)
 	case 0x1C:
 		cmd_mtx_trans(gpu);
 		break;
+	case 0x20:
+		cmd_color(gpu);
+		break;
+	case 0x23:
+		cmd_vtx_16(gpu);
+		break;
+	case 0x29:
+		cmd_polygon_attr(gpu);
+		break;
+	case 0x2A:
+		cmd_teximage_param(gpu);
+		break;
+	case 0x41:
+		break;
+	case 0x40:
+		cmd_begin_vtxs(gpu);
+		break;
 	case 0x50:
-		gpu->halted = true;
+		cmd_swap_buffers(gpu);
+		break;
+	case 0x60:
+		cmd_viewport(gpu);
 		break;
 	default:
 		LOG("unhandled ge command %02X\n", command);

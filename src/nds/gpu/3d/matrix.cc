@@ -17,6 +17,18 @@ mtx_mult_mtx(ge_matrix *r, ge_matrix *s, ge_matrix *t)
 }
 
 void
+mtx_mult_vec(ge_vector *r, ge_matrix *m, ge_vector *p)
+{
+	for (u32 j = 0; j < 4; j++) {
+		s64 sum = 0;
+		for (u32 k = 0; k < 4; k++) {
+			sum += (s64)p->v[k] * m->v[k][j];
+		}
+		r->v[j] = sum >> 12;
+	}
+}
+
+void
 mtx_set_identity(ge_matrix *r)
 {
 	for (u32 i = 0; i < 4; i++) {

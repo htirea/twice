@@ -4,38 +4,75 @@
 #include "common/types.h"
 
 #include "nds/gpu/3d/matrix.h"
+#include "nds/gpu/color.h"
 
 namespace twice {
 
 struct nds_ctx;
 
-struct gxfifo {
-	static constexpr size_t MAX_BUFFER_SIZE = 260;
-
-	struct fifo_entry {
-		u8 command{};
-		u32 param{};
-	};
-
-	std::queue<fifo_entry> buffer;
-};
-
-struct rendering_engine {
-	struct registers {
-		u16 disp3dcnt;
-	};
-
-	registers shadow;
-	registers r;
-};
-
 struct gpu_3d_engine {
 	gpu_3d_engine(nds_ctx *nds);
 
-	rendering_engine re;
+	struct vertex {
+		s32 x;
+		s32 y;
+		s32 z;
+		s32 w;
+		color6 color;
+	};
+
+	struct polygon {
+		u32 num_vertices;
+		vertex *vertices[10];
+	};
+
+	struct vertex_ram {
+		vertex vertices[6144];
+		u32 count{};
+	} vtx_ram[2];
+
+	struct polygon_ram {
+		polygon polygons[2048];
+		u32 count{};
+	} poly_ram[2];
+
+	struct geometry_engine {
+		u32 polygon_attr_shadow{};
+		u32 polygon_attr{};
+		u32 vtx_count{};
+		u32 teximage_param{};
+		u8 primitive_type{};
+		color6 vertex_color;
+		s32 vx;
+		s32 vy;
+		s32 vz;
+	} ge;
+
+	struct rendering_engine {
+		struct registers {
+			u16 disp3dcnt{};
+		};
+
+		registers shadow;
+		registers r;
+	} re;
+
+	u32 ge_buf = 0;
+	u32 re_buf = 1;
+
+	struct gxfifo {
+		static constexpr size_t MAX_BUFFER_SIZE = 260;
+
+		struct fifo_entry {
+			u8 command{};
+			u32 param{};
+		};
+
+		std::queue<fifo_entry> buffer;
+	} fifo;
 
 	u32 gxstat{};
-	gxfifo fifo;
+	u32 viewport{};
 	bool halted{};
 
 	struct {

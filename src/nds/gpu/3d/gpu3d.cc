@@ -14,6 +14,12 @@ gpu_3d_engine::gpu_3d_engine(nds_ctx *nds)
 static void
 execute_swap_buffers(gpu_3d_engine *gpu)
 {
+	gpu->ge_buf ^= 1;
+	gpu->re_buf ^= 1;
+
+	/* TODO: add delay */
+	gpu->vtx_ram[gpu->ge_buf].count = 0;
+	gpu->poly_ram[gpu->ge_buf].count = 0;
 }
 
 void
@@ -136,7 +142,7 @@ gxfifo_run_commands(gpu_3d_engine *gpu)
 	auto& fifo = gpu->fifo;
 
 	while (!fifo.buffer.empty()) {
-		gxfifo::fifo_entry entry = fifo.buffer.front();
+		auto entry = fifo.buffer.front();
 		u32 num_params = get_num_params(entry.command);
 		if (num_params == 0) {
 			fifo.buffer.pop();
@@ -160,7 +166,7 @@ gxfifo_push(gpu_3d_engine *gpu, u8 command, u32 param, bool run_commands)
 {
 	auto& fifo = gpu->fifo;
 
-	if (fifo.buffer.size() >= gxfifo::MAX_BUFFER_SIZE) {
+	if (fifo.buffer.size() >= gpu_3d_engine::gxfifo::MAX_BUFFER_SIZE) {
 		LOG("gxfifo buffer full\n");
 	}
 
