@@ -460,13 +460,18 @@ cmd_swap_buffers(gpu_3d_engine *gpu)
 static void
 cmd_viewport(gpu_3d_engine *gpu)
 {
-	gpu->viewport = gpu->cmd_params[0];
+	gpu->viewport_x[0] = gpu->cmd_params[0];
+	gpu->viewport_y[0] = gpu->cmd_params[0] >> 8;
+	gpu->viewport_x[1] = gpu->cmd_params[0] >> 16;
+	gpu->viewport_y[1] = gpu->cmd_params[0] >> 24;
 }
 
 void
 ge_execute_command(gpu_3d_engine *gpu, u8 command)
 {
 	switch (command) {
+	case 0x00:
+		break;
 	case 0x10:
 		cmd_mtx_mode(gpu);
 		break;

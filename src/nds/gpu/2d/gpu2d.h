@@ -45,6 +45,7 @@ struct gpu_2d_engine {
 		u32 force_blend : 1;
 		u32 alpha_oam : 4;
 		u32 convert_to_6bit : 1;
+		u32 from_3d : 1;
 	};
 
 	pixel buffer_top[256]{};

@@ -267,6 +267,7 @@ event_hblank_end(nds_ctx *nds)
 		nds->dispstat[1] &= ~BIT(0);
 	}
 
+	gpu3d_on_scanline_start(nds);
 	gpu_on_scanline_start(nds);
 	dma_on_scanline_start(nds);
 

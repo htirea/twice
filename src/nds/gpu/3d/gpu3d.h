@@ -72,7 +72,8 @@ struct gpu_3d_engine {
 	} fifo;
 
 	u32 gxstat{};
-	u32 viewport{};
+	u8 viewport_x[2]{};
+	u8 viewport_y[2]{};
 	bool halted{};
 
 	struct {
@@ -100,10 +101,13 @@ struct gpu_3d_engine {
 	u32 position_sp{};
 	u32 texture_sp{};
 
+	u32 color_buffer[192][256]{};
+
 	nds_ctx *nds{};
 };
 
 void gpu3d_on_vblank(gpu_3d_engine *gpu);
+void gpu3d_on_scanline_start(nds_ctx *nds);
 void gxfifo_check_irq(gpu_3d_engine *gpu);
 
 u32 gpu_3d_read32(gpu_3d_engine *gpu, u16 offset);
