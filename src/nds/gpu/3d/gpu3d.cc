@@ -48,6 +48,9 @@ render_3d_scanline(gpu_3d_engine *gpu, u32 scanline)
 	for (u32 i = 0; i < vr.count; i++) {
 		auto& v = vr.vertices[i];
 
+		if (v.w == 0)
+			continue;
+
 		s32 sx = (v.x + v.w) * viewport_w / (2 * v.w) +
 		         gpu->viewport_x[0];
 		s32 sy = (v.y + v.w) * viewport_h / (2 * v.w) +
@@ -321,6 +324,11 @@ gpu_3d_read8(gpu_3d_engine *, u16 offset)
 void
 gpu_3d_write32(gpu_3d_engine *gpu, u16 offset, u32 value)
 {
+	if (0x400 <= offset && offset < 0x440) {
+		gxfifo_write(gpu, value);
+		return;
+	}
+
 	u8 command = offset >> 2 & 0xFF;
 	if (valid_command(command)) {
 		gxfifo_push(gpu, command, value, true);
@@ -328,9 +336,6 @@ gpu_3d_write32(gpu_3d_engine *gpu, u16 offset, u32 value)
 	}
 
 	switch (offset) {
-	case 0x400:
-		gxfifo_write(gpu, value);
-		break;
 	case 0x600:
 		gxstat_write(gpu, value);
 		return;

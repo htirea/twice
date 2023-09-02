@@ -342,7 +342,7 @@ add_polygon(gpu_3d_engine *gpu)
 	auto& vr = gpu->vtx_ram[gpu->ge_buf];
 
 	if (pr.count >= 6144) {
-		LOG("polygon ram full\n");
+		LOGV("polygon ram full\n");
 		return;
 	}
 
@@ -387,7 +387,7 @@ add_vertex(gpu_3d_engine *gpu)
 	auto& vr = gpu->vtx_ram[gpu->ge_buf];
 
 	if (vr.count >= 2048) {
-		LOG("vertex ram full\n");
+		LOGV("vertex ram full\n");
 		return;
 	}
 
@@ -428,6 +428,48 @@ cmd_vtx_16(gpu_3d_engine *gpu)
 	gpu->ge.vx = (s32)(gpu->cmd_params[0] << 16) >> 16;
 	gpu->ge.vy = (s32)(gpu->cmd_params[0]) >> 16;
 	gpu->ge.vz = (s32)(gpu->cmd_params[1] << 16) >> 16;
+	add_vertex(gpu);
+}
+
+static void
+cmd_vtx_10(gpu_3d_engine *gpu)
+{
+	gpu->ge.vx = (s32)(gpu->cmd_params[0] << 22) >> 16;
+	gpu->ge.vy = (s32)(gpu->cmd_params[0] << 12) >> 16;
+	gpu->ge.vz = (s32)(gpu->cmd_params[0] << 2) >> 16;
+	add_vertex(gpu);
+}
+
+static void
+cmd_vtx_xy(gpu_3d_engine *gpu)
+{
+	gpu->ge.vx = (s32)(gpu->cmd_params[0] << 16) >> 16;
+	gpu->ge.vy = (s32)(gpu->cmd_params[0]) >> 16;
+	add_vertex(gpu);
+}
+
+static void
+cmd_vtx_xz(gpu_3d_engine *gpu)
+{
+	gpu->ge.vx = (s32)(gpu->cmd_params[0] << 16) >> 16;
+	gpu->ge.vz = (s32)(gpu->cmd_params[0]) >> 16;
+	add_vertex(gpu);
+}
+
+static void
+cmd_vtx_yz(gpu_3d_engine *gpu)
+{
+	gpu->ge.vy = (s32)(gpu->cmd_params[0] << 16) >> 16;
+	gpu->ge.vz = (s32)(gpu->cmd_params[0]) >> 16;
+	add_vertex(gpu);
+}
+
+static void
+cmd_vtx_diff(gpu_3d_engine *gpu)
+{
+	gpu->ge.vx += (s32)(gpu->cmd_params[0] << 22) >> 19;
+	gpu->ge.vy += (s32)(gpu->cmd_params[0] << 12) >> 19;
+	gpu->ge.vz += (s32)(gpu->cmd_params[0] << 2) >> 19;
 	add_vertex(gpu);
 }
 
@@ -516,6 +558,21 @@ ge_execute_command(gpu_3d_engine *gpu, u8 command)
 		break;
 	case 0x23:
 		cmd_vtx_16(gpu);
+		break;
+	case 0x24:
+		cmd_vtx_10(gpu);
+		break;
+	case 0x25:
+		cmd_vtx_xy(gpu);
+		break;
+	case 0x26:
+		cmd_vtx_xz(gpu);
+		break;
+	case 0x27:
+		cmd_vtx_yz(gpu);
+		break;
+	case 0x28:
+		cmd_vtx_diff(gpu);
 		break;
 	case 0x29:
 		cmd_polygon_attr(gpu);
