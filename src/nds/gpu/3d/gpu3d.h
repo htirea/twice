@@ -62,6 +62,26 @@ struct gpu_3d_engine {
 
 		registers shadow;
 		registers r;
+
+		polygon *polygons[2048]{};
+		u32 num_polygons{};
+
+		struct slope {
+			s32 x0;
+			s32 y0;
+			s32 m;
+			bool negative;
+			bool xmajor;
+		};
+
+		struct polygon_info {
+			u32 start;
+			u32 end;
+			u32 left;
+			u32 right;
+			slope left_slope;
+			slope right_slope;
+		} poly_info[2048];
 	} re;
 
 	u32 ge_buf = 0;

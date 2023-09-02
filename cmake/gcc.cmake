@@ -15,7 +15,6 @@ set(CMAKE_CXX_FLAGS_INIT " \
 -Wnull-dereference \
 -Wformat=2 \
 -Wfloat-equal \
--Wuseless-cast \
 -Wdouble-promotion \
 -Wimplicit-fallthrough=5")
 
