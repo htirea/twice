@@ -33,52 +33,11 @@ gpu3d_on_vblank(gpu_3d_engine *gpu)
 	gpu->re.r = gpu->re.shadow;
 }
 
-static void
-render_3d_scanline(gpu_3d_engine *gpu, u32 scanline)
-{
-	auto& vr = gpu->vtx_ram[gpu->re_buf];
-
-	for (u32 i = 0; i < 256; i++) {
-		gpu->color_buffer[scanline][i] = 0;
-	}
-
-	s32 viewport_w = gpu->viewport_x[1] - gpu->viewport_x[0];
-	s32 viewport_h = gpu->viewport_y[1] - gpu->viewport_y[0];
-
-	for (u32 i = 0; i < vr.count; i++) {
-		auto& v = vr.vertices[i];
-
-		if (v.w == 0)
-			continue;
-
-		s32 sx = (v.x + v.w) * viewport_w / (2 * v.w) +
-		         gpu->viewport_x[0];
-		s32 sy = (v.y + v.w) * viewport_h / (2 * v.w) +
-		         gpu->viewport_y[0];
-		sy = 192 - sy;
-
-		if (sx < 0 || sx >= 256)
-			continue;
-
-		if (sy == (s32)scanline) {
-			gpu->color_buffer[sy][sx] = MASK(23);
-		}
-	}
-}
-
-static void
-render_3d_frame(gpu_3d_engine *gpu)
-{
-	for (u32 i = 0; i < 192; i++) {
-		render_3d_scanline(gpu, i);
-	}
-}
-
 void
 gpu3d_on_scanline_start(nds_ctx *nds)
 {
 	if (nds->vcount == 214) {
-		render_3d_frame(&nds->gpu3d);
+		gpu3d_render_frame(&nds->gpu3d);
 	}
 }
 

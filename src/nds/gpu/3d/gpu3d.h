@@ -108,6 +108,7 @@ struct gpu_3d_engine {
 
 void gpu3d_on_vblank(gpu_3d_engine *gpu);
 void gpu3d_on_scanline_start(nds_ctx *nds);
+void gpu3d_render_frame(gpu_3d_engine *gpu);
 void gxfifo_check_irq(gpu_3d_engine *gpu);
 
 u32 gpu_3d_read32(gpu_3d_engine *gpu, u16 offset);
