@@ -18,7 +18,13 @@ struct gpu_3d_engine {
 		s32 y;
 		s32 z;
 		s32 w;
-		color6 color;
+
+		struct {
+			u32 r;
+			u32 g;
+			u32 b;
+		} color;
+
 		s32 sx{};
 		s32 sy{};
 	};
@@ -46,7 +52,9 @@ struct gpu_3d_engine {
 		u32 vtx_count{};
 		u32 teximage_param{};
 		u8 primitive_type{};
-		color6 vertex_color;
+		u32 vr;
+		u32 vg;
+		u32 vb;
 		s32 vx;
 		s32 vy;
 		s32 vz;
@@ -73,6 +81,19 @@ struct gpu_3d_engine {
 			s32 m;
 			bool negative;
 			bool xmajor;
+			vertex *v0{};
+			vertex *v1{};
+
+			struct {
+				s32 x0;
+				s32 x1;
+				s32 x;
+			} interp;
+		};
+
+		struct polygon_span {
+			s32 x0;
+			s32 length;
 		};
 
 		struct polygon_info {

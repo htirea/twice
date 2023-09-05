@@ -5,6 +5,7 @@ namespace twice {
 using vertex = gpu_3d_engine::vertex;
 using polygon = gpu_3d_engine::polygon;
 using polygon_info = gpu_3d_engine::rendering_engine::polygon_info;
+using polygon_span = gpu_3d_engine::rendering_engine::polygon_span;
 using slope = gpu_3d_engine::rendering_engine::slope;
 
 static u32
@@ -33,6 +34,16 @@ polygon_not_in_scanline(gpu_3d_engine *gpu, s32 scanline, u32 poly_num)
 }
 
 static void
+set_slope_interp_x(slope *s, s32 scanline, s32 x)
+{
+	if (s->xmajor) {
+		s->interp.x = x;
+	} else {
+		s->interp.x = scanline;
+	}
+}
+
+static void
 setup_polygon_slope(slope *s, vertex *v0, vertex *v1)
 {
 	s32 x0 = v0->sx;
@@ -42,6 +53,8 @@ setup_polygon_slope(slope *s, vertex *v0, vertex *v1)
 
 	s->x0 = x0 << 18;
 	s->y0 = y0;
+	s->v0 = v0;
+	s->v1 = v1;
 
 	s->negative = x0 > x1;
 	if (s->negative) {
@@ -63,6 +76,14 @@ setup_polygon_slope(slope *s, vertex *v0, vertex *v1)
 		s->m *= ((s32)1 << 18) / dy;
 	} else {
 		s->m = ((s32)1 << 18);
+	}
+
+	if (s->xmajor) {
+		s->interp.x0 = v0->sx;
+		s->interp.x1 = v1->sx;
+	} else {
+		s->interp.x0 = v0->sy;
+		s->interp.x1 = v1->sy;
 	}
 }
 
@@ -108,6 +129,25 @@ get_slope_x_start_end(
 	get_slope_x(sr, xend, scanline);
 }
 
+static s32
+slope_interpolate(slope *s, s32 y0, s32 y1)
+{
+	s32 denom = s->interp.x1 - s->interp.x0;
+	if (denom == 0) {
+		return y0;
+	}
+	return y0 + (s->interp.x - s->interp.x0) * (y1 - y0) / denom;
+}
+
+static s32
+span_interpolate(polygon_span *span, s32 x, s32 y0, s32 y1)
+{
+	if (span->length == 0) {
+		return y0;
+	}
+	return y0 + (x - span->x0) * (y1 - y0) / span->length;
+}
+
 static void
 setup_polygon_initial_slope(gpu_3d_engine *gpu, u32 poly_num)
 {
@@ -134,6 +174,9 @@ setup_polygon_scanline(gpu_3d_engine *gpu, s32 scanline, u32 poly_num)
 {
 	polygon *p = gpu->re.polygons[poly_num];
 	polygon_info *pinfo = &gpu->re.poly_info[poly_num];
+
+	if (polygon_not_in_scanline(gpu, scanline, poly_num))
+		return;
 
 	if (p->vertices[pinfo->start]->sy == p->vertices[pinfo->end]->sy) {
 		setup_polygon_slope_vertical(
@@ -208,22 +251,54 @@ render_polygon_scanline(gpu_3d_engine *gpu, s32 scanline, u32 poly_num)
 		std::swap(xstart[1], xend[1]);
 	}
 
+	set_slope_interp_x(sl, scanline, xstart[0]);
+	set_slope_interp_x(sr, scanline, xend[1]);
+	s32 rl = slope_interpolate(sl, sl->v0->color.r, sl->v1->color.r);
+	s32 gl = slope_interpolate(sl, sl->v0->color.g, sl->v1->color.g);
+	s32 bl = slope_interpolate(sl, sl->v0->color.b, sl->v1->color.b);
+	s32 rr = slope_interpolate(sr, sr->v0->color.r, sr->v1->color.r);
+	s32 gr = slope_interpolate(sr, sr->v0->color.g, sr->v1->color.g);
+	s32 br = slope_interpolate(sr, sr->v0->color.b, sr->v1->color.b);
+
+	polygon_span span{ xstart[0], xend[1] - 1 - xstart[0] };
+
+	s32 alpha = p->attr >> 16 & 0x1F;
+	if (alpha == 0) {
+		alpha = 31;
+	}
+	alpha <<= 18;
+
 	s32 draw_x = std::max(0, xstart[0]);
 	s32 draw_x_end = std::min(256, xstart[1]);
 	for (s32 x = draw_x; x < draw_x_end; x++) {
-		gpu->color_buf[scanline][x] = 0x7FFFC0;
+		s32 r = span_interpolate(&span, x, rl, rr);
+		s32 g = span_interpolate(&span, x, gl, gr);
+		s32 b = span_interpolate(&span, x, bl, br);
+
+		u32 color = alpha | (u32)b << 12 | (u32)g << 6 | r;
+		gpu->color_buf[scanline][x] = color;
 	}
 
 	for (s32 x = xstart[1]; x < xend[0]; x++) {
 		if (x < 0 || x >= 256)
 			continue;
-		gpu->color_buf[scanline][x] = 0x7C0FFF;
+		s32 r = span_interpolate(&span, x, rl, rr);
+		s32 g = span_interpolate(&span, x, gl, gr);
+		s32 b = span_interpolate(&span, x, bl, br);
+
+		u32 color = alpha | (u32)b << 12 | (u32)g << 6 | r;
+		gpu->color_buf[scanline][x] = color;
 	}
 
 	draw_x = std::max(0, xend[0]);
 	draw_x_end = std::min(256, xend[1]);
 	for (s32 x = draw_x; x < draw_x_end; x++) {
-		gpu->color_buf[scanline][x] = 0x7FF03F;
+		s32 r = span_interpolate(&span, x, rl, rr);
+		s32 g = span_interpolate(&span, x, gl, gr);
+		s32 b = span_interpolate(&span, x, bl, br);
+
+		u32 color = alpha | (u32)b << 12 | (u32)g << 6 | r;
+		gpu->color_buf[scanline][x] = color;
 	}
 }
 
@@ -235,20 +310,6 @@ render_3d_scanline(gpu_3d_engine *gpu, u32 scanline)
 	for (u32 i = 0; i < re.num_polygons; i++) {
 		setup_polygon_scanline(gpu, scanline, i);
 		render_polygon_scanline(gpu, scanline, i);
-	}
-
-	auto& vr = gpu->vtx_ram[gpu->re_buf];
-
-	for (u32 i = 0; i < vr.count; i++) {
-		vertex *v = &vr.vertices[i];
-
-		if (v->sx < 0 || v->sx >= 256)
-			continue;
-
-		if (v->sy == (s32)scanline) {
-			gpu->color_buf[v->sy][v->sx] =
-					color6_to_abgr666(v->color);
-		}
 	}
 }
 

@@ -334,7 +334,8 @@ cmd_mtx_trans(gpu_3d_engine *gpu)
 static void
 cmd_color(gpu_3d_engine *gpu)
 {
-	gpu->ge.vertex_color = bgr555_to_color6_3d(gpu->cmd_params[0]);
+	unpack_bgr555_3d(gpu->cmd_params[0], &gpu->ge.vr, &gpu->ge.vg,
+			&gpu->ge.vb);
 }
 
 static bool
@@ -449,7 +450,7 @@ add_vertex(gpu_3d_engine *gpu)
 	mtx_mult_vec(&result, &gpu->clip_mtx, &vtx_point);
 
 	vr.vertices[vr.count++] = { result.v[0], result.v[1], result.v[2],
-		result.v[3], ge.vertex_color };
+		result.v[3], { ge.vr, ge.vg, ge.vb } };
 	ge.vtx_count++;
 
 	switch (ge.primitive_type) {

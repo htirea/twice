@@ -35,8 +35,8 @@ color6_to_bgr888(color6 color)
 	return b << 16 | g << 8 | r;
 }
 
-inline color6
-bgr555_to_color6_3d(u16 color)
+inline void
+unpack_bgr555_3d(u16 color, u32 *r_out, u32 *g_out, u32 *b_out)
 {
 	u8 r = color & 0x1F;
 	u8 g = color >> 5 & 0x1F;
@@ -49,7 +49,9 @@ bgr555_to_color6_3d(u16 color)
 	if (b != 0)
 		b = (b << 1) + 1;
 
-	return { r, g, b };
+	*r_out = r;
+	*g_out = g;
+	*b_out = b;
 }
 
 } // namespace twice
