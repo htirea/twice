@@ -20,45 +20,59 @@ polygon_not_in_scanline(gpu_3d_engine *gpu, s32 scanline, u32 poly_num)
 	polygon *p = gpu->re.polygons[poly_num];
 	polygon_info *pinfo = &gpu->re.poly_info[poly_num];
 
-	if (scanline < p->vertices[pinfo->start]->sy)
-		return true;
-	if (scanline >= p->vertices[pinfo->end]->sy)
-		return true;
-	return false;
+	s32 ystart = p->vertices[pinfo->start]->sy;
+	s32 yend = p->vertices[pinfo->end]->sy;
+
+	bool flat_line = p->vertices[pinfo->start]->sy ==
+	                 p->vertices[pinfo->end]->sy;
+	if (flat_line) {
+		yend++;
+	}
+
+	return scanline < ystart || scanline >= yend;
 }
 
 static void
-setup_polygon_slope(slope *sl, vertex *v0, vertex *v1)
+setup_polygon_slope(slope *s, vertex *v0, vertex *v1)
 {
 	s32 x0 = v0->sx;
 	s32 y0 = v0->sy;
 	s32 x1 = v1->sx;
 	s32 y1 = v1->sy;
 
-	sl->x0 = x0 << 18;
-	sl->y0 = y0;
+	s->x0 = x0 << 18;
+	s->y0 = y0;
 
-	sl->negative = x0 > x1;
-	if (sl->negative) {
-		sl->x0--;
+	s->negative = x0 > x1;
+	if (s->negative) {
+		s->x0--;
 		std::swap(x0, x1);
 	}
 
 	s32 dx = x1 - x0;
 	s32 dy = y1 - y0;
-	sl->xmajor = dx > dy;
+	s->xmajor = dx > dy;
 
-	if (sl->xmajor || dx == dy) {
+	if (s->xmajor || dx == dy) {
 		s32 half = (s32)1 << 17;
-		sl->x0 = sl->negative ? sl->x0 - half : sl->x0 + half;
+		s->x0 = s->negative ? s->x0 - half : s->x0 + half;
 	}
 
-	sl->m = dx;
+	s->m = dx;
 	if (dy != 0) {
-		sl->m *= ((s32)1 << 18) / dy;
+		s->m *= ((s32)1 << 18) / dy;
 	} else {
-		sl->m = ((s32)1 << 18);
+		s->m = ((s32)1 << 18);
 	}
+}
+
+static void
+setup_polygon_slope_vertical(slope *s, vertex *v)
+{
+	vertex v1;
+	v1.sx = v->sx;
+	v1.sy = v->sy + 1;
+	setup_polygon_slope(s, v, &v1);
 }
 
 static void
@@ -100,15 +114,19 @@ setup_polygon_initial_slope(gpu_3d_engine *gpu, u32 poly_num)
 	polygon *p = gpu->re.polygons[poly_num];
 	polygon_info *pinfo = &gpu->re.poly_info[poly_num];
 
-	u32 next = (pinfo->start + 1) % p->num_vertices;
-	setup_polygon_slope(&pinfo->left_slope, p->vertices[pinfo->start],
-			p->vertices[next]);
-	pinfo->left = next;
+	u32 next_l = (pinfo->start + 1) % p->num_vertices;
+	u32 next_r = (pinfo->start - 1 + p->num_vertices) % p->num_vertices;
+	if (p->backface) {
+		std::swap(next_l, next_r);
+	}
 
-	next = (pinfo->start - 1 + p->num_vertices) % p->num_vertices;
+	setup_polygon_slope(&pinfo->left_slope, p->vertices[pinfo->start],
+			p->vertices[next_l]);
+	pinfo->left = next_l;
+
 	setup_polygon_slope(&pinfo->right_slope, p->vertices[pinfo->start],
-			p->vertices[next]);
-	pinfo->right = next;
+			p->vertices[next_r]);
+	pinfo->right = next_r;
 }
 
 static void
@@ -117,53 +135,55 @@ setup_polygon_scanline(gpu_3d_engine *gpu, s32 scanline, u32 poly_num)
 	polygon *p = gpu->re.polygons[poly_num];
 	polygon_info *pinfo = &gpu->re.poly_info[poly_num];
 
-	/*
-	if (p->vertices[pinfo->end]->sy == scanline) {
-	        return;
-	}
-	*/
+	if (p->vertices[pinfo->start]->sy == p->vertices[pinfo->end]->sy) {
+		setup_polygon_slope_vertical(
+				&pinfo->left_slope, p->vertices[pinfo->start]);
+		setup_polygon_slope_vertical(
+				&pinfo->right_slope, p->vertices[pinfo->end]);
+	} else {
+		u32 curr, next;
 
-	u32 curr, next;
-
-	if (p->vertices[pinfo->left]->sy == scanline) {
-		next = pinfo->left;
-		do {
-			curr = next;
-			next = (next + 1) % p->num_vertices;
-		} while (next != pinfo->end &&
-				p->vertices[next]->sy <= scanline);
-		setup_polygon_slope(&pinfo->left_slope, p->vertices[curr],
-				p->vertices[next]);
-		pinfo->left = next;
+		if (p->vertices[pinfo->left]->sy == scanline) {
+			curr = pinfo->left;
+			next = pinfo->left;
+			while (next != pinfo->end &&
+					p->vertices[next]->sy <= scanline) {
+				curr = next;
+				if (p->backface) {
+					next = (next - 1 + p->num_vertices) %
+					       p->num_vertices;
+				} else {
+					next = (next + 1) % p->num_vertices;
+				}
+			}
+			if (next != curr) {
+				setup_polygon_slope(&pinfo->left_slope,
+						p->vertices[curr],
+						p->vertices[next]);
+				pinfo->left = next;
+			}
+		}
+		if (p->vertices[pinfo->right]->sy == scanline) {
+			curr = pinfo->right;
+			next = pinfo->right;
+			while (next != pinfo->end &&
+					p->vertices[next]->sy <= scanline) {
+				curr = next;
+				if (p->backface) {
+					next = (next + 1) % p->num_vertices;
+				} else {
+					next = (next - 1 + p->num_vertices) %
+					       p->num_vertices;
+				}
+			}
+			if (next != curr) {
+				setup_polygon_slope(&pinfo->right_slope,
+						p->vertices[curr],
+						p->vertices[next]);
+				pinfo->right = next;
+			}
+		}
 	}
-	if (p->vertices[pinfo->right]->sy == scanline) {
-		next = pinfo->right;
-		do {
-			curr = next;
-			next = (next - 1 + p->num_vertices) % p->num_vertices;
-		} while (next != pinfo->end &&
-				p->vertices[next]->sy <= scanline);
-		setup_polygon_slope(&pinfo->right_slope, p->vertices[curr],
-				p->vertices[next]);
-		pinfo->right = next;
-	}
-}
-
-static void
-adjust_range_to_boundaries(s32 *x)
-{
-	if (x[1] <= 0) {
-		x[0] = 0;
-		return;
-	}
-
-	if (x[0] >= 256) {
-		x[0] = x[1];
-		return;
-	}
-
-	x[0] = std::max(x[0], 0);
-	x[1] = std::min(x[1], 256);
 }
 
 static void
@@ -175,21 +195,34 @@ render_polygon_scanline(gpu_3d_engine *gpu, s32 scanline, u32 poly_num)
 	if (polygon_not_in_scanline(gpu, scanline, poly_num))
 		return;
 
-	slope *left_sl = &pinfo->left_slope;
-	slope *right_sl = &pinfo->right_slope;
+	slope *sl = &pinfo->left_slope;
+	slope *sr = &pinfo->right_slope;
 
 	s32 xstart[2];
 	s32 xend[2];
-	get_slope_x_start_end(left_sl, right_sl, xstart, xend, scanline);
+	get_slope_x_start_end(sl, sr, xstart, xend, scanline);
 
-	adjust_range_to_boundaries(xstart);
-	adjust_range_to_boundaries(xend);
+	if (xstart[0] >= xend[1]) {
+		std::swap(sl, sr);
+		std::swap(xstart[0], xend[0]);
+		std::swap(xstart[1], xend[1]);
+	}
 
-	for (s32 x = xstart[0]; x < xstart[1]; x++) {
+	s32 draw_x = std::max(0, xstart[0]);
+	s32 draw_x_end = std::min(256, xstart[1]);
+	for (s32 x = draw_x; x < draw_x_end; x++) {
 		gpu->color_buf[scanline][x] = 0x7FFFC0;
 	}
 
-	for (s32 x = xend[0]; x < xend[1]; x++) {
+	for (s32 x = xstart[1]; x < xend[0]; x++) {
+		if (x < 0 || x >= 256)
+			continue;
+		gpu->color_buf[scanline][x] = 0x7C0FFF;
+	}
+
+	draw_x = std::max(0, xend[0]);
+	draw_x_end = std::min(256, xend[1]);
+	for (s32 x = draw_x; x < draw_x_end; x++) {
 		gpu->color_buf[scanline][x] = 0x7FF03F;
 	}
 }

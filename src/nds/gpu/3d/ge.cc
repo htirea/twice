@@ -337,6 +337,28 @@ cmd_color(gpu_3d_engine *gpu)
 	gpu->ge.vertex_color = bgr555_to_color6_3d(gpu->cmd_params[0]);
 }
 
+static bool
+is_backface(vertex **vertices)
+{
+	vertex *v0 = vertices[0];
+	vertex *v1 = vertices[1];
+	vertex *v2 = vertices[2];
+
+	s32 ax = v1->x - v0->x;
+	s32 ay = v1->y - v0->y;
+	s32 az = v1->w - v0->w;
+	s32 bx = v2->x - v0->x;
+	s32 by = v2->y - v0->y;
+	s32 bz = v2->w - v0->w;
+
+	s64 cx = (s64)ay * bz - (s64)az * by;
+	s64 cy = (s64)az * bx - (s64)ax * bz;
+	s64 cz = (s64)ax * by - (s64)ay * bx;
+
+	s64 dot = cx * v0->x + cy * v0->y + cz * v0->w;
+	return dot <= 0;
+}
+
 static void
 add_polygon(gpu_3d_engine *gpu)
 {
@@ -383,6 +405,7 @@ add_polygon(gpu_3d_engine *gpu)
 		vertices[3] = last_vtx - 1;
 	}
 
+	bool backface = is_backface(vertices);
 	/* TODO: face culling */
 	/* TODO: clipping */
 
@@ -407,6 +430,7 @@ add_polygon(gpu_3d_engine *gpu)
 	}
 
 	poly->attr = ge.polygon_attr;
+	poly->backface = backface;
 }
 
 static void

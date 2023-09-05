@@ -27,6 +27,7 @@ struct gpu_3d_engine {
 		u32 num_vertices;
 		vertex *vertices[10];
 		u32 attr;
+		bool backface{};
 	};
 
 	struct vertex_ram {
