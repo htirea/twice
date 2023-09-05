@@ -22,7 +22,7 @@ polygon_not_in_scanline(gpu_3d_engine *gpu, s32 scanline, u32 poly_num)
 
 	if (scanline < p->vertices[pinfo->start]->sy)
 		return true;
-	if (scanline > p->vertices[pinfo->end]->sy)
+	if (scanline >= p->vertices[pinfo->end]->sy)
 		return true;
 	return false;
 }
