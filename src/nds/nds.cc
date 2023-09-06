@@ -259,9 +259,7 @@ event_hblank_end(nds_ctx *nds)
 		}
 	}
 
-	if (nds->vcount == 192) {
-		nds_on_vblank(nds);
-	} else if (nds->vcount == 262) {
+	if (nds->vcount == 262) {
 		/* vblank flag isn't set in last scanline */
 		nds->dispstat[0] &= ~BIT(0);
 		nds->dispstat[1] &= ~BIT(0);
@@ -270,6 +268,10 @@ event_hblank_end(nds_ctx *nds)
 	gpu3d_on_scanline_start(nds);
 	gpu_on_scanline_start(nds);
 	dma_on_scanline_start(nds);
+
+	if (nds->vcount == 192) {
+		nds_on_vblank(nds);
+	}
 
 	reschedule_nds_event_after(nds, event_scheduler::HBLANK_END, 2130);
 }

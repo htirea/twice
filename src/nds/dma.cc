@@ -188,6 +188,7 @@ dma9_dmacnt_h_write(nds_ctx *nds, int channel, u16 value)
 		case 2:
 		case 3:
 		case 5:
+		case 7:
 			break;
 		default:
 			throw twice_error("arm9 dma mode not implemented");
@@ -339,6 +340,18 @@ start_cartridge_dmas(nds_ctx *nds, int cpuid)
 		if (nds->dma[cpuid].transfers[channel].enabled) {
 			if (nds->dma[cpuid].transfers[channel].mode == mode) {
 				start_transfer(nds, cpuid, channel);
+			}
+		}
+	}
+}
+
+void
+start_gxfifo_dmas(nds_ctx *nds)
+{
+	for (int channel = 0; channel < 4; channel++) {
+		if (nds->dma[0].transfers[channel].enabled) {
+			if (nds->dma[0].transfers[channel].mode == 7) {
+				start_transfer(nds, 0, channel);
 			}
 		}
 	}

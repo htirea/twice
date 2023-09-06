@@ -6,6 +6,8 @@
 
 namespace twice {
 
+static void gxfifo_run_commands(gpu_3d_engine *gpu);
+
 gpu_3d_engine::gpu_3d_engine(nds_ctx *nds)
 	: nds(nds)
 {
@@ -39,6 +41,8 @@ gpu3d_on_vblank(gpu_3d_engine *gpu)
 void
 gpu3d_on_scanline_start(nds_ctx *nds)
 {
+	gxfifo_run_commands(&nds->gpu3d);
+
 	if (nds->vcount == 214) {
 		gpu3d_render_frame(&nds->gpu3d);
 	}
@@ -170,6 +174,10 @@ gxfifo_run_commands(gpu_3d_engine *gpu)
 	}
 
 	gxfifo_check_irq(gpu);
+
+	if (fifo.buffer.size() < 128) {
+		start_gxfifo_dmas(gpu->nds);
+	}
 }
 
 static void
