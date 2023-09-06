@@ -32,8 +32,10 @@ struct gpu_3d_engine {
 	struct polygon {
 		u32 num_vertices;
 		vertex *vertices[10];
+		s32 normalized_w[10];
 		u32 attr;
 		bool backface{};
+		int wshift;
 	};
 
 	struct vertex_ram {
@@ -75,6 +77,15 @@ struct gpu_3d_engine {
 		polygon *polygons[2048]{};
 		u32 num_polygons{};
 
+		struct interpolator {
+			s32 x0;
+			s32 x1;
+			s32 x;
+			s32 w0;
+			s32 w1;
+			s32 w;
+		};
+
 		struct slope {
 			s32 x0;
 			s32 y0;
@@ -84,16 +95,7 @@ struct gpu_3d_engine {
 			vertex *v0{};
 			vertex *v1{};
 
-			struct {
-				s32 x0;
-				s32 x1;
-				s32 x;
-			} interp;
-		};
-
-		struct polygon_span {
-			s32 x0;
-			s32 length;
+			interpolator interp;
 		};
 
 		struct polygon_info {
