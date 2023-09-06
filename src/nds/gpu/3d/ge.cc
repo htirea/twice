@@ -367,7 +367,7 @@ add_polygon(gpu_3d_engine *gpu)
 	auto& pr = gpu->poly_ram[gpu->ge_buf];
 	auto& vr = gpu->vtx_ram[gpu->ge_buf];
 
-	if (pr.count >= 6144) {
+	if (pr.count >= 2048) {
 		LOGV("polygon ram full\n");
 		return;
 	}
@@ -428,9 +428,8 @@ add_polygon(gpu_3d_engine *gpu)
 		} else {
 			v->sx = (v->x + v->w) * gpu->viewport_w / (2 * v->w) +
 			        gpu->viewport_x[0];
-			v->sy = (v->y + v->w) * gpu->viewport_h / (2 * v->w) +
+			v->sy = (-v->y + v->w) * gpu->viewport_h / (2 * v->w) +
 			        gpu->viewport_y[0];
-			v->sy = 192 - v->sy;
 		}
 	}
 
@@ -454,7 +453,7 @@ add_vertex(gpu_3d_engine *gpu)
 	auto& ge = gpu->ge;
 	auto& vr = gpu->vtx_ram[gpu->ge_buf];
 
-	if (vr.count >= 2048) {
+	if (vr.count >= 6144) {
 		LOGV("vertex ram full\n");
 		return;
 	}
@@ -463,8 +462,13 @@ add_vertex(gpu_3d_engine *gpu)
 	ge_vector result;
 	mtx_mult_vec(&result, &gpu->clip_mtx, &vtx_point);
 
-	vr.vertices[vr.count++] = { result.v[0], result.v[1], result.v[2],
-		result.v[3], { ge.vr, ge.vg, ge.vb } };
+	vertex *v = &vr.vertices[vr.count];
+	v->x = result.v[0];
+	v->y = result.v[1];
+	v->z = result.v[2];
+	v->w = result.v[3];
+	v->color = { ge.vr, ge.vg, ge.vb };
+	vr.count++;
 	ge.vtx_count++;
 
 	switch (ge.primitive_type) {
@@ -483,7 +487,7 @@ add_vertex(gpu_3d_engine *gpu)
 			add_polygon(gpu);
 		}
 		break;
-	case 4:
+	case 3:
 		if (ge.vtx_count >= 4 && ge.vtx_count % 2 == 0) {
 			add_polygon(gpu);
 		}
@@ -502,9 +506,9 @@ cmd_vtx_16(gpu_3d_engine *gpu)
 static void
 cmd_vtx_10(gpu_3d_engine *gpu)
 {
-	gpu->ge.vx = (s32)(gpu->cmd_params[0] << 22) >> 16;
-	gpu->ge.vy = (s32)(gpu->cmd_params[0] << 12) >> 16;
-	gpu->ge.vz = (s32)(gpu->cmd_params[0] << 2) >> 16;
+	gpu->ge.vx = (s32)(gpu->cmd_params[0] << 22) >> 22 << 6;
+	gpu->ge.vy = (s32)(gpu->cmd_params[0] << 12) >> 22 << 6;
+	gpu->ge.vz = (s32)(gpu->cmd_params[0] << 2) >> 22 << 6;
 	add_vertex(gpu);
 }
 
@@ -535,9 +539,9 @@ cmd_vtx_yz(gpu_3d_engine *gpu)
 static void
 cmd_vtx_diff(gpu_3d_engine *gpu)
 {
-	gpu->ge.vx += (s32)(gpu->cmd_params[0] << 22) >> 19;
-	gpu->ge.vy += (s32)(gpu->cmd_params[0] << 12) >> 19;
-	gpu->ge.vz += (s32)(gpu->cmd_params[0] << 2) >> 19;
+	gpu->ge.vx += (s16)(gpu->cmd_params[0] << 6) >> 6;
+	gpu->ge.vy += (s16)(gpu->cmd_params[0] >> 4) >> 6;
+	gpu->ge.vz += (s16)(gpu->cmd_params[0] >> 14) >> 6;
 	add_vertex(gpu);
 }
 
