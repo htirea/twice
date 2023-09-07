@@ -129,15 +129,19 @@ bus9_write(nds_ctx *nds, u32 addr, T value)
 		}
 		break;
 	case 0x5:
-		if (!gpu_2d_memory_access_disabled(nds, addr)) {
+		if (sizeof(T) != 1 &&
+				!gpu_2d_memory_access_disabled(nds, addr)) {
 			writearr<T>(nds->palette, addr & PALETTE_MASK, value);
 		}
 		break;
 	case 0x6:
-		vram_write<T>(nds, addr, value);
+		if (sizeof(T) != 1) {
+			vram_write<T>(nds, addr, value);
+		}
 		break;
 	case 0x7:
-		if (!gpu_2d_memory_access_disabled(nds, addr)) {
+		if (sizeof(T) != 1 &&
+				!gpu_2d_memory_access_disabled(nds, addr)) {
 			writearr<T>(nds->oam, addr & OAM_MASK, value);
 		}
 		break;
