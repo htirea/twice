@@ -16,7 +16,7 @@ struct firmware_flash {
 	u8 command{};
 	u32 count{};
 	u32 addr{};
-	u8 status{};
+	u8 stat_reg{};
 	bool cs_active{};
 };
 

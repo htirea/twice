@@ -30,15 +30,15 @@ powerman_spi_transfer_byte(nds_ctx *nds, u8 value, bool keep_active)
 	nds->spidata_r = pwr.output_byte;
 
 	if (!pwr.cs_active) {
-		pwr.is_read = value & 0x80;
+		pwr.read_mode = value & 0x80;
 
-		if (pwr.is_read) {
+		if (pwr.read_mode) {
 			pwr.output_byte = pwr.reg[value & 3];
 		} else {
 			pwr.reg_select = value & 3;
 		}
 	} else {
-		if (!pwr.is_read) {
+		if (!pwr.read_mode) {
 			powerman_write_reg(nds, value);
 		}
 	}

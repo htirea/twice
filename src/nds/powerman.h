@@ -11,7 +11,7 @@ struct power_management_device {
 	u8 reg[4]{};
 	u8 output_byte{};
 	u8 reg_select{};
-	bool is_read{};
+	bool read_mode{};
 	bool cs_active{};
 };
 

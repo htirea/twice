@@ -81,7 +81,7 @@ firmware_spi_transfer_byte(nds_ctx *nds, u8 value, bool keep_active)
 		break;
 	case 0x5:
 		if (fw.count > 0) {
-			nds->spidata_r = fw.status;
+			nds->spidata_r = fw.stat_reg;
 		}
 		break;
 	default:

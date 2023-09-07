@@ -17,9 +17,8 @@ struct cartridge_backup {
 	u8 command{};
 	u32 count{};
 	u32 addr{};
-	u8 status{};
+	u8 stat_reg{};
 	u32 jedec_id{};
-	bool infrared{};
 	u8 ir_command{};
 	u32 ir_count{};
 	bool cs_active{};
@@ -34,21 +33,22 @@ struct cartridge {
 	size_t read_mask{};
 	u32 chip_id{};
 	u32 gamecode{};
+	bool infrared{};
 
-	struct rom_transfer {
+	struct {
 		u8 command[8]{};
 		u32 transfer_size{};
 		u32 bytes_read{};
 		u32 bus_data_r{};
 
-		u32 start_addr{};
-		bool key1{};
+		u32 addr{};
+		bool key1_mode{};
 	} transfer;
 
 	cartridge_backup backup;
 
-	u8 *arm7_bios{};
 	u32 keybuf[0x412]{};
+	u32 keybuf_s[0x412]{};
 	u8 keycode[16]{};
 };
 

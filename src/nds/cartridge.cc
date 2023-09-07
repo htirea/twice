@@ -72,11 +72,12 @@ apply_keycode(cartridge *cart, u32 modulo)
 {
 	encrypt64(cart->keycode + 4, cart->keybuf);
 	encrypt64(cart->keycode, cart->keybuf);
-	u8 scratch[8]{};
 	for (u32 i = 0; i <= 0x11; i++) {
 		cart->keybuf[i] ^= byteswap32(
 				readarr<u32>(cart->keycode, i * 4 % modulo));
 	}
+
+	u8 scratch[8]{};
 	for (u32 i = 0; i <= 0x410; i += 2) {
 		encrypt64(&scratch[0], cart->keybuf);
 		cart->keybuf[i] = readarr<u32>(scratch, 4);
@@ -87,10 +88,7 @@ apply_keycode(cartridge *cart, u32 modulo)
 static void
 init_keycode(cartridge *cart, u32 gamecode, int level, u32 modulo)
 {
-	for (u32 i = 0; i < 0x412; i++) {
-		u32 v = readarr<u32>(cart->arm7_bios, 0x30 + i * 4);
-		cart->keybuf[i] = v;
-	}
+	std::memcpy(cart->keybuf, cart->keybuf_s, sizeof(cart->keybuf));
 
 	writearr<u32>(cart->keycode, 0, gamecode);
 	writearr<u32>(cart->keycode, 4, gamecode / 2);
@@ -131,6 +129,23 @@ cartridge_backup::cartridge_backup(u8 *data, size_t size, int savetype)
 	  size(size),
 	  savetype(savetype)
 {
+	switch (savetype) {
+	case SAVETYPE_EEPROM_512B:
+		stat_reg = 0xF0;
+		break;
+	case SAVETYPE_FLASH_256K:
+		jedec_id = 0x204012;
+		break;
+	case SAVETYPE_FLASH_512K:
+		jedec_id = 0x204013;
+		break;
+	case SAVETYPE_FLASH_1M:
+		jedec_id = 0x204014;
+		break;
+	case SAVETYPE_FLASH_8M:
+		jedec_id = 0x204015;
+		break;
+	}
 }
 
 cartridge::cartridge(u8 *data, size_t size, u8 *save_data, size_t save_size,
@@ -139,37 +154,16 @@ cartridge::cartridge(u8 *data, size_t size, u8 *save_data, size_t save_size,
 	  size(size),
 	  read_mask(std::bit_ceil(size) - 1),
 	  chip_id(cartridge_make_chip_id(size)),
-	  backup(save_data, save_size, savetype),
-	  arm7_bios(arm7_bios)
+	  backup(save_data, save_size, savetype)
 {
-	if (data) {
-		gamecode = readarr<u32>(data, 0xC);
-		init_keycode(this, gamecode, 1, 8);
-	}
-
-	backup.status = 0;
-
-	switch (savetype) {
-	case SAVETYPE_EEPROM_512B:
-		backup.status = 0xF0;
-		break;
-	case SAVETYPE_FLASH_256K:
-		backup.jedec_id = 0x204012;
-		break;
-	case SAVETYPE_FLASH_512K:
-		backup.jedec_id = 0x204013;
-		break;
-	case SAVETYPE_FLASH_1M:
-		backup.jedec_id = 0x204014;
-		break;
-	case SAVETYPE_FLASH_8M:
-		backup.jedec_id = 0x204015;
-		break;
-	}
-
+	gamecode = readarr_checked<u32>(data, 0xC, size, 0);
 	if ((gamecode & 0xFF) == 'I') {
-		backup.infrared = true;
+		infrared = true;
 		LOG("deteced infrared cart\n");
+	}
+
+	for (u32 i = 0; i < 0x412; i++) {
+		keybuf_s[i] = readarr<u32>(arm7_bios, 0x30 + i * 4);
 	}
 }
 
@@ -191,15 +185,15 @@ event_advance_rom_transfer(nds_ctx *nds)
 
 	nds->romctrl |= BIT(23);
 
-	if (t.key1) {
+	if (t.key1_mode) {
 		switch (t.command[7] >> 4) {
 		case 0x1:
 			t.bus_data_r = cart.chip_id;
 			break;
 		case 0x2:
 		{
-			u32 offset = (t.start_addr & ~0xFFF) |
-			             ((t.start_addr + t.bytes_read) & 0xFFF);
+			u32 offset = (t.addr & ~0xFFF) |
+			             ((t.addr + t.bytes_read) & 0xFFF);
 			t.bus_data_r = readarr_checked<u32>(
 					cart.data, offset, cart.size, -1);
 			break;
@@ -218,8 +212,8 @@ event_advance_rom_transfer(nds_ctx *nds)
 			break;
 		case 0xB7:
 		{
-			u32 offset = (t.start_addr & ~0xFFF) |
-			             ((t.start_addr + t.bytes_read) & 0xFFF);
+			u32 offset = (t.addr & ~0xFFF) |
+			             ((t.addr + t.bytes_read) & 0xFFF);
 			t.bus_data_r = readarr_checked<u32>(
 					cart.data, offset, cart.size, -1);
 			break;
@@ -252,7 +246,7 @@ cartridge_start_command(nds_ctx *nds, int cpuid)
 	for (u32 i = 0; i < 8; i++) {
 		t.command[i] = nds->cart_command_out[7 - i];
 	}
-	if (t.key1) {
+	if (t.key1_mode) {
 		decrypt64(t.command, cart.keybuf);
 	}
 
@@ -267,17 +261,17 @@ cartridge_start_command(nds_ctx *nds, int cpuid)
 
 	t.bytes_read = 0;
 
-	if (t.key1) {
+	if (t.key1_mode) {
 		switch (t.command[7] >> 4) {
 		case 0x4:
 		case 0x1:
 			break;
 		case 0xA:
-			t.key1 = false;
+			t.key1_mode = false;
 			break;
 		case 0x2:
-			t.start_addr = t.command[5] >> 4 & 7;
-			t.start_addr <<= 12;
+			t.addr = t.command[5] >> 4 & 7;
+			t.addr <<= 12;
 			break;
 		default:
 			LOG("unhandled command %016lX\n",
@@ -290,16 +284,16 @@ cartridge_start_command(nds_ctx *nds, int cpuid)
 		case 0x90:
 			break;
 		case 0x3C:
-			t.key1 = true;
+			t.key1_mode = true;
 			init_keycode(&cart, cart.gamecode, 2, 8);
 			break;
 		case 0xB7:
-			t.start_addr = (u32)t.command[6] << 24 |
-			               (u32)t.command[5] << 16 |
-			               (u32)t.command[4] << 8 | t.command[3];
-			t.start_addr &= cart.read_mask;
-			if (t.start_addr < 0x8000) {
-				t.start_addr = 0x8000 + (t.start_addr & 0x1FF);
+			t.addr = (u32)t.command[6] << 24 |
+			         (u32)t.command[5] << 16 |
+			         (u32)t.command[4] << 8 | t.command[3];
+			t.addr &= cart.read_mask;
+			if (t.addr < 0x8000) {
+				t.addr = 0x8000 + (t.addr & 0x1FF);
 			}
 			break;
 		case 0xB8:
@@ -416,19 +410,19 @@ eeprom_common_transfer_byte(nds_ctx *nds, u8 value)
 
 	switch (bk.command) {
 	case 0x6:
-		bk.status |= BIT(1);
+		bk.stat_reg |= BIT(1);
 		break;
 	case 0x4:
-		bk.status &= ~BIT(1);
+		bk.stat_reg &= ~BIT(1);
 		break;
 	case 0x5:
 		if (bk.count > 0) {
-			nds->auxspidata_r = bk.status;
+			nds->auxspidata_r = bk.stat_reg;
 		}
 		break;
 	case 0x1:
 		if (bk.count == 1) {
-			bk.status = (bk.status & ~0xC) | (value & 0xC);
+			bk.stat_reg = (bk.stat_reg & ~0xC) | (value & 0xC);
 		}
 		break;
 	case 0x9F:
@@ -552,10 +546,10 @@ flash_common_transfer_byte(nds_ctx *nds, u8 value)
 	case 0x0:
 		break;
 	case 0x6:
-		bk.status |= BIT(1);
+		bk.stat_reg |= BIT(1);
 		break;
 	case 0x4:
-		bk.status &= ~BIT(0);
+		bk.stat_reg &= ~BIT(0);
 		break;
 	case 0x9F:
 		switch (bk.count) {
@@ -574,7 +568,7 @@ flash_common_transfer_byte(nds_ctx *nds, u8 value)
 		break;
 	case 0x5:
 		if (bk.count > 0) {
-			nds->auxspidata_r = bk.status;
+			nds->auxspidata_r = bk.stat_reg;
 		}
 		break;
 	case 0x3:
@@ -701,7 +695,7 @@ auxspidata_write(nds_ctx *nds, int cpuid, u8 value)
 	case SAVETYPE_FLASH_512K:
 	case SAVETYPE_FLASH_1M:
 	case SAVETYPE_FLASH_8M:
-		if (nds->cart.backup.infrared) {
+		if (nds->cart.infrared) {
 			infrared_transfer_byte(nds, value, keep_active);
 		} else {
 			flash_transfer_byte(nds, value, keep_active);
