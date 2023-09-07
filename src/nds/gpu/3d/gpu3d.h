@@ -51,7 +51,6 @@ struct gpu_3d_engine {
 	struct geometry_engine {
 		u32 polygon_attr_shadow{};
 		u32 polygon_attr{};
-		u32 vtx_count{};
 		u32 teximage_param{};
 		u8 primitive_type{};
 		u32 vr;
@@ -62,6 +61,10 @@ struct gpu_3d_engine {
 		s32 vz;
 		u32 swap_bits{};
 		u32 swap_bits_s{};
+
+		vertex *last_strip_vtx[2]{};
+		vertex vtx_buf[4];
+		u32 vtx_count{};
 	} ge;
 
 	struct rendering_engine {

@@ -338,8 +338,8 @@ cmd_color(gpu_3d_engine *gpu)
 			&gpu->ge.vb);
 }
 
-static bool
-is_backface(vertex **vertices)
+static s64
+get_face_direction(vertex **vertices)
 {
 	vertex *v0 = vertices[0];
 	vertex *v1 = vertices[1];
@@ -356,8 +356,7 @@ is_backface(vertex **vertices)
 	s64 cy = (s64)az * bx - (s64)ax * bz;
 	s64 cz = (s64)ax * by - (s64)ay * bx;
 
-	s64 dot = cx * v0->x + cy * v0->y + cz * v0->w;
-	return dot <= 0;
+	return cx * v0->x + cy * v0->y + cz * v0->w;
 }
 
 static void
@@ -368,53 +367,80 @@ add_polygon(gpu_3d_engine *gpu)
 	auto& vr = gpu->vtx_ram[gpu->ge_buf];
 
 	if (pr.count >= 2048) {
-		LOGV("polygon ram full\n");
+		printf("polygon ram full\n");
 		return;
 	}
 
 	u32 num_vertices = 0;
 	vertex *vertices[4]{};
-	vertex *last_vtx = &vr.vertices[vr.count - 1];
 
 	switch (ge.primitive_type) {
 	case 0:
 		num_vertices = 3;
-		for (u32 i = 3; i--;)
-			vertices[i] = last_vtx--;
+		vertices[0] = &ge.vtx_buf[ge.vtx_count - 3 & 3];
+		vertices[1] = &ge.vtx_buf[ge.vtx_count - 2 & 3];
+		vertices[2] = &ge.vtx_buf[ge.vtx_count - 1 & 3];
 		break;
 	case 1:
 		num_vertices = 4;
-		for (u32 i = 4; i--;)
-			vertices[i] = last_vtx--;
+		vertices[0] = &ge.vtx_buf[ge.vtx_count - 4 & 3];
+		vertices[1] = &ge.vtx_buf[ge.vtx_count - 3 & 3];
+		vertices[2] = &ge.vtx_buf[ge.vtx_count - 2 & 3];
+		vertices[3] = &ge.vtx_buf[ge.vtx_count - 1 & 3];
 		break;
 	case 2:
 		num_vertices = 3;
-		if (ge.vtx_count % 2 == 1) {
-			for (u32 i = 3; i--;)
-				vertices[i] = last_vtx--;
-		} else {
-			vertices[0] = last_vtx - 2;
-			vertices[1] = last_vtx;
-			vertices[2] = last_vtx - 1;
+		vertices[0] = &ge.vtx_buf[ge.vtx_count - 3 & 3];
+		vertices[1] = &ge.vtx_buf[ge.vtx_count - 2 & 3];
+		vertices[2] = &ge.vtx_buf[ge.vtx_count - 1 & 3];
+		if (ge.last_strip_vtx[0]) {
+			vertices[0] = ge.last_strip_vtx[0];
+		}
+		if (ge.last_strip_vtx[1]) {
+			vertices[1] = ge.last_strip_vtx[1];
+		}
+
+		if (ge.vtx_count % 2 == 0) {
+			std::swap(vertices[1], vertices[2]);
 		}
 		break;
 	case 3:
 		num_vertices = 4;
-		vertices[0] = last_vtx - 3;
-		vertices[1] = last_vtx - 2;
-		vertices[2] = last_vtx;
-		vertices[3] = last_vtx - 1;
+		vertices[0] = &ge.vtx_buf[ge.vtx_count - 4 & 3];
+		vertices[1] = &ge.vtx_buf[ge.vtx_count - 3 & 3];
+		vertices[2] = &ge.vtx_buf[ge.vtx_count - 1 & 3];
+		vertices[3] = &ge.vtx_buf[ge.vtx_count - 2 & 3];
+		if (ge.last_strip_vtx[0]) {
+			vertices[0] = ge.last_strip_vtx[0];
+		}
+		if (ge.last_strip_vtx[1]) {
+			vertices[1] = ge.last_strip_vtx[1];
+		}
 	}
 
-	bool backface = is_backface(vertices);
-	/* TODO: face culling */
+	ge.last_strip_vtx[0] = nullptr;
+	ge.last_strip_vtx[1] = nullptr;
+
+	s64 face_dir = get_face_direction(vertices);
+	if ((!(ge.polygon_attr & BIT(6)) && face_dir < 0) ||
+			(!(ge.polygon_attr & BIT(7)) && face_dir > 0)) {
+		return;
+	}
+
 	/* TODO: clipping */
+
+	if (vr.count + num_vertices > 6144) {
+		printf("vertex ram full\n");
+		return;
+	}
 
 	polygon *poly = &pr.polygons[pr.count++];
 	for (u32 i = 0; i < num_vertices; i++) {
-		poly->vertices[i] = vertices[i];
+		vr.vertices[vr.count + i] = *vertices[i];
+		poly->vertices[i] = &vr.vertices[vr.count + i];
 	}
 	poly->num_vertices = num_vertices;
+	vr.count += num_vertices;
 
 	int min_leading_zeros = 32;
 	for (u32 i = 0; i < poly->num_vertices; i++) {
@@ -444,7 +470,7 @@ add_polygon(gpu_3d_engine *gpu)
 	}
 
 	poly->attr = ge.polygon_attr;
-	poly->backface = backface;
+	poly->backface = face_dir < 0;
 }
 
 static void
@@ -454,7 +480,7 @@ add_vertex(gpu_3d_engine *gpu)
 	auto& vr = gpu->vtx_ram[gpu->ge_buf];
 
 	if (vr.count >= 6144) {
-		LOGV("vertex ram full\n");
+		printf("vertex ram full\n");
 		return;
 	}
 
@@ -462,13 +488,12 @@ add_vertex(gpu_3d_engine *gpu)
 	ge_vector result;
 	mtx_mult_vec(&result, &gpu->clip_mtx, &vtx_point);
 
-	vertex *v = &vr.vertices[vr.count];
+	vertex *v = &ge.vtx_buf[ge.vtx_count & 3];
 	v->x = result.v[0];
 	v->y = result.v[1];
 	v->z = result.v[2];
 	v->w = result.v[3];
 	v->color = { ge.vr, ge.vg, ge.vb };
-	vr.count++;
 	ge.vtx_count++;
 
 	switch (ge.primitive_type) {
@@ -563,6 +588,8 @@ cmd_begin_vtxs(gpu_3d_engine *gpu)
 	gpu->ge.polygon_attr = gpu->ge.polygon_attr_shadow;
 	gpu->ge.primitive_type = gpu->cmd_params[0] & 3;
 	gpu->ge.vtx_count = 0;
+	gpu->ge.last_strip_vtx[0] = nullptr;
+	gpu->ge.last_strip_vtx[1] = nullptr;
 }
 
 static void
