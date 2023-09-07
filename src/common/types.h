@@ -22,17 +22,20 @@ namespace twice {
 using timestamp = u64;
 using stimestamp = s64;
 
-constexpr size_t operator""_KiB(unsigned long long v)
+constexpr size_t
+operator""_KiB(unsigned long long v)
 {
 	return v << 10;
 }
 
-constexpr size_t operator""_MiB(unsigned long long v)
+constexpr size_t
+operator""_MiB(unsigned long long v)
 {
 	return v << 20;
 }
 
-constexpr size_t operator""_GiB(unsigned long long v)
+constexpr size_t
+operator""_GiB(unsigned long long v)
 {
 	return v << 30;
 }
