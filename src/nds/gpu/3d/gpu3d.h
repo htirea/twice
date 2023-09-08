@@ -25,8 +25,10 @@ struct gpu_3d_engine {
 			u32 b;
 		} color;
 
-		s32 sx{};
-		s32 sy{};
+		s32 sx;
+		s32 sy;
+		u32 reused : 2;
+		u32 strip_vtx : 2;
 	};
 
 	struct polygon {
