@@ -24,6 +24,7 @@ struct ge_vector {
 
 void mtx_mult_mtx(ge_matrix *r, ge_matrix *s, ge_matrix *t);
 void mtx_mult_vec(ge_vector *r, ge_matrix *m, ge_vector *p);
+void mtx_mult_vec3(s32 *r, ge_matrix *m, s32 p0, s32 p1, s32 p2);
 
 void mtx_set_identity(ge_matrix *m);
 void mtx_load_4x4(ge_matrix *m, u32 *p);

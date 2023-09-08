@@ -334,8 +334,105 @@ cmd_mtx_trans(gpu_3d_engine *gpu)
 static void
 cmd_color(gpu_3d_engine *gpu)
 {
-	unpack_bgr555_3d(gpu->cmd_params[0], &gpu->ge.vr, &gpu->ge.vg,
-			&gpu->ge.vb);
+	unpack_bgr555_3d(gpu->cmd_params[0], gpu->ge.vtx_color);
+}
+
+static void
+texcoord_transform_1(gpu_3d_engine *gpu)
+{
+	auto& ge = gpu->ge;
+	auto& m = gpu->texture_mtx;
+
+	s64 s = ge.texcoord[0];
+	s64 t = ge.texcoord[1];
+	s64 r0 = (s * m.v[0][0] + t * m.v[1][0] + m.v[2][0] + m.v[3][0]) >> 12;
+	s64 r1 = (s * m.v[0][1] + t * m.v[1][1] + m.v[2][1] + m.v[3][1]) >> 12;
+
+	ge.vtx_texcoord[0] = r0;
+	ge.vtx_texcoord[1] = r1;
+}
+
+static void
+texcoord_transform_2(gpu_3d_engine *gpu, s64 nx, s64 ny, s64 nz)
+{
+	auto& ge = gpu->ge;
+	auto& m = gpu->texture_mtx;
+
+	s64 r0 = (nx * m.v[0][0] + ny * m.v[1][0] + nz * m.v[2][0]) >> 21;
+	s64 r1 = (nx * m.v[0][1] + ny * m.v[1][1] + nz * m.v[2][1]) >> 21;
+
+	ge.vtx_texcoord[0] = ge.texcoord[0] + r0;
+	ge.vtx_texcoord[1] = ge.texcoord[1] + r1;
+}
+
+static void
+cmd_normal(gpu_3d_engine *gpu)
+{
+	auto& ge = gpu->ge;
+
+	u32 param = gpu->cmd_params[0];
+	s16 nx = (s16)(param << 6) >> 6;
+	s16 ny = (s16)(param >> 4) >> 6;
+	s16 nz = (s16)(param >> 14) >> 6;
+
+	if (gpu->ge.teximage_param >> 30 == 2) {
+		texcoord_transform_2(gpu, nx, ny, nz);
+	}
+
+	s32 normal[3];
+	mtx_mult_vec3(normal, &gpu->vector_mtx, nx, ny, nz);
+
+	ge.vtx_color[0] = ge.emission_color[0];
+	ge.vtx_color[1] = ge.emission_color[1];
+	ge.vtx_color[2] = ge.emission_color[2];
+
+	for (u32 i = 0; i < 4; i++) {
+		if (!(ge.poly_attr & BIT(i)))
+			continue;
+
+		s64 diffuse_dot = (s64)-ge.light_vec[i][0] * normal[0] +
+		                  (s64)-ge.light_vec[i][1] * normal[1] +
+		                  (s64)-ge.light_vec[i][2] * normal[2];
+		s64 diffuse_level =
+				std::clamp(diffuse_dot, (s64)0, (s64)1 << 18);
+		diffuse_level >>= 9;
+
+		s64 shiny_dot = (s64)-ge.half_vec[i][0] * normal[0] +
+		                (s64)-ge.half_vec[i][1] * normal[1] +
+		                (s64)-ge.half_vec[i][2] * normal[2];
+		s64 shiny_level = std::clamp(shiny_dot, (s64)0, (s64)1 << 18);
+		shiny_level = (shiny_level >> 9) * (shiny_level >> 9) >> 9;
+
+		for (u32 j = 0; j < 3; j++) {
+			s64 light_color = ge.light_color[i][j];
+			s64 specular = ge.specular_color[j] * light_color *
+			               shiny_level;
+			s64 diffuse = ge.diffuse_color[j] * light_color *
+			              diffuse_level;
+			s64 ambient = ge.ambient_color[j] * light_color;
+			s64 color = ge.vtx_color[j] + (specular >> 15) +
+			            (diffuse >> 15) + (ambient >> 6);
+			color = std::clamp(color, (s64)0, (s64)63);
+			ge.vtx_color[j] = color;
+		}
+	}
+}
+
+static void
+cmd_texcoord(gpu_3d_engine *gpu)
+{
+	u32 param = gpu->cmd_params[0];
+	gpu->ge.texcoord[0] = (s32)(param << 16) >> 16;
+	gpu->ge.texcoord[1] = (s32)(param) >> 16;
+
+	switch (gpu->ge.teximage_param >> 30) {
+	case 0:
+		gpu->ge.vtx_texcoord[0] = gpu->ge.texcoord[0];
+		gpu->ge.vtx_texcoord[1] = gpu->ge.texcoord[1];
+		break;
+	case 1:
+		texcoord_transform_1(gpu);
+	}
 }
 
 static s64
@@ -531,7 +628,7 @@ add_vertex(gpu_3d_engine *gpu)
 	v->y = result.v[1];
 	v->z = result.v[2];
 	v->w = result.v[3];
-	v->color = { ge.vr, ge.vg, ge.vb };
+	v->color = { ge.vtx_color[0], ge.vtx_color[1], ge.vtx_color[2] };
 	ge.vtx_count++;
 
 	switch (ge.primitive_type) {
@@ -621,6 +718,67 @@ cmd_teximage_param(gpu_3d_engine *gpu)
 }
 
 static void
+cmd_pltt_base(gpu_3d_engine *gpu)
+{
+	gpu->ge.pltt_base = gpu->cmd_params[0] & 0x1FFF;
+}
+
+static void
+cmd_dif_amb(gpu_3d_engine *gpu)
+{
+	u32 param = gpu->cmd_params[0];
+	unpack_bgr555_3d(param, gpu->ge.diffuse_color);
+	if (param & BIT(15)) {
+		gpu->ge.vtx_color[0] = gpu->ge.diffuse_color[0];
+		gpu->ge.vtx_color[1] = gpu->ge.diffuse_color[1];
+		gpu->ge.vtx_color[2] = gpu->ge.diffuse_color[2];
+	}
+	unpack_bgr555_3d(param >> 16, gpu->ge.ambient_color);
+}
+
+static void
+cmd_spe_emi(gpu_3d_engine *gpu)
+{
+	u32 param = gpu->cmd_params[0];
+	unpack_bgr555_3d(param, gpu->ge.specular_color);
+	unpack_bgr555_3d(param >> 16, gpu->ge.emission_color);
+	gpu->ge.enable_shiny_table = param & BIT(15);
+}
+
+static void
+cmd_light_vector(gpu_3d_engine *gpu)
+{
+	u32 param = gpu->cmd_params[0];
+	s16 lx = (s16)(param << 6) >> 6;
+	s16 ly = (s16)(param >> 4) >> 6;
+	s16 lz = (s16)(param >> 14) >> 6;
+	u32 l = param >> 30;
+
+	mtx_mult_vec3(gpu->ge.light_vec[l], &gpu->vector_mtx, lx, ly, lz);
+	gpu->ge.half_vec[l][0] = gpu->ge.light_vec[l][0] >> 1;
+	gpu->ge.half_vec[l][1] = gpu->ge.light_vec[l][1] >> 1;
+	gpu->ge.half_vec[l][2] = (gpu->ge.light_vec[l][2] - (1 << 9)) >> 1;
+}
+
+static void
+cmd_light_color(gpu_3d_engine *gpu)
+{
+	u32 l = gpu->cmd_params[0] >> 30;
+	unpack_bgr555_3d(gpu->cmd_params[0], gpu->ge.light_color[l]);
+}
+
+static void
+cmd_shininess(gpu_3d_engine *gpu)
+{
+	for (u32 i = 0; i < 32; i++) {
+		u32 param = gpu->cmd_params[i];
+		for (u32 j = 0; j < 4; j++) {
+			gpu->ge.shiny_table[4 * i + j] = param >> 8 * j & 0xFF;
+		}
+	}
+}
+
+static void
 cmd_begin_vtxs(gpu_3d_engine *gpu)
 {
 	gpu->ge.poly_attr = gpu->ge.poly_attr_s;
@@ -696,6 +854,12 @@ ge_execute_command(gpu_3d_engine *gpu, u8 command)
 	case 0x20:
 		cmd_color(gpu);
 		break;
+	case 0x21:
+		cmd_normal(gpu);
+		break;
+	case 0x22:
+		cmd_texcoord(gpu);
+		break;
 	case 0x23:
 		cmd_vtx_16(gpu);
 		break;
@@ -719,6 +883,24 @@ ge_execute_command(gpu_3d_engine *gpu, u8 command)
 		break;
 	case 0x2A:
 		cmd_teximage_param(gpu);
+		break;
+	case 0x2B:
+		cmd_pltt_base(gpu);
+		break;
+	case 0x30:
+		cmd_dif_amb(gpu);
+		break;
+	case 0x31:
+		cmd_spe_emi(gpu);
+		break;
+	case 0x32:
+		cmd_light_vector(gpu);
+		break;
+	case 0x33:
+		cmd_light_color(gpu);
+		break;
+	case 0x34:
+		cmd_shininess(gpu);
 		break;
 	case 0x41:
 		break;

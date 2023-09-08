@@ -29,6 +29,16 @@ mtx_mult_vec(ge_vector *r, ge_matrix *m, ge_vector *p)
 }
 
 void
+mtx_mult_vec3(s32 *r, ge_matrix *m, s32 p0, s32 p1, s32 p2)
+{
+	for (u32 j = 0; j < 3; j++) {
+		s64 dot = p0 * (s64)m->v[0][j] + p1 * (s64)m->v[1][j] +
+		          p2 * (s64)m->v[2][j];
+		r[j] = dot >> 12;
+	}
+}
+
+void
 mtx_set_identity(ge_matrix *r)
 {
 	for (u32 i = 0; i < 4; i++) {
