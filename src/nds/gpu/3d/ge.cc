@@ -577,11 +577,16 @@ add_polygon(gpu_3d_engine *gpu)
 	}
 	poly->num_vertices = num_vertices;
 
-	int min_leading_zeros = 32;
+	int max_bits = 0;
 	for (u32 i = 0; i < poly->num_vertices; i++) {
 		vertex *v = poly->vertices[i];
-		min_leading_zeros = std::min(min_leading_zeros,
-				std::countl_zero((u32)v->w));
+		if (v->w >= 0) {
+			max_bits = std::max(max_bits,
+					1 + std::bit_width((u32)v->w));
+		} else {
+			max_bits = std::max(max_bits,
+					1 + std::bit_width(~(u32)v->w));
+		}
 
 		if (v->w == 0) {
 			v->sx = 0;
@@ -594,7 +599,7 @@ add_polygon(gpu_3d_engine *gpu)
 		}
 	}
 
-	poly->wshift = (16 - min_leading_zeros) / 4 * 4;
+	poly->wshift = (max_bits - 16 + 4 - 1) & ~3;
 	for (u32 i = 0; i < poly->num_vertices; i++) {
 		vertex *v = poly->vertices[i];
 		if (poly->wshift >= 0) {
