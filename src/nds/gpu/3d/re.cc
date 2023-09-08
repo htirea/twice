@@ -8,6 +8,8 @@ using polygon_info = gpu_3d_engine::rendering_engine::polygon_info;
 using slope = gpu_3d_engine::rendering_engine::slope;
 using interpolator = gpu_3d_engine::rendering_engine::interpolator;
 
+static void interp_setup(interpolator *i, s32 x0, s32 x1, s32 w0, s32 w1);
+
 static u32
 color6_to_abgr666(color6 color)
 {
@@ -79,14 +81,10 @@ setup_polygon_slope(slope *s, vertex *v0, vertex *v1, s32 w0, s32 w1)
 	}
 
 	if (s->xmajor) {
-		s->interp.x0 = v0->sx;
-		s->interp.x1 = v1->sx;
+		interp_setup(&s->interp, v0->sx, v1->sx, w0, w1);
 	} else {
-		s->interp.x0 = v0->sy;
-		s->interp.x1 = v1->sy;
+		interp_setup(&s->interp, v0->sy, v1->sy, w0, w1);
 	}
-	s->interp.w0 = w0;
-	s->interp.w1 = w1;
 }
 
 static void
@@ -132,9 +130,18 @@ get_slope_x_start_end(
 }
 
 static void
+interp_setup(interpolator *i, s32 x0, s32 x1, s32 w0, s32 w1)
+{
+	i->x0 = x0;
+	i->x1 = x1;
+	i->w0 = w0;
+	i->w1 = w1;
+	i->denom = (s64)w0 * w1 * (x1 - x0);
+}
+
+static void
 interp_update_w(interpolator *i)
 {
-	s64 numer = (s64)(i->w0 * i->w1) * (i->x1 - i->x0);
 	s64 denom = (s64)i->w1 * (i->x1 - i->x) + (s64)i->w0 * (i->x - i->x0);
 
 	if (denom == 0) {
@@ -142,7 +149,7 @@ interp_update_w(interpolator *i)
 		return;
 	}
 
-	i->w = numer / denom;
+	i->w = i->denom / denom;
 }
 
 static s32
@@ -150,13 +157,12 @@ interpolate(interpolator *i, s32 y0, s32 y1)
 {
 	s64 numer = (s64)i->w1 * y0 * (i->x1 - i->x) +
 	            (s64)i->w0 * y1 * (i->x - i->x0);
-	s64 denom = (s64)i->w0 * i->w1 * (i->x1 - i->x0);
 
-	if (denom == 0) {
+	if (i->denom == 0) {
 		return y0;
 	}
 
-	return i->w * numer / denom;
+	return i->w * numer / i->denom;
 }
 
 static void
@@ -280,10 +286,8 @@ render_polygon_scanline(gpu_3d_engine *gpu, s32 scanline, u32 poly_num)
 	s32 br = interpolate(&sr->interp, sr->v0->color.b, sr->v1->color.b);
 
 	interpolator span;
-	span.x0 = xstart[0];
-	span.x1 = xend[1] - 1;
-	span.w0 = sl->interp.w;
-	span.w1 = sr->interp.w;
+	interp_setup(&span, xstart[0], xend[1] - 1, sl->interp.w,
+			sr->interp.w);
 
 	s32 alpha = p->attr >> 16 & 0x1F;
 	if (alpha == 0) {

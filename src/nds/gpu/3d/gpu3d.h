@@ -101,6 +101,7 @@ struct gpu_3d_engine {
 			s32 w0;
 			s32 w1;
 			s32 w;
+			s64 denom;
 		};
 
 		struct slope {
