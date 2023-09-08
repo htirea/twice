@@ -1,6 +1,7 @@
 #ifndef TWICE_GPU3D_H
 #define TWICE_GPU3D_H
 
+#include "common/ringbuf.h"
 #include "common/types.h"
 
 #include "nds/gpu/3d/matrix.h"
@@ -135,7 +136,7 @@ struct gpu_3d_engine {
 			u32 param{};
 		};
 
-		std::queue<fifo_entry> buffer;
+		ringbuf<fifo_entry, 512> buffer;
 	} fifo;
 
 	u32 gxstat{};

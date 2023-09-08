@@ -8,10 +8,7 @@ namespace twice {
 
 static void gxfifo_run_commands(gpu_3d_engine *gpu);
 
-gpu_3d_engine::gpu_3d_engine(nds_ctx *nds)
-	: nds(nds)
-{
-}
+gpu_3d_engine::gpu_3d_engine(nds_ctx *nds) : nds(nds) {}
 
 static void
 execute_swap_buffers(gpu_3d_engine *gpu)
@@ -164,8 +161,7 @@ gxfifo_run_commands(gpu_3d_engine *gpu)
 			ge_execute_command(gpu, entry.command);
 		} else if (fifo.buffer.size() >= num_params) {
 			for (u32 i = 0; i < num_params; i++) {
-				gpu->cmd_params[i] = fifo.buffer.front().param;
-				fifo.buffer.pop();
+				gpu->cmd_params[i] = fifo.buffer.pop().param;
 			}
 			ge_execute_command(gpu, entry.command);
 		} else {
