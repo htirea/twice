@@ -51,8 +51,8 @@ struct gpu_3d_engine {
 	} poly_ram[2];
 
 	struct geometry_engine {
-		u32 polygon_attr_shadow{};
-		u32 polygon_attr{};
+		u32 poly_attr{};
+		u32 poly_attr_s{};
 		u32 teximage_param{};
 		u8 primitive_type{};
 		u32 vr;

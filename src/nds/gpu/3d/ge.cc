@@ -451,8 +451,8 @@ add_polygon(gpu_3d_engine *gpu)
 	ge.last_strip_vtx[1] = nullptr;
 
 	s64 face_dir = get_face_direction(vertices);
-	if ((!(ge.polygon_attr & BIT(6)) && face_dir < 0) ||
-			(!(ge.polygon_attr & BIT(7)) && face_dir > 0)) {
+	if ((!(ge.poly_attr & BIT(6)) && face_dir < 0) ||
+			(!(ge.poly_attr & BIT(7)) && face_dir > 0)) {
 		return;
 	}
 
@@ -507,7 +507,7 @@ add_polygon(gpu_3d_engine *gpu)
 		}
 	}
 
-	poly->attr = ge.polygon_attr;
+	poly->attr = ge.poly_attr;
 	poly->backface = face_dir < 0;
 }
 
@@ -611,7 +611,7 @@ cmd_vtx_diff(gpu_3d_engine *gpu)
 static void
 cmd_polygon_attr(gpu_3d_engine *gpu)
 {
-	gpu->ge.polygon_attr_shadow = gpu->cmd_params[0];
+	gpu->ge.poly_attr_s = gpu->cmd_params[0];
 }
 
 static void
@@ -623,7 +623,7 @@ cmd_teximage_param(gpu_3d_engine *gpu)
 static void
 cmd_begin_vtxs(gpu_3d_engine *gpu)
 {
-	gpu->ge.polygon_attr = gpu->ge.polygon_attr_shadow;
+	gpu->ge.poly_attr = gpu->ge.poly_attr_s;
 	gpu->ge.primitive_type = gpu->cmd_params[0] & 3;
 	gpu->ge.vtx_count = 0;
 	gpu->ge.last_strip_vtx[0] = nullptr;
