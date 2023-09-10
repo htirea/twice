@@ -36,9 +36,11 @@ struct gpu_3d_engine {
 		u32 num_vertices;
 		vertex *vertices[10];
 		s32 normalized_w[10];
+		s32 z[10];
 		u32 attr;
 		bool backface{};
 		int wshift;
+		bool wbuffering{};
 	};
 
 	struct vertex_ram {
@@ -121,6 +123,8 @@ struct gpu_3d_engine {
 			u32 end;
 			u32 left;
 			u32 right;
+			u32 prev_left;
+			u32 prev_right;
 			slope left_slope;
 			slope right_slope;
 		} poly_info[2048];
@@ -173,7 +177,7 @@ struct gpu_3d_engine {
 	u32 texture_sp{};
 
 	u32 color_buf[192][256]{};
-	u32 depth_buf[192][256]{};
+	s32 depth_buf[192][256]{};
 	u32 attr_buf[192][256]{};
 
 	nds_ctx *nds{};

@@ -600,12 +600,20 @@ add_polygon(gpu_3d_engine *gpu)
 	}
 
 	poly->wshift = (max_bits - 16 + 4 - 1) & ~3;
+	poly->wbuffering = ge.swap_bits & BIT(1);
 	for (u32 i = 0; i < poly->num_vertices; i++) {
 		vertex *v = poly->vertices[i];
 		if (poly->wshift >= 0) {
 			poly->normalized_w[i] = v->w >> poly->wshift;
 		} else {
 			poly->normalized_w[i] = v->w << -poly->wshift;
+		}
+
+		if (poly->wbuffering) {
+			poly->z[i] = poly->normalized_w[i];
+		} else {
+			poly->z[i] = ((s64)v->z * 0x4000 / v->w + 0x3FFF) *
+			             0x200;
 		}
 	}
 
