@@ -63,25 +63,25 @@ io9_read8(nds_ctx *nds, u32 addr)
 	switch (addr) {
 		IO_READ8_COMMON(0);
 	case 0x4000240:
-		return nds->vram.vramcnt[VRAM_A];
+		return nds->vram.vramcnt[0];
 	case 0x4000241:
-		return nds->vram.vramcnt[VRAM_B];
+		return nds->vram.vramcnt[1];
 	case 0x4000242:
-		return nds->vram.vramcnt[VRAM_C];
+		return nds->vram.vramcnt[2];
 	case 0x4000243:
-		return nds->vram.vramcnt[VRAM_D];
+		return nds->vram.vramcnt[3];
 	case 0x4000244:
-		return nds->vram.vramcnt[VRAM_E];
+		return nds->vram.vramcnt[4];
 	case 0x4000245:
-		return nds->vram.vramcnt[VRAM_F];
+		return nds->vram.vramcnt[5];
 	case 0x4000246:
-		return nds->vram.vramcnt[VRAM_G];
+		return nds->vram.vramcnt[6];
 	case 0x4000247:
 		return nds->wramcnt;
 	case 0x4000248:
-		return nds->vram.vramcnt[VRAM_H];
+		return nds->vram.vramcnt[7];
 	case 0x4000249:
-		return nds->vram.vramcnt[VRAM_I];
+		return nds->vram.vramcnt[8];
 	case 0x4004000:
 		LOGVV("[dsi reg] nds 0 read 8 at %08X\n", addr);
 		return 0;
@@ -122,6 +122,16 @@ io9_read16(nds_ctx *nds, u32 addr)
 		IO_READ16_FROM_32(0x40000E8, nds->dmafill[2]);
 	case 0x40000EC:
 		IO_READ16_FROM_32(0x40000EC, nds->dmafill[3]);
+	case 0x4000240:
+		return (u16)nds->vram.vramcnt[1] << 8 | nds->vram.vramcnt[0];
+	case 0x4000242:
+		return (u16)nds->vram.vramcnt[3] << 8 | nds->vram.vramcnt[2];
+	case 0x4000244:
+		return (u16)nds->vram.vramcnt[5] << 8 | nds->vram.vramcnt[4];
+	case 0x4000246:
+		return (u16)nds->wramcnt << 8 | nds->vram.vramcnt[6];
+	case 0x4000248:
+		return (u16)nds->vram.vramcnt[8] << 8 | nds->vram.vramcnt[7];
 	case 0x4000280:
 		return nds->divcnt;
 	case 0x40002B0:
@@ -175,6 +185,14 @@ io9_read32(nds_ctx *nds, u32 addr)
 		       (u32)nds->vram.vramcnt[2] << 16 |
 		       (u32)nds->vram.vramcnt[1] << 8 |
 		       (u32)nds->vram.vramcnt[0];
+	case 0x4000244:
+		return (u32)nds->wramcnt << 24 |
+		       (u32)nds->vram.vramcnt[6] << 16 |
+		       (u32)nds->vram.vramcnt[5] << 8 |
+		       (u32)nds->vram.vramcnt[4];
+	case 0x4000248:
+		return (u32)nds->vram.vramcnt[8] << 8 |
+		       (u32)nds->vram.vramcnt[7];
 	case 0x4000280:
 		return nds->divcnt;
 	case 0x4000290:

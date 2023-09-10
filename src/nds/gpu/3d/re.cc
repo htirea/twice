@@ -279,14 +279,15 @@ static void
 draw_pixel(gpu_3d_engine *gpu, polygon *p, s32 y, u32 x, s32 a, s32 r, s32 g,
 		s32 b, s32 s, s32 t)
 {
-	u32 color;
+	u32 final_color;
 	u32 mode = p->attr >> 4 & 3;
 	u32 tx_format = p->tx_param >> 26 & 7;
-	u8 tx_color[4];
+	bool color_0_transparent = p->tx_param & BIT(29);
+	u8 tx_color[4]{};
 
 	if (tx_format == 0) {
-		color = a << 18 | b << 12 | g << 6 | r;
-		gpu->color_buf[y][x] = color;
+		final_color = a << 18 | b << 12 | g << 6 | r;
+		gpu->color_buf[y][x] = final_color;
 		return;
 	}
 
@@ -305,20 +306,37 @@ draw_pixel(gpu_3d_engine *gpu, polygon *p, s32 y, u32 x, s32 a, s32 r, s32 g,
 	u32 base_offset = (p->tx_param & 0xFFFF) << 3;
 
 	switch (tx_format) {
+	case 2:
+	{
+		u32 offset = base_offset;
+		offset += (t >> 4) * (s_size >> 2);
+		offset += (s >> 4) >> 2;
+		u8 color_num = vram_read_texture<u8>(gpu->nds, offset);
+		color_num = color_num >> ((s >> 4 & 3) << 1) & 3;
+		if (color_num != 0 || !color_0_transparent) {
+			u32 palette_offset =
+					(p->pltt_base << 3) + (color_num << 1);
+			u16 color = vram_read_texture_palette<u16>(
+					gpu->nds, palette_offset);
+			unpack_bgr555_3d(color, tx_color);
+			tx_color[3] = 31;
+		}
+		break;
+	}
 	case 7:
 	{
 		u32 offset = base_offset;
 		offset += (t >> 4) * s_size << 1;
 		offset += (s >> 4) << 1;
-		u16 txcolor = vram_read_texture<u16>(gpu->nds, offset);
-		unpack_abgr1555_3d(txcolor, tx_color);
+		u16 color = vram_read_texture<u16>(gpu->nds, offset);
+		unpack_abgr1555_3d(color, tx_color);
 		break;
 	}
 	}
 
-	color = (u32)tx_color[3] << 18 | (u32)tx_color[2] << 12 |
-	        (u32)tx_color[1] << 6 | tx_color[0];
-	gpu->color_buf[y][x] = color;
+	final_color = (u32)tx_color[3] << 18 | (u32)tx_color[2] << 12 |
+	              (u32)tx_color[1] << 6 | tx_color[0];
+	gpu->color_buf[y][x] = final_color;
 }
 
 static s32

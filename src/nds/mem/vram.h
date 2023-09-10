@@ -280,6 +280,26 @@ vram_read_texture(nds_ctx *nds, u32 offset)
 
 template <typename T>
 T
+vram_read_texture_palette(nds_ctx *nds, u32 offset)
+{
+	u32 index = offset >> 14 & 7;
+	u8 *p = nds->vram.texture_palette_pt[index];
+	if (p) {
+		return readarr<T>(p, offset & 0x3FFF);
+	} else {
+		u16 mask = nds->vram.texture_palette_bank[index];
+		T value = 0;
+
+		VRAM_READ_FROM_MASK(VRAM_E);
+		VRAM_READ_FROM_MASK(VRAM_F);
+		VRAM_READ_FROM_MASK(VRAM_G);
+
+		return value;
+	}
+}
+
+template <typename T>
+T
 vram_read(nds_ctx *nds, u32 addr)
 {
 	switch (addr >> 21 & 0x7) {

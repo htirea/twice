@@ -44,6 +44,7 @@ struct gpu_3d_engine {
 		s32 z[10];
 		u32 attr;
 		u32 tx_param;
+		u16 pltt_base;
 		bool backface{};
 		int wshift;
 		bool wbuffering{};

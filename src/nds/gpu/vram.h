@@ -77,8 +77,9 @@ struct gpu_vram {
 	u8 *bobj_palette_pt{};
 	u8 *texture_pt[4]{};
 	u16 texture_bank[4]{};
-	u8 *texture_palette_pt[6]{};
-	u16 texture_palette_bank[6]{};
+	/* last two unused */
+	u8 *texture_palette_pt[8]{};
+	u16 texture_palette_bank[8]{};
 
 	u8 vramcnt[VRAM_NUM_BANKS]{};
 };

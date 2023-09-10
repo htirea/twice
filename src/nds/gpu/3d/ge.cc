@@ -633,6 +633,7 @@ add_polygon(gpu_3d_engine *gpu)
 
 	poly->attr = ge.poly_attr;
 	poly->tx_param = ge.teximage_param;
+	poly->pltt_base = ge.pltt_base;
 	poly->backface = face_dir < 0;
 }
 
