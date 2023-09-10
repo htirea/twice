@@ -323,6 +323,62 @@ draw_pixel(gpu_3d_engine *gpu, polygon *p, s32 y, u32 x, s32 a, s32 r, s32 g,
 		}
 		break;
 	}
+	case 3:
+	{
+		u32 offset = base_offset;
+		offset += (t >> 4) * (s_size >> 1);
+		offset += (s >> 4) >> 1;
+		u8 color_num = vram_read_texture<u8>(gpu->nds, offset);
+		color_num = color_num >> ((s >> 4 & 1) << 2) & 0xF;
+		if (color_num != 0 || !color_0_transparent) {
+			u32 palette_offset =
+					(p->pltt_base << 4) + (color_num << 1);
+			u16 color = vram_read_texture_palette<u16>(
+					gpu->nds, palette_offset);
+			unpack_bgr555_3d(color, tx_color);
+			tx_color[3] = 31;
+		}
+		break;
+	}
+	case 4:
+	{
+		u32 offset = base_offset + (t >> 4) * s_size + (s >> 4);
+		u8 color_num = vram_read_texture<u8>(gpu->nds, offset);
+		if (color_num != 0 || !color_0_transparent) {
+			u32 palette_offset =
+					(p->pltt_base << 4) + (color_num << 1);
+			u16 color = vram_read_texture_palette<u16>(
+					gpu->nds, palette_offset);
+			unpack_bgr555_3d(color, tx_color);
+			tx_color[3] = 31;
+		}
+		break;
+	}
+	case 1:
+	{
+		u32 offset = base_offset + (t >> 4) * s_size + (s >> 4);
+		u8 data = vram_read_texture<u8>(gpu->nds, offset);
+		u8 color_num = data & 0x1F;
+		u8 alpha = data >> 5;
+		u32 palette_offset = (p->pltt_base << 4) + (color_num << 1);
+		u16 color = vram_read_texture_palette<u16>(
+				gpu->nds, palette_offset);
+		unpack_bgr555_3d(color, tx_color);
+		tx_color[3] = (alpha << 2) + (alpha >> 1);
+		break;
+	}
+	case 6:
+	{
+		u32 offset = base_offset + (t >> 4) * s_size + (s >> 4);
+		u8 data = vram_read_texture<u8>(gpu->nds, offset);
+		u8 color_num = data & 7;
+		u32 palette_offset = (p->pltt_base << 4) + (color_num << 1);
+		u16 color = vram_read_texture_palette<u16>(
+				gpu->nds, palette_offset);
+		unpack_bgr555_3d(color, tx_color);
+		tx_color[3] = data >> 3;
+		break;
+	}
 	case 7:
 	{
 		u32 offset = base_offset;
