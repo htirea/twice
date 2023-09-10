@@ -276,6 +276,36 @@ clamp_or_repeat_texcoords(s32 s, s32 size, bool clamp, bool flip)
 }
 
 static void
+blend_bgr555_11_3d(u16 color0, u16 color1, u8 *color_out)
+{
+	u8 r0 = color0 & 0x1F;
+	u8 g0 = color0 >> 5 & 0x1F;
+	u8 b0 = color0 >> 10 & 0x1F;
+	u8 r1 = color1 & 0x1F;
+	u8 g1 = color1 >> 5 & 0x1F;
+	u8 b1 = color1 >> 10 & 0x1F;
+
+	color_out[0] = r0 + r1;
+	color_out[1] = g0 + g1;
+	color_out[2] = b0 + b1;
+}
+
+static void
+blend_bgr555_53_3d(u16 color0, u16 color1, u8 *color_out)
+{
+	u8 r0 = color0 & 0x1F;
+	u8 g0 = color0 >> 5 & 0x1F;
+	u8 b0 = color0 >> 10 & 0x1F;
+	u8 r1 = color1 & 0x1F;
+	u8 g1 = color1 >> 5 & 0x1F;
+	u8 b1 = color1 >> 10 & 0x1F;
+
+	color_out[0] = (r0 * 5 + r1 * 3) >> 2;
+	color_out[1] = (g0 * 5 + g1 * 3) >> 2;
+	color_out[2] = (b0 * 5 + b1 * 3) >> 2;
+}
+
+static void
 draw_pixel(gpu_3d_engine *gpu, polygon *p, s32 y, u32 x, s32 a, s32 r, s32 g,
 		s32 b, s32 s, s32 t)
 {
@@ -386,6 +416,102 @@ draw_pixel(gpu_3d_engine *gpu, polygon *p, s32 y, u32 x, s32 a, s32 r, s32 g,
 		offset += (s >> 4) << 1;
 		u16 color = vram_read_texture<u16>(gpu->nds, offset);
 		unpack_abgr1555_3d(color, tx_color);
+		break;
+	}
+	case 5:
+	{
+		u32 offset = base_offset;
+		offset += (t >> 4 & ~3) * (s_size >> 2);
+		offset += (s >> 4 & ~3);
+		u32 data = vram_read_texture<u32>(gpu->nds, offset);
+		u32 color_num = data >> ((t >> 4 & 3) << 3) >>
+		                ((s >> 4 & 3) << 1);
+		color_num &= 3;
+		u32 index_offset = 0x20000 + ((offset & 0x1FFFF) >> 1);
+		if (offset >= 0x40000) {
+			index_offset += 0x10000;
+		}
+		u16 index_data =
+				vram_read_texture<u32>(gpu->nds, index_offset);
+		u32 palette_base = (p->pltt_base << 4) +
+		                   ((index_data & 0x3FFF) << 2);
+		u32 palette_mode = index_data >> 14;
+
+		switch (color_num) {
+		case 0:
+		{
+			u16 color = vram_read_texture_palette<u16>(
+					gpu->nds, palette_base);
+			unpack_bgr555_3d(color, tx_color);
+			tx_color[3] = 31;
+			break;
+		}
+		case 1:
+		{
+			u16 color = vram_read_texture_palette<u16>(
+					gpu->nds, palette_base + 2);
+			unpack_bgr555_3d(color, tx_color);
+			tx_color[3] = 31;
+			break;
+		}
+		case 2:
+		{
+			switch (palette_mode) {
+			case 0:
+			case 2:
+			{
+				u16 color = vram_read_texture_palette<u16>(
+						gpu->nds, palette_base + 4);
+				unpack_bgr555_3d(color, tx_color);
+				tx_color[3] = 31;
+				break;
+			}
+			case 1:
+			case 3:
+			{
+				u16 color0 = vram_read_texture_palette<u16>(
+						gpu->nds, palette_base);
+				u16 color1 = vram_read_texture_palette<u16>(
+						gpu->nds, palette_base + 2);
+				if (palette_mode == 1) {
+					blend_bgr555_11_3d(color0, color1,
+							tx_color);
+				} else {
+					blend_bgr555_53_3d(color0, color1,
+							tx_color);
+				}
+				tx_color[3] = 31;
+			}
+			}
+			break;
+		}
+		case 3:
+		{
+			switch (palette_mode) {
+			case 0:
+			case 1:
+				tx_color[3] = 0;
+				break;
+			case 2:
+			{
+				u16 color = vram_read_texture_palette<u16>(
+						gpu->nds, palette_base + 6);
+				unpack_bgr555_3d(color, tx_color);
+				tx_color[3] = 31;
+				break;
+			}
+			case 3:
+			{
+				u16 color0 = vram_read_texture_palette<u16>(
+						gpu->nds, palette_base);
+				u16 color1 = vram_read_texture_palette<u16>(
+						gpu->nds, palette_base + 2);
+				blend_bgr555_53_3d(color1, color0, tx_color);
+				tx_color[3] = 31;
+			}
+			}
+		}
+		}
 		break;
 	}
 	}
