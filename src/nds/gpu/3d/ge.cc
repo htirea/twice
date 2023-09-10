@@ -541,7 +541,7 @@ add_polygon(gpu_3d_engine *gpu)
 		vertices[0]->strip_vtx = 0;
 
 		if (ge.last_strip_vtx[1]) {
-			vertices[1] = ge.last_strip_vtx[0];
+			vertices[1] = ge.last_strip_vtx[1];
 			vertices[1]->reused = 1;
 		} else {
 			vertices[1] = &ge.vtx_buf[ge.vtx_count - 3 & 3];
