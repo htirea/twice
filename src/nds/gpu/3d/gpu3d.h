@@ -21,6 +21,11 @@ struct gpu_3d_engine {
 		s32 w;
 
 		struct {
+			s32 s;
+			s32 t;
+		} tx;
+
+		struct {
 			u32 r;
 			u32 g;
 			u32 b;
@@ -38,6 +43,7 @@ struct gpu_3d_engine {
 		s32 normalized_w[10];
 		s32 z[10];
 		u32 attr;
+		u32 tx_param;
 		bool backface{};
 		int wshift;
 		bool wbuffering{};

@@ -1,3 +1,4 @@
+#include "nds/mem/vram.h"
 #include "nds/nds.h"
 
 namespace twice {
@@ -257,6 +258,70 @@ setup_polygon_scanline(gpu_3d_engine *gpu, s32 scanline, u32 poly_num)
 }
 
 static s32
+clamp_or_repeat_texcoords(s32 s, s32 size, bool clamp, bool flip)
+{
+	if (s < 0 || s > size - 1) {
+		if (clamp) {
+			s = std::clamp(s, 0, size - 1);
+		} else {
+			flip = flip && s & ~(size - 1) & size;
+			s &= size - 1;
+			if (flip) {
+				s = (size - s) & (size - 1);
+			}
+		}
+	}
+
+	return s;
+}
+
+static void
+draw_pixel(gpu_3d_engine *gpu, polygon *p, s32 y, u32 x, s32 a, s32 r, s32 g,
+		s32 b, s32 s, s32 t)
+{
+	u32 color;
+	u32 mode = p->attr >> 4 & 3;
+	u32 tx_format = p->tx_param >> 26 & 7;
+	u8 tx_color[4];
+
+	if (tx_format == 0) {
+		color = a << 18 | b << 12 | g << 6 | r;
+		gpu->color_buf[y][x] = color;
+		return;
+	}
+
+	bool s_clamp = !(p->tx_param & BIT(16));
+	bool t_clamp = !(p->tx_param & BIT(17));
+	bool s_flip = p->tx_param & BIT(18);
+	bool t_flip = p->tx_param & BIT(19);
+	s32 s_size = 8 << (p->tx_param >> 20 & 7) << 4;
+	s32 t_size = 8 << (p->tx_param >> 23 & 7) << 4;
+	s = clamp_or_repeat_texcoords(s, s_size, s_clamp, s_flip);
+	t = clamp_or_repeat_texcoords(t, t_size, t_clamp, t_flip);
+
+	s_size >>= 4;
+	t_size >>= 4;
+
+	u32 base_offset = (p->tx_param & 0xFFFF) << 3;
+
+	switch (tx_format) {
+	case 7:
+	{
+		u32 offset = base_offset;
+		offset += (t >> 4) * s_size << 1;
+		offset += (s >> 4) << 1;
+		u16 txcolor = vram_read_texture<u16>(gpu->nds, offset);
+		unpack_abgr1555_3d(txcolor, tx_color);
+		break;
+	}
+	}
+
+	color = (u32)tx_color[3] << 18 | (u32)tx_color[2] << 12 |
+	        (u32)tx_color[1] << 6 | tx_color[0];
+	gpu->color_buf[y][x] = color;
+}
+
+static s32
 get_depth(polygon *p, interpolator *i, s32 zl, s32 zr)
 {
 	s32 z = interpolate(i, zl, zr);
@@ -302,11 +367,15 @@ render_polygon_scanline(gpu_3d_engine *gpu, s32 scanline, u32 poly_num)
 	s32 rl = interpolate(&sl->interp, sl->v0->color.r, sl->v1->color.r);
 	s32 gl = interpolate(&sl->interp, sl->v0->color.g, sl->v1->color.g);
 	s32 bl = interpolate(&sl->interp, sl->v0->color.b, sl->v1->color.b);
+	s32 tx_sl = interpolate(&sl->interp, sl->v0->tx.s, sl->v1->tx.s);
+	s32 tx_tl = interpolate(&sl->interp, sl->v0->tx.t, sl->v1->tx.t);
 	s32 zr = interpolate(&sr->interp, p->z[pinfo->prev_right],
 			p->z[pinfo->right]);
 	s32 rr = interpolate(&sr->interp, sr->v0->color.r, sr->v1->color.r);
 	s32 gr = interpolate(&sr->interp, sr->v0->color.g, sr->v1->color.g);
 	s32 br = interpolate(&sr->interp, sr->v0->color.b, sr->v1->color.b);
+	s32 tx_sr = interpolate(&sr->interp, sr->v0->tx.s, sr->v1->tx.s);
+	s32 tx_tr = interpolate(&sr->interp, sr->v0->tx.t, sr->v1->tx.t);
 
 	interpolator span;
 	interp_setup(&span, xstart[0], xend[1] - 1, sl->interp.w,
@@ -316,7 +385,6 @@ render_polygon_scanline(gpu_3d_engine *gpu, s32 scanline, u32 poly_num)
 	if (alpha == 0) {
 		alpha = 31;
 	}
-	alpha <<= 18;
 
 	s32 draw_x = std::max(0, xstart[0]);
 	s32 draw_x_end = std::min(256, xstart[1]);
@@ -329,9 +397,10 @@ render_polygon_scanline(gpu_3d_engine *gpu, s32 scanline, u32 poly_num)
 		s32 r = interpolate(&span, rl, rr);
 		s32 g = interpolate(&span, gl, gr);
 		s32 b = interpolate(&span, bl, br);
+		s32 tx_s = interpolate(&span, tx_sl, tx_sr);
+		s32 tx_t = interpolate(&span, tx_tl, tx_tr);
 
-		u32 color = alpha | (u32)b << 12 | (u32)g << 6 | r;
-		gpu->color_buf[scanline][x] = color;
+		draw_pixel(gpu, p, scanline, x, alpha, r, g, b, tx_s, tx_t);
 		gpu->depth_buf[scanline][x] = depth;
 	}
 
@@ -346,9 +415,10 @@ render_polygon_scanline(gpu_3d_engine *gpu, s32 scanline, u32 poly_num)
 		s32 r = interpolate(&span, rl, rr);
 		s32 g = interpolate(&span, gl, gr);
 		s32 b = interpolate(&span, bl, br);
+		s32 tx_s = interpolate(&span, tx_sl, tx_sr);
+		s32 tx_t = interpolate(&span, tx_tl, tx_tr);
 
-		u32 color = alpha | (u32)b << 12 | (u32)g << 6 | r;
-		gpu->color_buf[scanline][x] = color;
+		draw_pixel(gpu, p, scanline, x, alpha, r, g, b, tx_s, tx_t);
 		gpu->depth_buf[scanline][x] = depth;
 	}
 
@@ -363,9 +433,10 @@ render_polygon_scanline(gpu_3d_engine *gpu, s32 scanline, u32 poly_num)
 		s32 r = interpolate(&span, rl, rr);
 		s32 g = interpolate(&span, gl, gr);
 		s32 b = interpolate(&span, bl, br);
+		s32 tx_s = interpolate(&span, tx_sl, tx_sr);
+		s32 tx_t = interpolate(&span, tx_tl, tx_tr);
 
-		u32 color = alpha | (u32)b << 12 | (u32)g << 6 | r;
-		gpu->color_buf[scanline][x] = color;
+		draw_pixel(gpu, p, scanline, x, alpha, r, g, b, tx_s, tx_t);
 		gpu->depth_buf[scanline][x] = depth;
 	}
 }

@@ -259,6 +259,27 @@ vram_read_bobj_palette(nds_ctx *nds, u32 offset)
 
 template <typename T>
 T
+vram_read_texture(nds_ctx *nds, u32 offset)
+{
+	u32 index = offset >> 17 & 3;
+	u8 *p = nds->vram.texture_pt[index];
+	if (p) {
+		return readarr<T>(p, offset & 0x1FFFF);
+	} else {
+		u16 mask = nds->vram.texture_bank[index];
+		T value = 0;
+
+		VRAM_READ_FROM_MASK(VRAM_A);
+		VRAM_READ_FROM_MASK(VRAM_B);
+		VRAM_READ_FROM_MASK(VRAM_C);
+		VRAM_READ_FROM_MASK(VRAM_D);
+
+		return value;
+	}
+}
+
+template <typename T>
+T
 vram_read(nds_ctx *nds, u32 addr)
 {
 	switch (addr >> 21 & 0x7) {

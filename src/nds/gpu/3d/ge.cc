@@ -366,6 +366,19 @@ texcoord_transform_2(gpu_3d_engine *gpu, s64 nx, s64 ny, s64 nz)
 }
 
 static void
+texcoord_transform_3(gpu_3d_engine *gpu, s64 vx, s64 vy, s64 vz)
+{
+	auto& ge = gpu->ge;
+	auto& m = gpu->texture_mtx;
+
+	s64 r0 = (vx * m.v[0][0] + vy * m.v[1][0] + vz * m.v[2][0]) >> 24;
+	s64 r1 = (vx * m.v[0][1] + vy * m.v[1][1] + vz * m.v[2][1]) >> 24;
+
+	ge.vtx_texcoord[0] = ge.texcoord[0] + r0;
+	ge.vtx_texcoord[1] = ge.texcoord[1] + r1;
+}
+
+static void
 cmd_normal(gpu_3d_engine *gpu)
 {
 	auto& ge = gpu->ge;
@@ -612,12 +625,14 @@ add_polygon(gpu_3d_engine *gpu)
 		if (poly->wbuffering) {
 			poly->z[i] = poly->normalized_w[i];
 		} else {
+			/* TODO: SIGFPE */
 			poly->z[i] = ((s64)v->z * 0x4000 / v->w + 0x3FFF) *
 			             0x200;
 		}
 	}
 
 	poly->attr = ge.poly_attr;
+	poly->tx_param = ge.teximage_param;
 	poly->backface = face_dir < 0;
 }
 
@@ -642,6 +657,12 @@ add_vertex(gpu_3d_engine *gpu)
 	v->z = result.v[2];
 	v->w = result.v[3];
 	v->color = { ge.vtx_color[0], ge.vtx_color[1], ge.vtx_color[2] };
+
+	if (ge.teximage_param >> 30 == 3) {
+		texcoord_transform_3(gpu, ge.vx, ge.vy, ge.vz);
+	}
+	v->tx = { ge.vtx_texcoord[0], ge.vtx_texcoord[1] };
+
 	ge.vtx_count++;
 
 	switch (ge.primitive_type) {
