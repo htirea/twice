@@ -624,10 +624,11 @@ add_polygon(gpu_3d_engine *gpu)
 
 		if (poly->wbuffering) {
 			poly->z[i] = poly->normalized_w[i];
-		} else {
-			/* TODO: SIGFPE */
+		} else if (v->w != 0) {
 			poly->z[i] = ((s64)v->z * 0x4000 / v->w + 0x3FFF) *
 			             0x200;
+		} else {
+			/* TODO: */
 		}
 	}
 
