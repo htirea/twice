@@ -774,7 +774,7 @@ graphics_display_scanline(gpu_2d_engine *gpu)
 					tb = 16 - ta;
 				} else if (top.alpha_oam) {
 					ta = top.alpha_oam + 1;
-					tb = 16;
+					tb = 16 - ta;
 				} else {
 					ta = eva;
 					tb = evb;
