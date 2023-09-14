@@ -6,6 +6,7 @@ namespace twice {
 
 using vertex = gpu_3d_engine::vertex;
 using polygon = gpu_3d_engine::polygon;
+using interpolator = gpu_3d_engine::rendering_engine::interpolator;
 
 static void
 update_clip_matrix(gpu_3d_engine *gpu)
@@ -455,18 +456,141 @@ get_face_direction(vertex **vertices)
 	vertex *v1 = vertices[1];
 	vertex *v2 = vertices[2];
 
-	s32 ax = v1->x - v0->x;
-	s32 ay = v1->y - v0->y;
-	s32 az = v1->w - v0->w;
-	s32 bx = v2->x - v0->x;
-	s32 by = v2->y - v0->y;
-	s32 bz = v2->w - v0->w;
+	s32 ax = v1->pos[0] - v0->pos[0];
+	s32 ay = v1->pos[1] - v0->pos[1];
+	s32 az = v1->pos[3] - v0->pos[3];
+	s32 bx = v2->pos[0] - v0->pos[0];
+	s32 by = v2->pos[1] - v0->pos[1];
+	s32 bz = v2->pos[3] - v0->pos[3];
 
 	s64 cx = (s64)ay * bz - (s64)az * by;
 	s64 cy = (s64)az * bx - (s64)ax * bz;
 	s64 cz = (s64)ax * by - (s64)ay * bx;
 
-	return cx * v0->x + cy * v0->y + cz * v0->w;
+	return cx * v0->pos[0] + cy * v0->pos[1] + cz * v0->pos[3];
+}
+
+static s32
+clip_lerp(s32 y0, s32 y1, interpolator *i, int positive)
+{
+	if (i->denom == 0) {
+		return y0;
+	}
+
+	if (positive) {
+		return ((s64)y0 * (i->w1 - i->x1) +
+				       (s64)y1 * (i->x0 - i->w0)) /
+		       i->denom;
+	} else {
+		return ((s64)y1 * (i->x0 + i->w0) -
+				       (s64)y0 * (i->w1 + i->x1)) /
+		       i->denom;
+	}
+}
+
+static vertex
+create_clipped_vertex(vertex *v0, vertex *v1, int plane, int positive)
+{
+	vertex r;
+	interpolator i;
+	i.x0 = v0->pos[plane];
+	i.x1 = v1->pos[plane];
+	i.w0 = v0->pos[3];
+	i.w1 = v1->pos[3];
+	i.denom = positive ? i.x0 - i.w0 + i.w1 - i.x1
+	                   : i.x0 + i.w0 - i.w1 - i.x1;
+
+	if (i.denom == 0) {
+		r.pos[3] = i.w1;
+	} else {
+		if (positive) {
+			r.pos[3] = ((s64)i.w1 * i.x0 - (s64)i.w0 * i.x1) /
+			           i.denom;
+		} else {
+			r.pos[3] = ((s64)i.w1 * i.x0 - (s64)i.w0 * i.x1) /
+			           i.denom;
+		}
+	}
+
+	switch (plane) {
+	case 0:
+		r.pos[0] = positive ? r.pos[3] : -r.pos[3];
+		r.pos[1] = clip_lerp(v0->pos[1], v1->pos[1], &i, positive);
+		r.pos[2] = clip_lerp(v0->pos[2], v1->pos[2], &i, positive);
+		break;
+	case 1:
+		r.pos[1] = positive ? r.pos[3] : -r.pos[3];
+		r.pos[0] = clip_lerp(v0->pos[0], v1->pos[0], &i, positive);
+		r.pos[2] = clip_lerp(v0->pos[2], v1->pos[2], &i, positive);
+		break;
+	case 2:
+		r.pos[2] = positive ? r.pos[3] : -r.pos[3];
+		r.pos[0] = clip_lerp(v0->pos[0], v1->pos[0], &i, positive);
+		r.pos[1] = clip_lerp(v0->pos[1], v1->pos[1], &i, positive);
+		break;
+	}
+
+	r.color.r = clip_lerp(v0->color.r, v1->color.r, &i, positive);
+	r.color.g = clip_lerp(v0->color.g, v1->color.g, &i, positive);
+	r.color.b = clip_lerp(v0->color.b, v1->color.b, &i, positive);
+
+	r.tx.t = clip_lerp(v0->tx.t, v1->tx.t, &i, positive);
+	r.tx.s = clip_lerp(v0->tx.s, v1->tx.s, &i, positive);
+
+	return r;
+}
+
+static bool
+vertex_inside(vertex *v, int plane, int positive)
+{
+	return positive ? v->pos[plane] <= v->pos[3]
+	                : v->pos[plane] >= -v->pos[3];
+}
+
+static std::vector<vertex>
+clip_polygon_plane(std::vector<vertex>& in, int plane, int positive)
+{
+	std::vector<vertex> out;
+	size_t n = in.size();
+
+	for (u32 curr_idx = 0; curr_idx < n; curr_idx++) {
+		u32 next_idx = (curr_idx + 1) % n;
+		vertex *curr = &in[curr_idx];
+		vertex *next = &in[next_idx];
+		bool curr_inside = vertex_inside(curr, plane, positive);
+		bool next_inside = vertex_inside(next, plane, positive);
+
+		if (curr_inside && next_inside) {
+			out.push_back(*curr);
+		} else if (curr_inside) {
+			out.push_back(*curr);
+			out.push_back(create_clipped_vertex(
+					curr, next, plane, positive));
+		} else if (next_inside) {
+			out.push_back(create_clipped_vertex(
+					curr, next, plane, positive));
+		}
+	}
+
+	return out;
+}
+
+static std::vector<vertex>
+clip_polygon_vertices(gpu_3d_engine *gpu, vertex **in, u32 num_vertices)
+{
+	std::vector<vertex> out;
+	for (u32 i = 0; i < num_vertices; i++) {
+		out.push_back(*in[i]);
+	}
+
+	out = clip_polygon_plane(out, 2, 1);
+	out = clip_polygon_plane(out, 2, 0);
+	out = clip_polygon_plane(out, 1, 1);
+	out = clip_polygon_plane(out, 1, 0);
+	out = clip_polygon_plane(out, 0, 1);
+	out = clip_polygon_plane(out, 0, 0);
+
+	return out;
 }
 
 static void
@@ -566,8 +690,13 @@ add_polygon(gpu_3d_engine *gpu)
 		return;
 	}
 
-	/* TODO: clipping */
+	std::vector<vertex> clipped_vertices =
+			clip_polygon_vertices(gpu, vertices, num_vertices);
+	if (clipped_vertices.empty()) {
+		return;
+	}
 
+	num_vertices = clipped_vertices.size();
 	if (vr.count + num_vertices > 6144) {
 		printf("vertex ram full\n");
 		return;
@@ -575,15 +704,15 @@ add_polygon(gpu_3d_engine *gpu)
 
 	polygon *poly = &pr.polygons[pr.count++];
 	for (u32 i = 0; i < num_vertices; i++) {
-		u32 reused = vertices[i]->reused;
+		u32 reused = clipped_vertices[i].reused;
 		if (reused) {
 			poly->vertices[i] = last_strip_vtx_s[reused & 1];
 		} else {
 			u32 idx = vr.count++;
-			vr.vertices[idx] = *vertices[i];
+			vr.vertices[idx] = clipped_vertices[i];
 			poly->vertices[i] = &vr.vertices[idx];
 		}
-		u32 strip_vtx = vertices[i]->strip_vtx;
+		u32 strip_vtx = clipped_vertices[i].strip_vtx;
 		if (strip_vtx) {
 			ge.last_strip_vtx[strip_vtx & 1] = poly->vertices[i];
 		}
@@ -593,21 +722,23 @@ add_polygon(gpu_3d_engine *gpu)
 	int max_bits = 0;
 	for (u32 i = 0; i < poly->num_vertices; i++) {
 		vertex *v = poly->vertices[i];
-		if (v->w >= 0) {
+		if (v->pos[3] >= 0) {
 			max_bits = std::max(max_bits,
-					1 + std::bit_width((u32)v->w));
+					1 + std::bit_width((u32)v->pos[3]));
 		} else {
 			max_bits = std::max(max_bits,
-					1 + std::bit_width(~(u32)v->w));
+					1 + std::bit_width(~(u32)v->pos[3]));
 		}
 
-		if (v->w == 0) {
+		if (v->pos[3] == 0) {
 			v->sx = 0;
 			v->sy = 0;
 		} else {
-			v->sx = (v->x + v->w) * gpu->viewport_w / (2 * v->w) +
+			v->sx = (v->pos[0] + v->pos[3]) * gpu->viewport_w /
+			                        (2 * v->pos[3]) +
 			        gpu->viewport_x[0];
-			v->sy = (-v->y + v->w) * gpu->viewport_h / (2 * v->w) +
+			v->sy = (-v->pos[1] + v->pos[3]) * gpu->viewport_h /
+			                        (2 * v->pos[3]) +
 			        gpu->viewport_y[0];
 		}
 	}
@@ -617,15 +748,16 @@ add_polygon(gpu_3d_engine *gpu)
 	for (u32 i = 0; i < poly->num_vertices; i++) {
 		vertex *v = poly->vertices[i];
 		if (poly->wshift >= 0) {
-			poly->normalized_w[i] = v->w >> poly->wshift;
+			poly->normalized_w[i] = v->pos[3] >> poly->wshift;
 		} else {
-			poly->normalized_w[i] = v->w << -poly->wshift;
+			poly->normalized_w[i] = v->pos[3] << -poly->wshift;
 		}
 
 		if (poly->wbuffering) {
 			poly->z[i] = poly->normalized_w[i];
-		} else if (v->w != 0) {
-			poly->z[i] = ((s64)v->z * 0x4000 / v->w + 0x3FFF) *
+		} else if (v->pos[3] != 0) {
+			poly->z[i] = ((s64)v->pos[2] * 0x4000 / v->pos[3] +
+						     0x3FFF) *
 			             0x200;
 		} else {
 			/* TODO: */
@@ -654,10 +786,10 @@ add_vertex(gpu_3d_engine *gpu)
 	mtx_mult_vec(&result, &gpu->clip_mtx, &vtx_point);
 
 	vertex *v = &ge.vtx_buf[ge.vtx_count & 3];
-	v->x = result.v[0];
-	v->y = result.v[1];
-	v->z = result.v[2];
-	v->w = result.v[3];
+	v->pos[0] = result.v[0];
+	v->pos[1] = result.v[1];
+	v->pos[2] = result.v[2];
+	v->pos[3] = result.v[3];
 	v->color = { ge.vtx_color[0], ge.vtx_color[1], ge.vtx_color[2] };
 
 	if (ge.teximage_param >> 30 == 3) {

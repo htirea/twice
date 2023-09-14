@@ -15,10 +15,7 @@ struct gpu_3d_engine {
 	gpu_3d_engine(nds_ctx *nds);
 
 	struct vertex {
-		s32 x;
-		s32 y;
-		s32 z;
-		s32 w;
+		s32 pos[4];
 
 		struct {
 			s32 s;
@@ -33,8 +30,8 @@ struct gpu_3d_engine {
 
 		s32 sx;
 		s32 sy;
-		u32 reused : 2;
-		u32 strip_vtx : 2;
+		u32 reused : 2 {};
+		u32 strip_vtx : 2 {};
 	};
 
 	struct polygon {
