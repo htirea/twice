@@ -27,6 +27,7 @@ gpu3d_on_vblank(gpu_3d_engine *gpu)
 	if (gpu->halted) {
 		execute_swap_buffers(gpu);
 		gpu->halted = false;
+		gxfifo_run_commands(gpu);
 	}
 
 	/* TODO: sort polygons */
