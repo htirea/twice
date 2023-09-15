@@ -91,6 +91,7 @@ setup_polygon_slope(slope *s, vertex *v0, vertex *v1, s32 w0, s32 w1)
 static void
 setup_polygon_slope_vertical(slope *s, vertex *v, s32 w0)
 {
+	/* TODO: fix later */
 	vertex v1;
 	v1.sx = v->sx;
 	v1.sy = v->sy + 1;
