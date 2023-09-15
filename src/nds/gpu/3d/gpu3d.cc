@@ -30,8 +30,7 @@ gpu3d_on_vblank(gpu_3d_engine *gpu)
 		gxfifo_run_commands(gpu);
 	}
 
-	/* TODO: sort polygons */
-
+	gpu->re.manual_sort = gpu->ge.swap_bits & 1;
 	gpu->ge.swap_bits = gpu->ge.swap_bits_s;
 	gpu->re.r = gpu->re.shadow;
 }

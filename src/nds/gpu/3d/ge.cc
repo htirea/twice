@@ -593,6 +593,15 @@ clip_polygon_vertices(gpu_3d_engine *gpu, vertex **in, u32 num_vertices)
 	return out;
 }
 
+static bool
+polygon_is_translucent(polygon *p)
+{
+	u32 alpha = p->attr >> 16 & 0x1F;
+	u32 format = p->tx_param >> 26 & 7;
+
+	return (1 <= alpha && alpha <= 30) || (format == 1 || format == 6);
+}
+
 static void
 add_polygon(gpu_3d_engine *gpu)
 {
@@ -768,6 +777,7 @@ add_polygon(gpu_3d_engine *gpu)
 	poly->tx_param = ge.teximage_param;
 	poly->pltt_base = ge.pltt_base;
 	poly->backface = face_dir < 0;
+	poly->translucent = polygon_is_translucent(poly);
 }
 
 static void

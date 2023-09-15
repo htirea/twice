@@ -42,9 +42,13 @@ struct gpu_3d_engine {
 		u32 attr;
 		u32 tx_param;
 		u16 pltt_base;
-		bool backface{};
+		bool backface;
 		int wshift;
-		bool wbuffering{};
+		bool wbuffering;
+		bool translucent;
+		u32 start;
+		u32 end;
+		std::pair<int, s32> sortkey;
 	};
 
 	struct vertex_ram {
@@ -104,6 +108,8 @@ struct gpu_3d_engine {
 		registers shadow;
 		registers r;
 
+		bool manual_sort;
+
 		polygon *polygons[2048]{};
 		u32 num_polygons{};
 
@@ -130,8 +136,6 @@ struct gpu_3d_engine {
 		};
 
 		struct polygon_info {
-			u32 start;
-			u32 end;
 			u32 left;
 			u32 right;
 			u32 prev_left;

@@ -19,16 +19,12 @@ color6_to_abgr666(color6 color)
 }
 
 static bool
-polygon_not_in_scanline(gpu_3d_engine *gpu, s32 scanline, u32 poly_num)
+polygon_not_in_scanline(polygon *p, s32 scanline)
 {
-	polygon *p = gpu->re.polygons[poly_num];
-	polygon_info *pinfo = &gpu->re.poly_info[poly_num];
+	s32 ystart = p->vertices[p->start]->sy;
+	s32 yend = p->vertices[p->end]->sy;
 
-	s32 ystart = p->vertices[pinfo->start]->sy;
-	s32 yend = p->vertices[pinfo->end]->sy;
-
-	bool flat_line = p->vertices[pinfo->start]->sy ==
-	                 p->vertices[pinfo->end]->sy;
+	bool flat_line = p->vertices[p->start]->sy == p->vertices[p->end]->sy;
 	if (flat_line) {
 		yend++;
 	}
@@ -173,22 +169,22 @@ setup_polygon_initial_slope(gpu_3d_engine *gpu, u32 poly_num)
 	polygon *p = gpu->re.polygons[poly_num];
 	polygon_info *pinfo = &gpu->re.poly_info[poly_num];
 
-	u32 next_l = (pinfo->start + 1) % p->num_vertices;
-	u32 next_r = (pinfo->start - 1 + p->num_vertices) % p->num_vertices;
+	u32 next_l = (p->start + 1) % p->num_vertices;
+	u32 next_r = (p->start - 1 + p->num_vertices) % p->num_vertices;
 	if (p->backface) {
 		std::swap(next_l, next_r);
 	}
 
-	setup_polygon_slope(&pinfo->left_slope, p->vertices[pinfo->start],
-			p->vertices[next_l], p->normalized_w[pinfo->start],
+	setup_polygon_slope(&pinfo->left_slope, p->vertices[p->start],
+			p->vertices[next_l], p->normalized_w[p->start],
 			p->normalized_w[next_l]);
-	pinfo->prev_left = pinfo->start;
+	pinfo->prev_left = p->start;
 	pinfo->left = next_l;
 
-	setup_polygon_slope(&pinfo->right_slope, p->vertices[pinfo->start],
-			p->vertices[next_r], p->normalized_w[pinfo->start],
+	setup_polygon_slope(&pinfo->right_slope, p->vertices[p->start],
+			p->vertices[next_r], p->normalized_w[p->start],
 			p->normalized_w[next_r]);
-	pinfo->prev_right = pinfo->start;
+	pinfo->prev_right = p->start;
 	pinfo->right = next_r;
 }
 
@@ -198,21 +194,21 @@ setup_polygon_scanline(gpu_3d_engine *gpu, s32 scanline, u32 poly_num)
 	polygon *p = gpu->re.polygons[poly_num];
 	polygon_info *pinfo = &gpu->re.poly_info[poly_num];
 
-	if (polygon_not_in_scanline(gpu, scanline, poly_num))
+	if (polygon_not_in_scanline(p, scanline))
 		return;
 
-	if (p->vertices[pinfo->start]->sy == p->vertices[pinfo->end]->sy) {
-		setup_polygon_slope_vertical(&pinfo->left_slope,
-				p->vertices[pinfo->start], 1);
-		setup_polygon_slope_vertical(&pinfo->right_slope,
-				p->vertices[pinfo->end], 1);
+	if (p->vertices[p->start]->sy == p->vertices[p->end]->sy) {
+		setup_polygon_slope_vertical(
+				&pinfo->left_slope, p->vertices[p->start], 1);
+		setup_polygon_slope_vertical(
+				&pinfo->right_slope, p->vertices[p->end], 1);
 	} else {
 		u32 curr, next;
 
 		if (p->vertices[pinfo->left]->sy == scanline) {
 			curr = pinfo->left;
 			next = pinfo->left;
-			while (next != pinfo->end &&
+			while (next != p->end &&
 					p->vertices[next]->sy <= scanline) {
 				curr = next;
 				if (p->backface) {
@@ -235,7 +231,7 @@ setup_polygon_scanline(gpu_3d_engine *gpu, s32 scanline, u32 poly_num)
 		if (p->vertices[pinfo->right]->sy == scanline) {
 			curr = pinfo->right;
 			next = pinfo->right;
-			while (next != pinfo->end &&
+			while (next != p->end &&
 					p->vertices[next]->sy <= scanline) {
 				curr = next;
 				if (p->backface) {
@@ -610,7 +606,7 @@ render_polygon_scanline(gpu_3d_engine *gpu, s32 scanline, u32 poly_num)
 	polygon *p = gpu->re.polygons[poly_num];
 	polygon_info *pinfo = &gpu->re.poly_info[poly_num];
 
-	if (polygon_not_in_scanline(gpu, scanline, poly_num))
+	if (polygon_not_in_scanline(p, scanline))
 		return;
 
 	slope *sl = &pinfo->left_slope;
@@ -660,7 +656,7 @@ render_polygon_scanline(gpu_3d_engine *gpu, s32 scanline, u32 poly_num)
 		span.x = x;
 		interp_update_w(&span);
 		s32 depth = get_depth(p, &span, zl, zr);
-		if (depth > gpu->depth_buf[scanline][x])
+		if (depth >= gpu->depth_buf[scanline][x])
 			continue;
 		s32 r = interpolate(&span, rl, rr);
 		s32 g = interpolate(&span, gl, gr);
@@ -678,7 +674,7 @@ render_polygon_scanline(gpu_3d_engine *gpu, s32 scanline, u32 poly_num)
 		span.x = x;
 		interp_update_w(&span);
 		s32 depth = get_depth(p, &span, zl, zr);
-		if (depth > gpu->depth_buf[scanline][x])
+		if (depth >= gpu->depth_buf[scanline][x])
 			continue;
 		s32 r = interpolate(&span, rl, rr);
 		s32 g = interpolate(&span, gl, gr);
@@ -696,7 +692,7 @@ render_polygon_scanline(gpu_3d_engine *gpu, s32 scanline, u32 poly_num)
 		span.x = x;
 		interp_update_w(&span);
 		s32 depth = get_depth(p, &span, zl, zr);
-		if (depth > gpu->depth_buf[scanline][x])
+		if (depth >= gpu->depth_buf[scanline][x])
 			continue;
 		s32 r = interpolate(&span, rl, rr);
 		s32 g = interpolate(&span, gl, gr);
@@ -761,11 +757,11 @@ clear_buffers(gpu_3d_engine *gpu)
 }
 
 static void
-find_polygon_start_end(polygon *p, u32 *start_r, u32 *end_r)
+find_polygon_start_end_sortkey(polygon *p, bool manual_sort)
 {
 	if (p->num_vertices <= 1) {
-		*start_r = 0;
-		*end_r = 0;
+		p->start = 0;
+		p->end = 0;
 		return;
 	}
 
@@ -791,8 +787,20 @@ find_polygon_start_end(polygon *p, u32 *start_r, u32 *end_r)
 		}
 	}
 
-	*start_r = start;
-	*end_r = end;
+	p->start = start;
+	p->end = end;
+
+	if (p->translucent) {
+		p->sortkey = { 1, manual_sort ? 0 : start_y };
+	} else {
+		p->sortkey = { 0, start_y };
+	}
+}
+
+static bool
+cmp_polygon(polygon *a, polygon *b)
+{
+	return a->sortkey < b->sortkey;
 }
 
 static void
@@ -803,14 +811,13 @@ setup_polygons(gpu_3d_engine *gpu)
 
 	re.num_polygons = pr.count;
 
-	/* TODO: sort polygons */
 	for (u32 i = 0; i < pr.count; i++) {
 		re.polygons[i] = &pr.polygons[i];
+		find_polygon_start_end_sortkey(re.polygons[i], re.manual_sort);
 	}
+	std::sort(re.polygons, re.polygons + pr.count, cmp_polygon);
 
 	for (u32 i = 0; i < pr.count; i++) {
-		find_polygon_start_end(re.polygons[i], &re.poly_info[i].start,
-				&re.poly_info[i].end);
 		setup_polygon_initial_slope(gpu, i);
 	}
 }
