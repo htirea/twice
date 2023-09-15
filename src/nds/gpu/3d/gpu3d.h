@@ -92,6 +92,13 @@ struct gpu_3d_engine {
 			u16 disp3dcnt{};
 			u32 clear_color{};
 			u16 clear_depth{};
+			u16 clrimage_offset{};
+			u8 toon_table[64]{};
+			u8 edge_color[16]{};
+			u8 fog_table[32]{};
+			u32 fog_color{};
+			u16 fog_offset{};
+			u8 alpha_test_ref{};
 		};
 
 		registers shadow;

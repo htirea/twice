@@ -268,6 +268,8 @@ gpu_3d_read32(gpu_3d_engine *gpu, u16 offset)
 	switch (offset) {
 	case 0x600:
 		return gxstat_read(gpu);
+	case 0x4A4:
+		return 0;
 	}
 
 	LOG("3d engine read 32 at offset %03X\n", offset);
@@ -291,6 +293,21 @@ gpu_3d_read8(gpu_3d_engine *, u16 offset)
 void
 gpu_3d_write32(gpu_3d_engine *gpu, u16 offset, u32 value)
 {
+	if (0x330 <= offset && offset < 0x340) {
+		writearr<u32>(gpu->re.shadow.edge_color, offset & 0xF, value);
+		return;
+	}
+
+	if (0x360 <= offset && offset < 0x380) {
+		writearr<u32>(gpu->re.shadow.fog_table, offset & 0x1F, value);
+		return;
+	}
+
+	if (0x380 <= offset && offset < 0x3C0) {
+		writearr<u32>(gpu->re.shadow.toon_table, offset & 0x3F, value);
+		return;
+	}
+
 	if (0x400 <= offset && offset < 0x440) {
 		gxfifo_write(gpu, value);
 		return;
@@ -306,6 +323,12 @@ gpu_3d_write32(gpu_3d_engine *gpu, u16 offset, u32 value)
 	case 0x350:
 		gpu->re.shadow.clear_color = value & 0x3F1FFFFF;
 		return;
+	case 0x358:
+		gpu->re.shadow.fog_color = value & 0x1F7FFF;
+		return;
+	case 0x35C:
+		gpu->re.shadow.fog_offset = value & 0x7FFF;
+		return;
 	case 0x600:
 		gxstat_write(gpu, value);
 		return;
@@ -317,9 +340,23 @@ gpu_3d_write32(gpu_3d_engine *gpu, u16 offset, u32 value)
 void
 gpu_3d_write16(gpu_3d_engine *gpu, u16 offset, u16 value)
 {
+	if (0x380 <= offset && offset < 0x3C0) {
+		writearr<u16>(gpu->re.shadow.toon_table, offset & 0x3F, value);
+		return;
+	}
+
 	switch (offset) {
+	case 0x340:
+		gpu->re.shadow.alpha_test_ref = value & 0x1F;
+		return;
 	case 0x354:
 		gpu->re.shadow.clear_depth = value & 0x7FFF;
+		return;
+	case 0x356:
+		gpu->re.shadow.clrimage_offset = value;
+		return;
+	case 0x35C:
+		gpu->re.shadow.fog_offset = value & 0x7FFF;
 		return;
 	}
 
