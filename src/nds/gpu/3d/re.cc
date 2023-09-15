@@ -307,21 +307,10 @@ blend_bgr555_53_3d(u16 color0, u16 color1, u8 *color_out)
 }
 
 static void
-draw_pixel(gpu_3d_engine *gpu, polygon *p, s32 y, u32 x, s32 a, s32 r, s32 g,
-		s32 b, s32 s, s32 t)
+get_texture_color(gpu_3d_engine *gpu, polygon *p, u8 *tx_color, s32 s, s32 t)
 {
-	u32 final_color;
-	u32 mode = p->attr >> 4 & 3;
 	u32 tx_format = p->tx_param >> 26 & 7;
 	bool color_0_transparent = p->tx_param & BIT(29);
-	u8 tx_color[4]{};
-
-	if (tx_format == 0) {
-		final_color = a << 18 | b << 12 | g << 6 | r;
-		gpu->color_buf[y][x] = final_color;
-		return;
-	}
-
 	bool s_clamp = !(p->tx_param & BIT(16));
 	bool t_clamp = !(p->tx_param & BIT(17));
 	bool s_flip = p->tx_param & BIT(18);
@@ -516,10 +505,88 @@ draw_pixel(gpu_3d_engine *gpu, polygon *p, s32 y, u32 x, s32 a, s32 r, s32 g,
 		break;
 	}
 	}
+}
 
-	final_color = (u32)tx_color[3] << 18 | (u32)tx_color[2] << 12 |
-	              (u32)tx_color[1] << 6 | tx_color[0];
-	gpu->color_buf[y][x] = final_color;
+static void
+draw_pixel(gpu_3d_engine *gpu, polygon *p, s32 y, u32 x, s32 a, s32 r, s32 g,
+		s32 b, s32 s, s32 t)
+{
+	u8 rf, gf, bf, af;
+	u32 tx_format = p->tx_param >> 26 & 7;
+	if (tx_format == 0) {
+		rf = r;
+		gf = g;
+		bf = b;
+		af = a;
+	} else {
+		u8 tx_color[4]{};
+		get_texture_color(gpu, p, tx_color, s, t);
+		u8 rt = tx_color[0];
+		u8 gt = tx_color[1];
+		u8 bt = tx_color[2];
+		u8 at = tx_color[3];
+
+		u32 mode = p->attr >> 4 & 3;
+		switch (mode) {
+		case 0:
+			rf = ((rt + 1) * (r + 1) - 1) >> 6;
+			gf = ((gt + 1) * (g + 1) - 1) >> 6;
+			bf = ((bt + 1) * (b + 1) - 1) >> 6;
+			af = ((at + 1) * (a + 1) - 1) >> 5;
+			break;
+		case 1:
+			if (at == 0) {
+				rf = r;
+				gf = g;
+				bf = b;
+				af = a;
+			} else if (at == 31) {
+				rf = rt;
+				gf = gt;
+				bf = bt;
+				af = a;
+			} else {
+				rf = (rt * at + r * (31 - at)) >> 5;
+				gf = (gt * at + g * (31 - at)) >> 5;
+				bf = (bt * at + b * (31 - at)) >> 5;
+				af = a;
+			}
+			break;
+
+		case 2:
+		{
+			u16 rs = readarr<u16>(gpu->re.r.toon_table, r & 0x3E);
+			u16 gs = readarr<u16>(gpu->re.r.toon_table, g & 0x3E);
+			u16 bs = readarr<u16>(gpu->re.r.toon_table, b & 0x3E);
+
+			rs &= 0x1F;
+			gs = gs >> 5 & 0x1F;
+			bs = bs >> 10 & 0x1F;
+			rs = rs == 0 ? 0 : (rs << 1) + 1;
+			gs = gs == 0 ? 0 : (gs << 1) + 1;
+			bs = bs == 0 ? 0 : (bs << 1) + 1;
+
+			if (gpu->re.r.disp3dcnt & BIT(1)) {
+				rf = rs + (((rt + 1) * (r + 1) - 1) >> 6);
+				gf = gs + (((gt + 1) * (g + 1) - 1) >> 6);
+				bf = bs + (((bt + 1) * (b + 1) - 1) >> 6);
+				af = ((at + 1) * (a + 1) - 1) >> 5;
+				rf = std::min((u8)63, rf);
+				bf = std::min((u8)63, bf);
+				gf = std::min((u8)63, gf);
+			} else {
+				rf = ((rt + 1) * (rs + 1) - 1) >> 6;
+				gf = ((gt + 1) * (gs + 1) - 1) >> 6;
+				bf = ((bt + 1) * (bs + 1) - 1) >> 6;
+				af = ((at + 1) * (a + 1) - 1) >> 5;
+			}
+			break;
+		}
+		}
+	}
+
+	gpu->color_buf[y][x] =
+			(u32)af << 18 | (u32)bf << 12 | (u32)gf << 6 | rf;
 }
 
 static s32
