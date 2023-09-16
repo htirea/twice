@@ -815,7 +815,7 @@ setup_polygons(gpu_3d_engine *gpu)
 		re.polygons[i] = &pr.polygons[i];
 		find_polygon_start_end_sortkey(re.polygons[i], re.manual_sort);
 	}
-	std::sort(re.polygons, re.polygons + pr.count, cmp_polygon);
+	std::stable_sort(re.polygons, re.polygons + pr.count, cmp_polygon);
 
 	for (u32 i = 0; i < pr.count; i++) {
 		setup_polygon_initial_slope(gpu, i);
