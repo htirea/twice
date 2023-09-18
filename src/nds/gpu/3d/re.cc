@@ -504,16 +504,34 @@ get_texture_color(gpu_3d_engine *gpu, polygon *p, u8 *tx_color, s32 s, s32 t)
 }
 
 static void
-draw_pixel(gpu_3d_engine *gpu, polygon *p, s32 y, u32 x, s32 a, s32 r, s32 g,
-		s32 b, s32 s, s32 t)
+draw_pixel(gpu_3d_engine *gpu, polygon *p, s32 y, u32 x, u8 av, u8 rv, u8 gv,
+		u8 bv, s32 s, s32 t)
 {
-	u8 rf, gf, bf, af;
 	u32 tx_format = p->tx_param >> 26 & 7;
+	u32 blend_mode = p->attr >> 4 & 3;
+
+	u8 rs, gs, bs;
+	bool highlight_shading = blend_mode == 2 && gpu->re.r.disp3dcnt & 2;
+	if (blend_mode == 2) {
+		u16 toon_color = readarr<u16>(gpu->re.r.toon_table, rv & 0x3E);
+		unpack_bgr555_3d(toon_color, &rs, &gs, &bs);
+
+		if (highlight_shading) {
+			gv = rv;
+			bv = rv;
+		} else {
+			rv = rs;
+			gv = gs;
+			bv = bs;
+		}
+	}
+
+	u8 r, g, b, a;
 	if (tx_format == 0) {
-		rf = r;
-		gf = g;
-		bf = b;
-		af = a;
+		r = rv;
+		g = gv;
+		b = bv;
+		a = av;
 	} else {
 		u8 tx_color[4]{};
 		get_texture_color(gpu, p, tx_color, s, t);
@@ -522,67 +540,41 @@ draw_pixel(gpu_3d_engine *gpu, polygon *p, s32 y, u32 x, s32 a, s32 r, s32 g,
 		u8 bt = tx_color[2];
 		u8 at = tx_color[3];
 
-		u32 mode = p->attr >> 4 & 3;
-		switch (mode) {
-		case 0:
-			rf = ((rt + 1) * (r + 1) - 1) >> 6;
-			gf = ((gt + 1) * (g + 1) - 1) >> 6;
-			bf = ((bt + 1) * (b + 1) - 1) >> 6;
-			af = ((at + 1) * (a + 1) - 1) >> 5;
-			break;
-		case 1:
-			if (at == 0) {
-				rf = r;
-				gf = g;
-				bf = b;
-				af = a;
-			} else if (at == 31) {
-				rf = rt;
-				gf = gt;
-				bf = bt;
-				af = a;
-			} else {
-				rf = (rt * at + r * (31 - at)) >> 5;
-				gf = (gt * at + g * (31 - at)) >> 5;
-				bf = (bt * at + b * (31 - at)) >> 5;
-				af = a;
+		if (blend_mode == 1) {
+			switch (at) {
+			case 0:
+				r = rv;
+				g = gv;
+				b = bv;
+				a = av;
+				break;
+			case 31:
+				r = rt;
+				g = gt;
+				b = bt;
+				a = av;
+				break;
+			default:
+				r = (rt * at + rv * (31 - at)) >> 5;
+				g = (gt * at + gv * (31 - at)) >> 5;
+				b = (bt * at + bv * (31 - at)) >> 5;
+				a = av;
 			}
-			break;
-
-		case 2:
-		{
-			u16 rs = readarr<u16>(gpu->re.r.toon_table, r & 0x3E);
-			u16 gs = readarr<u16>(gpu->re.r.toon_table, g & 0x3E);
-			u16 bs = readarr<u16>(gpu->re.r.toon_table, b & 0x3E);
-
-			rs &= 0x1F;
-			gs = gs >> 5 & 0x1F;
-			bs = bs >> 10 & 0x1F;
-			rs = rs == 0 ? 0 : (rs << 1) + 1;
-			gs = gs == 0 ? 0 : (gs << 1) + 1;
-			bs = bs == 0 ? 0 : (bs << 1) + 1;
-
-			if (gpu->re.r.disp3dcnt & BIT(1)) {
-				rf = rs + (((rt + 1) * (r + 1) - 1) >> 6);
-				gf = gs + (((gt + 1) * (g + 1) - 1) >> 6);
-				bf = bs + (((bt + 1) * (b + 1) - 1) >> 6);
-				af = ((at + 1) * (a + 1) - 1) >> 5;
-				rf = std::min((u8)63, rf);
-				bf = std::min((u8)63, bf);
-				gf = std::min((u8)63, gf);
-			} else {
-				rf = ((rt + 1) * (rs + 1) - 1) >> 6;
-				gf = ((gt + 1) * (gs + 1) - 1) >> 6;
-				bf = ((bt + 1) * (bs + 1) - 1) >> 6;
-				af = ((at + 1) * (a + 1) - 1) >> 5;
-			}
-			break;
-		}
+		} else {
+			r = ((rt + 1) * (rv + 1) - 1) >> 6;
+			g = ((gt + 1) * (gv + 1) - 1) >> 6;
+			b = ((bt + 1) * (bv + 1) - 1) >> 6;
+			a = ((at + 1) * (av + 1) - 1) >> 5;
 		}
 	}
 
-	gpu->color_buf[y][x] =
-			(u32)af << 18 | (u32)bf << 12 | (u32)gf << 6 | rf;
+	if (highlight_shading) {
+		r = std::min(63, r + rs);
+		g = std::min(63, g + gs);
+		b = std::min(63, b + bs);
+	}
+
+	gpu->color_buf[y][x] = (u32)a << 18 | (u32)b << 12 | (u32)g << 6 | r;
 }
 
 static s32

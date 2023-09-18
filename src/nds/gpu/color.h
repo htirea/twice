@@ -55,6 +55,25 @@ unpack_bgr555_3d(u16 color, u8 *color_out)
 }
 
 inline void
+unpack_bgr555_3d(u16 color, u8 *r_out, u8 *g_out, u8 *b_out)
+{
+	u8 r = color & 0x1F;
+	u8 g = color >> 5 & 0x1F;
+	u8 b = color >> 10 & 0x1F;
+
+	if (r != 0)
+		r = (r << 1) + 1;
+	if (g != 0)
+		g = (g << 1) + 1;
+	if (b != 0)
+		b = (b << 1) + 1;
+
+	*r_out = r;
+	*g_out = g;
+	*b_out = b;
+}
+
+inline void
 unpack_abgr1555_3d(u16 color, u8 *color_out)
 {
 	u8 r = color & 0x1F;
