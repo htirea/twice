@@ -467,6 +467,20 @@ get_face_direction(vertex **vertices)
 	s64 cy = (s64)az * bx - (s64)ax * bz;
 	s64 cz = (s64)ax * by - (s64)ay * bx;
 
+	int max_bits = 0;
+	max_bits = std::max(max_bits,
+			1 + std::bit_width((cx >= 0 ? (u64)cx : ~(u64)cx)));
+	max_bits = std::max(max_bits,
+			1 + std::bit_width((cy >= 0 ? (u64)cy : ~(u64)cy)));
+	max_bits = std::max(max_bits,
+			1 + std::bit_width((cz >= 0 ? (u64)cz : ~(u64)cz)));
+	int shift = (max_bits - 32 + 4 - 1) & ~3;
+	if (shift > 0) {
+		cx >>= shift;
+		cy >>= shift;
+		cz >>= shift;
+	}
+
 	return cx * v0->pos[0] + cy * v0->pos[1] + cz * v0->pos[3];
 }
 
