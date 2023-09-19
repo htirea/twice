@@ -204,9 +204,14 @@ unpack_and_run_commands(gpu_3d_engine *gpu)
 			throw twice_error("invalid command");
 		}
 		u32 num_params = cfifo.num_params[i];
-		for (; num_params--; param_idx++) {
-			gxfifo_push(gpu, command, cfifo.params[param_idx],
-					false);
+		if (num_params == 0) {
+			gxfifo_push(gpu, command, 0, false);
+		} else {
+			for (; num_params--; param_idx++) {
+				gxfifo_push(gpu, command,
+						cfifo.params[param_idx],
+						false);
+			}
 		}
 	}
 	gxfifo_run_commands(gpu);
