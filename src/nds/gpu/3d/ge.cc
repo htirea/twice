@@ -590,7 +590,7 @@ clip_polygon_plane(std::vector<vertex>& in, int plane, int positive)
 }
 
 static std::vector<vertex>
-clip_polygon_vertices(gpu_3d_engine *gpu, vertex **in, u32 num_vertices)
+clip_polygon_vertices(vertex **in, u32 num_vertices)
 {
 	std::vector<vertex> out;
 	for (u32 i = 0; i < num_vertices; i++) {
@@ -714,7 +714,7 @@ add_polygon(gpu_3d_engine *gpu)
 	}
 
 	std::vector<vertex> clipped_vertices =
-			clip_polygon_vertices(gpu, vertices, num_vertices);
+			clip_polygon_vertices(vertices, num_vertices);
 	if (clipped_vertices.empty()) {
 		return;
 	}
@@ -998,6 +998,56 @@ cmd_viewport(gpu_3d_engine *gpu)
 	gpu->viewport_h = gpu->viewport_y[1] - gpu->viewport_y[0] + 1;
 }
 
+static void
+set_box_vertex(gpu_3d_engine *gpu, vertex *v, s32 x, s32 y, s32 z)
+{
+	ge_vector vtx_point = { x, y, z, 1 << 12 };
+	ge_vector result;
+	mtx_mult_vec(&result, &gpu->clip_mtx, &vtx_point);
+
+	for (u32 i = 0; i < 4; i++)
+		v->pos[i] = result.v[i];
+}
+
+static void
+cmd_box_test(gpu_3d_engine *gpu)
+{
+	s16 x = gpu->cmd_params[0];
+	s16 y = gpu->cmd_params[0] >> 16;
+	s16 z = gpu->cmd_params[1];
+	s16 dx = gpu->cmd_params[1] >> 16;
+	s16 dy = gpu->cmd_params[2];
+	s16 dz = gpu->cmd_params[2] >> 16;
+
+	vertex vs[8];
+	set_box_vertex(gpu, &vs[0], x, y, z);
+	set_box_vertex(gpu, &vs[1], x + dx, y, z);
+	set_box_vertex(gpu, &vs[2], x + dx, y + dy, z);
+	set_box_vertex(gpu, &vs[3], x, y + dy, z);
+	set_box_vertex(gpu, &vs[4], x, y, z + dz);
+	set_box_vertex(gpu, &vs[5], x + dx, y, z + dz);
+	set_box_vertex(gpu, &vs[6], x + dx, y + dy, z + dz);
+	set_box_vertex(gpu, &vs[7], x, y + dy, z + dz);
+
+	vertex *faces[6][4] = {
+		{ &vs[0], &vs[1], &vs[2], &vs[3] },
+		{ &vs[1], &vs[5], &vs[6], &vs[2] },
+		{ &vs[5], &vs[4], &vs[7], &vs[6] },
+		{ &vs[4], &vs[0], &vs[3], &vs[7] },
+		{ &vs[7], &vs[6], &vs[2], &vs[3] },
+		{ &vs[4], &vs[5], &vs[1], &vs[0] },
+	};
+
+	for (u32 i = 0; i < 6; i++) {
+		if (clip_polygon_vertices(faces[i], 4).size() > 0) {
+			gpu->gxstat |= BIT(1);
+			return;
+		}
+	}
+
+	gpu->gxstat &= ~BIT(1);
+}
+
 void
 ge_execute_command(gpu_3d_engine *gpu, u8 command)
 {
@@ -1104,6 +1154,9 @@ ge_execute_command(gpu_3d_engine *gpu, u8 command)
 		break;
 	case 0x60:
 		cmd_viewport(gpu);
+		break;
+	case 0x70:
+		cmd_box_test(gpu);
 		break;
 	default:
 		LOG("unhandled ge command %02X\n", command);
