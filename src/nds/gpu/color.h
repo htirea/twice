@@ -96,6 +96,17 @@ unpack_abgr1555_3d(u16 color, u8 *color_out)
 	color_out[3] = a;
 }
 
+inline u32
+pack_abgr5666(u8 *color)
+{
+	u32 r = color[0];
+	u32 g = color[1];
+	u32 b = color[2];
+	u32 a = color[3];
+
+	return a << 18 | b << 12 | g << 6 | r;
+}
+
 } // namespace twice
 
 #endif

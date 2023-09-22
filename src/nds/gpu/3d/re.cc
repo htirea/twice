@@ -504,8 +504,8 @@ get_texture_color(gpu_3d_engine *gpu, polygon *p, u8 *tx_color, s32 s, s32 t)
 }
 
 static void
-draw_pixel(gpu_3d_engine *gpu, polygon *p, s32 y, u32 x, u8 av, u8 rv, u8 gv,
-		u8 bv, s32 s, s32 t)
+draw_pixel(gpu_3d_engine *gpu, polygon *p, u8 av, u8 rv, u8 gv, u8 bv, s32 s,
+		s32 t, u8 *color_out)
 {
 	u32 tx_format = p->tx_param >> 26 & 7;
 	u32 blend_mode = p->attr >> 4 & 3;
@@ -574,7 +574,10 @@ draw_pixel(gpu_3d_engine *gpu, polygon *p, s32 y, u32 x, u8 av, u8 rv, u8 gv,
 		b = std::min(63, b + bs);
 	}
 
-	gpu->color_buf[y][x] = (u32)a << 18 | (u32)b << 12 | (u32)g << 6 | r;
+	color_out[0] = r;
+	color_out[1] = g;
+	color_out[2] = b;
+	color_out[3] = a;
 }
 
 static s32
@@ -590,6 +593,28 @@ get_depth(polygon *p, interpolator *i, s32 zl, s32 zr)
 	} else {
 		return z;
 	}
+}
+
+static u32
+alpha_blend(u8 *frag_color, u32 buffer_color)
+{
+	u8 rs = frag_color[0];
+	u8 gs = frag_color[1];
+	u8 bs = frag_color[2];
+	u8 as = frag_color[3];
+
+	u8 rb = buffer_color & 0x3F;
+	u8 gb = buffer_color >> 6 & 0x3F;
+	u8 bb = buffer_color >> 12 & 0x3F;
+	u8 ab = buffer_color >> 18 & 0x1F;
+
+	u8 result[4];
+	result[0] = ((as + 1) * rs + (31 - as) * rb) >> 5;
+	result[1] = ((as + 1) * gs + (31 - as) * gb) >> 5;
+	result[2] = ((as + 1) * bs + (31 - as) * bb) >> 5;
+	result[3] = std::max(as, ab);
+
+	return pack_abgr5666(result);
 }
 
 static void
@@ -637,10 +662,14 @@ render_polygon_scanline(gpu_3d_engine *gpu, s32 scanline, u32 poly_num)
 	interp_setup(&span, xstart[0], xend[1] - 1, sl->interp.w,
 			sr->interp.w);
 
+	u8 frag_color[4];
+
 	s32 alpha = p->attr >> 16 & 0x1F;
 	if (alpha == 0) {
 		alpha = 31;
 	}
+
+	bool alpha_blending = gpu->re.r.disp3dcnt & BIT(3);
 
 	s32 draw_x = std::max(0, xstart[0]);
 	s32 draw_x_end = std::min(256, xstart[1]);
@@ -656,7 +685,17 @@ render_polygon_scanline(gpu_3d_engine *gpu, s32 scanline, u32 poly_num)
 		s32 tx_s = interpolate(&span, tx_sl, tx_sr);
 		s32 tx_t = interpolate(&span, tx_tl, tx_tr);
 
-		draw_pixel(gpu, p, scanline, x, alpha, r, g, b, tx_s, tx_t);
+		draw_pixel(gpu, p, alpha, r, g, b, tx_s, tx_t, frag_color);
+		if (frag_color[3] == 0)
+			continue;
+		if (!alpha_blending || frag_color[3] == 31 ||
+				gpu->color_buf[scanline][x] >> 18 == 0) {
+			gpu->color_buf[scanline][x] =
+					pack_abgr5666(frag_color);
+		} else {
+			gpu->color_buf[scanline][x] = alpha_blend(frag_color,
+					gpu->color_buf[scanline][x]);
+		}
 		gpu->depth_buf[scanline][x] = depth;
 	}
 
@@ -674,7 +713,17 @@ render_polygon_scanline(gpu_3d_engine *gpu, s32 scanline, u32 poly_num)
 		s32 tx_s = interpolate(&span, tx_sl, tx_sr);
 		s32 tx_t = interpolate(&span, tx_tl, tx_tr);
 
-		draw_pixel(gpu, p, scanline, x, alpha, r, g, b, tx_s, tx_t);
+		draw_pixel(gpu, p, alpha, r, g, b, tx_s, tx_t, frag_color);
+		if (frag_color[3] == 0)
+			continue;
+		if (!alpha_blending || frag_color[3] == 31 ||
+				gpu->color_buf[scanline][x] >> 18 == 0) {
+			gpu->color_buf[scanline][x] =
+					pack_abgr5666(frag_color);
+		} else {
+			gpu->color_buf[scanline][x] = alpha_blend(frag_color,
+					gpu->color_buf[scanline][x]);
+		}
 		gpu->depth_buf[scanline][x] = depth;
 	}
 
@@ -692,7 +741,17 @@ render_polygon_scanline(gpu_3d_engine *gpu, s32 scanline, u32 poly_num)
 		s32 tx_s = interpolate(&span, tx_sl, tx_sr);
 		s32 tx_t = interpolate(&span, tx_tl, tx_tr);
 
-		draw_pixel(gpu, p, scanline, x, alpha, r, g, b, tx_s, tx_t);
+		draw_pixel(gpu, p, alpha, r, g, b, tx_s, tx_t, frag_color);
+		if (frag_color[3] == 0)
+			continue;
+		if (!alpha_blending || frag_color[3] == 31 ||
+				gpu->color_buf[scanline][x] >> 18 == 0) {
+			gpu->color_buf[scanline][x] =
+					pack_abgr5666(frag_color);
+		} else {
+			gpu->color_buf[scanline][x] = alpha_blend(frag_color,
+					gpu->color_buf[scanline][x]);
+		}
 		gpu->depth_buf[scanline][x] = depth;
 	}
 }
