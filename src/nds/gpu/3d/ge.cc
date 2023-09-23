@@ -757,11 +757,12 @@ add_polygon(gpu_3d_engine *gpu)
 			v->sx = 0;
 			v->sy = 0;
 		} else {
-			v->sx = (v->pos[0] + v->pos[3]) * gpu->viewport_w /
-			                        (2 * v->pos[3]) +
+			s32 x = v->pos[0];
+			s32 y = v->pos[1];
+			s64 w = v->pos[3];
+			v->sx = (x + w) * gpu->viewport_w / (2 * w) +
 			        gpu->viewport_x[0];
-			v->sy = (-v->pos[1] + v->pos[3]) * gpu->viewport_h /
-			                        (2 * v->pos[3]) +
+			v->sy = (-y + w) * gpu->viewport_h / (2 * w) +
 			        gpu->viewport_y[0];
 		}
 	}
