@@ -670,6 +670,12 @@ render_polygon_scanline(gpu_3d_engine *gpu, s32 scanline, u32 poly_num)
 	}
 
 	bool alpha_blending = gpu->re.r.disp3dcnt & BIT(3);
+	u8 alpha_test_ref = gpu->re.r.alpha_test_ref;
+	if (!(gpu->re.r.disp3dcnt & BIT(2))) {
+		alpha_test_ref = 0;
+	} else {
+		alpha_test_ref = gpu->re.r.alpha_test_ref;
+	}
 
 	s32 draw_x = std::max(0, xstart[0]);
 	s32 draw_x_end = std::min(256, xstart[1]);
@@ -686,7 +692,7 @@ render_polygon_scanline(gpu_3d_engine *gpu, s32 scanline, u32 poly_num)
 		s32 tx_t = interpolate(&span, tx_tl, tx_tr);
 
 		draw_pixel(gpu, p, alpha, r, g, b, tx_s, tx_t, frag_color);
-		if (frag_color[3] == 0)
+		if (frag_color[3] <= alpha_test_ref)
 			continue;
 		if (!alpha_blending || frag_color[3] == 31 ||
 				gpu->color_buf[scanline][x] >> 18 == 0) {
@@ -714,7 +720,7 @@ render_polygon_scanline(gpu_3d_engine *gpu, s32 scanline, u32 poly_num)
 		s32 tx_t = interpolate(&span, tx_tl, tx_tr);
 
 		draw_pixel(gpu, p, alpha, r, g, b, tx_s, tx_t, frag_color);
-		if (frag_color[3] == 0)
+		if (frag_color[3] <= alpha_test_ref)
 			continue;
 		if (!alpha_blending || frag_color[3] == 31 ||
 				gpu->color_buf[scanline][x] >> 18 == 0) {
@@ -742,7 +748,7 @@ render_polygon_scanline(gpu_3d_engine *gpu, s32 scanline, u32 poly_num)
 		s32 tx_t = interpolate(&span, tx_tl, tx_tr);
 
 		draw_pixel(gpu, p, alpha, r, g, b, tx_s, tx_t, frag_color);
-		if (frag_color[3] == 0)
+		if (frag_color[3] <= alpha_test_ref)
 			continue;
 		if (!alpha_blending || frag_color[3] == 31 ||
 				gpu->color_buf[scanline][x] >> 18 == 0) {
