@@ -11,13 +11,6 @@ using interpolator = gpu_3d_engine::rendering_engine::interpolator;
 
 static void interp_setup(interpolator *i, s32 x0, s32 x1, s32 w0, s32 w1);
 
-static u32
-color6_to_abgr666(color6 color)
-{
-	return (u32)(0x1F) << 18 | (u32)color.b << 12 | (u32)color.g << 6 |
-	       (u32)color.r;
-}
-
 static bool
 polygon_not_in_scanline(polygon *p, s32 scanline)
 {
@@ -87,11 +80,7 @@ setup_polygon_slope(slope *s, vertex *v0, vertex *v1, s32 w0, s32 w1)
 static void
 setup_polygon_slope_vertical(slope *s, vertex *v, s32 w0)
 {
-	/* TODO: fix later */
-	vertex v1;
-	v1.sx = v->sx;
-	v1.sy = v->sy + 1;
-	setup_polygon_slope(s, v, &v1, w0, w0);
+	setup_polygon_slope(s, v, v, w0, w0);
 }
 
 static void
@@ -184,7 +173,7 @@ static void
 setup_polygon_initial_slope(gpu_3d_engine *gpu, u32 poly_num)
 {
 	polygon *p = gpu->re.polygons[poly_num];
-	polygon_info *pinfo = &gpu->re.poly_info[poly_num];
+	polygon_info *pi = &gpu->re.poly_info[poly_num];
 
 	u32 next_l = (p->start + 1) % p->num_vertices;
 	u32 next_r = (p->start - 1 + p->num_vertices) % p->num_vertices;
@@ -192,39 +181,39 @@ setup_polygon_initial_slope(gpu_3d_engine *gpu, u32 poly_num)
 		std::swap(next_l, next_r);
 	}
 
-	setup_polygon_slope(&pinfo->left_slope, p->vertices[p->start],
+	setup_polygon_slope(&pi->left_slope, p->vertices[p->start],
 			p->vertices[next_l], p->normalized_w[p->start],
 			p->normalized_w[next_l]);
-	pinfo->prev_left = p->start;
-	pinfo->left = next_l;
+	pi->prev_left = p->start;
+	pi->left = next_l;
 
-	setup_polygon_slope(&pinfo->right_slope, p->vertices[p->start],
+	setup_polygon_slope(&pi->right_slope, p->vertices[p->start],
 			p->vertices[next_r], p->normalized_w[p->start],
 			p->normalized_w[next_r]);
-	pinfo->prev_right = p->start;
-	pinfo->right = next_r;
+	pi->prev_right = p->start;
+	pi->right = next_r;
 }
 
 static void
 setup_polygon_scanline(gpu_3d_engine *gpu, s32 scanline, u32 poly_num)
 {
 	polygon *p = gpu->re.polygons[poly_num];
-	polygon_info *pinfo = &gpu->re.poly_info[poly_num];
+	polygon_info *pi = &gpu->re.poly_info[poly_num];
 
 	if (polygon_not_in_scanline(p, scanline))
 		return;
 
 	if (p->vertices[p->start]->sy == p->vertices[p->end]->sy) {
 		setup_polygon_slope_vertical(
-				&pinfo->left_slope, p->vertices[p->start], 1);
+				&pi->left_slope, p->vertices[p->start], 1);
 		setup_polygon_slope_vertical(
-				&pinfo->right_slope, p->vertices[p->end], 1);
+				&pi->right_slope, p->vertices[p->end], 1);
 	} else {
 		u32 curr, next;
 
-		if (p->vertices[pinfo->left]->sy == scanline) {
-			curr = pinfo->left;
-			next = pinfo->left;
+		if (p->vertices[pi->left]->sy == scanline) {
+			curr = pi->left;
+			next = pi->left;
 			while (next != p->end &&
 					p->vertices[next]->sy <= scanline) {
 				curr = next;
@@ -236,18 +225,18 @@ setup_polygon_scanline(gpu_3d_engine *gpu, s32 scanline, u32 poly_num)
 				}
 			}
 			if (next != curr) {
-				setup_polygon_slope(&pinfo->left_slope,
+				setup_polygon_slope(&pi->left_slope,
 						p->vertices[curr],
 						p->vertices[next],
 						p->normalized_w[curr],
 						p->normalized_w[next]);
-				pinfo->prev_left = curr;
-				pinfo->left = next;
+				pi->prev_left = curr;
+				pi->left = next;
 			}
 		}
-		if (p->vertices[pinfo->right]->sy == scanline) {
-			curr = pinfo->right;
-			next = pinfo->right;
+		if (p->vertices[pi->right]->sy == scanline) {
+			curr = pi->right;
+			next = pi->right;
 			while (next != p->end &&
 					p->vertices[next]->sy <= scanline) {
 				curr = next;
@@ -259,13 +248,13 @@ setup_polygon_scanline(gpu_3d_engine *gpu, s32 scanline, u32 poly_num)
 				}
 			}
 			if (next != curr) {
-				setup_polygon_slope(&pinfo->right_slope,
+				setup_polygon_slope(&pi->right_slope,
 						p->vertices[curr],
 						p->vertices[next],
 						p->normalized_w[curr],
 						p->normalized_w[next]);
-				pinfo->prev_right = curr;
-				pinfo->right = next;
+				pi->prev_right = curr;
+				pi->right = next;
 			}
 		}
 	}
@@ -521,8 +510,8 @@ get_texture_color(gpu_3d_engine *gpu, polygon *p, u8 *tx_color, s32 s, s32 t)
 }
 
 static void
-draw_pixel(gpu_3d_engine *gpu, polygon *p, u8 av, u8 rv, u8 gv, u8 bv, s32 s,
-		s32 t, u8 *color_out)
+get_pixel_color(gpu_3d_engine *gpu, polygon *p, u8 av, u8 rv, u8 gv, u8 bv,
+		s32 s, s32 t, u8 *color_out)
 {
 	u32 tx_format = p->tx_param >> 26 & 7;
 	u32 blend_mode = p->attr >> 4 & 3;
@@ -638,13 +627,13 @@ static void
 render_polygon_scanline(gpu_3d_engine *gpu, s32 scanline, u32 poly_num)
 {
 	polygon *p = gpu->re.polygons[poly_num];
-	polygon_info *pinfo = &gpu->re.poly_info[poly_num];
+	polygon_info *pi = &gpu->re.poly_info[poly_num];
 
 	if (polygon_not_in_scanline(p, scanline))
 		return;
 
-	slope *sl = &pinfo->left_slope;
-	slope *sr = &pinfo->right_slope;
+	slope *sl = &pi->left_slope;
+	slope *sr = &pi->right_slope;
 
 	s32 xstart[2];
 	s32 xend[2];
@@ -660,15 +649,15 @@ render_polygon_scanline(gpu_3d_engine *gpu, s32 scanline, u32 poly_num)
 	set_slope_interp_x(sr, scanline, xend[1]);
 	interp_update_w(&sl->interp);
 	interp_update_w(&sr->interp);
-	s32 zl = interpolate_z(&sl->interp, p->z[pinfo->prev_left],
-			p->z[pinfo->left], p->wbuffering);
+	s32 zl = interpolate_z(&sl->interp, p->z[pi->prev_left],
+			p->z[pi->left], p->wbuffering);
 	s32 rl = interpolate(&sl->interp, sl->v0->color.r, sl->v1->color.r);
 	s32 gl = interpolate(&sl->interp, sl->v0->color.g, sl->v1->color.g);
 	s32 bl = interpolate(&sl->interp, sl->v0->color.b, sl->v1->color.b);
 	s32 tx_sl = interpolate(&sl->interp, sl->v0->tx.s, sl->v1->tx.s);
 	s32 tx_tl = interpolate(&sl->interp, sl->v0->tx.t, sl->v1->tx.t);
-	s32 zr = interpolate_z(&sr->interp, p->z[pinfo->prev_right],
-			p->z[pinfo->right], p->wbuffering);
+	s32 zr = interpolate_z(&sr->interp, p->z[pi->prev_right],
+			p->z[pi->right], p->wbuffering);
 	s32 rr = interpolate(&sr->interp, sr->v0->color.r, sr->v1->color.r);
 	s32 gr = interpolate(&sr->interp, sr->v0->color.g, sr->v1->color.g);
 	s32 br = interpolate(&sr->interp, sr->v0->color.b, sr->v1->color.b);
@@ -708,7 +697,8 @@ render_polygon_scanline(gpu_3d_engine *gpu, s32 scanline, u32 poly_num)
 		s32 tx_s = interpolate(&span, tx_sl, tx_sr);
 		s32 tx_t = interpolate(&span, tx_tl, tx_tr);
 
-		draw_pixel(gpu, p, alpha, r, g, b, tx_s, tx_t, frag_color);
+		get_pixel_color(gpu, p, alpha, r, g, b, tx_s, tx_t,
+				frag_color);
 		if (frag_color[3] <= alpha_test_ref)
 			continue;
 		if (!alpha_blending || frag_color[3] == 31 ||
@@ -736,7 +726,8 @@ render_polygon_scanline(gpu_3d_engine *gpu, s32 scanline, u32 poly_num)
 		s32 tx_s = interpolate(&span, tx_sl, tx_sr);
 		s32 tx_t = interpolate(&span, tx_tl, tx_tr);
 
-		draw_pixel(gpu, p, alpha, r, g, b, tx_s, tx_t, frag_color);
+		get_pixel_color(gpu, p, alpha, r, g, b, tx_s, tx_t,
+				frag_color);
 		if (frag_color[3] <= alpha_test_ref)
 			continue;
 		if (!alpha_blending || frag_color[3] == 31 ||
@@ -764,7 +755,8 @@ render_polygon_scanline(gpu_3d_engine *gpu, s32 scanline, u32 poly_num)
 		s32 tx_s = interpolate(&span, tx_sl, tx_sr);
 		s32 tx_t = interpolate(&span, tx_tl, tx_tr);
 
-		draw_pixel(gpu, p, alpha, r, g, b, tx_s, tx_t, frag_color);
+		get_pixel_color(gpu, p, alpha, r, g, b, tx_s, tx_t,
+				frag_color);
 		if (frag_color[3] <= alpha_test_ref)
 			continue;
 		if (!alpha_blending || frag_color[3] == 31 ||
