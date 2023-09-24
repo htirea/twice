@@ -779,6 +779,11 @@ add_polygon(gpu_3d_engine *gpu)
 
 		if (poly->wbuffering) {
 			poly->z[i] = poly->normalized_w[i];
+			if (poly->wshift >= 0) {
+				poly->z[i] <<= poly->wshift;
+			} else {
+				poly->z[i] >>= -poly->wshift;
+			}
 		} else if (v->pos[3] != 0) {
 			poly->z[i] = ((s64)v->pos[2] * 0x4000 / v->pos[3] +
 						     0x3FFF) *

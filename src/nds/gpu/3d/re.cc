@@ -597,21 +597,6 @@ get_pixel_color(gpu_3d_engine *gpu, polygon *p, s32 *vtx_color, s32 *tx,
 	color_out[3] = a;
 }
 
-static s32
-get_depth(polygon *p, interpolator *i, s32 zl, s32 zr)
-{
-	s32 z = interpolate_z(i, zl, zr, p->wbuffering);
-	if (p->wbuffering) {
-		if (p->wshift >= 0) {
-			return z << p->wshift;
-		} else {
-			return z >> -p->wshift;
-		}
-	} else {
-		return z;
-	}
-}
-
 static u32
 alpha_blend(u8 *frag_color, u32 buffer_color)
 {
@@ -659,7 +644,7 @@ render_polygon_pixel(gpu_3d_engine *gpu, render_polygon_ctx *ctx,
 {
 	interp_update_xw(span, x);
 
-	s32 z = get_depth(ctx->p, span, ctx->zl, ctx->zr);
+	s32 z = interpolate_z(span, ctx->zl, ctx->zr, ctx->p->wbuffering);
 	if (z >= gpu->depth_buf[y][x])
 		return;
 
