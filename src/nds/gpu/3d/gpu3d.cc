@@ -28,6 +28,12 @@ gpu3d_on_vblank(gpu_3d_engine *gpu)
 		execute_swap_buffers(gpu);
 		gpu->halted = false;
 		gxfifo_run_commands(gpu);
+		gpu->render_frame = true;
+	}
+
+	if (gpu->re.manual_sort != (bool)(gpu->ge.swap_bits & 1) ||
+			gpu->re.r != gpu->re.shadow) {
+		gpu->render_frame = true;
 	}
 
 	gpu->re.manual_sort = gpu->ge.swap_bits & 1;
@@ -41,7 +47,10 @@ gpu3d_on_scanline_start(nds_ctx *nds)
 	gxfifo_run_commands(&nds->gpu3d);
 
 	if (nds->vcount == 214) {
-		gpu3d_render_frame(&nds->gpu3d);
+		if (nds->gpu3d.render_frame) {
+			gpu3d_render_frame(&nds->gpu3d);
+			nds->gpu3d.render_frame = false;
+		}
 	}
 }
 

@@ -103,6 +103,8 @@ struct gpu_3d_engine {
 			u32 fog_color{};
 			u16 fog_offset{};
 			u8 alpha_test_ref{};
+
+			bool operator==(const registers&) const = default;
 		};
 
 		registers shadow;
@@ -165,6 +167,7 @@ struct gpu_3d_engine {
 	u16 viewport_w{};
 	u16 viewport_h{};
 	bool halted{};
+	bool render_frame = true;
 
 	struct {
 		u32 count{};
