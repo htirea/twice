@@ -20,8 +20,7 @@ create_scaled_texture(SDL_Renderer *renderer, int scale)
 	return texture;
 }
 
-sdl_platform::sdl_platform(nds_machine *nds)
-	: nds(nds)
+sdl_platform::sdl_platform(nds_machine *nds) : nds(nds)
 {
 	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER)) {
 		throw sdl_error("init failed");
@@ -145,13 +144,14 @@ sdl_platform::render(void *fb)
 }
 
 void
-sdl_platform::arm_set_title_fps(
-		std::uint64_t ticks_per_frame, std::uint64_t freq)
+sdl_platform::arm_set_title(std::uint64_t ticks_per_frame, std::uint64_t freq,
+		std::pair<double, double> cpu_usage)
 {
 	double fps = (double)freq / ticks_per_frame;
 	double frametime = 1000.0 * ticks_per_frame / freq;
 	std::string title = std::format(
-			"Twice [{:.2f} fps | {:.2f} ms]", fps, frametime);
+			"Twice [{:.2f} fps | {:.2f} ms | {:.2f} | {:.2f}]",
+			fps, frametime, cpu_usage.first, cpu_usage.second);
 	SDL_SetWindowTitle(window, title.c_str());
 }
 
@@ -196,7 +196,8 @@ sdl_platform::loop()
 		ticks_elapsed += elapsed;
 		if (ticks_elapsed >= freq) {
 			ticks_elapsed -= freq;
-			arm_set_title_fps(fps_counter.get_average(), freq);
+			arm_set_title(fps_counter.get_average(), freq,
+					nds->get_cpu_usage());
 			update_rtc();
 		}
 	}

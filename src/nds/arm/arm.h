@@ -53,6 +53,7 @@ struct arm_cpu {
 
 	timestamp& target_cycles;
 	timestamp& cycles;
+	u32 cycles_executed{};
 
 	u32& pc() { return gpr[15]; }
 

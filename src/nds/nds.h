@@ -155,6 +155,8 @@ struct nds_ctx {
 	bool frame_finished{};
 	bool trace{};
 	bool shutdown{};
+	double arm9_usage{};
+	double arm7_usage{};
 };
 
 void nds_firmware_boot(nds_ctx *nds);

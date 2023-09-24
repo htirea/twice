@@ -140,6 +140,11 @@ struct nds_machine {
 	void update_real_time_clock(int year, int month, int day, int weekday,
 			int hour, int minute, int second);
 
+	/**
+	 * Get the CPU usage.
+	 */
+	std::pair<double, double> get_cpu_usage();
+
       private:
 	nds_config config;
 	file_map arm7_bios;

@@ -58,6 +58,7 @@ arm7_cpu::step()
 	}
 
 	cycles += 1;
+	cycles_executed += 1;
 }
 
 void

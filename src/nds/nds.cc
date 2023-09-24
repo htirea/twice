@@ -144,6 +144,8 @@ void
 nds_run_frame(nds_ctx *nds)
 {
 	nds->frame_finished = false;
+	nds->arm9->cycles_executed = 0;
+	nds->arm7->cycles_executed = 0;
 
 	while (!nds->frame_finished) {
 		nds->arm_target_cycles[0] = get_next_event_time(nds);
@@ -187,6 +189,9 @@ nds_run_frame(nds_ctx *nds)
 			arm_do_irq(nds->cpu[1]);
 		}
 	}
+
+	nds->arm9_usage = nds->arm9->cycles_executed / 1120380.0;
+	nds->arm7_usage = nds->arm7->cycles_executed / 560190.0;
 }
 
 void

@@ -217,4 +217,14 @@ nds_machine::update_real_time_clock(int year, int month, int day, int weekday,
 			second);
 }
 
+std::pair<double, double>
+nds_machine::get_cpu_usage()
+{
+	if (!nds) {
+		return { 0, 0 };
+	}
+
+	return { nds->arm9_usage, nds->arm7_usage };
+}
+
 } // namespace twice
