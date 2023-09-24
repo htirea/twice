@@ -163,6 +163,23 @@ interpolate(interpolator *i, s32 y0, s32 y1)
 	return i->w * numer / i->denom;
 }
 
+static s32
+interpolate_z(interpolator *i, s32 z0, s32 z1, bool wbuffering)
+{
+	if (wbuffering) {
+		return interpolate(i, z0, z1);
+	}
+
+	s64 numer = (s64)z0 * (i->x1 - i->x) + (s64)z1 * (i->x - i->x0);
+	s64 denom = i->x1 - i->x0;
+
+	if (denom == 0) {
+		return z0;
+	}
+
+	return numer / denom;
+}
+
 static void
 setup_polygon_initial_slope(gpu_3d_engine *gpu, u32 poly_num)
 {
@@ -583,7 +600,7 @@ draw_pixel(gpu_3d_engine *gpu, polygon *p, u8 av, u8 rv, u8 gv, u8 bv, s32 s,
 static s32
 get_depth(polygon *p, interpolator *i, s32 zl, s32 zr)
 {
-	s32 z = interpolate(i, zl, zr);
+	s32 z = interpolate_z(i, zl, zr, p->wbuffering);
 	if (p->wbuffering) {
 		if (p->wshift >= 0) {
 			return z << p->wshift;
@@ -643,15 +660,15 @@ render_polygon_scanline(gpu_3d_engine *gpu, s32 scanline, u32 poly_num)
 	set_slope_interp_x(sr, scanline, xend[1]);
 	interp_update_w(&sl->interp);
 	interp_update_w(&sr->interp);
-	s32 zl = interpolate(&sl->interp, p->z[pinfo->prev_left],
-			p->z[pinfo->left]);
+	s32 zl = interpolate_z(&sl->interp, p->z[pinfo->prev_left],
+			p->z[pinfo->left], p->wbuffering);
 	s32 rl = interpolate(&sl->interp, sl->v0->color.r, sl->v1->color.r);
 	s32 gl = interpolate(&sl->interp, sl->v0->color.g, sl->v1->color.g);
 	s32 bl = interpolate(&sl->interp, sl->v0->color.b, sl->v1->color.b);
 	s32 tx_sl = interpolate(&sl->interp, sl->v0->tx.s, sl->v1->tx.s);
 	s32 tx_tl = interpolate(&sl->interp, sl->v0->tx.t, sl->v1->tx.t);
-	s32 zr = interpolate(&sr->interp, p->z[pinfo->prev_right],
-			p->z[pinfo->right]);
+	s32 zr = interpolate_z(&sr->interp, p->z[pinfo->prev_right],
+			p->z[pinfo->right], p->wbuffering);
 	s32 rr = interpolate(&sr->interp, sr->v0->color.r, sr->v1->color.r);
 	s32 gr = interpolate(&sr->interp, sr->v0->color.g, sr->v1->color.g);
 	s32 br = interpolate(&sr->interp, sr->v0->color.b, sr->v1->color.b);
