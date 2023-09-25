@@ -9,7 +9,10 @@ using polygon_info = gpu_3d_engine::rendering_engine::polygon_info;
 using slope = gpu_3d_engine::rendering_engine::slope;
 using interpolator = gpu_3d_engine::rendering_engine::interpolator;
 
-static void interp_setup(interpolator *i, s32 x0, s32 x1, s32 w0, s32 w1);
+static void interp_setup(
+		interpolator *i, s32 x0, s32 x1, s32 w0, s32 w1, bool edge);
+static void interp_update_wyfactor(interpolator *i);
+static void interp_update_yfactor(interpolator *i);
 
 static bool
 polygon_not_in_scanline(polygon *p, s32 scanline)
@@ -33,6 +36,7 @@ set_slope_interp_x(slope *s, s32 scanline, s32 x)
 	} else {
 		s->interp.x = scanline;
 	}
+	interp_update_wyfactor(&s->interp);
 }
 
 static void
@@ -71,9 +75,9 @@ setup_polygon_slope(slope *s, vertex *v0, vertex *v1, s32 w0, s32 w1)
 	}
 
 	if (s->xmajor) {
-		interp_setup(&s->interp, v0->sx, v1->sx, w0, w1);
+		interp_setup(&s->interp, v0->sx, v1->sx, w0, w1, true);
 	} else {
-		interp_setup(&s->interp, v0->sy, v1->sy, w0, w1);
+		interp_setup(&s->interp, v0->sy, v1->sy, w0, w1, true);
 	}
 }
 
@@ -117,46 +121,89 @@ get_slope_x_start_end(
 }
 
 static void
-interp_setup(interpolator *i, s32 x0, s32 x1, s32 w0, s32 w1)
+interp_setup(interpolator *i, s32 x0, s32 x1, s32 w0, s32 w1, bool edge)
 {
 	i->x0 = x0;
 	i->x1 = x1;
 	i->w0 = w0;
 	i->w1 = w1;
 	i->denom = (s64)w0 * w1 * (x1 - x0);
-}
 
-static void
-interp_update_w(interpolator *i)
-{
-	s64 denom = (s64)i->w1 * (i->x1 - i->x) + (s64)i->w0 * (i->x - i->x0);
-
-	if (denom == 0) {
-		i->w = i->w0;
+	if ((edge && w0 == w1 && !(w0 & 0x7E)) ||
+			(!edge && w0 == w1 && !(w0 & 0x7F))) {
+		i->precision = 0;
 		return;
 	}
 
-	i->w = i->denom / denom;
+	i->w0_n = w0;
+	i->w0_d = w0;
+	i->w1_d = w1;
+
+	if (edge) {
+		if ((w0 & 1) && !(w1 & 1)) {
+			i->w0_n--;
+			i->w0_d++;
+		} else {
+			i->w0_n &= 0xFFFE;
+			i->w0_d &= 0xFFFE;
+			i->w1_d &= 0xFFFE;
+		}
+		i->precision = 9;
+	} else {
+		i->precision = 8;
+	}
+}
+
+static s64
+interp_get_yfactor(interpolator *i)
+{
+	s64 numer = ((s64)i->w0_n << i->precision) * ((s64)i->x - i->x0);
+	s64 denom = (i->w1_d * ((s64)i->x1 - i->x) +
+			i->w0_d * ((s64)i->x - i->x0));
+
+	return denom == 0 ? 0 : numer / denom;
 }
 
 static void
-interp_update_xw(interpolator *i, s32 x)
+interp_update_wyfactor(interpolator *i)
+{
+	i->yfactor = interp_get_yfactor(i);
+
+	s64 denom = i->w1 * ((s64)i->x1 - i->x) + i->w0 * ((s64)i->x - i->x0);
+	i->w = denom == 0 ? i->w0 : i->denom / denom;
+}
+
+static void
+interp_update_yfactor(interpolator *i)
+{
+	i->yfactor = interp_get_yfactor(i);
+}
+
+static void
+interp_update_x(interpolator *i, s32 x)
 {
 	i->x = x;
-	interp_update_w(i);
+	interp_update_yfactor(i);
+}
+
+static s32
+interpolate_linear(interpolator *i, s32 y0, s32 y1)
+{
+	s64 numer = y0 * ((s64)i->x1 - i->x) + y1 * ((s64)i->x - i->x0);
+	s64 denom = (s64)i->x1 - i->x0;
+
+	return denom == 0 ? y0 : numer / denom;
 }
 
 static s32
 interpolate(interpolator *i, s32 y0, s32 y1)
 {
-	s64 numer = (s64)i->w1 * y0 * (i->x1 - i->x) +
-	            (s64)i->w0 * y1 * (i->x - i->x0);
-
-	if (i->denom == 0) {
-		return y0;
+	if (i->precision == 0) {
+		return interpolate_linear(i, y0, y1);
 	}
 
-	return i->w * numer / i->denom;
+	/* TODO: unsigned divider */
+	return y0 + (((s64)y1 - y0) * i->yfactor >> i->precision);
 }
 
 static s32
@@ -164,16 +211,9 @@ interpolate_z(interpolator *i, s32 z0, s32 z1, bool wbuffering)
 {
 	if (wbuffering) {
 		return interpolate(i, z0, z1);
+	} else {
+		return interpolate_linear(i, z0, z1);
 	}
-
-	s64 numer = (s64)z0 * (i->x1 - i->x) + (s64)z1 * (i->x - i->x0);
-	s64 denom = i->x1 - i->x0;
-
-	if (denom == 0) {
-		return z0;
-	}
-
-	return numer / denom;
 }
 
 static void
@@ -642,7 +682,7 @@ static void
 render_polygon_pixel(gpu_3d_engine *gpu, render_polygon_ctx *ctx,
 		interpolator *span, s32 x, s32 y)
 {
-	interp_update_xw(span, x);
+	interp_update_x(span, x);
 
 	s32 z = interpolate_z(span, ctx->zl, ctx->zr, ctx->p->wbuffering);
 	if (z >= gpu->depth_buf[y][x])
@@ -697,8 +737,6 @@ render_polygon_scanline(gpu_3d_engine *gpu, s32 scanline, u32 poly_num)
 
 	set_slope_interp_x(sl, scanline, xstart[0]);
 	set_slope_interp_x(sr, scanline, xend[1]);
-	interp_update_w(&sl->interp);
-	interp_update_w(&sr->interp);
 	ctx.zl = interpolate_z(&sl->interp, p->z[pi->prev_left],
 			p->z[pi->left], p->wbuffering);
 	ctx.color_l[0] = interpolate(
@@ -722,8 +760,8 @@ render_polygon_scanline(gpu_3d_engine *gpu, s32 scanline, u32 poly_num)
 	ctx.tx_r[1] = interpolate(&sr->interp, sr->v0->tx.t, sr->v1->tx.t);
 
 	interpolator span;
-	interp_setup(&span, xstart[0], xend[1] - 1, sl->interp.w,
-			sr->interp.w);
+	interp_setup(&span, xstart[0], xend[1] - 1, sl->interp.w, sr->interp.w,
+			false);
 
 	ctx.alpha = p->attr >> 16 & 0x1F;
 	if (ctx.alpha == 0) {
