@@ -126,7 +126,7 @@ struct gpu_3d_engine {
 			s32 w0_d;
 			s32 w1_d;
 			s64 denom;
-			s64 yfactor;
+			u32 yfactor;
 			int precision;
 		};
 
