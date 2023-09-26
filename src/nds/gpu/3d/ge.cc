@@ -517,13 +517,7 @@ create_clipped_vertex(vertex *v0, vertex *v1, int plane, int positive)
 	if (i.denom == 0) {
 		r.pos[3] = i.w1;
 	} else {
-		if (positive) {
-			r.pos[3] = ((s64)i.w1 * i.x0 - (s64)i.w0 * i.x1) /
-			           i.denom;
-		} else {
-			r.pos[3] = ((s64)i.w1 * i.x0 - (s64)i.w0 * i.x1) /
-			           i.denom;
-		}
+		r.pos[3] = ((s64)i.w1 * i.x0 - (s64)i.w0 * i.x1) / i.denom;
 	}
 
 	switch (plane) {

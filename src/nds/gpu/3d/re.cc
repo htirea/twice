@@ -590,7 +590,7 @@ get_pixel_color(gpu_3d_engine *gpu, polygon *p, s32 *vtx_color, s32 *tx,
 	}
 
 	u8 r, g, b, a;
-	if (tx_format == 0) {
+	if (tx_format == 0 || !(gpu->re.r.disp3dcnt & 1)) {
 		r = rv;
 		g = gv;
 		b = bv;
@@ -766,7 +766,6 @@ render_polygon_scanline(gpu_3d_engine *gpu, s32 scanline, u32 poly_num)
 	ctx.tx_r[1] = interpolate(&sr->interp, sr->v0->tx.t, sr->v1->tx.t);
 
 	interpolator span;
-	/* TODO: right vertical edge increments x1 by 1 */
 	interp_setup(&span, xstart[0], xend[1] - 1, sl->interp.w, sr->interp.w,
 			false);
 
@@ -786,34 +785,30 @@ render_polygon_scanline(gpu_3d_engine *gpu, s32 scanline, u32 poly_num)
 		ctx.alpha_test_ref = gpu->re.r.alpha_test_ref;
 	}
 
-	s32 draw_x = std::max(0, xstart[0]);
-	s32 draw_x_end = std::min(256, xstart[1]);
 	bool fill_left = sl->negative || !sl->xmajor || force_fill_edge;
 	if (fill_left) {
-		for (s32 x = draw_x; x < draw_x_end; x++) {
+		s32 start = std::max(0, xstart[0]);
+		s32 end = std::min(256, xstart[1]);
+		for (s32 x = start; x < end; x++) {
 			render_polygon_pixel(gpu, &ctx, &span, x, scanline);
 		}
 	}
 
 	bool fill_middle = ctx.alpha != 0;
 	if (fill_middle) {
-		for (s32 x = xstart[1]; x < xend[0]; x++) {
-			if (x < 0 || x >= 256)
-				continue;
+		s32 start = std::max(0, xstart[1]);
+		s32 end = std::min(256, xend[0]);
+		for (s32 x = start; x < end; x++) {
 			render_polygon_pixel(gpu, &ctx, &span, x, scanline);
 		}
 	}
 
-	draw_x = std::max(0, xend[0]);
-	draw_x_end = std::min(256, xend[1]);
 	bool fill_right = (!sr->negative && sr->xmajor) || sr->vertical ||
 	                  force_fill_edge;
 	if (fill_right) {
-		if (sr->vertical) {
-			draw_x--;
-			draw_x_end--;
-		}
-		for (s32 x = draw_x; x < draw_x_end; x++) {
+		s32 start = std::max(0, xend[0] - sr->vertical);
+		s32 end = std::min(256, xend[1] - sr->vertical);
+		for (s32 x = start; x < end; x++) {
 			render_polygon_pixel(gpu, &ctx, &span, x, scanline);
 		}
 	}
