@@ -136,6 +136,7 @@ struct gpu_3d_engine {
 			s32 m;
 			bool negative;
 			bool xmajor;
+			bool vertical;
 			vertex *v0{};
 			vertex *v1{};
 

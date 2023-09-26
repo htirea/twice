@@ -52,6 +52,8 @@ setup_polygon_slope(slope *s, vertex *v0, vertex *v1, s32 w0, s32 w1)
 	s->v0 = v0;
 	s->v1 = v1;
 
+	s->vertical = x0 == x1;
+
 	s->negative = x0 > x1;
 	if (s->negative) {
 		s->x0--;
@@ -696,7 +698,7 @@ render_polygon_pixel(gpu_3d_engine *gpu, render_polygon_ctx *ctx,
 	color[0] = interpolate(span, ctx->color_l[0], ctx->color_r[0]);
 	color[1] = interpolate(span, ctx->color_l[1], ctx->color_r[1]);
 	color[2] = interpolate(span, ctx->color_l[2], ctx->color_r[2]);
-	color[3] = ctx->alpha;
+	color[3] = ctx->alpha == 0 ? 31 : ctx->alpha;
 	tx[0] = interpolate(span, ctx->tx_l[0], ctx->tx_r[0]);
 	tx[1] = interpolate(span, ctx->tx_l[1], ctx->tx_r[1]);
 
@@ -764,15 +766,13 @@ render_polygon_scanline(gpu_3d_engine *gpu, s32 scanline, u32 poly_num)
 	ctx.tx_r[1] = interpolate(&sr->interp, sr->v0->tx.t, sr->v1->tx.t);
 
 	interpolator span;
+	/* TODO: right vertical edge increments x1 by 1 */
 	interp_setup(&span, xstart[0], xend[1] - 1, sl->interp.w, sr->interp.w,
 			false);
 
 	ctx.alpha = p->attr >> 16 & 0x1F;
-	if (ctx.alpha == 0) {
-		ctx.alpha = 31;
-	}
 
-	bool wireframe_or_translucent = (p->attr >> 16 & 0x1F) != 31;
+	bool wireframe_or_translucent = ctx.alpha != 31;
 	bool antialiasing = gpu->re.r.disp3dcnt & BIT(4);
 	bool edge_marking = gpu->re.r.disp3dcnt & BIT(5);
 	bool last_scanline = scanline == 191;
@@ -795,17 +795,24 @@ render_polygon_scanline(gpu_3d_engine *gpu, s32 scanline, u32 poly_num)
 		}
 	}
 
-	for (s32 x = xstart[1]; x < xend[0]; x++) {
-		if (x < 0 || x >= 256)
-			continue;
-		render_polygon_pixel(gpu, &ctx, &span, x, scanline);
+	bool fill_middle = ctx.alpha != 0;
+	if (fill_middle) {
+		for (s32 x = xstart[1]; x < xend[0]; x++) {
+			if (x < 0 || x >= 256)
+				continue;
+			render_polygon_pixel(gpu, &ctx, &span, x, scanline);
+		}
 	}
 
 	draw_x = std::max(0, xend[0]);
 	draw_x_end = std::min(256, xend[1]);
-	bool fill_right = (!sr->negative && sr->xmajor) ||
-	                  sr->v0->sx == sr->v1->sx || force_fill_edge;
+	bool fill_right = (!sr->negative && sr->xmajor) || sr->vertical ||
+	                  force_fill_edge;
 	if (fill_right) {
+		if (sr->vertical) {
+			draw_x--;
+			draw_x_end--;
+		}
 		for (s32 x = draw_x; x < draw_x_end; x++) {
 			render_polygon_pixel(gpu, &ctx, &span, x, scanline);
 		}
