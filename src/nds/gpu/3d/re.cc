@@ -803,8 +803,8 @@ render_polygon_scanline(gpu_3d_engine *gpu, s32 scanline, u32 poly_num)
 
 	draw_x = std::max(0, xend[0]);
 	draw_x_end = std::min(256, xend[1]);
-	bool fill_right = (!sl->negative && sl->xmajor) ||
-	                  sl->x0 == sl->v1->sx || force_fill_edge;
+	bool fill_right = (!sr->negative && sr->xmajor) ||
+	                  sr->v0->sx == sr->v1->sx || force_fill_edge;
 	if (fill_right) {
 		for (s32 x = draw_x; x < draw_x_end; x++) {
 			render_polygon_pixel(gpu, &ctx, &span, x, scanline);
