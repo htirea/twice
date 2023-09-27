@@ -1888,7 +1888,8 @@ render_sprites(gpu_2d_engine *gpu)
 static void
 vram_display_scanline(gpu_2d_engine *gpu)
 {
-	u32 offset = 0x20000 * (gpu->dispcnt >> 18 & 0x3);
+	u32 offset = 0x20000 * (gpu->dispcnt >> 18 & 0x3) +
+	             gpu->nds->vcount * 256 * 2;
 
 	for (u32 i = 0; i < 256; i++) {
 		gpu->output_line[i] = unpack_bgr555_2d(
