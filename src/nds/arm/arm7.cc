@@ -20,7 +20,7 @@ check_cond(u32 cond, u32 cpsr)
 void
 arm7_cpu::run()
 {
-	if (stopped || halted) {
+	if (halted) {
 		cycles = target_cycles;
 		return;
 	}

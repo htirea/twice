@@ -52,7 +52,7 @@ struct arm9_cpu final : arm_cpu {
 	void check_halted() override
 	{
 		if ((IE & IF) && (IME & 1)) {
-			halted = false;
+			halted &= ~CPU_HALT;
 		}
 	}
 

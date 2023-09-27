@@ -27,7 +27,7 @@ struct arm7_cpu final : arm_cpu {
 	void check_halted() override
 	{
 		if (IE & IF) {
-			halted = false;
+			halted &= ~CPU_HALT;
 		}
 	}
 };

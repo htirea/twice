@@ -103,12 +103,10 @@ io7_write8(nds_ctx *nds, u32 addr, u8 value)
 	case 0x4000301:
 		switch (value >> 6 & 0x3) {
 		case 2:
-			nds->cpu[1]->halted = true;
-			force_stop_cpu(nds->cpu[1]);
+			halt_cpu(nds->cpu[1], CPU_HALT);
 			break;
 		case 3:
-			nds->cpu[1]->stopped = true;
-			force_stop_cpu(nds->cpu[1]);
+			halt_cpu(nds->cpu[1], CPU_STOP);
 			break;
 		default:
 			LOG("unhandled haltcnt\n");

@@ -130,8 +130,9 @@ arm_do_irq(arm_cpu *cpu)
 }
 
 void
-force_stop_cpu(arm_cpu *cpu)
+halt_cpu(arm_cpu *cpu, int halt_bits)
 {
+	cpu->halted |= halt_bits;
 	cpu->target_cycles = cpu->cycles;
 }
 

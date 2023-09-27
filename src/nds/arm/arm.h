@@ -26,6 +26,12 @@ enum {
 	SYS_MODE_BITS = 0x1F,
 };
 
+enum {
+	CPU_HALT = 0x1,
+	CPU_GXFIFO_HALT = 0x2,
+	CPU_STOP = 0x4,
+};
+
 struct nds_ctx;
 
 struct arm_cpu {
@@ -45,8 +51,7 @@ struct arm_cpu {
 	u32 IF{};
 	u32 IE{};
 	bool interrupt{};
-	bool halted{};
-	bool stopped{};
+	u32 halted{};
 
 	nds_ctx *nds{};
 	int cpuid{};
@@ -82,7 +87,7 @@ void arm_check_interrupt(arm_cpu *cpu);
 void arm_on_cpsr_write(arm_cpu *cpu);
 void arm_do_irq(arm_cpu *cpu);
 
-void force_stop_cpu(arm_cpu *cpu);
+void halt_cpu(arm_cpu *cpu, int halt_bits);
 void request_interrupt(arm_cpu *cpu, int bit);
 
 extern const u16 arm_cond_table[16];
