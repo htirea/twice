@@ -143,6 +143,7 @@ io9_read16(nds_ctx *nds, u32 addr)
 	case 0x400106C:
 		return nds->gpu2d[1].master_bright;
 	case 0x4004010:
+	case 0x4004004:
 		LOGVV("[dsi reg] nds 0 read 16 at %08X\n", addr);
 		return 0;
 	}
