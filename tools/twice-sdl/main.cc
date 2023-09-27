@@ -42,7 +42,20 @@ twice::arg_parser::valid_opt_arg_list twice::arg_parser::valid_option_args = {
 static void
 print_usage()
 {
-	const std::string usage = "usage: twice [OPTION]... FILE\n";
+	const std::string usage = R"___(usage: twice [OPTION]... FILE
+
+Emulation options:
+  -b, --boot <mode>     Set the boot mode. Defaults to direct boot.
+                        (mode = 'direct' | 'firmware')
+
+Other options:
+  -1, -2, -3, -4        Scale the viewport by 1x, 2x, 3x, 4x.
+  -f, --fullscreen      Start in fullscreen mode.
+  --filter <mode>       Set the screen filtering mode. Defaults to hybrid.
+                        (mode = 'nearest' | 'linear' | 'hybrid')
+  -v, --verbose         Use verbose output. Repeat to increase verbosity.
+  -h, --help            Print this help.
+)___";
 
 	std::cerr << usage;
 }
@@ -96,7 +109,7 @@ try {
 		sdl_config.fullscreen = true;
 	}
 
-	bool direct_boot = !cartridge_pathname.empty();
+	bool direct_boot = true;
 	if (auto opt = parser.get_option("boot")) {
 		if (opt->arg == "firmware") {
 			direct_boot = false;

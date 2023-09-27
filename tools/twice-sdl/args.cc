@@ -73,6 +73,8 @@ arg_parser::parse_short_opts(int i, int num, int argc, char **argv)
 				return -1;
 			}
 			i++;
+		} else if (invalid_option_arg(it->long_opt, arg)) {
+			return -1;
 		}
 		add_parsed_option(it->long_opt, arg);
 		return i + 1;
