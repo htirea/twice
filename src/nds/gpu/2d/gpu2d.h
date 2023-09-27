@@ -4,6 +4,8 @@
 #include "common/types.h"
 #include "common/util.h"
 
+#include "nds/gpu/color.h"
+
 namespace twice {
 
 struct nds_ctx;
@@ -35,16 +37,19 @@ struct gpu_2d_engine {
 	u16 bldy{};
 	u16 master_bright{};
 
+	color4 gfx_line[256]{};
+	color4 output_line[256]{};
+
 	u32 *fb{};
 
 	struct pixel {
-		u32 color{};
+		color_u color;
+
 		u32 priority : 3;
 		u32 effect_top : 1;
 		u32 effect_bottom : 1;
 		u32 force_blend : 1;
 		u32 alpha_oam : 4;
-		u32 convert_to_6bit : 1;
 		u32 from_3d : 1;
 	};
 

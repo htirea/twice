@@ -200,7 +200,7 @@ struct gpu_3d_engine {
 	u32 position_sp{};
 	u32 texture_sp{};
 
-	u32 color_buf[192][256]{};
+	color4 color_buf[192][256]{};
 	s32 depth_buf[192][256]{};
 	u32 attr_buf[192][256]{};
 
