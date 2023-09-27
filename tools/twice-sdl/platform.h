@@ -70,6 +70,7 @@ class sdl_platform {
 	bool ctrl_down{};
 	bool running{};
 	bool throttle{};
+	bool paused{};
 	int window_w{};
 	int window_h{};
 	int texture_scale{};

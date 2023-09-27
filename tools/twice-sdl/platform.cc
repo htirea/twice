@@ -168,13 +168,15 @@ sdl_platform::loop()
 
 	while (running) {
 		handle_events();
-		nds->run_frame();
-		render(nds->get_framebuffer());
-		if (nds->is_shutdown()) {
-			break;
+		if (!paused) {
+			nds->run_frame();
+			render(nds->get_framebuffer());
+			if (nds->is_shutdown()) {
+				break;
+			}
 		}
 
-		if (throttle) {
+		if (throttle || paused) {
 			std::uint64_t elapsed =
 					SDL_GetPerformanceCounter() - start;
 			if (elapsed < tframe) {
@@ -341,6 +343,9 @@ sdl_platform::handle_key_event(SDL_Keycode key, bool down)
 			break;
 		case SDLK_f:
 			toggle_fullscreen();
+			break;
+		case SDLK_ESCAPE:
+			paused = !paused;
 			break;
 		}
 	}
