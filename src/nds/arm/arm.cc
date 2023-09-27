@@ -137,6 +137,12 @@ halt_cpu(arm_cpu *cpu, int halt_bits)
 }
 
 void
+unhalt_cpu(arm_cpu *cpu, int halt_bits)
+{
+	cpu->halted &= ~halt_bits;
+}
+
+void
 request_interrupt(arm_cpu *cpu, int bit)
 {
 	cpu->IF |= BIT(bit);

@@ -183,6 +183,10 @@ gxfifo_run_commands(gpu_3d_engine *gpu)
 	if (fifo.buffer.size() < 128) {
 		start_gxfifo_dmas(gpu->nds);
 	}
+
+	if (fifo.buffer.size() < gpu_3d_engine::gxfifo::MAX_BUFFER_SIZE) {
+		unhalt_cpu(gpu->nds->cpu[0], CPU_GXFIFO_HALT);
+	}
 }
 
 static void
@@ -191,7 +195,7 @@ gxfifo_push(gpu_3d_engine *gpu, u8 command, u32 param, bool run_commands)
 	auto& fifo = gpu->fifo;
 
 	if (fifo.buffer.size() >= gpu_3d_engine::gxfifo::MAX_BUFFER_SIZE) {
-		LOG("gxfifo buffer full\n");
+		halt_cpu(gpu->nds->cpu[0], CPU_GXFIFO_HALT);
 	}
 
 	fifo.buffer.push({ command, param });

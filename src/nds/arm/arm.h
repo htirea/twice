@@ -88,6 +88,7 @@ void arm_on_cpsr_write(arm_cpu *cpu);
 void arm_do_irq(arm_cpu *cpu);
 
 void halt_cpu(arm_cpu *cpu, int halt_bits);
+void unhalt_cpu(arm_cpu *cpu, int halt_bits);
 void request_interrupt(arm_cpu *cpu, int bit);
 
 extern const u16 arm_cond_table[16];
