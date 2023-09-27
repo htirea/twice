@@ -142,6 +142,10 @@ struct nds_machine {
 
 	/**
 	 * Get the CPU usage.
+	 *
+	 * The CPU usage is a value in the range [0..1].
+	 *
+	 * \returns a pair containing the arm9 and arm7 cpu usage
 	 */
 	std::pair<double, double> get_cpu_usage();
 
