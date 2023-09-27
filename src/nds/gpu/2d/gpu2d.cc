@@ -310,6 +310,7 @@ gpu_2d_write8(gpu_2d_engine *gpu, u8 offset, u8 value)
 }
 
 static void draw_scanline(gpu_2d_engine *gpu, u16 scanline);
+static void capture_display(gpu_2d_engine *gpu, u16 scanline);
 static void graphics_display_scanline(gpu_2d_engine *gpu);
 static void vram_display_scanline(gpu_2d_engine *gpu);
 static void render_sprites(gpu_2d_engine *gpu);
@@ -381,6 +382,10 @@ gpu_on_scanline_start(nds_ctx *nds)
 	update_window_y_in_range(&nds->gpu2d[0], nds->vcount);
 	update_window_y_in_range(&nds->gpu2d[1], nds->vcount);
 
+	if (nds->vcount == 0 && nds->gpu2d[0].dispcapcnt & BIT(31)) {
+		nds->gpu2d[0].display_capture = true;
+	}
+
 	if (nds->vcount < 192) {
 		bool force_reload = nds->vcount == 0;
 		reload_bg_ref_xy(&nds->gpu2d[0], force_reload);
@@ -391,6 +396,11 @@ gpu_on_scanline_start(nds_ctx *nds)
 
 		increment_bg_ref_xy(&nds->gpu2d[0]);
 		increment_bg_ref_xy(&nds->gpu2d[1]);
+	}
+
+	if (nds->vcount == 192 && nds->gpu2d[0].display_capture) {
+		nds->gpu2d[0].display_capture = false;
+		nds->gpu2d[0].dispcapcnt &= ~BIT(31);
 	}
 }
 
@@ -481,6 +491,10 @@ draw_scanline(gpu_2d_engine *gpu, u16 scanline)
 
 	graphics_display_scanline(gpu);
 
+	if (gpu->display_capture) {
+		capture_display(gpu, scanline);
+	}
+
 	switch (gpu->dispcnt >> 16 & 0x3) {
 	case 0:
 		output_fill_white(gpu);
@@ -502,6 +516,110 @@ draw_scanline(gpu_2d_engine *gpu, u16 scanline)
 
 	adjust_master_brightness(gpu);
 	write_output_to_fb(gpu, scanline);
+}
+
+static void
+capture_display(gpu_2d_engine *gpu, u16 y)
+{
+	u32 widths[] = { 128, 256, 256, 256 };
+	u32 heights[] = { 128, 64, 128, 192 };
+	u32 w = widths[gpu->dispcapcnt >> 20 & 3];
+	u32 h = heights[gpu->dispcapcnt >> 20 & 3];
+
+	if (y >= h)
+		return;
+
+	color4 *src_a{};
+	u16 src_b[256]{};
+
+	u32 source = gpu->dispcapcnt >> 29 & 3;
+
+	if (source != 1) {
+		if (gpu->dispcapcnt & BIT(24)) {
+			src_a = gpu->nds->gpu3d.color_buf[y];
+		} else {
+			src_a = gpu->gfx_line;
+		}
+	}
+
+	if (source != 0) {
+		if (gpu->dispcapcnt & BIT(25)) {
+			LOG("capture from main memory fifo not implemented\n");
+			return;
+		} else {
+			u32 bank = gpu->dispcnt >> 18 & 3;
+			u32 offset = y * w * 2;
+			if ((gpu->dispcnt >> 16 & 3) != 2) {
+				offset += 0x8000 * (gpu->dispcapcnt >> 26 & 3);
+			}
+			u8 *p = gpu->nds->vram.bank_to_base_ptr[bank];
+			for (u32 i = 0; i < w; i++) {
+				src_b[i] = readarr<u16>(
+						p, offset + i * 2 & 0x1FFFF);
+			}
+		}
+	}
+
+	u32 write_bank = gpu->dispcapcnt >> 16 & 3;
+	u8 *write_p = gpu->nds->vram.bank_to_base_ptr[write_bank];
+	u32 write_offset = y * w * 2 + 0x8000 * (gpu->dispcapcnt >> 18 & 3);
+
+	switch (source) {
+	case 0:
+	{
+		for (u32 i = 0; i < w; i++) {
+			u16 r = src_a[i].r >> 1;
+			u16 g = src_a[i].g >> 1;
+			u16 b = src_a[i].b >> 1;
+			u16 a = src_a[i].a != 0;
+
+			u16 color = a << 15 | b << 10 | g << 5 | r;
+			writearr<u16>(write_p, write_offset + i * 2 & 0x1FFFF,
+					color);
+		}
+		break;
+	}
+	case 1:
+	{
+		for (u32 i = 0; i < w; i++) {
+			writearr<u16>(write_p, write_offset + i * 2 & 0x1FFFF,
+					src_b[i]);
+		}
+		break;
+	}
+	case 2:
+	case 3:
+	{
+		u8 eva = std::min(gpu->dispcapcnt & 0x1F, (u32)16);
+		u8 evb = std::min(gpu->dispcapcnt >> 8 & 0x1F, (u32)16);
+
+		for (u32 i = 0; i < w; i++) {
+			u8 ra = src_a[i].r >> 1;
+			u8 ga = src_a[i].g >> 1;
+			u8 ba = src_a[i].b >> 1;
+			u8 aa = src_a[i].a != 0;
+
+			u8 rb = src_b[i] & 0x1F;
+			u8 gb = src_b[i] >> 5 & 0x1F;
+			u8 bb = src_b[i] >> 10 & 0x1F;
+			u8 ab = src_b[i] >> 15 != 0;
+
+			u16 r = (ra * aa * eva + rb * ab * evb + 8) >> 4;
+			u16 g = (ga * aa * eva + gb * ab * evb + 8) >> 4;
+			u16 b = (ba * aa * eva + bb * ab * evb + 8) >> 4;
+			u16 a = (aa && eva) || (ba && evb);
+
+			r = std::min((u16)31, r);
+			g = std::min((u16)31, g);
+			b = std::min((u16)31, b);
+
+			u16 color = a << 15 | b << 10 | g << 5 | r;
+
+			writearr<u16>(write_p, write_offset + i * 2 & 0x1FFFF,
+					color);
+		}
+	}
+	}
 }
 
 static color4
@@ -827,6 +945,7 @@ graphics_display_scanline(gpu_2d_engine *gpu)
 			}
 		}
 
+		color_result.a = 1;
 		gpu->gfx_line[i] = color_result;
 	}
 }

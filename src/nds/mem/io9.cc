@@ -170,6 +170,8 @@ io9_read32(nds_ctx *nds, u32 addr)
 		IO_READ32_COMMON(0);
 	case 0x4000000:
 		return nds->gpu2d[0].dispcnt;
+	case 0x4000064:
+		return nds->gpu2d[0].dispcapcnt;
 	case 0x400006C:
 		return nds->gpu2d[0].master_bright;
 	case 0x40000E0:
@@ -426,6 +428,9 @@ io9_write32(nds_ctx *nds, u32 addr, u32 value)
 		IO_WRITE32_COMMON(0);
 	case 0x4000000:
 		nds->gpu2d[0].dispcnt = value;
+		return;
+	case 0x4000064:
+		nds->gpu2d[0].dispcapcnt = value & 0xEF3F1F1F;
 		return;
 	case 0x400006C:
 		nds->gpu2d[0].master_bright = value & 0xC01F;

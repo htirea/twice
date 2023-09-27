@@ -37,6 +37,9 @@ struct gpu_2d_engine {
 	u16 bldy{};
 	u16 master_bright{};
 
+	bool display_capture{};
+	u32 dispcapcnt{};
+
 	color4 gfx_line[256]{};
 	color4 output_line[256]{};
 
