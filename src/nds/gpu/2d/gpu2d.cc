@@ -529,6 +529,13 @@ capture_display(gpu_2d_engine *gpu, u16 y)
 	if (y >= h)
 		return;
 
+	u32 write_bank = gpu->dispcapcnt >> 16 & 3;
+	u8 *write_p = gpu->nds->vram.bank_to_base_ptr[write_bank];
+	u32 write_offset = y * w * 2 + 0x8000 * (gpu->dispcapcnt >> 18 & 3);
+
+	if ((gpu->nds->vram.vramcnt[write_bank] & 7) != 0)
+		return;
+
 	color4 *src_a{};
 	u16 src_b[256]{};
 
@@ -559,10 +566,6 @@ capture_display(gpu_2d_engine *gpu, u16 y)
 			}
 		}
 	}
-
-	u32 write_bank = gpu->dispcapcnt >> 16 & 3;
-	u8 *write_p = gpu->nds->vram.bank_to_base_ptr[write_bank];
-	u32 write_offset = y * w * 2 + 0x8000 * (gpu->dispcapcnt >> 18 & 3);
 
 	switch (source) {
 	case 0:
