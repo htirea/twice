@@ -197,6 +197,7 @@ nds_run_frame(nds_ctx *nds)
 	nds->arm7_usage = nds->arm7->cycles_executed / 560190.0;
 
 	nds->last_audio_buf_size = nds->audio_buf_idx * sizeof *nds->audio_buf;
+	extend_audio_samples(nds);
 }
 
 void

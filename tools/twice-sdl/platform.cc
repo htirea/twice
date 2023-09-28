@@ -160,17 +160,29 @@ sdl_platform::render(void *fb)
 }
 
 void
-sdl_platform::queue_audio(void *audiobuffer, u32 size)
+sdl_platform::queue_audio(void *audiobuffer, u32 size, u64 ticks)
 {
+	double target = 32768.0 * ticks / freq;
+
+	static u64 n = 0;
+	static u64 d = 1;
+
+	if (size / 4.0 + (double)n / d < target) {
+		size += 4;
+		n++;
+		d++;
+	} else {
+		d++;
+	}
+
 	SDL_QueueAudio(audio_dev, audiobuffer, size);
 }
 
 void
-sdl_platform::arm_set_title(std::uint64_t ticks_per_frame, std::uint64_t freq,
-		std::pair<double, double> cpu_usage)
+sdl_platform::arm_set_title(u64 ticks, std::pair<double, double> cpu_usage)
 {
-	double fps = (double)freq / ticks_per_frame;
-	double frametime = 1000.0 * ticks_per_frame / freq;
+	double fps = (double)freq / ticks;
+	double frametime = 1000.0 * ticks / freq;
 	std::string title = std::format(
 			"Twice [{:.2f} fps | {:.2f} ms | {:.2f} | {:.2f}]",
 			fps, frametime, cpu_usage.first, cpu_usage.second);
@@ -180,10 +192,11 @@ sdl_platform::arm_set_title(std::uint64_t ticks_per_frame, std::uint64_t freq,
 void
 sdl_platform::loop()
 {
-	std::uint64_t freq = SDL_GetPerformanceFrequency();
+	freq = SDL_GetPerformanceFrequency();
 	std::uint64_t tframe = freq / NDS_FRAME_RATE;
 	std::uint64_t start = SDL_GetPerformanceCounter();
 	std::uint64_t ticks_elapsed = 0;
+	u64 last_elapsed = 0;
 
 	running = true;
 	throttle = true;
@@ -199,7 +212,8 @@ sdl_platform::loop()
 
 		if (!paused && throttle) {
 			queue_audio(nds->get_audio_buffer(),
-					nds->get_audio_buffer_size());
+					nds->get_audio_buffer_size(),
+					last_elapsed);
 		}
 
 		if (nds->is_shutdown())
@@ -219,15 +233,15 @@ sdl_platform::loop()
 				;
 		}
 
-		std::uint64_t elapsed = SDL_GetPerformanceCounter() - start;
+		last_elapsed = SDL_GetPerformanceCounter() - start;
 		start = SDL_GetPerformanceCounter();
 
-		fps_counter.insert(elapsed);
+		fps_counter.insert(last_elapsed);
 
-		ticks_elapsed += elapsed;
+		ticks_elapsed += last_elapsed;
 		if (ticks_elapsed >= freq) {
 			ticks_elapsed -= freq;
-			arm_set_title(fps_counter.get_average(), freq,
+			arm_set_title(fps_counter.get_average(),
 					nds->get_cpu_usage());
 			update_rtc();
 		}

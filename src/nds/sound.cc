@@ -228,6 +228,19 @@ event_sample_audio(nds_ctx *nds)
 	reschedule_nds_event_after(nds, event_scheduler::SAMPLE_AUDIO, 1024);
 }
 
+void
+extend_audio_samples(nds_ctx *nds)
+{
+	u32 idx = nds->audio_buf_idx;
+	s16 left = nds->audio_buf[idx - 2];
+	s16 right = nds->audio_buf[idx - 1];
+
+	for (u32 i = 0; i < 8; i++) {
+		nds->audio_buf[idx++] = left;
+		nds->audio_buf[idx++] = right;
+	}
+}
+
 static void
 start_channel(nds_ctx *nds, int ch_id)
 {

@@ -44,13 +44,12 @@ class sdl_platform {
 
       private:
 	void render(void *fb);
-	void queue_audio(void *audiobuffer, u32 size);
+	void queue_audio(void *audiobuffer, u32 size, u64 ticks);
 	void setup_default_binds();
 	void handle_events();
 	void handle_key_event(SDL_Keycode key, bool down);
 	void handle_controller_button_event(int button, bool down);
-	void arm_set_title(std::uint64_t ticks_per_frame, std::uint64_t freq,
-			std::pair<double, double> cpu_usage);
+	void arm_set_title(u64 ticks, std::pair<double, double> cpu_usage);
 	void add_controller(int joystick_index);
 	void remove_controller(SDL_JoystickID id);
 	void update_touchscreen_state();
@@ -67,6 +66,7 @@ class sdl_platform {
 	SDL_Texture *scaled_texture{};
 	SDL_AudioDeviceID audio_dev;
 	SDL_AudioSpec audio_spec;
+	u64 freq{};
 	std::unordered_set<SDL_JoystickID> controllers;
 	std::unordered_map<SDL_Keycode, nds_button> key_map;
 	std::unordered_map<int, nds_button> button_map;
