@@ -42,6 +42,7 @@ add_library(twice STATIC
 	nds/powerman.cc
 	nds/rtc.cc
 	nds/scheduler.cc
+	nds/sound.cc
 	nds/spi.cc
 	nds/timer.cc
 	nds/touchscreen.cc

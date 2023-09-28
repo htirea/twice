@@ -34,6 +34,8 @@ nds_ctx::nds_ctx(u8 *arm7_bios, u8 *arm9_bios, u8 *firmware, u8 *cartridge,
 
 	schedule_nds_event(this, event_scheduler::HBLANK_START, 1536);
 	schedule_nds_event(this, event_scheduler::HBLANK_END, 2130);
+	/* TODO: sample rate is not exact */
+	schedule_nds_event(this, event_scheduler::SAMPLE_AUDIO, 1024);
 }
 
 nds_ctx::~nds_ctx() = default;
@@ -143,6 +145,7 @@ nds_direct_boot(nds_ctx *nds)
 void
 nds_run_frame(nds_ctx *nds)
 {
+	nds->audio_buf_idx = 0;
 	nds->frame_finished = false;
 	nds->arm9->cycles_executed = 0;
 	nds->arm7->cycles_executed = 0;
@@ -192,6 +195,8 @@ nds_run_frame(nds_ctx *nds)
 
 	nds->arm9_usage = nds->arm9->cycles_executed / 1120380.0;
 	nds->arm7_usage = nds->arm7->cycles_executed / 560190.0;
+
+	nds->last_audio_buf_size = nds->audio_buf_idx * sizeof *nds->audio_buf;
 }
 
 void

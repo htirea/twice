@@ -14,6 +14,7 @@
 #include "nds/powerman.h"
 #include "nds/rtc.h"
 #include "nds/scheduler.h"
+#include "nds/sound.h"
 #include "nds/timer.h"
 #include "nds/touchscreen.h"
 
@@ -73,6 +74,7 @@ struct nds_ctx {
 	touchscreen_controller touchscreen;
 	cartridge cart;
 	power_management_device powerman;
+	sound_channel sound_ch[16];
 
 	/*
 	 * Memory
@@ -92,6 +94,8 @@ struct nds_ctx {
 
 	u32 fb[NDS_FB_SZ]{};
 	s16 audio_buf[4096]{};
+	u32 audio_buf_idx{};
+	u32 last_audio_buf_size{};
 
 	/*
 	 * IO
@@ -129,6 +133,7 @@ struct nds_ctx {
 
 	u16 soundcnt{};
 	u32 soundbias{};
+	u8 sndcapcnt[2]{};
 
 	u16 keyinput{ 0x3FF };
 	u16 extkeyin{ 0x7F };

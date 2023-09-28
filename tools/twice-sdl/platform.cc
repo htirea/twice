@@ -86,7 +86,7 @@ sdl_platform::sdl_platform(nds_machine *nds) : nds(nds)
 	want.freq = 32768;
 	want.format = AUDIO_S16SYS;
 	want.channels = 2;
-	want.samples = 4096;
+	want.samples = 1024;
 	want.callback = NULL;
 	audio_dev = SDL_OpenAudioDevice(NULL, 0, &want, &audio_spec, 0);
 	if (!audio_dev) {
@@ -160,9 +160,8 @@ sdl_platform::render(void *fb)
 }
 
 void
-sdl_platform::queue_audio(void *audiobuffer)
+sdl_platform::queue_audio(void *audiobuffer, u32 size)
 {
-	u32 size = 32768 / NDS_FRAME_RATE * audio_spec.channels * 4;
 	SDL_QueueAudio(audio_dev, audiobuffer, size);
 }
 
@@ -195,12 +194,16 @@ sdl_platform::loop()
 		handle_events();
 		if (!paused) {
 			nds->run_frame();
-			if (nds->is_shutdown()) {
-				break;
-			}
 			render(nds->get_framebuffer());
-			queue_audio(nds->get_audiobuffer());
 		}
+
+		if (!paused && throttle) {
+			queue_audio(nds->get_audio_buffer(),
+					nds->get_audio_buffer_size());
+		}
+
+		if (nds->is_shutdown())
+			break;
 
 		if (throttle || paused) {
 			std::uint64_t elapsed =

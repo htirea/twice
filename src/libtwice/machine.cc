@@ -100,12 +100,21 @@ nds_machine::get_framebuffer()
 }
 
 void *
-nds_machine::get_audiobuffer()
+nds_machine::get_audio_buffer()
 {
 	if (!nds)
 		return nullptr;
 
 	return nds->audio_buf;
+}
+
+u32
+nds_machine::get_audio_buffer_size()
+{
+	if (!nds)
+		return 0;
+
+	return nds->last_audio_buf_size;
 }
 
 void

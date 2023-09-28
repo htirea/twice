@@ -44,7 +44,7 @@ class sdl_platform {
 
       private:
 	void render(void *fb);
-	void queue_audio(void *audiobuffer);
+	void queue_audio(void *audiobuffer, u32 size);
 	void setup_default_binds();
 	void handle_events();
 	void handle_key_event(SDL_Keycode key, bool down);

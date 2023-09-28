@@ -111,7 +111,16 @@ struct nds_machine {
 	 *
 	 * \returns a pointer to the audio buffer
 	 */
-	void *get_audiobuffer();
+	void *get_audio_buffer();
+
+	/**
+	 * Get the audio buffer size for the emulated frame.
+	 *
+	 * The size of the audio buffer is given in bytes.
+	 *
+	 * \returns the buffer size in bytes
+	 */
+	u32 get_audio_buffer_size();
 
 	/**
 	 * Update the state of a button.

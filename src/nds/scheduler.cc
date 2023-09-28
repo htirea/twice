@@ -12,6 +12,7 @@ event_scheduler::event_scheduler()
 	events[HBLANK_END].cb = event_hblank_end;
 	events[ROM_ADVANCE_TRANSFER].cb = event_advance_rom_transfer;
 	events[AUXSPI_TRANSFER_COMPLETE].cb = event_auxspi_transfer_complete;
+	events[SAMPLE_AUDIO].cb = event_sample_audio;
 	arm_events[0][START_IMMEDIATE_DMAS].cb = event_start_immediate_dmas;
 	arm_events[1][START_IMMEDIATE_DMAS].cb = event_start_immediate_dmas;
 	for (int i = 0; i < 4; i++) {
