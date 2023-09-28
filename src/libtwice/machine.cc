@@ -99,6 +99,15 @@ nds_machine::get_framebuffer()
 	return nds->fb;
 }
 
+void *
+nds_machine::get_audiobuffer()
+{
+	if (!nds)
+		return nullptr;
+
+	return nds->audio_buf;
+}
+
 void
 nds_machine::button_event(nds_button button, bool down)
 {

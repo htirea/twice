@@ -104,6 +104,16 @@ struct nds_machine {
 	void *get_framebuffer();
 
 	/**
+	 * Get the audio buffer for the emulated frame.
+	 *
+	 * The audio buffer is stored as an array of signed 16 bit samples,
+	 * with 2 channels, interleaved, at a sample rate of 32768 Hz.
+	 *
+	 * \returns a pointer to the audio buffer
+	 */
+	void *get_audiobuffer();
+
+	/**
 	 * Update the state of a button.
 	 *
 	 * \param button the button to update the state for

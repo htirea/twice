@@ -44,6 +44,7 @@ class sdl_platform {
 
       private:
 	void render(void *fb);
+	void queue_audio(void *audiobuffer);
 	void setup_default_binds();
 	void handle_events();
 	void handle_key_event(SDL_Keycode key, bool down);
@@ -64,6 +65,8 @@ class sdl_platform {
 	SDL_Renderer *renderer{};
 	SDL_Texture *texture{};
 	SDL_Texture *scaled_texture{};
+	SDL_AudioDeviceID audio_dev;
+	SDL_AudioSpec audio_spec;
 	std::unordered_set<SDL_JoystickID> controllers;
 	std::unordered_map<SDL_Keycode, nds_button> key_map;
 	std::unordered_map<int, nds_button> button_map;

@@ -91,6 +91,7 @@ struct nds_ctx {
 	u8 *arm9_bios{};
 
 	u32 fb[NDS_FB_SZ]{};
+	s16 audio_buf[4096]{};
 
 	/*
 	 * IO

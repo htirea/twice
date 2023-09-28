@@ -22,7 +22,8 @@ create_scaled_texture(SDL_Renderer *renderer, int scale)
 
 sdl_platform::sdl_platform(nds_machine *nds) : nds(nds)
 {
-	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER)) {
+	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER |
+			    SDL_INIT_AUDIO)) {
 		throw sdl_error("init failed");
 	}
 
@@ -80,6 +81,18 @@ sdl_platform::sdl_platform(nds_machine *nds) : nds(nds)
 		}
 	}
 
+	SDL_AudioSpec want;
+	SDL_memset(&want, 0, sizeof(want));
+	want.freq = 32768;
+	want.format = AUDIO_S16SYS;
+	want.channels = 2;
+	want.samples = 4096;
+	want.callback = NULL;
+	audio_dev = SDL_OpenAudioDevice(NULL, 0, &want, &audio_spec, 0);
+	if (!audio_dev) {
+		throw sdl_error("create audio device failed");
+	}
+
 	int num_joysticks = SDL_NumJoysticks();
 	for (int i = 0; i < num_joysticks; i++) {
 		if (SDL_IsGameController(i)) {
@@ -97,6 +110,9 @@ sdl_platform::~sdl_platform()
 		remove_controller(id);
 	}
 
+	if (audio_dev) {
+		SDL_CloseAudioDevice(audio_dev);
+	}
 	SDL_DestroyTexture(scaled_texture);
 	SDL_DestroyTexture(texture);
 	SDL_DestroyRenderer(renderer);
@@ -144,6 +160,13 @@ sdl_platform::render(void *fb)
 }
 
 void
+sdl_platform::queue_audio(void *audiobuffer)
+{
+	u32 size = 32768 / NDS_FRAME_RATE * audio_spec.channels * 4;
+	SDL_QueueAudio(audio_dev, audiobuffer, size);
+}
+
+void
 sdl_platform::arm_set_title(std::uint64_t ticks_per_frame, std::uint64_t freq,
 		std::pair<double, double> cpu_usage)
 {
@@ -159,21 +182,24 @@ void
 sdl_platform::loop()
 {
 	std::uint64_t freq = SDL_GetPerformanceFrequency();
-	std::uint64_t tframe = freq / 59.8261;
+	std::uint64_t tframe = freq / NDS_FRAME_RATE;
 	std::uint64_t start = SDL_GetPerformanceCounter();
 	std::uint64_t ticks_elapsed = 0;
 
 	running = true;
 	throttle = true;
 
+	SDL_PauseAudioDevice(audio_dev, 0);
+
 	while (running) {
 		handle_events();
 		if (!paused) {
 			nds->run_frame();
-			render(nds->get_framebuffer());
 			if (nds->is_shutdown()) {
 				break;
 			}
+			render(nds->get_framebuffer());
+			queue_audio(nds->get_audiobuffer());
 		}
 
 		if (throttle || paused) {
@@ -205,6 +231,7 @@ sdl_platform::loop()
 	}
 
 	running = false;
+	SDL_PauseAudioDevice(audio_dev, 1);
 }
 
 void
