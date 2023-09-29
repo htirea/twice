@@ -75,6 +75,7 @@ struct nds_ctx {
 	cartridge cart;
 	power_management_device powerman;
 	sound_channel sound_ch[16];
+	sound_capture_channel sound_cap_ch[2];
 
 	/*
 	 * Memory
@@ -133,7 +134,6 @@ struct nds_ctx {
 
 	u16 soundcnt{};
 	u32 soundbias{};
-	u8 sndcapcnt[2]{};
 
 	u16 keyinput{ 0x3FF };
 	u16 extkeyin{ 0x7F };

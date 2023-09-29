@@ -25,9 +25,9 @@ io7_read8(nds_ctx *nds, u32 addr)
 	case 0x4000501:
 		return nds->soundcnt >> 8;
 	case 0x4000508:
-		return nds->sndcapcnt[0];
+		return nds->sound_cap_ch[0].cnt;
 	case 0x4000509:
-		return nds->sndcapcnt[1];
+		return nds->sound_cap_ch[1].cnt;
 	}
 
 	if (0x4000400 <= addr && addr < 0x4000500) {
@@ -57,6 +57,9 @@ io7_read16(nds_ctx *nds, u32 addr)
 		return nds->powcnt2;
 	case 0x4000504:
 		return nds->soundbias;
+	case 0x4000508:
+		return (u16)nds->sound_cap_ch[1].cnt << 8 |
+		       nds->sound_cap_ch[0].cnt;
 	}
 
 	if (0x4000400 <= addr && addr < 0x4000500) {
@@ -121,6 +124,12 @@ io7_write8(nds_ctx *nds, u32 addr, u8 value)
 		nds->soundcnt = (nds->soundcnt & ~0xBF00) |
 		                ((u16)value << 8 & 0xBF00);
 		return;
+	case 0x4000508:
+		sound_capture_write_cnt(nds, 0, value);
+		return;
+	case 0x4000509:
+		sound_capture_write_cnt(nds, 1, value);
+		return;
 	}
 
 	if (0x4000400 <= addr && addr < 0x4000500) {
@@ -164,6 +173,16 @@ io7_write16(nds_ctx *nds, u32 addr, u16 value)
 	case 0x4000504:
 		nds->soundbias = value & 0x3FF;
 		return;
+	case 0x4000508:
+		sound_capture_write_cnt(nds, 0, value);
+		sound_capture_write_cnt(nds, 1, value >> 8);
+		return;
+	case 0x4000514:
+		nds->sound_cap_ch[0].len = value;
+		return;
+	case 0x400051C:
+		nds->sound_cap_ch[1].len = value;
+		return;
 	}
 
 	if (0x4000400 <= addr && addr < 0x4000500) {
@@ -179,6 +198,12 @@ io7_write32(nds_ctx *nds, u32 addr, u32 value)
 {
 	switch (addr) {
 		IO_WRITE32_COMMON(1);
+	case 0x4000510:
+		nds->sound_cap_ch[0].dad = value & 0x7FFFFFC;
+		return;
+	case 0x4000518:
+		nds->sound_cap_ch[1].dad = value & 0x7FFFFFC;
+		return;
 	}
 
 	if (0x4000400 <= addr && addr < 0x4000500) {

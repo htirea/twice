@@ -108,10 +108,36 @@ step_channel(nds_ctx *nds, int ch_id)
 }
 
 static void
+step_capture_channel(nds_ctx *nds, int ch_id, s32 value)
+{
+	auto& ch = nds->sound_cap_ch[ch_id];
+
+	if (ch.cnt & BIT(3)) {
+		bus7_write<u8>(nds, ch.address, value >> 8 >> 8);
+		ch.address += 1;
+	} else {
+		bus7_write<u16>(nds, ch.address, value >> 8);
+		ch.address += 2;
+	}
+
+	u32 len_bytes = ch.len * 4;
+	if (len_bytes == 0) {
+		len_bytes = 4;
+	}
+
+	if (ch.address == ch.dad + len_bytes) {
+		if (ch.cnt & BIT(2)) {
+			ch.cnt &= ~BIT(7);
+		} else {
+			ch.address = ch.dad;
+		}
+	}
+}
+
+static void
 sample_audio_channels(nds_ctx *nds, s32 *left_out, s32 *right_out)
 {
-	s32 ch1_samples[2]{};
-	s32 ch3_samples[2]{};
+	s32 ch_samples[4][3]{};
 	s32 mixer_samples[2]{};
 
 	for (int ch_id = 0; ch_id < 16; ch_id++) {
@@ -154,20 +180,48 @@ sample_audio_channels(nds_ctx *nds, s32 *left_out, s32 *right_out)
 		s32 left_val = (s64)value * (128 - pan_factor) >> 10;
 		s32 right_val = (s64)value * pan_factor >> 10;
 
-		if (ch_id == 1) {
-			ch1_samples[0] = left_val;
-			ch1_samples[1] = right_val;
-			if (nds->soundcnt & BIT(12))
-				continue;
-		} else if (ch_id == 3) {
-			ch3_samples[0] = left_val;
-			ch3_samples[1] = right_val;
-			if (nds->soundcnt & BIT(13))
-				continue;
+		if (ch_id < 4) {
+			ch_samples[ch_id][0] = left_val;
+			ch_samples[ch_id][1] = right_val;
+			ch_samples[ch_id][2] = value;
 		}
+
+		if (ch_id == 1 && nds->soundcnt & BIT(12))
+			continue;
+		if (ch_id == 3 && nds->soundcnt & BIT(13))
+			continue;
 
 		mixer_samples[0] += left_val;
 		mixer_samples[1] += right_val;
+	}
+
+	for (int ch_id = 0; ch_id < 2; ch_id++) {
+		auto& ch = nds->sound_cap_ch[ch_id];
+
+		if (!(ch.cnt & BIT(7)))
+			continue;
+
+		s32 value = 0;
+		/* TODO: check / implement adding */
+		if (ch.cnt & BIT(1)) {
+			value = ch_samples[ch_id << 1][2] >> 3;
+		} else {
+			value = mixer_samples[ch_id];
+		}
+		value = std::clamp(value, -0x8000 << 8, 0x7FFF << 8);
+
+		for (u32 cycles = 512; cycles != 0;) {
+			ch.tmr += cycles;
+			u32 elapsed = cycles;
+
+			if (ch.tmr >= 0x10000) {
+				elapsed -= ch.tmr & 0xFFFF;
+				step_capture_channel(nds, ch_id, value);
+				ch.tmr = ch.tmr_reload;
+			}
+
+			cycles -= elapsed;
+		}
 	}
 
 	s32 left = 0;
@@ -177,26 +231,26 @@ sample_audio_channels(nds_ctx *nds, s32 *left_out, s32 *right_out)
 		left = mixer_samples[0];
 		break;
 	case 1:
-		left = ch1_samples[0];
+		left = ch_samples[1][0];
 		break;
 	case 2:
-		left = ch3_samples[0];
+		left = ch_samples[3][0];
 		break;
 	case 3:
-		left = ch1_samples[0] + ch3_samples[0];
+		left = ch_samples[1][0] + ch_samples[3][0];
 	}
 	switch (nds->soundcnt >> 10 & 3) {
 	case 0:
 		right = mixer_samples[1];
 		break;
 	case 1:
-		right = ch1_samples[1];
+		right = ch_samples[1][1];
 		break;
 	case 2:
-		right = ch3_samples[1];
+		right = ch_samples[3][1];
 		break;
 	case 3:
-		right = ch1_samples[1] + ch3_samples[1];
+		right = ch_samples[1][1] + ch_samples[3][1];
 	}
 
 	s32 master_vol = nds->soundcnt & 0x7F;
@@ -259,6 +313,24 @@ start_channel(nds_ctx *nds, int ch_id)
 		break;
 	case 3:
 		LOG("unimplemented PSG\n");
+	}
+}
+
+static void
+start_capture_channel(nds_ctx *nds, int ch_id)
+{
+	auto& ch = nds->sound_cap_ch[ch_id];
+
+	ch.tmr = ch.tmr_reload;
+	ch.address = ch.dad;
+}
+
+static void
+write_tmr_reload(nds_ctx *nds, int ch_id, u16 value)
+{
+	nds->sound_ch[ch_id].tmr_reload = value;
+	if (ch_id == 1 || ch_id == 3) {
+		nds->sound_cap_ch[ch_id >> 1].tmr_reload = value;
 	}
 }
 
@@ -366,7 +438,7 @@ sound_write16(nds_ctx *nds, u8 addr, u16 value)
 		ch.cnt = (ch.cnt & ~0x837F) | (value & 0x837F);
 		return;
 	case 0x8:
-		ch.tmr_reload = value;
+		write_tmr_reload(nds, addr >> 4, value);
 		return;
 	case 0xA:
 		ch.pnt = value;
@@ -396,7 +468,7 @@ sound_write32(nds_ctx *nds, u8 addr, u32 value)
 		ch.sad = value & 0x07FFFFFC;
 		return;
 	case 0x8:
-		ch.tmr_reload = value & 0xFFFF;
+		write_tmr_reload(nds, addr >> 4, value);
 		ch.pnt = value >> 16 & 0xFFFF;
 		return;
 	case 0xC:
@@ -405,6 +477,18 @@ sound_write32(nds_ctx *nds, u8 addr, u32 value)
 	}
 
 	LOG("sound write 32 at %02X\n", addr);
+}
+
+void
+sound_capture_write_cnt(nds_ctx *nds, int ch_id, u8 value)
+{
+	auto& ch = nds->sound_cap_ch[ch_id];
+
+	bool start = ~ch.cnt & value & 0x80;
+	ch.cnt = value & 0x8F;
+	if (start) {
+		start_capture_channel(nds, ch_id);
+	}
 }
 
 } // namespace twice
