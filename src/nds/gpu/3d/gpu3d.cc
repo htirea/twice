@@ -294,8 +294,15 @@ gpu_3d_read32(gpu_3d_engine *gpu, u16 offset)
 }
 
 u16
-gpu_3d_read16(gpu_3d_engine *, u16 offset)
+gpu_3d_read16(gpu_3d_engine *gpu, u16 offset)
 {
+	switch (offset) {
+	case 0x604:
+		return gpu->poly_ram[gpu->ge_buf].count;
+	case 0x606:
+		return gpu->vtx_ram[gpu->ge_buf].count;
+	}
+
 	LOG("3d engine read 16 at offset %03X\n", offset);
 	return 0;
 }
@@ -357,6 +364,11 @@ gpu_3d_write32(gpu_3d_engine *gpu, u16 offset, u32 value)
 void
 gpu_3d_write16(gpu_3d_engine *gpu, u16 offset, u16 value)
 {
+	if (0x330 <= offset && offset < 0x340) {
+		writearr<u16>(gpu->re.shadow.edge_color, offset & 0xF, value);
+		return;
+	}
+
 	if (0x380 <= offset && offset < 0x3C0) {
 		writearr<u16>(gpu->re.shadow.toon_table, offset & 0x3F, value);
 		return;

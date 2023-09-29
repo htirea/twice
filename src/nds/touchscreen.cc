@@ -11,6 +11,13 @@ output_12_bit_value(touchscreen_controller *ts, u16 value)
 	ts->output_bytes.push((value & 0x1F) << 3);
 }
 
+static void
+output_8_bit_value(touchscreen_controller *ts, u8 value)
+{
+	ts->output_bytes.push(value >> 1);
+	ts->output_bytes.push((value & 1) << 7);
+}
+
 void
 touchscreen_spi_transfer_byte(nds_ctx *nds, u8 value, bool keep_active)
 {
@@ -37,6 +44,10 @@ touchscreen_spi_transfer_byte(nds_ctx *nds, u8 value, bool keep_active)
 			break;
 		case 7:
 			output_12_bit_value(&ts, 142);
+			break;
+		case 6:
+			/* TODO: microphone */
+			output_8_bit_value(&ts, 0);
 			break;
 		default:
 			LOG("touchscreen channel %d\n", (int)channel);
