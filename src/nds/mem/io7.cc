@@ -170,6 +170,9 @@ io7_write16(nds_ctx *nds, u32 addr, u16 value)
 	case 0x4000304:
 		nds->powcnt2 = value & 0x3;
 		return;
+	case 0x4000500:
+		nds->soundcnt = (nds->soundcnt & ~0xBF7F) | (value & 0xBF7F);
+		return;
 	case 0x4000504:
 		nds->soundbias = value & 0x3FF;
 		return;
@@ -198,6 +201,9 @@ io7_write32(nds_ctx *nds, u32 addr, u32 value)
 {
 	switch (addr) {
 		IO_WRITE32_COMMON(1);
+	case 0x4000500:
+		nds->soundcnt = (nds->soundcnt & ~0xBF7F) | (value & 0xBF7F);
+		return;
 	case 0x4000510:
 		nds->sound_cap_ch[0].dad = value & 0x7FFFFFC;
 		return;
