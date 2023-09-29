@@ -89,6 +89,14 @@ gxstat_write(gpu_3d_engine *gpu, u32 value)
 	gxfifo_check_irq(gpu);
 }
 
+static void
+gxstat_write_byte_3(gpu_3d_engine *gpu, u8 value)
+{
+	gpu->gxstat = (gpu->gxstat & ~0xC0000000) |
+	              ((u32)value << 24 & 0xC0000000);
+	gxfifo_check_irq(gpu);
+}
+
 static bool
 valid_command(u8 command)
 {
@@ -297,6 +305,11 @@ u16
 gpu_3d_read16(gpu_3d_engine *gpu, u16 offset)
 {
 	switch (offset) {
+	case 0x320:
+		return 46;
+	case 0x600:
+	case 0x602:
+		return gxstat_read(gpu) >> 8 * (offset & 3);
 	case 0x604:
 		return gpu->poly_ram[gpu->ge_buf].count;
 	case 0x606:
@@ -308,8 +321,16 @@ gpu_3d_read16(gpu_3d_engine *gpu, u16 offset)
 }
 
 u8
-gpu_3d_read8(gpu_3d_engine *, u16 offset)
+gpu_3d_read8(gpu_3d_engine *gpu, u16 offset)
 {
+	switch (offset) {
+	case 0x600:
+	case 0x601:
+	case 0x602:
+	case 0x603:
+		return gxstat_read(gpu) >> 8 * (offset & 3);
+	}
+
 	LOG("3d engine read 8 at offset %03X\n", offset);
 	return 0;
 }
@@ -393,8 +414,14 @@ gpu_3d_write16(gpu_3d_engine *gpu, u16 offset, u16 value)
 }
 
 void
-gpu_3d_write8(gpu_3d_engine *, u16 offset, u8 value)
+gpu_3d_write8(gpu_3d_engine *gpu, u16 offset, u8 value)
 {
+	switch (offset) {
+	case 0x603:
+		gxstat_write_byte_3(gpu, value);
+		return;
+	}
+
 	LOG("3d engine write 8 at offset %03X %02X\n", offset, value);
 }
 

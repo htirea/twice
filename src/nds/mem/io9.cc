@@ -183,6 +183,8 @@ io9_read32(nds_ctx *nds, u32 addr)
 		return nds->dmafill[2];
 	case 0x40000EC:
 		return nds->dmafill[3];
+	case 0x40000F4:
+		return 0;
 	case 0x4000240:
 		return (u32)nds->vram.vramcnt[3] << 24 |
 		       (u32)nds->vram.vramcnt[2] << 16 |

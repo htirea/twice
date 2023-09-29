@@ -85,6 +85,7 @@ struct gpu_3d_engine {
 		u8 shiny_table[128]{};
 		u32 swap_bits{};
 		u32 swap_bits_s{};
+		u16 disp_1dot_depth{};
 
 		vertex *last_strip_vtx[2]{};
 		vertex vtx_buf[4];

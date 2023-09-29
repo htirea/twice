@@ -63,6 +63,19 @@ void wramcnt_write(nds_ctx *nds, u8 value);
 		                                     : 0;                     \
 	case 0x40001A2:                                                       \
 		return (cpuid_) == nds->nds_slot_cpu ? nds->auxspidata_r : 0; \
+	case 0x40001A8:                                                       \
+	case 0x40001A9:                                                       \
+	case 0x40001AA:                                                       \
+	case 0x40001AB:                                                       \
+	case 0x40001AC:                                                       \
+	case 0x40001AD:                                                       \
+	case 0x40001AE:                                                       \
+	case 0x40001AF:                                                       \
+		if ((cpuid_) == nds->nds_slot_cpu) {                          \
+			return nds->cart_command_out[addr & 7];               \
+		} else {                                                      \
+			return 0;                                             \
+		}                                                             \
 	case 0x4000208:                                                       \
 		return nds->cpu[(cpuid_)]->IME;                               \
 	case 0x4000210:                                                       \

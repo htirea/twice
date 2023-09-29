@@ -491,10 +491,6 @@ draw_scanline(gpu_2d_engine *gpu, u16 scanline)
 
 	graphics_display_scanline(gpu);
 
-	if (gpu->display_capture) {
-		capture_display(gpu, scanline);
-	}
-
 	switch (gpu->dispcnt >> 16 & 0x3) {
 	case 0:
 		output_fill_white(gpu);
@@ -512,6 +508,10 @@ draw_scanline(gpu_2d_engine *gpu, u16 scanline)
 		break;
 	case 3:
 		throw twice_error("display mode 3 not implemented");
+	}
+
+	if (gpu->display_capture) {
+		capture_display(gpu, scanline);
 	}
 
 	adjust_master_brightness(gpu);
