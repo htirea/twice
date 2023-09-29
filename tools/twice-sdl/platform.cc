@@ -92,6 +92,7 @@ sdl_platform::sdl_platform(nds_machine *nds) : nds(nds)
 	if (!audio_dev) {
 		throw sdl_error("create audio device failed");
 	}
+	SDL_PauseAudioDevice(audio_dev, 0);
 
 	int num_joysticks = SDL_NumJoysticks();
 	for (int i = 0; i < num_joysticks; i++) {
@@ -101,6 +102,8 @@ sdl_platform::sdl_platform(nds_machine *nds) : nds(nds)
 	}
 
 	setup_default_binds();
+
+	freq = SDL_GetPerformanceFrequency();
 }
 
 sdl_platform::~sdl_platform()
@@ -163,6 +166,11 @@ void
 sdl_platform::queue_audio(void *audiobuffer, u32 size, u64 ticks)
 {
 	double target = 32768.0 * ticks / freq;
+	double actual_target = 32768.0 / NDS_FRAME_RATE;
+
+	if (std::abs(target - actual_target) > 200.0) {
+		return;
+	}
 
 	static u64 n = 0;
 	static u64 d = 1;
@@ -192,21 +200,33 @@ sdl_platform::arm_set_title(u64 ticks, std::pair<double, double> cpu_usage)
 void
 sdl_platform::loop()
 {
-	freq = SDL_GetPerformanceFrequency();
-	std::uint64_t tframe = freq / NDS_FRAME_RATE;
-	std::uint64_t start = SDL_GetPerformanceCounter();
-	std::uint64_t ticks_elapsed = 0;
-	u64 last_elapsed = 0;
-
 	running = true;
 	throttle = true;
 
-	SDL_PauseAudioDevice(audio_dev, 0);
+	u64 target = freq / NDS_FRAME_RATE;
+	u64 last_elapsed = target;
+	u64 total_elapsed = 0;
+	u64 lag = 0;
 
 	while (running) {
+		u64 start = SDL_GetPerformanceCounter();
+
+		total_elapsed += last_elapsed;
+		if (total_elapsed >= freq) {
+			total_elapsed -= freq;
+			arm_set_title(fps_counter.get_average(),
+					nds->get_cpu_usage());
+			update_rtc();
+		}
+		fps_counter.insert(last_elapsed);
+
 		handle_events();
+
 		if (!paused) {
 			nds->run_frame();
+		}
+
+		if (!paused) {
 			render(nds->get_framebuffer());
 		}
 
@@ -216,39 +236,31 @@ sdl_platform::loop()
 					last_elapsed);
 		}
 
-		if (nds->is_shutdown())
-			break;
+		if (nds->is_shutdown()) {
+			running = false;
+		}
 
-		if (throttle || paused) {
-			std::uint64_t elapsed =
-					SDL_GetPerformanceCounter() - start;
-			if (elapsed < tframe) {
-				double remaining_ns = (tframe - elapsed) *
-				                      1e9 / freq;
-				if (remaining_ns > 4e6) {
-					SDL_Delay((remaining_ns - 4e6) / 1e6);
-				}
-			}
-			while (SDL_GetPerformanceCounter() - start < tframe)
+		u64 elapsed = SDL_GetPerformanceCounter() - start;
+		u64 extra;
+
+		if (elapsed >= target) {
+			extra = 0;
+			lag += elapsed - target;
+		} else {
+			extra = target - elapsed;
+			u64 dt = std::min(extra, lag);
+			extra -= dt;
+			lag -= dt;
+		}
+
+		if (paused || (throttle && extra > 0)) {
+			u64 end = start + elapsed + extra;
+			while (SDL_GetPerformanceCounter() < end)
 				;
 		}
 
 		last_elapsed = SDL_GetPerformanceCounter() - start;
-		start = SDL_GetPerformanceCounter();
-
-		fps_counter.insert(last_elapsed);
-
-		ticks_elapsed += last_elapsed;
-		if (ticks_elapsed >= freq) {
-			ticks_elapsed -= freq;
-			arm_set_title(fps_counter.get_average(),
-					nds->get_cpu_usage());
-			update_rtc();
-		}
 	}
-
-	running = false;
-	SDL_PauseAudioDevice(audio_dev, 1);
 }
 
 void
