@@ -74,6 +74,7 @@ class sdl_platform {
 	bool running{};
 	bool throttle{};
 	bool paused{};
+	bool audio_muted{};
 	int window_w{};
 	int window_h{};
 	int texture_scale{};

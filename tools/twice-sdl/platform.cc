@@ -210,7 +210,7 @@ sdl_platform::loop()
 			render(nds->get_framebuffer());
 		}
 
-		if (!paused && throttle) {
+		if (!paused && throttle && !audio_muted) {
 			queue_audio(nds->get_audio_buffer(),
 					nds->get_audio_buffer_size(),
 					last_elapsed);
@@ -387,6 +387,9 @@ sdl_platform::handle_key_event(SDL_Keycode key, bool down)
 			break;
 		case SDLK_f:
 			toggle_fullscreen();
+			break;
+		case SDLK_m:
+			audio_muted = !audio_muted;
 			break;
 		case SDLK_ESCAPE:
 			paused = !paused;
