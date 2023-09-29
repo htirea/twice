@@ -5,6 +5,12 @@
 
 namespace twice {
 
+enum {
+	PSG_INVALID,
+	PSG_WAVE,
+	PSG_NOISE,
+};
+
 static s32
 sample_channel(nds_ctx *nds, int ch_id)
 {
@@ -16,15 +22,16 @@ sample_channel(nds_ctx *nds, int ch_id)
 	case 1:
 		return (s16)bus7_read<u16>(nds, ch.address);
 	case 2:
-		return ch.adpcm_value;
+		return ch.adpcm.value;
 	case 3:
-		return 0;
+		return ch.psg.value;
 	}
 
 	return 0;
 }
 
 static const s32 adpcm_index_table[] = { -1, -1, -1, -1, 2, 4, 6, 8 };
+
 static const s32 adpcm_table[128] = { 0x0007, 0x0008, 0x0009, 0x000A, 0x000B,
 	0x000C, 0x000D, 0x000E, 0x0010, 0x0011, 0x0013, 0x0015, 0x0017, 0x0019,
 	0x001C, 0x001F, 0x0022, 0x0025, 0x0029, 0x002D, 0x0032, 0x0037, 0x003C,
@@ -37,12 +44,25 @@ static const s32 adpcm_table[128] = { 0x0007, 0x0008, 0x0009, 0x000A, 0x000B,
 	0x2CDF, 0x315B, 0x364B, 0x3BB9, 0x41B2, 0x4844, 0x4F7E, 0x5771, 0x602F,
 	0x69CE, 0x7462, 0x7FFF };
 
+static const s32 psg_wave_duty_table[8][8] = {
+	{ 0, 0, 0, 0, 0, 0, 0, 1 },
+	{ 0, 0, 0, 0, 0, 0, 1, 1 },
+	{ 0, 0, 0, 0, 0, 1, 1, 1 },
+	{ 0, 0, 0, 0, 1, 1, 1, 1 },
+	{ 0, 0, 0, 1, 1, 1, 1, 1 },
+	{ 0, 0, 1, 1, 1, 1, 1, 1 },
+	{ 0, 1, 1, 1, 1, 1, 1, 1 },
+	{ 0, 0, 0, 0, 0, 0, 0, 0 },
+};
+
 static void
 step_channel(nds_ctx *nds, int ch_id)
 {
 	auto& ch = nds->sound_ch[ch_id];
 
-	switch (ch.cnt >> 29 & 3) {
+	u32 format = ch.cnt >> 29 & 3;
+
+	switch (format) {
 	case 0:
 		ch.address += 1;
 		break;
@@ -51,43 +71,72 @@ step_channel(nds_ctx *nds, int ch_id)
 		break;
 	case 2:
 	{
-		if (ch.adpcm_first && ch.address == ch.sad + ch.pnt * 4) {
-			ch.adpcm_value_s = ch.adpcm_value;
-			ch.adpcm_index_s = ch.adpcm_index;
+		if (ch.adpcm.first && ch.address == ch.sad + ch.pnt * 4) {
+			ch.adpcm.value_s = ch.adpcm.value;
+			ch.adpcm.index_s = ch.adpcm.index;
 		}
 
 		u8 data = bus7_read<u8>(nds, ch.address);
-		if (ch.adpcm_first) {
+		if (ch.adpcm.first) {
 			data &= 0xF;
 		} else {
 			data >>= 4;
 			ch.address += 1;
 		}
-		ch.adpcm_first ^= 1;
+		ch.adpcm.first ^= 1;
 
-		s32 diff = adpcm_table[ch.adpcm_index] >> 3;
+		s32 diff = adpcm_table[ch.adpcm.index] >> 3;
 		if (data & 1) {
-			diff += adpcm_table[ch.adpcm_index] >> 2;
+			diff += adpcm_table[ch.adpcm.index] >> 2;
 		}
 		if (data & 2) {
-			diff += adpcm_table[ch.adpcm_index] >> 1;
+			diff += adpcm_table[ch.adpcm.index] >> 1;
 		}
 		if (data & 4) {
-			diff += adpcm_table[ch.adpcm_index];
+			diff += adpcm_table[ch.adpcm.index];
 		}
 
 		if ((data & 8) == 0) {
-			ch.adpcm_value = std::min(
-					ch.adpcm_value + diff, 0x7FFF);
+			ch.adpcm.value = std::min(
+					ch.adpcm.value + diff, 0x7FFF);
 		} else {
-			ch.adpcm_value = std::max(
-					ch.adpcm_value - diff, -0x7FFF);
+			ch.adpcm.value = std::max(
+					ch.adpcm.value - diff, -0x7FFF);
 		}
-		ch.adpcm_index += adpcm_index_table[data & 7];
-		ch.adpcm_index = std::clamp(ch.adpcm_index, 0, 88);
+		ch.adpcm.index += adpcm_index_table[data & 7];
+		ch.adpcm.index = std::clamp(ch.adpcm.index, 0, 88);
 		break;
 	}
-	case 3:;
+	case 3:
+	{
+		switch (ch.psg.mode) {
+		case PSG_INVALID:
+			break;
+		case PSG_WAVE:
+		{
+			u32 duty = ch.cnt >> 24 & 7;
+			u32 idx = ch.psg.wave_pos++ & 7;
+			ch.psg.value = psg_wave_duty_table[duty][idx]
+			                               ? 0x7FFF
+			                               : -0x7FFF;
+			break;
+		}
+		case PSG_NOISE:
+		{
+			bool carry = ch.psg.lfsr & 1;
+			ch.psg.lfsr >>= 1;
+			bool out;
+			if (carry) {
+				out = 0;
+				ch.psg.lfsr ^= 0x6000;
+			} else {
+				out = 1;
+			}
+			ch.psg.value = out ? 0x7FFF : -0x7FFF;
+			break;
+		}
+		}
+	}
 	}
 
 	if (ch.address == ch.sad + 4 * ch.pnt + 4 * ch.len) {
@@ -95,10 +144,16 @@ step_channel(nds_ctx *nds, int ch_id)
 		case 1:
 		case 3:
 			ch.address = ch.sad + 4 * ch.pnt;
-			if ((ch.cnt >> 29 & 3) == 2) {
-				ch.adpcm_value = ch.adpcm_value_s;
-				ch.adpcm_index = ch.adpcm_index_s;
-				ch.adpcm_first = true;
+			if (format == 2) {
+				ch.adpcm.value = ch.adpcm.value_s;
+				ch.adpcm.index = ch.adpcm.index_s;
+				ch.adpcm.first = true;
+			} else if (format == 3) {
+				if (ch.psg.mode == PSG_WAVE) {
+					ch.psg.wave_pos = 0;
+				} else if (ch.psg.mode == PSG_NOISE) {
+					ch.psg.lfsr = 0x7FFF;
+				}
 			}
 			break;
 		case 2:
@@ -305,14 +360,21 @@ start_channel(nds_ctx *nds, int ch_id)
 
 	switch (ch.cnt >> 29 & 3) {
 	case 2:
-		ch.adpcm_header = bus7_read<u32>(nds, ch.address);
-		ch.adpcm_value = (s16)ch.adpcm_header;
-		ch.adpcm_index = ch.adpcm_header >> 16 & 0x7F;
-		ch.adpcm_first = true;
+		ch.adpcm.header = bus7_read<u32>(nds, ch.address);
+		ch.adpcm.value = (s16)ch.adpcm.header;
+		ch.adpcm.index = ch.adpcm.header >> 16 & 0x7F;
+		ch.adpcm.first = true;
 		ch.address += 4;
 		break;
 	case 3:
-		LOG("unimplemented PSG\n");
+		if (8 <= ch_id && ch_id <= 13) {
+			ch.psg.mode = PSG_WAVE;
+			ch.psg.wave_pos = 0;
+		} else if (14 <= ch_id && ch_id <= 15) {
+			ch.psg.mode = PSG_NOISE;
+			ch.psg.lfsr = 0x7FFF;
+		}
+		ch.psg.value = 0;
 	}
 }
 

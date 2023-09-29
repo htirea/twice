@@ -16,12 +16,27 @@ struct sound_channel {
 
 	u32 tmr{};
 	u32 address{};
-	u32 adpcm_header{};
-	bool adpcm_first{};
-	s32 adpcm_value{};
-	s32 adpcm_index{};
-	s32 adpcm_value_s{};
-	s32 adpcm_index_s{};
+
+	struct adpcm_state {
+		u32 header;
+		bool first;
+		s32 value;
+		s32 index;
+		s32 value_s;
+		s32 index_s;
+	};
+
+	struct psg_state {
+		int mode;
+		u32 wave_pos;
+		u16 lfsr;
+		s32 value;
+	};
+
+	union {
+		adpcm_state adpcm;
+		psg_state psg;
+	};
 };
 
 struct sound_capture_channel {
