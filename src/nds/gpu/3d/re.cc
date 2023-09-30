@@ -323,7 +323,7 @@ clamp_or_repeat_texcoords(s32 s, s32 size, bool clamp, bool flip)
 			flip = flip && s & size;
 			s &= size - 1;
 			if (flip) {
-				s = (size - s) & (size - 1);
+				s = size - 1 - s;
 			}
 		}
 	}
