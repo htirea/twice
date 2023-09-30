@@ -8,7 +8,6 @@ namespace twice {
 
 struct cartridge_db_entry {
 	u32 gamecode;
-	u32 size;
 	nds_savetype type;
 };
 
@@ -19,16 +18,15 @@ nds_load_game_db(const std::string& pathname)
 {
 	auto db = file_map(pathname, 1_MiB,
 			file_map::FILEMAP_PRIVATE | file_map::FILEMAP_LIMIT);
-	if (db.size() % 12 != 0) {
+	if (db.size() % 8 != 0) {
 		throw twice_error("invalid db file size");
 	}
 
-	for (size_t idx = 0; idx < db.size(); idx += 12) {
+	for (size_t idx = 0; idx < db.size(); idx += 8) {
 		u32 gamecode = readarr<u32>(db.data(), idx);
-		u32 size = readarr<u32>(db.data(), idx + 4);
-		s32 savetype = readarr<u32>(db.data(), idx + 8);
+		s32 savetype = readarr<u32>(db.data(), idx + 4);
 
-		game_db.push_back({ gamecode, size, (nds_savetype)savetype });
+		game_db.push_back({ gamecode, (nds_savetype)savetype });
 	}
 }
 
@@ -68,7 +66,7 @@ savetype_to_size(nds_savetype type)
 {
 	switch (type) {
 	case SAVETYPE_UNKNOWN:
-		throw twice_error("unknown size");
+		return 0;
 	case SAVETYPE_NONE:
 		return 0;
 	case SAVETYPE_EEPROM_512B:

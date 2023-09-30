@@ -127,7 +127,11 @@ try {
 		std::cerr << "data dir: " << data_dir << '\n';
 	}
 
-	twice::nds_load_game_db(data_dir + "game_db.bin");
+	try {
+		twice::nds_load_game_db(data_dir + "game_db.bin");
+	} catch (const twice::twice_exception& e) {
+		std::cerr << e.what() << '\n';
+	}
 	twice::nds_config config{ data_dir };
 	twice::nds_machine nds(config);
 	if (!cartridge_pathname.empty()) {
