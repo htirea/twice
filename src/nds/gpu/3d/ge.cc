@@ -544,12 +544,9 @@ create_clipped_vertex(vertex *v0, vertex *v1, int plane, int positive)
 		break;
 	}
 
-	r.color.r = clip_lerp(v0->color.r, v1->color.r, &i, positive);
-	r.color.g = clip_lerp(v0->color.g, v1->color.g, &i, positive);
-	r.color.b = clip_lerp(v0->color.b, v1->color.b, &i, positive);
-
-	r.tx.t = clip_lerp(v0->tx.t, v1->tx.t, &i, positive);
-	r.tx.s = clip_lerp(v0->tx.s, v1->tx.s, &i, positive);
+	for (u32 j = 0; j < 5; j++) {
+		r.attr[j] = clip_lerp(v0->attr[j], v1->attr[j], &i, positive);
+	}
 
 	return r;
 }
@@ -838,12 +835,15 @@ add_vertex(gpu_3d_engine *gpu)
 	v->pos[1] = result.v[1];
 	v->pos[2] = result.v[2];
 	v->pos[3] = result.v[3];
-	v->color = { ge.vtx_color[0], ge.vtx_color[1], ge.vtx_color[2] };
+	v->attr[0] = ge.vtx_color[0];
+	v->attr[1] = ge.vtx_color[1];
+	v->attr[2] = ge.vtx_color[2];
 
 	if (ge.teximage_param >> 30 == 3) {
 		texcoord_transform_3(gpu, ge.vx, ge.vy, ge.vz);
 	}
-	v->tx = { ge.vtx_texcoord[0], ge.vtx_texcoord[1] };
+	v->attr[3] = ge.vtx_texcoord[0];
+	v->attr[4] = ge.vtx_texcoord[1];
 
 	ge.vtx_count++;
 

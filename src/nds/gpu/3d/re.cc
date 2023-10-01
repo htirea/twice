@@ -185,6 +185,24 @@ interpolate_linear(interpolator *i, s32 y0, s32 y1)
 	return denom == 0 ? y0 : numer / denom;
 }
 
+static void
+interpolate_linear_multiple(interpolator *i, s32 *y0, s32 *y1, s32 *y)
+{
+	s64 denom = (s64)i->x1 - i->x0;
+	s64 f0 = (s64)i->x1 - i->x;
+	s64 f1 = (s64)i->x - i->x0;
+
+	if (denom == 0) {
+		for (u32 j = 0; j < 5; j++) {
+			y[j] = y0[j];
+		}
+	} else {
+		for (u32 j = 0; j < 5; j++) {
+			y[j] = (y0[j] * f0 + y1[j] * f1) / denom;
+		}
+	}
+}
+
 static s32
 interpolate(interpolator *i, s32 y0, s32 y1)
 {
@@ -197,6 +215,28 @@ interpolate(interpolator *i, s32 y0, s32 y1)
 	} else {
 		u32 one = (u32)1 << i->precision;
 		return y1 + ((y0 - y1) * (one - i->yfactor) >> i->precision);
+	}
+}
+
+static void
+interpolate_multiple(interpolator *i, s32 *y0, s32 *y1, s32 *y)
+{
+	if (i->precision == 0) {
+		interpolate_linear_multiple(i, y0, y1, y);
+		return;
+	}
+
+	u32 factor = i->yfactor;
+	u32 factor_r = ((u32)1 << i->precision) - i->yfactor;
+
+	for (u32 j = 0; j < 5; j++) {
+		if (y0[j] <= y1[j]) {
+			y[j] = y0[j] +
+			       ((y1[j] - y0[j]) * factor >> i->precision);
+		} else {
+			y[j] = y1[j] +
+			       ((y0[j] - y1[j]) * factor_r >> i->precision);
+		}
 	}
 }
 
@@ -552,6 +592,7 @@ get_texture_color(gpu_3d_engine *gpu, polygon *p, s32 s, s32 t)
 				break;
 			}
 			case 3:
+
 			{
 				u16 color0 = vram_read_texture_palette<u16>(
 						gpu->nds, palette_base);
@@ -675,10 +716,8 @@ alpha_blend(color4 s, color4 b)
 
 struct render_polygon_ctx {
 	polygon *p;
-	s32 rl, gl, bl;
-	s32 rr, gr, br;
-	s32 tx_l[2];
-	s32 tx_r[2];
+	s32 attr_l[5];
+	s32 attr_r[5];
 	s32 zl;
 	s32 zr;
 	s32 alpha;
@@ -784,15 +823,13 @@ render_polygon_pixel(gpu_3d_engine *gpu, render_polygon_ctx *ctx,
 	if (!depth_test_passed(gpu, ctx, z, x, y))
 		return;
 
-	u8 rv = interpolate(span, ctx->rl, ctx->rr);
-	u8 gv = interpolate(span, ctx->gl, ctx->gr);
-	u8 bv = interpolate(span, ctx->bl, ctx->br);
+	s32 attr_result[5];
+	interpolate_multiple(span, ctx->attr_l, ctx->attr_r, attr_result);
 	u8 av = ctx->alpha == 0 ? 31 : ctx->alpha;
 
-	s32 s = interpolate(span, ctx->tx_l[0], ctx->tx_r[0]);
-	s32 t = interpolate(span, ctx->tx_l[1], ctx->tx_r[1]);
-
-	color4 px_color = get_pixel_color(gpu, ctx->p, rv, gv, bv, av, s, t);
+	color4 px_color = get_pixel_color(gpu, ctx->p, attr_result[0],
+			attr_result[1], attr_result[2], av, attr_result[3],
+			attr_result[4]);
 	if (px_color.a <= ctx->alpha_test_ref) {
 		return;
 	}
@@ -829,19 +866,13 @@ render_polygon_scanline(gpu_3d_engine *gpu, s32 scanline, u32 poly_num)
 	set_slope_interp_x(sr, scanline, xend[1]);
 	ctx.zl = interpolate_z(&sl->interp, p->z[pi->prev_left],
 			p->z[pi->left], p->wbuffering);
-	ctx.rl = interpolate(&sl->interp, sl->v0->color.r, sl->v1->color.r);
-	ctx.gl = interpolate(&sl->interp, sl->v0->color.g, sl->v1->color.g);
-	ctx.bl = interpolate(&sl->interp, sl->v0->color.b, sl->v1->color.b);
-	ctx.tx_l[0] = interpolate(&sl->interp, sl->v0->tx.s, sl->v1->tx.s);
-	ctx.tx_l[1] = interpolate(&sl->interp, sl->v0->tx.t, sl->v1->tx.t);
+	interpolate_multiple(
+			&sl->interp, sl->v0->attr, sl->v1->attr, ctx.attr_l);
 
 	ctx.zr = interpolate_z(&sr->interp, p->z[pi->prev_right],
 			p->z[pi->right], p->wbuffering);
-	ctx.rr = interpolate(&sr->interp, sr->v0->color.r, sr->v1->color.r);
-	ctx.gr = interpolate(&sr->interp, sr->v0->color.g, sr->v1->color.g);
-	ctx.br = interpolate(&sr->interp, sr->v0->color.b, sr->v1->color.b);
-	ctx.tx_r[0] = interpolate(&sr->interp, sr->v0->tx.s, sr->v1->tx.s);
-	ctx.tx_r[1] = interpolate(&sr->interp, sr->v0->tx.t, sr->v1->tx.t);
+	interpolate_multiple(
+			&sr->interp, sr->v0->attr, sr->v1->attr, ctx.attr_r);
 
 	interpolator span;
 	interp_setup(&span, xstart[0], xend[1] - 1, sl->interp.w, sr->interp.w,

@@ -17,16 +17,8 @@ struct gpu_3d_engine {
 	struct vertex {
 		s32 pos[4];
 
-		struct {
-			s32 s;
-			s32 t;
-		} tx;
-
-		struct {
-			u32 r;
-			u32 g;
-			u32 b;
-		} color;
+		/* r, g, b, s, t */
+		s32 attr[5];
 
 		s32 sx;
 		s32 sy;
