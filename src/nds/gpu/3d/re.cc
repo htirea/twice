@@ -78,12 +78,6 @@ setup_polygon_slope(slope *s, vertex *v0, vertex *v1, s32 w0, s32 w1)
 }
 
 static void
-setup_polygon_slope_vertical(slope *s, vertex *v, s32 w0)
-{
-	setup_polygon_slope(s, v, v, w0, w0);
-}
-
-static void
 get_slope_x(slope *s, s32 *x, s32 scanline)
 {
 	s32 one = (s32)1 << 18;
@@ -222,8 +216,15 @@ setup_polygon_initial_slope(gpu_3d_engine *gpu, u32 poly_num)
 	polygon *p = gpu->re.polygons[poly_num];
 	polygon_info *pi = &gpu->re.poly_info[poly_num];
 
-	u32 next_l = (p->start + 1) % p->num_vertices;
-	u32 next_r = (p->start - 1 + p->num_vertices) % p->num_vertices;
+	u32 next_l, next_r;
+	if (p->vertices[p->start]->sy == p->vertices[p->end]->sy) {
+		next_l = p->start;
+		next_r = p->end;
+	} else {
+		next_l = (p->start + 1) % p->num_vertices;
+		next_r = (p->start - 1 + p->num_vertices) % p->num_vertices;
+	}
+
 	if (p->backface) {
 		std::swap(next_l, next_r);
 	}
@@ -247,59 +248,48 @@ setup_polygon_scanline(gpu_3d_engine *gpu, s32 scanline, u32 poly_num)
 	polygon *p = gpu->re.polygons[poly_num];
 	polygon_info *pi = &gpu->re.poly_info[poly_num];
 
-	if (p->vertices[p->start]->sy == p->vertices[p->end]->sy) {
-		setup_polygon_slope_vertical(
-				&pi->left_slope, p->vertices[p->start], 1);
-		setup_polygon_slope_vertical(
-				&pi->right_slope, p->vertices[p->end], 1);
-	} else {
-		u32 curr, next;
+	u32 curr, next;
 
-		if (p->vertices[pi->left]->sy == scanline) {
-			curr = pi->left;
-			next = pi->left;
-			while (next != p->end &&
-					p->vertices[next]->sy <= scanline) {
-				curr = next;
-				if (p->backface) {
-					next = (next - 1 + p->num_vertices) %
-					       p->num_vertices;
-				} else {
-					next = (next + 1) % p->num_vertices;
-				}
-			}
-			if (next != curr) {
-				setup_polygon_slope(&pi->left_slope,
-						p->vertices[curr],
-						p->vertices[next],
-						p->normalized_w[curr],
-						p->normalized_w[next]);
-				pi->prev_left = curr;
-				pi->left = next;
+	if (p->vertices[pi->left]->sy == scanline) {
+		curr = pi->left;
+		next = pi->left;
+		while (next != p->end && p->vertices[next]->sy <= scanline) {
+			curr = next;
+			if (p->backface) {
+				next = (next - 1 + p->num_vertices) %
+				       p->num_vertices;
+			} else {
+				next = (next + 1) % p->num_vertices;
 			}
 		}
-		if (p->vertices[pi->right]->sy == scanline) {
-			curr = pi->right;
-			next = pi->right;
-			while (next != p->end &&
-					p->vertices[next]->sy <= scanline) {
-				curr = next;
-				if (p->backface) {
-					next = (next + 1) % p->num_vertices;
-				} else {
-					next = (next - 1 + p->num_vertices) %
-					       p->num_vertices;
-				}
+		if (next != curr) {
+			setup_polygon_slope(&pi->left_slope, p->vertices[curr],
+					p->vertices[next],
+					p->normalized_w[curr],
+					p->normalized_w[next]);
+			pi->prev_left = curr;
+			pi->left = next;
+		}
+	}
+	if (p->vertices[pi->right]->sy == scanline) {
+		curr = pi->right;
+		next = pi->right;
+		while (next != p->end && p->vertices[next]->sy <= scanline) {
+			curr = next;
+			if (p->backface) {
+				next = (next + 1) % p->num_vertices;
+			} else {
+				next = (next - 1 + p->num_vertices) %
+				       p->num_vertices;
 			}
-			if (next != curr) {
-				setup_polygon_slope(&pi->right_slope,
-						p->vertices[curr],
-						p->vertices[next],
-						p->normalized_w[curr],
-						p->normalized_w[next]);
-				pi->prev_right = curr;
-				pi->right = next;
-			}
+		}
+		if (next != curr) {
+			setup_polygon_slope(&pi->right_slope,
+					p->vertices[curr], p->vertices[next],
+					p->normalized_w[curr],
+					p->normalized_w[next]);
+			pi->prev_right = curr;
+			pi->right = next;
 		}
 	}
 }
