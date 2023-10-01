@@ -373,6 +373,8 @@ start_channel(nds_ctx *nds, int ch_id)
 		} else if (14 <= ch_id && ch_id <= 15) {
 			ch.psg.mode = PSG_NOISE;
 			ch.psg.lfsr = 0x7FFF;
+		} else {
+			ch.psg.mode = PSG_INVALID;
 		}
 		ch.psg.value = 0;
 	}
