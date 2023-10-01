@@ -417,6 +417,12 @@ cmd_normal(gpu_3d_engine *gpu)
 		s64 shiny_level = std::clamp(shiny_dot, (s64)0, (s64)1 << 18);
 		shiny_level = (shiny_level >> 9) * (shiny_level >> 9) >> 9;
 
+		if (ge.enable_shiny_table) {
+			s64 idx = std::clamp(
+					shiny_level >> 2, (s64)0, (s64)127);
+			shiny_level = ge.shiny_table[idx] << 1;
+		}
+
 		for (u32 j = 0; j < 3; j++) {
 			s64 light_color = ge.light_color[i][j];
 			s64 specular = ge.specular_color[j] * light_color *
