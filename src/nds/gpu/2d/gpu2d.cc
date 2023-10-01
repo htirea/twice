@@ -554,15 +554,16 @@ capture_display(gpu_2d_engine *gpu, u16 y)
 			LOG("capture from main memory fifo not implemented\n");
 			return;
 		} else {
-			u32 bank = gpu->dispcnt >> 18 & 3;
-			u32 offset = y * w * 2;
+			u32 read_bank = gpu->dispcnt >> 18 & 3;
+			u32 read_offset = y * w * 2;
 			if ((gpu->dispcnt >> 16 & 3) != 2) {
-				offset += 0x8000 * (gpu->dispcapcnt >> 26 & 3);
+				read_offset += 0x8000 *
+				               (gpu->dispcapcnt >> 26 & 3);
 			}
-			u8 *p = gpu->nds->vram.bank_to_base_ptr[bank];
+			u8 *p = gpu->nds->vram.bank_to_base_ptr[read_bank];
 			for (u32 i = 0; i < w; i++) {
-				src_b[i] = readarr<u16>(
-						p, offset + i * 2 & 0x1FFFF);
+				u32 offset = (read_offset + i * 2) & 0x1FFFF;
+				src_b[i] = readarr<u16>(p, offset);
 			}
 		}
 	}
@@ -577,16 +578,16 @@ capture_display(gpu_2d_engine *gpu, u16 y)
 			u16 a = src_a[i].a != 0;
 
 			u16 color = a << 15 | b << 10 | g << 5 | r;
-			writearr<u16>(write_p, write_offset + i * 2 & 0x1FFFF,
-					color);
+			u32 offset = (write_offset + i * 2) & 0x1FFFF;
+			writearr<u16>(write_p, offset, color);
 		}
 		break;
 	}
 	case 1:
 	{
 		for (u32 i = 0; i < w; i++) {
-			writearr<u16>(write_p, write_offset + i * 2 & 0x1FFFF,
-					src_b[i]);
+			u32 offset = (write_offset + i * 2) & 0x1FFFF;
+			writearr<u16>(write_p, offset, src_b[i]);
 		}
 		break;
 	}
@@ -618,8 +619,8 @@ capture_display(gpu_2d_engine *gpu, u16 y)
 
 			u16 color = a << 15 | b << 10 | g << 5 | r;
 
-			writearr<u16>(write_p, write_offset + i * 2 & 0x1FFFF,
-					color);
+			u32 offset = (write_offset + i * 2) & 0x1FFFF;
+			writearr<u16>(write_p, offset, color);
 		}
 	}
 	}

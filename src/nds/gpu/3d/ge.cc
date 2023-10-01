@@ -636,16 +636,16 @@ add_polygon(gpu_3d_engine *gpu)
 	switch (ge.primitive_type) {
 	case 0:
 		num_vertices = 3;
-		vertices[0] = &ge.vtx_buf[ge.vtx_count - 3 & 3];
-		vertices[1] = &ge.vtx_buf[ge.vtx_count - 2 & 3];
-		vertices[2] = &ge.vtx_buf[ge.vtx_count - 1 & 3];
+		vertices[0] = &ge.vtx_buf[(ge.vtx_count - 3) & 3];
+		vertices[1] = &ge.vtx_buf[(ge.vtx_count - 2) & 3];
+		vertices[2] = &ge.vtx_buf[(ge.vtx_count - 1) & 3];
 		break;
 	case 1:
 		num_vertices = 4;
-		vertices[0] = &ge.vtx_buf[ge.vtx_count - 4 & 3];
-		vertices[1] = &ge.vtx_buf[ge.vtx_count - 3 & 3];
-		vertices[2] = &ge.vtx_buf[ge.vtx_count - 2 & 3];
-		vertices[3] = &ge.vtx_buf[ge.vtx_count - 1 & 3];
+		vertices[0] = &ge.vtx_buf[(ge.vtx_count - 4) & 3];
+		vertices[1] = &ge.vtx_buf[(ge.vtx_count - 3) & 3];
+		vertices[2] = &ge.vtx_buf[(ge.vtx_count - 2) & 3];
+		vertices[3] = &ge.vtx_buf[(ge.vtx_count - 1) & 3];
 		break;
 	case 2:
 		num_vertices = 3;
@@ -653,7 +653,7 @@ add_polygon(gpu_3d_engine *gpu)
 			vertices[0] = ge.last_strip_vtx[0];
 			vertices[0]->reused = 2;
 		} else {
-			vertices[0] = &ge.vtx_buf[ge.vtx_count - 3 & 3];
+			vertices[0] = &ge.vtx_buf[(ge.vtx_count - 3) & 3];
 			vertices[0]->reused = 0;
 		}
 		vertices[0]->strip_vtx = 0;
@@ -662,12 +662,12 @@ add_polygon(gpu_3d_engine *gpu)
 			vertices[1] = ge.last_strip_vtx[1];
 			vertices[1]->reused = 1;
 		} else {
-			vertices[1] = &ge.vtx_buf[ge.vtx_count - 2 & 3];
+			vertices[1] = &ge.vtx_buf[(ge.vtx_count - 2) & 3];
 			vertices[1]->reused = 0;
 		}
 		vertices[1]->strip_vtx = 2;
 
-		vertices[2] = &ge.vtx_buf[ge.vtx_count - 1 & 3];
+		vertices[2] = &ge.vtx_buf[(ge.vtx_count - 1) & 3];
 		vertices[2]->reused = 0;
 		vertices[2]->strip_vtx = 1;
 
@@ -681,7 +681,7 @@ add_polygon(gpu_3d_engine *gpu)
 			vertices[0] = ge.last_strip_vtx[0];
 			vertices[0]->reused = 2;
 		} else {
-			vertices[0] = &ge.vtx_buf[ge.vtx_count - 4 & 3];
+			vertices[0] = &ge.vtx_buf[(ge.vtx_count - 4) & 3];
 			vertices[0]->reused = 0;
 		}
 		vertices[0]->strip_vtx = 0;
@@ -690,15 +690,15 @@ add_polygon(gpu_3d_engine *gpu)
 			vertices[1] = ge.last_strip_vtx[1];
 			vertices[1]->reused = 1;
 		} else {
-			vertices[1] = &ge.vtx_buf[ge.vtx_count - 3 & 3];
+			vertices[1] = &ge.vtx_buf[(ge.vtx_count - 3) & 3];
 			vertices[1]->reused = 0;
 		}
 		vertices[1]->strip_vtx = 0;
 
-		vertices[2] = &ge.vtx_buf[ge.vtx_count - 1 & 3];
+		vertices[2] = &ge.vtx_buf[(ge.vtx_count - 1) & 3];
 		vertices[2]->reused = 0;
 		vertices[2]->strip_vtx = 1;
-		vertices[3] = &ge.vtx_buf[ge.vtx_count - 2 & 3];
+		vertices[3] = &ge.vtx_buf[(ge.vtx_count - 2) & 3];
 		vertices[3]->reused = 0;
 		vertices[3]->strip_vtx = 2;
 	}
