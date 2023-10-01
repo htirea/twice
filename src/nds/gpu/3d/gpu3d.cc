@@ -408,6 +408,9 @@ gpu_3d_write16(gpu_3d_engine *gpu, u16 offset, u16 value)
 	case 0x35C:
 		gpu->re.shadow.fog_offset = value & 0x7FFF;
 		return;
+	case 0x610:
+		gpu->ge.disp_1dot_depth = (s32)(value & 0x7FFF) << 9;
+		return;
 	}
 
 	LOG("3d engine write 16 at offset %03X, value %04X\n", offset, value);
