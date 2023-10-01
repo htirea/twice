@@ -168,6 +168,11 @@ struct nds_machine {
 	 */
 	std::pair<double, double> get_cpu_usage();
 
+	/**
+	 * Dump the collected profiler data.
+	 */
+	void dump_profiler_report();
+
       private:
 	nds_config config;
 	file_map arm7_bios;

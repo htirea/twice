@@ -261,6 +261,8 @@ sdl_platform::loop()
 
 		last_elapsed = SDL_GetPerformanceCounter() - start;
 	}
+
+	nds->dump_profiler_report();
 }
 
 void
@@ -390,6 +392,9 @@ sdl_platform::handle_key_event(SDL_Keycode key, bool down)
 			break;
 		case SDLK_s:
 			take_screenshot(nds->get_framebuffer());
+			break;
+		case SDLK_d:
+			nds->dump_profiler_report();
 			break;
 		}
 	} else {

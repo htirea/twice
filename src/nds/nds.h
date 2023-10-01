@@ -18,6 +18,7 @@
 #include "nds/timer.h"
 #include "nds/touchscreen.h"
 
+#include "common/profiler.h"
 #include "common/types.h"
 
 namespace twice {
@@ -163,6 +164,7 @@ struct nds_ctx {
 	bool shutdown{};
 	double arm9_usage{};
 	double arm7_usage{};
+	profiler prof;
 };
 
 void nds_firmware_boot(nds_ctx *nds);

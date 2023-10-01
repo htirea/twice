@@ -245,4 +245,13 @@ nds_machine::get_cpu_usage()
 	return { nds->arm9_usage, nds->arm7_usage };
 }
 
+void
+nds_machine::dump_profiler_report()
+{
+	if (!nds)
+		return;
+
+	nds->prof.report();
+}
+
 } // namespace twice
