@@ -1,6 +1,8 @@
 #include "nds/mem/vram.h"
 #include "nds/nds.h"
 
+#include "common/logger.h"
+
 namespace twice {
 
 using vertex = gpu_3d_engine::vertex;
@@ -711,6 +713,42 @@ struct render_vertex_attrs {
 	s32 tx[2];
 };
 
+static bool
+depth_test_le(render_polygon_ctx *ctx, s32 z, s32 z_dest)
+{
+	s32 margin = ctx->p->wbuffering ? 0xFF : 0x200;
+	bool equal = z_dest - margin <= z && z <= z_dest + margin;
+
+	return equal || z < z_dest;
+}
+
+static bool
+depth_test_lt(render_polygon_ctx *, s32 z, s32 z_dest)
+{
+	return z < z_dest;
+}
+
+static bool
+depth_test_passed(gpu_3d_engine *gpu, render_polygon_ctx *ctx, s32 z, s32 x,
+		s32 y)
+{
+	s32 z_dest = gpu->depth_buf[y][x];
+	auto attr_dest = gpu->attr_buf[y][x];
+
+	if (ctx->p->attr & BIT(14)) {
+		return depth_test_le(ctx, z, z_dest);
+	}
+
+	/* TODO: wireframe edge */
+
+	if (!ctx->p->backface &&
+			(!attr_dest.translucent && attr_dest.backface)) {
+		return depth_test_le(ctx, z, z_dest);
+	}
+
+	return depth_test_lt(ctx, z, z_dest);
+}
+
 static void
 render_polygon_pixel(gpu_3d_engine *gpu, render_polygon_ctx *ctx,
 		interpolator *span, s32 x, s32 y)
@@ -718,7 +756,7 @@ render_polygon_pixel(gpu_3d_engine *gpu, render_polygon_ctx *ctx,
 	interp_update_x(span, x);
 
 	s32 z = interpolate_z(span, ctx->zl, ctx->zr, ctx->p->wbuffering);
-	if (z >= gpu->depth_buf[y][x])
+	if (!depth_test_passed(gpu, ctx, z, x, y))
 		return;
 
 	u8 rv = interpolate(span, ctx->rl, ctx->rr);
@@ -871,17 +909,24 @@ clear_buffers(gpu_3d_engine *gpu)
 	if (!(re.r.disp3dcnt & BIT(14))) {
 		color4 color = axbgr_51555_to_abgr5666(re.r.clear_color);
 		u32 attr = re.r.clear_color & 0x3F008000;
+		u32 fog = attr >> 15 & 3;
+		u32 opaque_id = attr >> 24 & 0x3F;
 		u32 depth = 0x200 * re.r.clear_depth + 0x1FF;
 
 		for (u32 i = 0; i < 192; i++) {
 			for (u32 j = 0; j < 256; j++) {
 				gpu->color_buf[i][j] = color;
 				gpu->depth_buf[i][j] = depth;
-				gpu->attr_buf[i][j] = attr;
+				gpu->attr_buf[i][j].fog = fog;
+				gpu->attr_buf[i][j].translucent_id = 0;
+				gpu->attr_buf[i][j].translucent = 0;
+				gpu->attr_buf[i][j].backface = 0;
+				gpu->attr_buf[i][j].opaque_id = opaque_id;
 			}
 		}
 	} else {
 		/* TODO: */
+		LOG("clear buffer bitmap\n");
 	}
 }
 

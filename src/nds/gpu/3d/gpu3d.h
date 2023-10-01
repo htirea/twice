@@ -203,7 +203,15 @@ struct gpu_3d_engine {
 
 	color4 color_buf[192][256]{};
 	s32 depth_buf[192][256]{};
-	u32 attr_buf[192][256]{};
+
+	struct {
+		u32 : 14;
+		u32 fog : 1;
+		u32 translucent_id : 6;
+		u32 translucent : 1;
+		u32 backface : 1;
+		u32 opaque_id : 6;
+	} attr_buf[192][256]{};
 
 	nds_ctx *nds{};
 };
