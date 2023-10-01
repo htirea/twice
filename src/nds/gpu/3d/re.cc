@@ -17,17 +17,9 @@ static void interp_update_wyfactor(interpolator *i);
 static void interp_update_yfactor(interpolator *i);
 
 static bool
-polygon_not_in_scanline(polygon *p, s32 scanline)
+polygon_not_in_scanline(polygon_info *pi, s32 y)
 {
-	s32 ystart = p->vertices[p->start]->sy;
-	s32 yend = p->vertices[p->end]->sy;
-
-	bool flat_line = p->vertices[p->start]->sy == p->vertices[p->end]->sy;
-	if (flat_line) {
-		yend++;
-	}
-
-	return scanline < ystart || scanline >= yend;
+	return y < pi->y_start || y >= pi->y_end;
 }
 
 static void
@@ -254,9 +246,6 @@ setup_polygon_scanline(gpu_3d_engine *gpu, s32 scanline, u32 poly_num)
 {
 	polygon *p = gpu->re.polygons[poly_num];
 	polygon_info *pi = &gpu->re.poly_info[poly_num];
-
-	if (polygon_not_in_scanline(p, scanline))
-		return;
 
 	if (p->vertices[p->start]->sy == p->vertices[p->end]->sy) {
 		setup_polygon_slope_vertical(
@@ -833,9 +822,6 @@ render_polygon_scanline(gpu_3d_engine *gpu, s32 scanline, u32 poly_num)
 	render_polygon_ctx ctx;
 	ctx.p = p;
 
-	if (polygon_not_in_scanline(p, scanline))
-		return;
-
 	slope *sl = &pi->left_slope;
 	slope *sr = &pi->right_slope;
 
@@ -922,6 +908,8 @@ render_3d_scanline(gpu_3d_engine *gpu, u32 scanline)
 	auto& re = gpu->re;
 
 	for (u32 i = 0; i < re.num_polygons; i++) {
+		if (polygon_not_in_scanline(&re.poly_info[i], scanline))
+			continue;
 		setup_polygon_scanline(gpu, scanline, i);
 		render_polygon_scanline(gpu, scanline, i);
 	}
@@ -1015,6 +1003,20 @@ find_polygon_start_end_sortkey(polygon *p, bool manual_sort)
 	}
 }
 
+static void
+set_polygon_bounds(polygon *p, polygon_info *pi)
+{
+	s32 y_start = p->vertices[p->start]->sy;
+	s32 y_end = p->vertices[p->end]->sy;
+
+	if (y_start == y_end) {
+		y_end++;
+	}
+
+	pi->y_start = y_start;
+	pi->y_end = y_end;
+}
+
 static bool
 cmp_polygon(polygon *a, polygon *b)
 {
@@ -1036,6 +1038,7 @@ setup_polygons(gpu_3d_engine *gpu)
 	std::stable_sort(re.polygons, re.polygons + pr.count, cmp_polygon);
 
 	for (u32 i = 0; i < pr.count; i++) {
+		set_polygon_bounds(re.polygons[i], &re.poly_info[i]);
 		setup_polygon_initial_slope(gpu, i);
 	}
 }

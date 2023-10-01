@@ -151,6 +151,8 @@ struct gpu_3d_engine {
 			u32 prev_right;
 			slope left_slope;
 			slope right_slope;
+			s32 y_start;
+			s32 y_end;
 		} poly_info[2048];
 	} re;
 
