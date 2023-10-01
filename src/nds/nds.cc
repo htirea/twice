@@ -162,7 +162,7 @@ nds_run_frame(nds_ctx *nds)
 
 		/* TODO: handle case when arm9 overflows */
 		timestamp arm7_target = nds->arm_cycles[0] >> 1;
-		while (cmp_time(nds->arm_cycles[1], arm7_target) < 0) {
+		while (nds->arm_cycles[1] < arm7_target) {
 			nds->arm_target_cycles[1] = arm7_target;
 			if (nds->dma[1].active) {
 				run_dma7(nds);

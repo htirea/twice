@@ -23,8 +23,7 @@ run_dma(nds_ctx *nds)
 
 	int width = t.word_width;
 
-	while (t.count < t.word_count &&
-			cmp_time(dma.cycles, dma.target_cycles) < 0) {
+	while (t.count < t.word_count && dma.cycles < dma.target_cycles) {
 		if (width == 4) {
 			u32 value = bus_read<cpuid, u32>(nds, t.sad);
 			bus_write<cpuid, u32>(nds, t.dad, value);

@@ -27,7 +27,7 @@ arm9_cpu::run()
 		return;
 	}
 
-	while (cmp_time(cycles, target_cycles) < 0) {
+	while (cycles < target_cycles) {
 		step();
 	}
 }

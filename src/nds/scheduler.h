@@ -51,24 +51,6 @@ struct event_scheduler {
 	arm_event arm_events[2][NUM_CPU_EVENTS];
 };
 
-inline stimestamp
-cmp_time(timestamp a, timestamp b)
-{
-	return a - b;
-}
-
-inline timestamp
-min_time(timestamp a, timestamp b)
-{
-	return cmp_time(a, b) < 0 ? a : b;
-}
-
-inline timestamp
-max_time(timestamp a, timestamp b)
-{
-	return cmp_time(a, b) > 0 ? a : b;
-}
-
 timestamp get_next_event_time(nds_ctx *nds);
 
 void schedule_nds_event(nds_ctx *nds, int event, timestamp t);
