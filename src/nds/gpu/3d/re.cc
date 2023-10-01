@@ -714,7 +714,7 @@ struct render_vertex_attrs {
 };
 
 static bool
-depth_test_le(render_polygon_ctx *ctx, s32 z, s32 z_dest)
+depth_test_le_margin(render_polygon_ctx *ctx, s32 z, s32 z_dest)
 {
 	s32 margin = ctx->p->wbuffering ? 0xFF : 0x200;
 	bool equal = z_dest - margin <= z && z <= z_dest + margin;
@@ -729,6 +729,12 @@ depth_test_lt(render_polygon_ctx *, s32 z, s32 z_dest)
 }
 
 static bool
+depth_test_le(render_polygon_ctx *, s32 z, s32 z_dest)
+{
+	return z <= z_dest;
+}
+
+static bool
 depth_test_passed(gpu_3d_engine *gpu, render_polygon_ctx *ctx, s32 z, s32 x,
 		s32 y)
 {
@@ -736,7 +742,7 @@ depth_test_passed(gpu_3d_engine *gpu, render_polygon_ctx *ctx, s32 z, s32 x,
 	auto attr_dest = gpu->attr_buf[y][x];
 
 	if (ctx->p->attr & BIT(14)) {
-		return depth_test_le(ctx, z, z_dest);
+		return depth_test_le_margin(ctx, z, z_dest);
 	}
 
 	/* TODO: wireframe edge */
@@ -747,6 +753,46 @@ depth_test_passed(gpu_3d_engine *gpu, render_polygon_ctx *ctx, s32 z, s32 x,
 	}
 
 	return depth_test_lt(ctx, z, z_dest);
+}
+
+static void
+render_opaque_pixel(gpu_3d_engine *gpu, render_polygon_ctx *ctx, color4 color,
+		s32 x, s32 y, s32 z)
+{
+	gpu->color_buf[y][x] = color;
+	gpu->depth_buf[y][x] = z;
+
+	auto& attr = gpu->attr_buf[y][x];
+	attr.fog = ctx->p->attr >> 15 & 1;
+	attr.translucent = 0;
+	attr.backface = ctx->p->backface;
+	attr.opaque_id = ctx->p->attr >> 24 & 0x3F;
+}
+
+static void
+render_translucent_pixel(gpu_3d_engine *gpu, render_polygon_ctx *ctx,
+		color4 color, s32 x, s32 y, s32 z)
+{
+	u32 poly_id = ctx->p->attr >> 24 & 0x3F;
+	auto& attr = gpu->attr_buf[y][x];
+	if (attr.translucent && attr.translucent_id == poly_id)
+		return;
+
+	if (!ctx->alpha_blending || gpu->color_buf[y][x].a == 0) {
+		gpu->color_buf[y][x] = color;
+	} else {
+		gpu->color_buf[y][x] =
+				alpha_blend(color, gpu->color_buf[y][x]);
+	}
+
+	if (ctx->p->attr & BIT(11)) {
+		gpu->depth_buf[y][x] = z;
+	}
+
+	attr.fog = ctx->p->attr >> 15 & 1;
+	attr.translucent_id = poly_id;
+	attr.translucent = 1;
+	attr.backface = ctx->p->backface;
 }
 
 static void
@@ -771,14 +817,12 @@ render_polygon_pixel(gpu_3d_engine *gpu, render_polygon_ctx *ctx,
 	if (px_color.a <= ctx->alpha_test_ref) {
 		return;
 	}
-	if (!ctx->alpha_blending || px_color.a == 31 ||
-			gpu->color_buf[y][x].a == 0) {
-		gpu->color_buf[y][x] = px_color;
-	} else {
-		gpu->color_buf[y][x] =
-				alpha_blend(px_color, gpu->color_buf[y][x]);
+
+	if (px_color.a == 31) {
+		render_opaque_pixel(gpu, ctx, px_color, x, y, z);
+	} else if (px_color.a != 0) {
+		render_translucent_pixel(gpu, ctx, px_color, x, y, z);
 	}
-	gpu->depth_buf[y][x] = z;
 } // namespace twice
 
 static void
