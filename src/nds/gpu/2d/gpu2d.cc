@@ -1020,8 +1020,19 @@ render_text_bg(gpu_2d_engine *gpu, int bg)
 	u32 bg_size_bits = gpu->bg_cnt[bg] >> 14 & 0x3;
 	u32 bg_w = text_bg_widths[bg_size_bits];
 	u32 bg_h = text_bg_heights[bg_size_bits];
+
+	u32 mosaic_h = (gpu->mosaic & 0xF) + 1;
+	u32 mosaic_v = (gpu->mosaic >> 4 & 0xF) + 1;
+	bool apply_mosaic_h = gpu->bg_cnt[bg] & BIT(6) && mosaic_h != 1;
+
 	u32 bg_x = gpu->bg_hofs[bg] & (bg_w - 1);
-	u32 bg_y = (gpu->bg_vofs[bg] + gpu->nds->vcount) & (bg_h - 1);
+	u32 bg_y;
+	if (gpu->bg_cnt[bg] & BIT(6)) {
+		u32 line = gpu->nds->vcount / mosaic_v * mosaic_v;
+		bg_y = (gpu->bg_vofs[bg] + line) & (bg_h - 1);
+	} else {
+		bg_y = (gpu->bg_vofs[bg] + gpu->nds->vcount) & (bg_h - 1);
+	}
 
 	u32 screen = (bg_y / 256 * 2) + (bg_x / 256);
 	if (bg_size_bits == 2) {
@@ -1055,6 +1066,9 @@ render_text_bg(gpu_2d_engine *gpu, int bg)
 	bool effect_top = gpu->bldcnt & BIT(0 + bg);
 	bool effect_bottom = gpu->bldcnt & BIT(8 + bg);
 
+	u16 last_color = 0;
+	u32 last_offset = 0;
+
 	for (u32 i = 0; i < 256;) {
 		if (px == 0 || i == 0) {
 			u32 se_offset = screen_base + 0x800 * screen +
@@ -1066,36 +1080,58 @@ render_text_bg(gpu_2d_engine *gpu, int bg)
 			palette_num = se >> 12;
 		}
 
-		if (color_256) {
-			for (; px < 8 && i < 256; px++, i++, char_row >>= 8) {
-				u32 offset = char_row & 0xFF;
-				if (offset == 0)
-					continue;
-
-				u16 color;
-				if (extended_palettes) {
-					color = bg_get_color_extended(gpu,
-							slot, palette_num,
-							offset);
-				} else {
-					color = bg_get_color_256(gpu, offset);
-				}
-				draw_2d_bg_pixel(gpu, bg, i, color,
+		for (; color_256 && px < 8 && i < 256;
+				px++, i++, char_row >>= 8) {
+			bool in_mosaic = apply_mosaic_h && i % mosaic_h != 0;
+			if (in_mosaic && last_offset != 0) {
+				draw_2d_bg_pixel(gpu, bg, i, last_color,
 						bg_priority, effect_top,
 						effect_bottom);
+				continue;
 			}
-		} else {
-			for (; px < 8 && i < 256; px++, i++, char_row >>= 4) {
-				u32 offset = char_row & 0xF;
-				if (offset != 0) {
-					u16 color = bg_get_color_16(gpu,
-							palette_num, offset);
-					draw_2d_bg_pixel(gpu, bg, i, color,
-							bg_priority,
-							effect_top,
-							effect_bottom);
-				}
+
+			if (in_mosaic)
+				continue;
+
+			u32 offset = char_row & 0xFF;
+			last_offset = offset;
+			if (offset == 0)
+				continue;
+
+			u16 color;
+			if (extended_palettes) {
+				color = bg_get_color_extended(gpu, slot,
+						palette_num, offset);
+			} else {
+				color = bg_get_color_256(gpu, offset);
 			}
+			last_color = color;
+			draw_2d_bg_pixel(gpu, bg, i, color, bg_priority,
+					effect_top, effect_bottom);
+		}
+
+		for (; !color_256 && px < 8 && i < 256;
+				px++, i++, char_row >>= 4) {
+			bool in_mosaic = apply_mosaic_h && i % mosaic_h != 0;
+			if (in_mosaic && last_offset != 0) {
+				draw_2d_bg_pixel(gpu, bg, i, last_color,
+						bg_priority, effect_top,
+						effect_bottom);
+				continue;
+			}
+
+			if (in_mosaic)
+				continue;
+
+			u32 offset = char_row & 0xF;
+			last_offset = offset;
+			if (offset == 0)
+				continue;
+
+			u16 color = bg_get_color_16(gpu, palette_num, offset);
+			last_color = color;
+			draw_2d_bg_pixel(gpu, bg, i, color, bg_priority,
+					effect_top, effect_bottom);
 		}
 
 		px = 0;
