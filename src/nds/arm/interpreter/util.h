@@ -11,19 +11,20 @@ namespace twice::arm::interpreter {
 inline bool
 in_privileged_mode(arm_cpu *cpu)
 {
-	return cpu->mode != MODE_USR;
+	return cpu->mode != arm_cpu::MODE_USR;
 }
 
 inline bool
 in_sys_or_usr_mode(arm_cpu *cpu)
 {
-	return cpu->mode == MODE_SYS || cpu->mode == MODE_USR;
+	return cpu->mode == arm_cpu::MODE_SYS ||
+	       cpu->mode == arm_cpu::MODE_USR;
 }
 
 inline bool
 in_fiq_mode(arm_cpu *cpu)
 {
-	return cpu->mode == MODE_FIQ;
+	return cpu->mode == arm_cpu::MODE_FIQ;
 }
 
 inline bool

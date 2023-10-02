@@ -35,7 +35,7 @@ arm_cop_reg(arm_cpu *cpu)
 		if (rd == 15) {
 			value += 4;
 		}
-		((arm9_cpu *)cpu)->cp15_write(reg, value);
+		cp15_write((arm9_cpu *)cpu, reg, value);
 	} else {
 		u32 value;
 
@@ -64,7 +64,7 @@ arm_cop_reg(arm_cpu *cpu)
 			}
 
 			u32 reg = cn << 8 | cm << 4 | OP2;
-			value = ((arm9_cpu *)cpu)->cp15_read(reg);
+			value = cp15_read((arm9_cpu *)cpu, reg);
 		}
 
 		if (rd == 15) {

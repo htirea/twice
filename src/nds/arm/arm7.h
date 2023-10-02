@@ -32,6 +32,8 @@ struct arm7_cpu final : arm_cpu {
 	}
 };
 
+void arm7_direct_boot(arm7_cpu *cpu, u32 entry_addr);
+
 } // namespace twice
 
 #endif

@@ -5,15 +5,15 @@
 
 namespace twice {
 
-enum {
-	ITCM_SIZE = 32_KiB,
-	ITCM_MASK = 32_KiB - 1,
-	DTCM_SIZE = 16_KiB,
-	DTCM_MASK = 16_KiB - 1,
-};
-
 struct arm9_cpu final : arm_cpu {
 	arm9_cpu(nds_ctx *nds);
+
+	enum {
+		ITCM_SIZE = 32_KiB,
+		ITCM_MASK = 32_KiB - 1,
+		DTCM_SIZE = 16_KiB,
+		DTCM_MASK = 16_KiB - 1,
+	};
 
 	u8 itcm[ITCM_SIZE]{};
 	u8 dtcm[DTCM_SIZE]{};
@@ -55,17 +55,11 @@ struct arm9_cpu final : arm_cpu {
 			halted &= ~CPU_HALT;
 		}
 	}
-
-	u32 cp15_read(u32 reg);
-	void cp15_write(u32 reg, u32 value);
-
-	template <typename T>
-	T fetch(u32 addr);
-	template <typename T>
-	T load(u32 addr);
-	template <typename T>
-	void store(u32 addr, T value);
 };
+
+void arm9_direct_boot(arm9_cpu *gpu, u32 entry_addr);
+u32 cp15_read(arm9_cpu *cpu, u32 reg);
+void cp15_write(arm9_cpu *cpu, u32 reg, u32 value);
 
 } // namespace twice
 

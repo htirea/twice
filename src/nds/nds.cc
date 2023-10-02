@@ -121,23 +121,8 @@ nds_direct_boot(nds_ctx *nds)
 	std::memcpy(nds->main_ram + 0x3FFE00, nds->cart.data,
 			std::min((size_t)0x170, nds->cart.size));
 
-	nds->arm9->cp15_write(0x100, 0x00012078);
-	nds->arm9->cp15_write(0x910, 0x0300000A);
-	nds->arm9->cp15_write(0x911, 0x00000020);
-
-	nds->arm9->gpr[12] = entry_addr[0];
-	nds->arm9->gpr[13] = 0x03002F7C;
-	nds->arm9->gpr[14] = entry_addr[0];
-	nds->arm9->bankedr[MODE_IRQ][0] = 0x03003F80;
-	nds->arm9->bankedr[MODE_SVC][0] = 0x03003FC0;
-	nds->arm9->arm_jump(entry_addr[0]);
-
-	nds->arm7->gpr[12] = entry_addr[1];
-	nds->arm7->gpr[13] = 0x0380FD80;
-	nds->arm7->gpr[14] = entry_addr[1];
-	nds->arm7->bankedr[MODE_IRQ][0] = 0x0380FF80;
-	nds->arm7->bankedr[MODE_SVC][0] = 0x0380FFC0;
-	nds->arm7->arm_jump(entry_addr[1]);
+	arm9_direct_boot(nds->arm9.get(), entry_addr[0]);
+	arm7_direct_boot(nds->arm7.get(), entry_addr[1]);
 
 	/* TODO: more stuff for direct booting */
 }

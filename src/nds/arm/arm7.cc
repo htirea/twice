@@ -6,9 +6,17 @@
 
 namespace twice {
 
-arm7_cpu::arm7_cpu(nds_ctx *nds)
-	: arm_cpu(nds, 1)
+arm7_cpu::arm7_cpu(nds_ctx *nds) : arm_cpu(nds, 1) {}
+
+void
+arm7_direct_boot(arm7_cpu *cpu, u32 entry_addr)
 {
+	cpu->gpr[12] = entry_addr;
+	cpu->gpr[13] = 0x0380FD80;
+	cpu->gpr[14] = entry_addr;
+	cpu->bankedr[arm_cpu::MODE_IRQ][0] = 0x0380FF80;
+	cpu->bankedr[arm_cpu::MODE_SVC][0] = 0x0380FFC0;
+	cpu->arm_jump(entry_addr);
 }
 
 static bool

@@ -8,9 +8,21 @@
 
 namespace twice {
 
-arm9_cpu::arm9_cpu(nds_ctx *nds)
-	: arm_cpu(nds, 0)
+arm9_cpu::arm9_cpu(nds_ctx *nds) : arm_cpu(nds, 0) {}
+
+void
+arm9_direct_boot(arm9_cpu *cpu, u32 entry_addr)
 {
+	cp15_write(cpu, 0x100, 0x00012078);
+	cp15_write(cpu, 0x910, 0x0300000A);
+	cp15_write(cpu, 0x911, 0x00000020);
+
+	cpu->gpr[12] = entry_addr;
+	cpu->gpr[13] = 0x03002F7C;
+	cpu->gpr[14] = entry_addr;
+	cpu->bankedr[arm_cpu::MODE_IRQ][0] = 0x03003F80;
+	cpu->bankedr[arm_cpu::MODE_SVC][0] = 0x03003FC0;
+	cpu->arm_jump(entry_addr);
 }
 
 static bool
@@ -100,94 +112,95 @@ arm9_cpu::jump_cpsr(u32 addr)
 }
 
 template <typename T>
-T
-arm9_cpu::fetch(u32 addr)
+static T
+fetch(arm9_cpu *cpu, u32 addr)
 {
-	if (read_itcm && 0 == (addr & itcm_addr_mask)) {
-		return readarr<T>(itcm, addr & itcm_array_mask);
+	if (cpu->read_itcm && 0 == (addr & cpu->itcm_addr_mask)) {
+		return readarr<T>(cpu->itcm, addr & cpu->itcm_array_mask);
 	}
 
-	return bus9_read<T>(nds, addr);
+	return bus9_read<T>(cpu->nds, addr);
 }
 
 template <typename T>
-T
-arm9_cpu::load(u32 addr)
+static T
+load(arm9_cpu *cpu, u32 addr)
 {
-	if (read_itcm && 0 == (addr & itcm_addr_mask)) {
-		return readarr<T>(itcm, addr & itcm_array_mask);
+	if (cpu->read_itcm && 0 == (addr & cpu->itcm_addr_mask)) {
+		return readarr<T>(cpu->itcm, addr & cpu->itcm_array_mask);
 	}
 
-	if (read_dtcm && dtcm_base == (addr & dtcm_addr_mask)) {
-		return readarr<T>(dtcm, addr & dtcm_array_mask);
+	if (cpu->read_dtcm && cpu->dtcm_base == (addr & cpu->dtcm_addr_mask)) {
+		return readarr<T>(cpu->dtcm, addr & cpu->dtcm_array_mask);
 	}
 
-	return bus9_read<T>(nds, addr);
+	return bus9_read<T>(cpu->nds, addr);
 }
 
 template <typename T>
-void
-arm9_cpu::store(u32 addr, T value)
+static void
+store(arm9_cpu *cpu, u32 addr, T value)
 {
-	if (write_itcm && 0 == (addr & itcm_addr_mask)) {
-		writearr<T>(itcm, addr & itcm_array_mask, value);
+	if (cpu->write_itcm && 0 == (addr & cpu->itcm_addr_mask)) {
+		writearr<T>(cpu->itcm, addr & cpu->itcm_array_mask, value);
 		return;
 	}
 
-	if (write_dtcm && dtcm_base == (addr & dtcm_addr_mask)) {
-		writearr<T>(dtcm, addr & dtcm_array_mask, value);
+	if (cpu->write_dtcm &&
+			cpu->dtcm_base == (addr & cpu->dtcm_addr_mask)) {
+		writearr<T>(cpu->dtcm, addr & cpu->dtcm_array_mask, value);
 		return;
 	}
 
-	bus9_write<T>(nds, addr, value);
+	bus9_write<T>(cpu->nds, addr, value);
 }
 
 u32
 arm9_cpu::fetch32(u32 addr)
 {
-	return fetch<u32>(addr);
+	return fetch<u32>(this, addr);
 }
 
 u16
 arm9_cpu::fetch16(u32 addr)
 {
-	return fetch<u16>(addr);
+	return fetch<u16>(this, addr);
 }
 
 u32
 arm9_cpu::load32(u32 addr)
 {
-	return load<u32>(addr);
+	return load<u32>(this, addr);
 }
 
 u16
 arm9_cpu::load16(u32 addr)
 {
-	return load<u16>(addr);
+	return load<u16>(this, addr);
 }
 
 u8
 arm9_cpu::load8(u32 addr)
 {
-	return load<u8>(addr);
+	return load<u8>(this, addr);
 }
 
 void
 arm9_cpu::store32(u32 addr, u32 value)
 {
-	store<u32>(addr, value);
+	store<u32>(this, addr, value);
 }
 
 void
 arm9_cpu::store16(u32 addr, u16 value)
 {
-	store<u16>(addr, value);
+	store<u16>(this, addr, value);
 }
 
 void
 arm9_cpu::store8(u32 addr, u8 value)
 {
-	store<u8>(addr, value);
+	store<u8>(this, addr, value);
 }
 
 u16
@@ -203,14 +216,14 @@ arm9_cpu::ldrsh(u32 addr)
 }
 
 u32
-arm9_cpu::cp15_read(u32 reg)
+cp15_read(arm9_cpu *cpu, u32 reg)
 {
 	switch (reg) {
 	/* cache type register */
 	case 0x001:
 		return 0x0F0D2112;
 	case 0x100:
-		return ctrl_reg;
+		return cpu->ctrl_reg;
 	/* protection unit */
 	case 0x200:
 	case 0x201:
@@ -230,9 +243,9 @@ arm9_cpu::cp15_read(u32 reg)
 		LOG("cp15 read %03X\n", reg);
 		return 0;
 	case 0x910:
-		return dtcm_reg;
+		return cpu->dtcm_reg;
 	case 0x911:
-		return itcm_reg;
+		return cpu->itcm_reg;
 	default:
 		LOG("cp15 read %03X\n", reg);
 		throw twice_error("unhandled cp15 read");
@@ -265,34 +278,34 @@ ctrl_reg_write(arm9_cpu *cpu, u32 value)
 }
 
 void
-arm9_cpu::cp15_write(u32 reg, u32 value)
+cp15_write(arm9_cpu *cpu, u32 reg, u32 value)
 {
 	switch (reg) {
 	case 0x100:
-		ctrl_reg_write(this, value);
+		ctrl_reg_write(cpu, value);
 		break;
 	case 0x910:
 	{
 		u32 shift = std::clamp<u32>(value >> 1 & 0x1F, 3, 23);
 		u32 mask = ((u64)512 << shift) - 1;
-		dtcm_base = value & ~mask;
-		dtcm_addr_mask = ~mask;
-		dtcm_array_mask = mask & DTCM_MASK;
-		dtcm_reg = value & 0xFFFFF03E;
+		cpu->dtcm_base = value & ~mask;
+		cpu->dtcm_addr_mask = ~mask;
+		cpu->dtcm_array_mask = mask & arm9_cpu::DTCM_MASK;
+		cpu->dtcm_reg = value & 0xFFFFF03E;
 		break;
 	}
 	case 0x911:
 	{
 		u32 shift = std::clamp<u32>(value >> 1 & 0x1F, 3, 23);
 		u32 mask = ((u64)512 << shift) - 1;
-		itcm_addr_mask = ~mask;
-		itcm_array_mask = mask & ITCM_MASK;
-		itcm_reg = value & 0x3E;
+		cpu->itcm_addr_mask = ~mask;
+		cpu->itcm_array_mask = mask & arm9_cpu::ITCM_MASK;
+		cpu->itcm_reg = value & 0x3E;
 		break;
 	}
 	case 0x704:
 	case 0x782:
-		halt_cpu(this, CPU_HALT);
+		halt_cpu(cpu, arm_cpu::CPU_HALT);
 		break;
 	case 0x200:
 	case 0x201:

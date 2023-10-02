@@ -193,7 +193,7 @@ gxfifo_run_commands(gpu_3d_engine *gpu)
 	}
 
 	if (fifo.buffer.size() < gpu_3d_engine::gxfifo::MAX_BUFFER_SIZE) {
-		unhalt_cpu(gpu->nds->cpu[0], CPU_GXFIFO_HALT);
+		unhalt_cpu(gpu->nds->cpu[0], arm_cpu::CPU_GXFIFO_HALT);
 	}
 }
 
@@ -203,7 +203,7 @@ gxfifo_push(gpu_3d_engine *gpu, u8 command, u32 param, bool run_commands)
 	auto& fifo = gpu->fifo;
 
 	if (fifo.buffer.size() >= gpu_3d_engine::gxfifo::MAX_BUFFER_SIZE) {
-		halt_cpu(gpu->nds->cpu[0], CPU_GXFIFO_HALT);
+		halt_cpu(gpu->nds->cpu[0], arm_cpu::CPU_GXFIFO_HALT);
 	}
 
 	fifo.buffer.push({ command, param });

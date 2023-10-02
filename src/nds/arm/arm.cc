@@ -8,6 +8,8 @@
 
 namespace twice {
 
+using enum arm_cpu::cpu_mode;
+
 const u16 arm_cond_table[16] = {
 	0xF0F0, /* EQ */
 	0x0F0F, /* NE */
@@ -41,19 +43,19 @@ static u32
 mode_bits_to_mode(u32 bits)
 {
 	switch (bits) {
-	case SYS_MODE_BITS:
+	case 0x1F:
 		return MODE_SYS;
-	case FIQ_MODE_BITS:
+	case 0x11:
 		return MODE_FIQ;
-	case SVC_MODE_BITS:
+	case 0x13:
 		return MODE_SVC;
-	case ABT_MODE_BITS:
+	case 0x17:
 		return MODE_ABT;
-	case IRQ_MODE_BITS:
+	case 0x12:
 		return MODE_IRQ;
-	case UND_MODE_BITS:
+	case 0x1B:
 		return MODE_UND;
-	case USR_MODE_BITS:
+	case 0x10:
 		return MODE_USR;
 	}
 

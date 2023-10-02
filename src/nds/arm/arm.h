@@ -6,42 +6,32 @@
 
 namespace twice {
 
-enum {
-	MODE_SYS,
-	MODE_FIQ,
-	MODE_SVC,
-	MODE_ABT,
-	MODE_IRQ,
-	MODE_UND,
-	MODE_USR = 8
-};
-
-enum {
-	USR_MODE_BITS = 0x10,
-	FIQ_MODE_BITS = 0x11,
-	IRQ_MODE_BITS = 0x12,
-	SVC_MODE_BITS = 0x13,
-	ABT_MODE_BITS = 0x17,
-	UND_MODE_BITS = 0x1B,
-	SYS_MODE_BITS = 0x1F,
-};
-
-enum {
-	CPU_HALT = 0x1,
-	CPU_GXFIFO_HALT = 0x2,
-	CPU_STOP = 0x4,
-};
-
 struct nds_ctx;
 
 struct arm_cpu {
 	arm_cpu(nds_ctx *nds, int cpuid);
 	virtual ~arm_cpu();
 
+	enum cpu_mode {
+		MODE_SYS,
+		MODE_FIQ,
+		MODE_SVC,
+		MODE_ABT,
+		MODE_IRQ,
+		MODE_UND,
+		MODE_USR = 8
+	};
+
+	enum halt_mode {
+		CPU_HALT = 0x1,
+		CPU_GXFIFO_HALT = 0x2,
+		CPU_STOP = 0x4,
+	};
+
 	u32 gpr[16]{};
 	u32 bankedr[6][3]{};
 	u32 fiqr[5]{};
-	u32 cpsr = BIT(7) | BIT(6) | SYS_MODE_BITS;
+	u32 cpsr{ 0x9F };
 	u32 opcode;
 	u32 pipeline[2]{};
 	u32 exception_base{};

@@ -12,7 +12,7 @@ thumb_undefined(arm_cpu *cpu)
 
 	cpu->cpsr &= ~0xBF;
 	cpu->cpsr |= 0x9B;
-	arm_switch_mode(cpu, MODE_SVC);
+	arm_switch_mode(cpu, arm_cpu::MODE_SVC);
 	cpu->interrupt = false;
 
 	cpu->gpr[14] = cpu->pc() - 2;
@@ -27,7 +27,7 @@ thumb_swi(arm_cpu *cpu)
 
 	cpu->cpsr &= ~0xBF;
 	cpu->cpsr |= 0x93;
-	arm_switch_mode(cpu, MODE_SVC);
+	arm_switch_mode(cpu, arm_cpu::MODE_SVC);
 	cpu->interrupt = false;
 
 	cpu->gpr[14] = cpu->pc() - 2;
