@@ -162,10 +162,27 @@ sdl_platform::render(u32 *fb)
 void
 sdl_platform::queue_audio(s16 *audiobuffer, u32 size, u64 ticks)
 {
+	static u64 delay_count = 0;
+	static u64 timeout = 0;
+
 	double target = 32768.0 * ticks / freq;
 	double actual_target = 32768.0 / NDS_FRAME_RATE;
 
 	if (std::abs(target - actual_target) > 200.0) {
+		delay_count++;
+		return;
+	}
+
+	if (delay_count >= 5) {
+		timeout = 60;
+	}
+
+	if (delay_count) {
+		delay_count--;
+	}
+
+	if (timeout) {
+		timeout--;
 		return;
 	}
 
