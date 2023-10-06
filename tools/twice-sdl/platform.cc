@@ -41,13 +41,20 @@ sdl_platform::sdl_platform(nds_machine *nds, const config& sdl_config)
 		throw sdl_error("renderer set logical size failed");
 	}
 
-	texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_BGR888,
+	textures[0] = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_BGR888,
 			SDL_TEXTUREACCESS_STREAMING, NDS_FB_W, NDS_FB_H);
-	if (!texture) {
+	if (!textures[0]) {
 		throw sdl_error("create texture failed");
 	}
-
-	if (SDL_SetTextureScaleMode(texture, sdl_config.scale_mode)) {
+	if (SDL_SetTextureScaleMode(textures[0], sdl_config.scale_mode)) {
+		throw sdl_error("set texture scale mode failed");
+	}
+	textures[1] = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_BGR888,
+			SDL_TEXTUREACCESS_STREAMING, NDS_FB_H, NDS_FB_W);
+	if (!textures[1]) {
+		throw sdl_error("create texture failed");
+	}
+	if (SDL_SetTextureScaleMode(textures[1], sdl_config.scale_mode)) {
 		throw sdl_error("set texture scale mode failed");
 	}
 
@@ -86,7 +93,8 @@ sdl_platform::~sdl_platform()
 	if (audio_dev) {
 		SDL_CloseAudioDevice(audio_dev);
 	}
-	SDL_DestroyTexture(texture);
+	SDL_DestroyTexture(textures[0]);
+	SDL_DestroyTexture(textures[1]);
 	SDL_DestroyRenderer(renderer);
 	SDL_DestroyWindow(window);
 	SDL_Quit();
@@ -106,6 +114,32 @@ get_data_dir()
 	return data_dir;
 }
 
+static void
+copy_framebuffer_to_texture(u32 *dest, u32 *src, int orientation)
+{
+	switch (orientation) {
+	case 0:
+		std::memcpy(dest, src, NDS_FB_SZ_BYTES);
+		break;
+	case 1:
+		for (u32 i = NDS_FB_H; i--;) {
+			for (u32 j = 0; j < NDS_FB_W; j++) {
+				dest[j * NDS_FB_H + i] = *src++;
+			}
+		}
+		break;
+	case 2:
+		std::reverse_copy(src, src + NDS_FB_SZ, dest);
+		break;
+	case 3:
+		for (u32 i = 0; i < NDS_FB_H; i++) {
+			for (u32 j = NDS_FB_W; j--;) {
+				dest[j * NDS_FB_H + i] = *src++;
+			}
+		}
+	}
+}
+
 void
 sdl_platform::render(u32 *fb)
 {
@@ -114,8 +148,9 @@ sdl_platform::render(u32 *fb)
 
 	int pitch;
 	void *p;
+	SDL_Texture *texture = textures[orientation & 1];
 	SDL_LockTexture(texture, NULL, &p, &pitch);
-	std::memcpy(p, fb, NDS_FB_SZ_BYTES);
+	copy_framebuffer_to_texture((u32 *)p, fb, orientation);
 	SDL_UnlockTexture(texture);
 
 	SDL_SetRenderTarget(renderer, NULL);
@@ -358,6 +393,12 @@ sdl_platform::handle_key_event(SDL_Keycode key, bool down)
 		case SDLK_d:
 			nds->dump_profiler_report();
 			break;
+		case SDLK_LEFT:
+			rotate_screen(-1);
+			break;
+		case SDLK_RIGHT:
+			rotate_screen(1);
+			break;
 		}
 	} else {
 		switch (key) {
@@ -414,18 +455,45 @@ sdl_platform::update_touchscreen_state()
 	int touch_x, touch_y;
 	u32 mouse_buttons = SDL_GetMouseState(&touch_x, &touch_y);
 
-	int ratio_cmp = window_w * 384 - window_h * 256;
+	switch (orientation) {
+	case 1:
+	{
+		int touch_x_s = touch_x;
+		touch_x = touch_y;
+		touch_y = window_w - touch_x_s;
+		break;
+	}
+	case 2:
+		touch_x = window_w - touch_x;
+		touch_y = window_h - touch_y;
+		break;
+	case 3:
+	{
+		int touch_x_s = touch_x;
+		touch_x = window_h - touch_y;
+		touch_y = touch_x_s;
+		break;
+	}
+	}
+
+	int w = window_w;
+	int h = window_h;
+	if (orientation & 1) {
+		std::swap(w, h);
+	}
+
+	int ratio_cmp = w * 384 - h * 256;
 	if (ratio_cmp == 0) {
-		touch_x = touch_x * 256 / window_w;
-		touch_y = (touch_y - window_h / 2) * 192 / (window_h / 2);
+		touch_x = touch_x * 256 / w;
+		touch_y = (touch_y - h / 2) * 192 / (h / 2);
 	} else if (ratio_cmp < 0) {
-		touch_x = touch_x * 256 / window_w;
-		int h = window_w * 384 / 256;
-		touch_y = (touch_y - window_h / 2) * 192 / (h / 2);
+		touch_x = touch_x * 256 / w;
+		int h_clipped = w * 384 / 256;
+		touch_y = (touch_y - h / 2) * 192 / (h_clipped / 2);
 	} else {
-		int w = window_h * 256 / 384;
-		touch_x = (touch_x - (window_w - w) / 2) * 256 / w;
-		touch_y = (touch_y - window_h / 2) * 192 / (window_h / 2);
+		int w_clipped = h * 256 / 384;
+		touch_x = (touch_x - (w - w_clipped) / 2) * 256 / w_clipped;
+		touch_y = (touch_y - h / 2) * 192 / (h / 2);
 	}
 
 	nds->update_touchscreen_state(
@@ -495,14 +563,26 @@ sdl_platform::event_window_size_changed(int w, int h)
 void
 sdl_platform::reset_window_size(int scale)
 {
-	SDL_SetWindowSize(window, NDS_FB_W * scale, NDS_FB_H * scale);
+	int w = NDS_FB_W * scale;
+	int h = NDS_FB_H * scale;
+	if (orientation & 1) {
+		std::swap(w, h);
+	}
+
+	SDL_SetWindowSize(window, w, h);
 }
 
 void
 sdl_platform::adjust_window_size(int step)
 {
-	int w = window_w + NDS_FB_W * step;
-	int h = window_h + NDS_FB_H * step;
+	int w = NDS_FB_W * step;
+	int h = NDS_FB_H * step;
+	if (orientation & 1) {
+		std::swap(w, h);
+	}
+
+	w += window_w;
+	h += window_h;
 
 	if (w < 0 || h < 0 || w > 16384 || h > 16384) {
 		return;
@@ -519,6 +599,21 @@ sdl_platform::toggle_fullscreen()
 		SDL_SetWindowFullscreen(window, 0);
 	} else {
 		SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN_DESKTOP);
+	}
+}
+
+void
+sdl_platform::rotate_screen(int dir)
+{
+	orientation = (orientation + dir) & 3;
+	if (orientation & 1) {
+		SDL_RenderSetLogicalSize(renderer, NDS_FB_H, NDS_FB_W);
+	} else {
+		SDL_RenderSetLogicalSize(renderer, NDS_FB_W, NDS_FB_H);
+	}
+
+	if (dir & 1) {
+		SDL_SetWindowSize(window, window_h, window_w);
 	}
 }
 

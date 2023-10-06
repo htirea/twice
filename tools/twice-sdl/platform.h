@@ -51,11 +51,12 @@ class sdl_platform {
 	void reset_window_size(int scale);
 	void adjust_window_size(int step);
 	void toggle_fullscreen();
+	void rotate_screen(int dir);
 
 	config sdl_config;
 	SDL_Window *window{};
 	SDL_Renderer *renderer{};
-	SDL_Texture *texture{};
+	SDL_Texture *textures[2]{};
 	SDL_AudioDeviceID audio_dev;
 	SDL_AudioSpec audio_spec;
 	u64 freq{};
@@ -70,6 +71,7 @@ class sdl_platform {
 	int window_w{};
 	int window_h{};
 	int texture_scale{};
+	int orientation{};
 	moving_average<std::uint64_t> fps_counter;
 	nds_machine *nds{};
 };
