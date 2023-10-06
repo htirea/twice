@@ -17,34 +17,26 @@ namespace twice {
 
 struct nds_machine;
 
-enum {
-	SCALE_MODE_NEAREST,
-	SCALE_MODE_LINEAR,
-	SCALE_MODE_HYBRID,
-};
-
-struct sdl_platform_config {
-	int scale_mode{ SCALE_MODE_HYBRID };
-	int window_scale{ 2 };
-	bool fullscreen{ false };
-};
-
-extern sdl_platform_config sdl_config;
-
 class sdl_platform {
       public:
 	struct sdl_error : twice_exception {
 		using twice_exception::twice_exception;
 	};
 
-	sdl_platform(nds_machine *nds);
+	struct config {
+		SDL_ScaleMode scale_mode{ SDL_ScaleModeLinear };
+		int window_scale{ 2 };
+		bool fullscreen{ false };
+	};
+
+	sdl_platform(nds_machine *nds, const config& cfg);
 	~sdl_platform();
 
 	void loop();
 
       private:
-	void render(void *fb);
-	void queue_audio(void *audiobuffer, u32 size, u64 ticks);
+	void render(u32 *fb);
+	void queue_audio(s16 *audiobuffer, u32 size, u64 ticks);
 	void setup_default_binds();
 	void handle_events();
 	void handle_key_event(SDL_Keycode key, bool down);
@@ -60,10 +52,10 @@ class sdl_platform {
 	void adjust_window_size(int step);
 	void toggle_fullscreen();
 
+	config sdl_config;
 	SDL_Window *window{};
 	SDL_Renderer *renderer{};
 	SDL_Texture *texture{};
-	SDL_Texture *scaled_texture{};
 	SDL_AudioDeviceID audio_dev;
 	SDL_AudioSpec audio_spec;
 	u64 freq{};
@@ -78,7 +70,6 @@ class sdl_platform {
 	int window_w{};
 	int window_h{};
 	int texture_scale{};
-
 	moving_average<std::uint64_t> fps_counter;
 	nds_machine *nds{};
 };

@@ -17,7 +17,6 @@
 #include "platform.h"
 
 twice::arg_parser twice::parser;
-twice::sdl_platform_config twice::sdl_config;
 
 static std::string cartridge_pathname;
 static std::string data_dir;
@@ -35,7 +34,7 @@ twice::arg_parser::opt_list twice::arg_parser::options = {
 };
 
 twice::arg_parser::valid_opt_arg_list twice::arg_parser::valid_option_args = {
-	{ "filter", { "nearest", "linear", "hybrid" } },
+	{ "filter", { "nearest", "linear" } },
 	{ "boot", { "firmware", "direct" } },
 };
 
@@ -51,8 +50,8 @@ Emulation options:
 Other options:
   -1, -2, -3, -4        Scale the viewport by 1x, 2x, 3x, 4x.
   -f, --fullscreen      Start in fullscreen mode.
-  --filter <mode>       Set the screen filtering mode. Defaults to hybrid.
-                        (mode = 'nearest' | 'linear' | 'hybrid')
+  --filter <mode>       Set the screen filtering mode. Defaults to linear.
+                        (mode = 'nearest' | 'linear' )
   -v, --verbose         Use verbose output. Repeat to increase verbosity.
   -h, --help            Print this help.
 )___";
@@ -64,7 +63,7 @@ int
 main(int argc, char **argv)
 try {
 	using twice::parser;
-	using twice::sdl_config;
+	twice::sdl_platform::config sdl_config;
 
 	if (parser.parse_args(argc, argv)) {
 		print_usage();
@@ -85,11 +84,9 @@ try {
 
 	if (auto opt = parser.get_option("filter")) {
 		if (opt->arg == "nearest") {
-			sdl_config.scale_mode = twice::SCALE_MODE_NEAREST;
+			sdl_config.scale_mode = SDL_ScaleModeNearest;
 		} else if (opt->arg == "linear") {
-			sdl_config.scale_mode = twice::SCALE_MODE_LINEAR;
-		} else if (opt->arg == "hybrid") {
-			sdl_config.scale_mode = twice::SCALE_MODE_HYBRID;
+			sdl_config.scale_mode = SDL_ScaleModeLinear;
 		}
 	}
 
@@ -139,7 +136,7 @@ try {
 	}
 	nds.boot(direct_boot);
 
-	twice::sdl_platform platform(&nds);
+	twice::sdl_platform platform(&nds, sdl_config);
 	platform.loop();
 
 	return EXIT_SUCCESS;

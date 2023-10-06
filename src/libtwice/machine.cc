@@ -90,7 +90,7 @@ nds_machine::is_shutdown()
 	return nds->shutdown;
 }
 
-void *
+u32 *
 nds_machine::get_framebuffer()
 {
 	if (!nds)
@@ -99,7 +99,7 @@ nds_machine::get_framebuffer()
 	return nds->fb;
 }
 
-void *
+s16 *
 nds_machine::get_audio_buffer()
 {
 	if (!nds)

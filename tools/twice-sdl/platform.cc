@@ -10,17 +10,8 @@
 
 namespace twice {
 
-static SDL_Texture *
-create_scaled_texture(SDL_Renderer *renderer, int scale)
-{
-	SDL_Texture *texture = SDL_CreateTexture(renderer,
-			SDL_PIXELFORMAT_BGR888, SDL_TEXTUREACCESS_TARGET,
-			NDS_FB_W * scale, NDS_FB_H * scale);
-	SDL_SetTextureScaleMode(texture, SDL_ScaleModeLinear);
-	return texture;
-}
-
-sdl_platform::sdl_platform(nds_machine *nds) : nds(nds)
+sdl_platform::sdl_platform(nds_machine *nds, const config& sdl_config)
+	: sdl_config(sdl_config), nds(nds)
 {
 	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER |
 			    SDL_INIT_AUDIO)) {
@@ -56,29 +47,8 @@ sdl_platform::sdl_platform(nds_machine *nds) : nds(nds)
 		throw sdl_error("create texture failed");
 	}
 
-	SDL_ScaleMode sdl_scale_mode;
-	switch (sdl_config.scale_mode) {
-	case SCALE_MODE_NEAREST:
-	case SCALE_MODE_HYBRID:
-		sdl_scale_mode = SDL_ScaleModeNearest;
-		break;
-	case SCALE_MODE_LINEAR:
-		sdl_scale_mode = SDL_ScaleModeLinear;
-		break;
-	default:
-		throw sdl_error("unknown scale mode");
-	}
-	if (SDL_SetTextureScaleMode(texture, sdl_scale_mode)) {
+	if (SDL_SetTextureScaleMode(texture, sdl_config.scale_mode)) {
 		throw sdl_error("set texture scale mode failed");
-	}
-
-	if (sdl_config.scale_mode == SCALE_MODE_HYBRID) {
-		texture_scale = sdl_config.window_scale;
-		scaled_texture =
-				create_scaled_texture(renderer, texture_scale);
-		if (!scaled_texture) {
-			throw sdl_error("create scaled texture failed");
-		}
 	}
 
 	SDL_AudioSpec want;
@@ -116,7 +86,6 @@ sdl_platform::~sdl_platform()
 	if (audio_dev) {
 		SDL_CloseAudioDevice(audio_dev);
 	}
-	SDL_DestroyTexture(scaled_texture);
 	SDL_DestroyTexture(texture);
 	SDL_DestroyRenderer(renderer);
 	SDL_DestroyWindow(window);
@@ -138,7 +107,7 @@ get_data_dir()
 }
 
 void
-sdl_platform::render(void *fb)
+sdl_platform::render(u32 *fb)
 {
 	SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0xFF);
 	SDL_RenderClear(renderer);
@@ -149,21 +118,14 @@ sdl_platform::render(void *fb)
 	std::memcpy(p, fb, NDS_FB_SZ_BYTES);
 	SDL_UnlockTexture(texture);
 
-	if (scaled_texture) {
-		SDL_SetRenderTarget(renderer, scaled_texture);
-		SDL_RenderCopy(renderer, texture, NULL, NULL);
-		SDL_SetRenderTarget(renderer, NULL);
-		SDL_RenderCopy(renderer, scaled_texture, NULL, NULL);
-	} else {
-		SDL_SetRenderTarget(renderer, NULL);
-		SDL_RenderCopy(renderer, texture, NULL, NULL);
-	}
+	SDL_SetRenderTarget(renderer, NULL);
+	SDL_RenderCopy(renderer, texture, NULL, NULL);
 
 	SDL_RenderPresent(renderer);
 }
 
 void
-sdl_platform::queue_audio(void *audiobuffer, u32 size, u64 ticks)
+sdl_platform::queue_audio(s16 *audiobuffer, u32 size, u64 ticks)
 {
 	double target = 32768.0 * ticks / freq;
 	double actual_target = 32768.0 / NDS_FRAME_RATE;
@@ -528,23 +490,6 @@ sdl_platform::event_window_size_changed(int w, int h)
 {
 	window_w = w;
 	window_h = h;
-
-	if (scaled_texture) {
-		int scale = std::min(w / NDS_FB_W, h / NDS_FB_H);
-		if (scale == 0) {
-			scale = 1;
-		}
-
-		if (scale != texture_scale) {
-			SDL_DestroyTexture(scaled_texture);
-			scaled_texture =
-					create_scaled_texture(renderer, scale);
-			if (!scaled_texture) {
-				std::cerr << "create scaled texture failed\n";
-			}
-			texture_scale = scale;
-		}
-	}
 }
 
 void

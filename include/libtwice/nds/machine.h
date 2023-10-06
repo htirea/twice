@@ -101,7 +101,7 @@ struct nds_machine {
 	 *
 	 * \returns a pointer to the framebuffer
 	 */
-	void *get_framebuffer();
+	u32 *get_framebuffer();
 
 	/**
 	 * Get the audio buffer for the emulated frame.
@@ -111,7 +111,7 @@ struct nds_machine {
 	 *
 	 * \returns a pointer to the audio buffer
 	 */
-	void *get_audio_buffer();
+	s16 *get_audio_buffer();
 
 	/**
 	 * Get the audio buffer size for the emulated frame.
