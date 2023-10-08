@@ -104,6 +104,7 @@ struct gpu_3d_engine {
 		registers r;
 
 		bool manual_sort;
+		bool last_poly_is_shadow_mask;
 
 		polygon *polygons[2048]{};
 		u32 num_polygons{};
@@ -145,6 +146,8 @@ struct gpu_3d_engine {
 			slope right_slope;
 			s32 y_start;
 			s32 y_end;
+			bool shadow;
+			u32 poly_id;
 		} poly_info[2048];
 	} re;
 
@@ -197,6 +200,7 @@ struct gpu_3d_engine {
 
 	color4 color_buf[192][256]{};
 	s32 depth_buf[192][256]{};
+	bool stencil_buf[256]{};
 
 	struct {
 		u32 : 14;

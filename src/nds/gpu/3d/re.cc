@@ -15,6 +15,7 @@ static void interp_setup(
 		interpolator *i, s32 x0, s32 x1, s32 w0, s32 w1, bool edge);
 static void interp_update_wyfactor(interpolator *i);
 static void interp_update_yfactor(interpolator *i);
+void clear_stencil_buffer(gpu_3d_engine *gpu);
 
 static bool
 polygon_not_in_scanline(polygon_info *pi, s32 y)
@@ -251,11 +252,8 @@ interpolate_z(interpolator *i, s32 z0, s32 z1, bool wbuffering)
 }
 
 static void
-setup_polygon_initial_slope(gpu_3d_engine *gpu, u32 poly_num)
+setup_polygon_initial_slope(polygon *p, polygon_info *pi)
 {
-	polygon *p = gpu->re.polygons[poly_num];
-	polygon_info *pi = &gpu->re.poly_info[poly_num];
-
 	u32 next_l, next_r;
 	if (p->vertices[p->start]->sy == p->vertices[p->end]->sy) {
 		next_l = p->start;
@@ -666,7 +664,7 @@ get_pixel_color(gpu_3d_engine *gpu, polygon *p, u8 rv, u8 gv, u8 bv, u8 av,
 		u8 bt = tx_color.b;
 		u8 at = tx_color.a;
 
-		if (blend_mode == 1) {
+		if (blend_mode & 1) {
 			switch (at) {
 			case 0:
 				r = rv;
@@ -716,6 +714,7 @@ alpha_blend(color4 s, color4 b)
 
 struct render_polygon_ctx {
 	polygon *p;
+	polygon_info *pi;
 	s32 attr_l[5];
 	s32 attr_r[5];
 	s32 zl;
@@ -817,11 +816,27 @@ static void
 render_polygon_pixel(gpu_3d_engine *gpu, render_polygon_ctx *ctx,
 		interpolator *span, s32 x, s32 y)
 {
+	bool shadow = ctx->pi->shadow;
+
+	if (shadow) {
+		if (!gpu->stencil_buf[x])
+			return;
+		gpu->stencil_buf[x] = false;
+	}
+
 	interp_update_x(span, x);
 
 	s32 z = interpolate_z(span, ctx->zl, ctx->zr, ctx->p->wbuffering);
 	if (!depth_test_passed(gpu, ctx, z, x, y))
 		return;
+
+	if (shadow) {
+		auto& attr = gpu->attr_buf[y][x];
+		u32 dest_id = attr.translucent ? attr.translucent_id
+		                               : attr.opaque_id;
+		if (ctx->pi->poly_id == dest_id)
+			return;
+	}
 
 	s32 attr_result[5];
 	interpolate_multiple(span, ctx->attr_l, ctx->attr_r, attr_result);
@@ -839,15 +854,38 @@ render_polygon_pixel(gpu_3d_engine *gpu, render_polygon_ctx *ctx,
 	} else if (px_color.a != 0) {
 		render_translucent_pixel(gpu, ctx, px_color, x, y, z);
 	}
-} // namespace twice
+}
 
 static void
-render_polygon_scanline(gpu_3d_engine *gpu, s32 scanline, u32 poly_num)
+render_shadow_mask_polygon_pixel(gpu_3d_engine *gpu, render_polygon_ctx *ctx,
+		interpolator *span, s32 x, s32 y)
+{
+	interp_update_x(span, x);
+	s32 z = interpolate_z(span, ctx->zl, ctx->zr, ctx->p->wbuffering);
+
+	u8 av = ctx->alpha == 0 ? 31 : ctx->alpha;
+	if (av < ctx->alpha_test_ref) {
+		return;
+	}
+
+	if (!depth_test_passed(gpu, ctx, z, x, y)) {
+		gpu->stencil_buf[x] = true;
+	}
+}
+
+static void
+render_polygon_scanline(gpu_3d_engine *gpu, s32 scanline, u32 poly_num,
+		bool shadow_mask)
 {
 	polygon *p = gpu->re.polygons[poly_num];
 	polygon_info *pi = &gpu->re.poly_info[poly_num];
 	render_polygon_ctx ctx;
 	ctx.p = p;
+	ctx.pi = pi;
+
+	if (shadow_mask && !gpu->re.last_poly_is_shadow_mask) {
+		clear_stencil_buffer(gpu);
+	}
 
 	slope *sl = &pi->left_slope;
 	slope *sr = &pi->right_slope;
@@ -866,13 +904,15 @@ render_polygon_scanline(gpu_3d_engine *gpu, s32 scanline, u32 poly_num)
 	set_slope_interp_x(sr, scanline, xend[1]);
 	ctx.zl = interpolate_z(&sl->interp, p->z[pi->prev_left],
 			p->z[pi->left], p->wbuffering);
-	interpolate_multiple(
-			&sl->interp, sl->v0->attr, sl->v1->attr, ctx.attr_l);
-
 	ctx.zr = interpolate_z(&sr->interp, p->z[pi->prev_right],
 			p->z[pi->right], p->wbuffering);
-	interpolate_multiple(
-			&sr->interp, sr->v0->attr, sr->v1->attr, ctx.attr_r);
+
+	if (!shadow_mask) {
+		interpolate_multiple(&sl->interp, sl->v0->attr, sl->v1->attr,
+				ctx.attr_l);
+		interpolate_multiple(&sr->interp, sr->v0->attr, sr->v1->attr,
+				ctx.attr_r);
+	}
 
 	interpolator span;
 	interp_setup(&span, xstart[0], xend[1] - 1, sl->interp.w, sr->interp.w,
@@ -898,7 +938,13 @@ render_polygon_scanline(gpu_3d_engine *gpu, s32 scanline, u32 poly_num)
 	if (fill_left) {
 		s32 start = std::max(0, xstart[0]);
 		s32 end = std::min(256, xstart[1]);
-		for (s32 x = start; x < end; x++) {
+
+		for (s32 x = start; shadow_mask && x < end; x++) {
+			render_shadow_mask_polygon_pixel(
+					gpu, &ctx, &span, x, scanline);
+		}
+
+		for (s32 x = start; !shadow_mask && x < end; x++) {
 			render_polygon_pixel(gpu, &ctx, &span, x, scanline);
 		}
 	}
@@ -907,7 +953,13 @@ render_polygon_scanline(gpu_3d_engine *gpu, s32 scanline, u32 poly_num)
 	if (fill_middle) {
 		s32 start = std::max(0, xstart[1]);
 		s32 end = std::min(256, xend[0]);
-		for (s32 x = start; x < end; x++) {
+
+		for (s32 x = start; shadow_mask && x < end; x++) {
+			render_shadow_mask_polygon_pixel(
+					gpu, &ctx, &span, x, scanline);
+		}
+
+		for (s32 x = start; !shadow_mask && x < end; x++) {
 			render_polygon_pixel(gpu, &ctx, &span, x, scanline);
 		}
 	}
@@ -917,7 +969,13 @@ render_polygon_scanline(gpu_3d_engine *gpu, s32 scanline, u32 poly_num)
 	if (fill_right) {
 		s32 start = std::max(0, xend[0] - sr->vertical);
 		s32 end = std::min(256, xend[1] - sr->vertical);
-		for (s32 x = start; x < end; x++) {
+
+		for (s32 x = start; shadow_mask && x < end; x++) {
+			render_shadow_mask_polygon_pixel(
+					gpu, &ctx, &span, x, scanline);
+		}
+
+		for (s32 x = start; !shadow_mask && x < end; x++) {
 			render_polygon_pixel(gpu, &ctx, &span, x, scanline);
 		}
 	}
@@ -929,10 +987,13 @@ render_3d_scanline(gpu_3d_engine *gpu, u32 scanline)
 	auto& re = gpu->re;
 
 	for (u32 i = 0; i < re.num_polygons; i++) {
-		if (polygon_not_in_scanline(&re.poly_info[i], scanline))
+		polygon_info *pi = &re.poly_info[i];
+		if (polygon_not_in_scanline(pi, scanline))
 			continue;
 		setup_polygon_scanline(gpu, scanline, i);
-		render_polygon_scanline(gpu, scanline, i);
+		bool shadow_mask = pi->shadow && pi->poly_id == 0;
+		render_polygon_scanline(gpu, scanline, i, shadow_mask);
+		re.last_poly_is_shadow_mask = shadow_mask;
 	}
 }
 
@@ -977,6 +1038,8 @@ clear_buffers(gpu_3d_engine *gpu)
 				gpu->attr_buf[i][j].opaque_id = opaque_id;
 			}
 		}
+
+		clear_stencil_buffer(gpu);
 	} else {
 		/* TODO: */
 		LOG("clear buffer bitmap\n");
@@ -1038,6 +1101,19 @@ set_polygon_bounds(polygon *p, polygon_info *pi)
 	pi->y_end = y_end;
 }
 
+static void
+setup_polygon(gpu_3d_engine *gpu, u32 poly_num)
+{
+	auto& re = gpu->re;
+	polygon *p = re.polygons[poly_num];
+	polygon_info *pi = &re.poly_info[poly_num];
+
+	set_polygon_bounds(p, pi);
+	setup_polygon_initial_slope(p, pi);
+	pi->poly_id = p->attr >> 24 & 0x3F;
+	pi->shadow = (p->attr >> 4 & 3) == 3;
+}
+
 static bool
 cmp_polygon(polygon *a, polygon *b)
 {
@@ -1059,8 +1135,7 @@ setup_polygons(gpu_3d_engine *gpu)
 	std::stable_sort(re.polygons, re.polygons + pr.count, cmp_polygon);
 
 	for (u32 i = 0; i < pr.count; i++) {
-		set_polygon_bounds(re.polygons[i], &re.poly_info[i]);
-		setup_polygon_initial_slope(gpu, i);
+		setup_polygon(gpu, i);
 	}
 }
 
@@ -1072,6 +1147,14 @@ gpu3d_render_frame(gpu_3d_engine *gpu)
 
 	for (u32 i = 0; i < 192; i++) {
 		render_3d_scanline(gpu, i);
+	}
+}
+
+void
+clear_stencil_buffer(gpu_3d_engine *gpu)
+{
+	for (u32 i = 0; i < 256; i++) {
+		gpu->stencil_buf[i] = 0;
 	}
 }
 
