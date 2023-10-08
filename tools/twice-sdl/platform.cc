@@ -269,6 +269,10 @@ sdl_platform::loop()
 
 		if (paused || (throttle && extra > 0)) {
 			u64 end = start + elapsed + extra;
+			u32 remaining_ms = extra * 1000 / freq;
+			if (remaining_ms > 4) {
+				SDL_Delay(remaining_ms - 4);
+			}
 			while (SDL_GetPerformanceCounter() < end)
 				;
 		}
