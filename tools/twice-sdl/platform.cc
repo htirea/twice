@@ -174,7 +174,7 @@ sdl_platform::queue_audio(s16 *audiobuffer, u32 size, u64 ticks)
 	}
 
 	if (delay_count >= 5) {
-		timeout = 60;
+		timeout = 20;
 	}
 
 	if (delay_count) {
