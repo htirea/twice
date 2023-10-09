@@ -916,8 +916,8 @@ render_polygon_scanline(gpu_3d_engine *gpu, s32 scanline, u32 poly_num,
 	}
 
 	interpolator span;
-	interp_setup(&span, xstart[0], xend[1] - 1, sl->interp.w, sr->interp.w,
-			false);
+	interp_setup(&span, xstart[0], xend[1] - 1 + !sr->vertical,
+			sl->interp.w, sr->interp.w, false);
 
 	ctx.alpha = p->attr >> 16 & 0x1F;
 
