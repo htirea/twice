@@ -47,8 +47,6 @@ setup_polygon_slope(slope *s, vertex *v0, vertex *v1, s32 w0, s32 w1)
 	s->v0 = v0;
 	s->v1 = v1;
 
-	s->vertical = x0 == x1;
-
 	s->negative = x0 > x1;
 	if (s->negative) {
 		s->x0--;
@@ -70,6 +68,7 @@ setup_polygon_slope(slope *s, vertex *v0, vertex *v1, s32 w0, s32 w1)
 	} else {
 		s->m = ((s32)1 << 18);
 	}
+	s->vertical = s->m == 0;
 
 	if (s->xmajor) {
 		interp_setup(&s->interp, v0->sx, v1->sx, w0, w1, true);
@@ -894,7 +893,7 @@ render_polygon_scanline(gpu_3d_engine *gpu, s32 scanline, u32 poly_num,
 	s32 xend[2];
 	get_slope_x_start_end(sl, sr, xstart, xend, scanline);
 
-	if (xstart[0] >= xend[1]) {
+	if (xstart[0] > xend[0] || xstart[1] > xend[1]) {
 		std::swap(sl, sr);
 		std::swap(xstart[0], xend[0]);
 		std::swap(xstart[1], xend[1]);
