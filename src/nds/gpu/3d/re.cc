@@ -900,6 +900,8 @@ render_polygon_scanline(gpu_3d_engine *gpu, s32 scanline, u32 poly_num,
 		std::swap(xstart[1], xend[1]);
 	}
 
+	xend[0] = std::max(xend[0], xstart[1]);
+
 	set_slope_interp_x(sl, scanline, xstart[0]);
 	set_slope_interp_x(sr, scanline, xend[1]);
 	ctx.zl = interpolate_z(&sl->interp, p->z[pi->prev_left],
