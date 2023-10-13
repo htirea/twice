@@ -36,16 +36,9 @@ unpack_bgr555_3d(u16 color, u8 *color_out)
 	u8 g = color >> 5 & 0x1F;
 	u8 b = color >> 10 & 0x1F;
 
-	if (r != 0)
-		r = (r << 1) + 1;
-	if (g != 0)
-		g = (g << 1) + 1;
-	if (b != 0)
-		b = (b << 1) + 1;
-
-	color_out[0] = r;
-	color_out[1] = g;
-	color_out[2] = b;
+	color_out[0] = (r << 1) + (r != 0);
+	color_out[1] = (g << 1) + (g != 0);
+	color_out[2] = (b << 1) + (b != 0);
 }
 
 } // namespace twice
