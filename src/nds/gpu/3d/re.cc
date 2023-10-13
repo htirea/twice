@@ -11,104 +11,7 @@ using polygon_info = gpu_3d_engine::rendering_engine::polygon_info;
 using slope = gpu_3d_engine::rendering_engine::slope;
 using interpolator = gpu_3d_engine::rendering_engine::interpolator;
 
-static void interp_setup(
-		interpolator *i, s32 x0, s32 x1, s32 w0, s32 w1, bool edge);
-static void interp_update_wyfactor(interpolator *i);
-static void interp_update_yfactor(interpolator *i);
 void clear_stencil_buffer(gpu_3d_engine *gpu);
-
-static bool
-polygon_not_in_scanline(polygon_info *pi, s32 y)
-{
-	return y < pi->y_start || y >= pi->y_end;
-}
-
-static void
-set_slope_interp_x(slope *s, s32 scanline, s32 x)
-{
-	if (s->xmajor) {
-		s->interp.x = x;
-	} else {
-		s->interp.x = scanline;
-	}
-	interp_update_wyfactor(&s->interp);
-}
-
-static void
-setup_polygon_slope(slope *s, vertex *v0, vertex *v1, s32 w0, s32 w1)
-{
-	s32 x0 = v0->sx;
-	s32 y0 = v0->sy;
-	s32 x1 = v1->sx;
-	s32 y1 = v1->sy;
-
-	s->x0 = x0 << 18;
-	s->y0 = y0;
-	s->v0 = v0;
-	s->v1 = v1;
-
-	s->negative = x0 > x1;
-	if (s->negative) {
-		s->x0--;
-		std::swap(x0, x1);
-	}
-
-	s32 dx = x1 - x0;
-	s32 dy = y1 - y0;
-	s->xmajor = dx > dy;
-
-	if (s->xmajor || dx == dy) {
-		s32 half = (s32)1 << 17;
-		s->x0 = s->negative ? s->x0 - half : s->x0 + half;
-	}
-
-	s->m = dx;
-	if (dy != 0) {
-		s->m *= ((s32)1 << 18) / dy;
-	} else {
-		s->m = ((s32)1 << 18);
-	}
-	s->vertical = s->m == 0;
-
-	if (s->xmajor) {
-		interp_setup(&s->interp, v0->sx, v1->sx, w0, w1, true);
-	} else {
-		interp_setup(&s->interp, v0->sy, v1->sy, w0, w1, true);
-	}
-}
-
-static void
-get_slope_x(slope *s, s32 *x, s32 scanline)
-{
-	s32 one = (s32)1 << 18;
-
-	s32 dy = scanline - s->y0;
-	if (s->xmajor && !s->negative) {
-		x[0] = s->x0 + dy * s->m;
-		x[1] = (x[0] & ~0x1FF) + s->m - one;
-	} else if (s->xmajor) {
-		x[1] = s->x0 - dy * s->m;
-		x[0] = (x[1] | 0x1FF) - s->m + one;
-	} else if (!s->negative) {
-		x[0] = s->x0 + dy * s->m;
-		x[1] = x[0];
-	} else {
-		x[0] = s->x0 - dy * s->m;
-		x[1] = x[0];
-	}
-
-	x[0] >>= 18;
-	x[1] >>= 18;
-	x[1]++;
-}
-
-static void
-get_slope_x_start_end(
-		slope *sl, slope *sr, s32 *xstart, s32 *xend, s32 scanline)
-{
-	get_slope_x(sl, xstart, scanline);
-	get_slope_x(sr, xend, scanline);
-}
 
 static void
 interp_setup(interpolator *i, s32 x0, s32 x1, s32 w0, s32 w1, bool edge)
@@ -155,15 +58,6 @@ interp_get_yfactor(interpolator *i)
 }
 
 static void
-interp_update_wyfactor(interpolator *i)
-{
-	i->yfactor = interp_get_yfactor(i);
-
-	s64 denom = i->w1 * ((s64)i->x1 - i->x) + i->w0 * ((s64)i->x - i->x0);
-	i->w = denom == 0 ? i->w0 : i->denom / denom;
-}
-
-static void
 interp_update_yfactor(interpolator *i)
 {
 	i->yfactor = interp_get_yfactor(i);
@@ -204,12 +98,8 @@ interpolate_linear_multiple(interpolator *i, s32 *y0, s32 *y1, s32 *y)
 }
 
 static s32
-interpolate(interpolator *i, s32 y0, s32 y1)
+interpolate_perspective(interpolator *i, s32 y0, s32 y1)
 {
-	if (i->precision == 0) {
-		return interpolate_linear(i, y0, y1);
-	}
-
 	if (y0 <= y1) {
 		return y0 + ((y1 - y0) * i->yfactor >> i->precision);
 	} else {
@@ -219,13 +109,8 @@ interpolate(interpolator *i, s32 y0, s32 y1)
 }
 
 static void
-interpolate_multiple(interpolator *i, s32 *y0, s32 *y1, s32 *y)
+interpolate_perspective_multiple(interpolator *i, s32 *y0, s32 *y1, s32 *y)
 {
-	if (i->precision == 0) {
-		interpolate_linear_multiple(i, y0, y1, y);
-		return;
-	}
-
 	u32 factor = i->yfactor;
 	u32 factor_r = ((u32)1 << i->precision) - i->yfactor;
 
@@ -241,6 +126,26 @@ interpolate_multiple(interpolator *i, s32 *y0, s32 *y1, s32 *y)
 }
 
 static s32
+interpolate(interpolator *i, s32 y0, s32 y1)
+{
+	if (i->precision == 0) {
+		return interpolate_linear(i, y0, y1);
+	} else {
+		return interpolate_perspective(i, y0, y1);
+	}
+}
+
+static void
+interpolate_multiple(interpolator *i, s32 *y0, s32 *y1, s32 *y)
+{
+	if (i->precision == 0) {
+		interpolate_linear_multiple(i, y0, y1, y);
+	} else {
+		interpolate_perspective_multiple(i, y0, y1, y);
+	}
+}
+
+static s32
 interpolate_z(interpolator *i, s32 z0, s32 z1, bool wbuffering)
 {
 	if (wbuffering) {
@@ -248,6 +153,81 @@ interpolate_z(interpolator *i, s32 z0, s32 z1, bool wbuffering)
 	} else {
 		return interpolate_linear(i, z0, z1);
 	}
+}
+
+static void
+setup_polygon_slope(
+		slope *s, vertex *v0, vertex *v1, s32 w0, s32 w1, bool left)
+{
+	s32 x0 = v0->sx;
+	s32 y0 = v0->sy;
+	s32 x1 = v1->sx;
+	s32 y1 = v1->sy;
+
+	s->x0 = x0 << 18;
+	s->y0 = y0;
+	s->v0 = v0;
+	s->v1 = v1;
+
+	s->negative = x0 > x1;
+	if (s->negative) {
+		s->x0--;
+		std::swap(x0, x1);
+	}
+
+	s32 dx = x1 - x0;
+	s32 dy = y1 - y0;
+	s->xmajor = dx > dy;
+
+	if (s->xmajor || dx == dy) {
+		s32 half = (s32)1 << 17;
+		s->x0 = s->negative ? s->x0 - half : s->x0 + half;
+	}
+
+	s->m = dx;
+	if (dy != 0) {
+		s->m *= ((s32)1 << 18) / dy;
+	} else {
+		s->m = ((s32)1 << 18);
+	}
+	s->vertical = s->m == 0;
+
+	bool adjust = (s->xmajor || dx == dy) && (left == s->negative);
+	interp_setup(&s->interp, v0->sy - adjust, v1->sy - adjust, w0, w1,
+			true);
+}
+
+static void
+get_slope_x(slope *s, s32 *x, s32 scanline)
+{
+	s32 one = (s32)1 << 18;
+
+	s32 dy = scanline - s->y0;
+	if (s->xmajor && !s->negative) {
+		x[0] = s->x0 + dy * s->m;
+		x[1] = (x[0] & ~0x1FF) + s->m - one;
+	} else if (s->xmajor) {
+		x[1] = s->x0 - dy * s->m;
+		x[0] = (x[1] | 0x1FF) - s->m + one;
+	} else if (!s->negative) {
+		x[0] = s->x0 + dy * s->m;
+		x[1] = x[0];
+	} else {
+		x[0] = s->x0 - dy * s->m;
+		x[1] = x[0];
+	}
+
+	x[0] >>= 18;
+	x[1] >>= 18;
+	x[1]++;
+}
+
+static void
+get_slope_x_start_end(
+		slope *sl, slope *sr, s32 *xstart, s32 *xend, s32 scanline)
+{
+	get_slope_x(sl, xstart, scanline);
+	get_slope_x(sr, xend, scanline);
 }
 
 static void
@@ -268,13 +248,13 @@ setup_polygon_initial_slope(polygon *p, polygon_info *pi)
 
 	setup_polygon_slope(&pi->left_slope, p->vertices[p->start],
 			p->vertices[next_l], p->normalized_w[p->start],
-			p->normalized_w[next_l]);
+			p->normalized_w[next_l], true);
 	pi->prev_left = p->start;
 	pi->left = next_l;
 
 	setup_polygon_slope(&pi->right_slope, p->vertices[p->start],
 			p->vertices[next_r], p->normalized_w[p->start],
-			p->normalized_w[next_r]);
+			p->normalized_w[next_r], false);
 	pi->prev_right = p->start;
 	pi->right = next_r;
 }
@@ -303,7 +283,7 @@ setup_polygon_scanline(gpu_3d_engine *gpu, s32 scanline, u32 poly_num)
 			setup_polygon_slope(&pi->left_slope, p->vertices[curr],
 					p->vertices[next],
 					p->normalized_w[curr],
-					p->normalized_w[next]);
+					p->normalized_w[next], true);
 			pi->prev_left = curr;
 			pi->left = next;
 		}
@@ -324,7 +304,7 @@ setup_polygon_scanline(gpu_3d_engine *gpu, s32 scanline, u32 poly_num)
 			setup_polygon_slope(&pi->right_slope,
 					p->vertices[curr], p->vertices[next],
 					p->normalized_w[curr],
-					p->normalized_w[next]);
+					p->normalized_w[next], false);
 			pi->prev_right = curr;
 			pi->right = next;
 		}
@@ -901,8 +881,10 @@ render_polygon_scanline(gpu_3d_engine *gpu, s32 scanline, u32 poly_num,
 
 	xend[0] = std::max(xend[0], xstart[1]);
 
-	set_slope_interp_x(sl, scanline, xstart[0]);
-	set_slope_interp_x(sr, scanline, xend[1]);
+	interp_update_x(&sl->interp, scanline);
+	interp_update_x(&sr->interp, scanline);
+	s32 wl = interpolate(&sl->interp, sl->interp.w0, sl->interp.w1);
+	s32 wr = interpolate(&sr->interp, sr->interp.w0, sr->interp.w1);
 	ctx.zl = interpolate_z(&sl->interp, p->z[pi->prev_left],
 			p->z[pi->left], p->wbuffering);
 	ctx.zr = interpolate_z(&sr->interp, p->z[pi->prev_right],
@@ -916,8 +898,8 @@ render_polygon_scanline(gpu_3d_engine *gpu, s32 scanline, u32 poly_num,
 	}
 
 	interpolator span;
-	interp_setup(&span, xstart[0], xend[1] - 1 + !sr->vertical,
-			sl->interp.w, sr->interp.w, false);
+	interp_setup(&span, xstart[0], xend[1] - 1 + !sr->vertical, wl, wr,
+			false);
 
 	ctx.alpha = p->attr >> 16 & 0x1F;
 
@@ -980,6 +962,12 @@ render_polygon_scanline(gpu_3d_engine *gpu, s32 scanline, u32 poly_num,
 			render_polygon_pixel(gpu, &ctx, &span, x, scanline);
 		}
 	}
+}
+
+static bool
+polygon_not_in_scanline(polygon_info *pi, s32 y)
+{
+	return y < pi->y_start || y >= pi->y_end;
 }
 
 static void

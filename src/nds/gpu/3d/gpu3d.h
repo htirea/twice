@@ -115,7 +115,6 @@ struct gpu_3d_engine {
 			s32 x;
 			s32 w0;
 			s32 w1;
-			s32 w;
 			s32 w0_n;
 			s32 w0_d;
 			s32 w1_d;
