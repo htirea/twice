@@ -808,8 +808,8 @@ render_shadow_mask_polygon_pixel(gpu_3d_engine *gpu, render_polygon_ctx *ctx,
 }
 
 static void
-render_polygon_scanline(gpu_3d_engine *gpu, s32 scanline, u32 poly_num,
-		bool shadow_mask)
+render_polygon_scanline(
+		gpu_3d_engine *gpu, s32 y, u32 poly_num, bool shadow_mask)
 {
 	polygon *p = gpu->re.polygons[poly_num];
 	polygon_info *pi = &gpu->re.poly_info[poly_num];
@@ -826,7 +826,7 @@ render_polygon_scanline(gpu_3d_engine *gpu, s32 scanline, u32 poly_num,
 
 	s32 xstart[2];
 	s32 xend[2];
-	get_slope_x_start_end(sl, sr, xstart, xend, scanline);
+	get_slope_x_start_end(sl, sr, xstart, xend, y);
 
 	if (xstart[0] > xend[0] || xstart[1] > xend[1]) {
 		std::swap(sl, sr);
@@ -836,8 +836,8 @@ render_polygon_scanline(gpu_3d_engine *gpu, s32 scanline, u32 poly_num,
 
 	xend[0] = std::max(xend[0], xstart[1]);
 
-	interp_update_x(&sl->interp, scanline);
-	interp_update_x(&sr->interp, scanline);
+	interp_update_x(&sl->interp, y);
+	interp_update_x(&sr->interp, y);
 	s32 wl = interpolate(&sl->interp, sl->interp.w0, sl->interp.w1);
 	s32 wr = interpolate(&sr->interp, sr->interp.w0, sr->interp.w1);
 	ctx.zl = interpolate_z(&sl->interp, p->z[pi->prev_left],
@@ -861,7 +861,7 @@ render_polygon_scanline(gpu_3d_engine *gpu, s32 scanline, u32 poly_num,
 	bool wireframe_or_translucent = ctx.alpha != 31;
 	bool antialiasing = gpu->re.r.disp3dcnt & BIT(4);
 	bool edge_marking = gpu->re.r.disp3dcnt & BIT(5);
-	bool last_scanline = scanline == 191;
+	bool last_scanline = y == 191;
 	bool force_fill_edge = wireframe_or_translucent || antialiasing ||
 	                       edge_marking || last_scanline;
 
@@ -879,28 +879,27 @@ render_polygon_scanline(gpu_3d_engine *gpu, s32 scanline, u32 poly_num,
 
 		for (s32 x = start; shadow_mask && x < end; x++) {
 			render_shadow_mask_polygon_pixel(
-					gpu, &ctx, &span, x, scanline);
+					gpu, &ctx, &span, x, y);
 		}
 
 		for (s32 x = start; !shadow_mask && x < end; x++) {
-			render_polygon_pixel(gpu, &ctx, &span, x, scanline);
+			render_polygon_pixel(gpu, &ctx, &span, x, y);
 		}
 	}
 
 	bool fill_middle = ctx.alpha != 0 ||
-	                   (scanline == pi->top_edge ||
-					   scanline == pi->bottom_edge);
+	                   (y == pi->top_edge || y == pi->bottom_edge);
 	if (fill_middle) {
 		s32 start = std::max(0, xstart[1]);
 		s32 end = std::min(256, xend[0]);
 
 		for (s32 x = start; shadow_mask && x < end; x++) {
 			render_shadow_mask_polygon_pixel(
-					gpu, &ctx, &span, x, scanline);
+					gpu, &ctx, &span, x, y);
 		}
 
 		for (s32 x = start; !shadow_mask && x < end; x++) {
-			render_polygon_pixel(gpu, &ctx, &span, x, scanline);
+			render_polygon_pixel(gpu, &ctx, &span, x, y);
 		}
 	}
 
@@ -912,11 +911,11 @@ render_polygon_scanline(gpu_3d_engine *gpu, s32 scanline, u32 poly_num,
 
 		for (s32 x = start; shadow_mask && x < end; x++) {
 			render_shadow_mask_polygon_pixel(
-					gpu, &ctx, &span, x, scanline);
+					gpu, &ctx, &span, x, y);
 		}
 
 		for (s32 x = start; !shadow_mask && x < end; x++) {
-			render_polygon_pixel(gpu, &ctx, &span, x, scanline);
+			render_polygon_pixel(gpu, &ctx, &span, x, y);
 		}
 	}
 }
