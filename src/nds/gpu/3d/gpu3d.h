@@ -105,6 +105,8 @@ struct gpu_3d_engine {
 
 		bool manual_sort;
 		bool last_poly_is_shadow_mask;
+		u32 outside_opaque_id;
+		s32 outside_depth;
 
 		polygon *polygons[2048]{};
 		u32 num_polygons{};
@@ -204,7 +206,8 @@ struct gpu_3d_engine {
 	bool stencil_buf[256]{};
 
 	struct {
-		u32 : 14;
+		u32 : 13;
+		u32 edge : 1;
 		u32 fog : 1;
 		u32 translucent_id : 6;
 		u32 translucent : 1;
