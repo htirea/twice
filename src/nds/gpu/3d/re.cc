@@ -231,35 +231,6 @@ get_slope_x_start_end(
 }
 
 static void
-setup_polygon_initial_slope(polygon *p, polygon_info *pi)
-{
-	u32 next_l, next_r;
-	if (p->vertices[p->start]->sy == p->vertices[p->end]->sy) {
-		next_l = p->start;
-		next_r = p->end;
-	} else {
-		next_l = (p->start + 1) % p->num_vertices;
-		next_r = (p->start - 1 + p->num_vertices) % p->num_vertices;
-	}
-
-	if (p->backface) {
-		std::swap(next_l, next_r);
-	}
-
-	setup_polygon_slope(&pi->left_slope, p->vertices[p->start],
-			p->vertices[next_l], p->normalized_w[p->start],
-			p->normalized_w[next_l], true);
-	pi->prev_left = p->start;
-	pi->left = next_l;
-
-	setup_polygon_slope(&pi->right_slope, p->vertices[p->start],
-			p->vertices[next_r], p->normalized_w[p->start],
-			p->normalized_w[next_r], false);
-	pi->prev_right = p->start;
-	pi->right = next_r;
-}
-
-static void
 setup_polygon_scanline(gpu_3d_engine *gpu, s32 scanline, u32 poly_num)
 {
 	polygon *p = gpu->re.polygons[poly_num];
@@ -916,7 +887,9 @@ render_polygon_scanline(gpu_3d_engine *gpu, s32 scanline, u32 poly_num,
 		}
 	}
 
-	bool fill_middle = ctx.alpha != 0;
+	bool fill_middle = ctx.alpha != 0 ||
+	                   (scanline == pi->top_edge ||
+					   scanline == pi->bottom_edge);
 	if (fill_middle) {
 		s32 start = std::max(0, xstart[1]);
 		s32 end = std::min(256, xend[0]);
@@ -1072,6 +1045,26 @@ set_polygon_bounds(polygon *p, polygon_info *pi)
 
 	pi->y_start = y_start;
 	pi->y_end = y_end;
+
+	pi->left = p->start;
+	pi->prev_left = p->start;
+	pi->right = p->start;
+	pi->prev_right = p->start;
+
+	s32 top_count = 0;
+	s32 bottom_count = 0;
+	for (u32 i = 0; i < p->num_vertices; i++) {
+		vertex *v = p->vertices[i];
+		if (v->sy == y_start) {
+			top_count++;
+		}
+		if (v->sy == y_end) {
+			bottom_count++;
+		}
+	}
+
+	pi->top_edge = top_count > 1 ? y_start : -1;
+	pi->bottom_edge = bottom_count > 1 ? y_end - 1 : -1;
 }
 
 static void
@@ -1082,7 +1075,6 @@ setup_polygon(gpu_3d_engine *gpu, u32 poly_num)
 	polygon_info *pi = &re.poly_info[poly_num];
 
 	set_polygon_bounds(p, pi);
-	setup_polygon_initial_slope(p, pi);
 	pi->poly_id = p->attr >> 24 & 0x3F;
 	pi->shadow = (p->attr >> 4 & 3) == 3;
 }

@@ -147,6 +147,8 @@ struct gpu_3d_engine {
 			s32 y_end;
 			bool shadow;
 			u32 poly_id;
+			s32 top_edge;
+			s32 bottom_edge;
 		} poly_info[2048];
 	} re;
 
