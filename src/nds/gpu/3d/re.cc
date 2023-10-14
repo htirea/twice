@@ -742,7 +742,7 @@ render_translucent_pixel(gpu_3d_engine *gpu, render_polygon_ctx *ctx,
 	}
 
 	attr.edge = edge;
-	attr.fog = ctx->p->attr >> 15 & 1;
+	attr.fog &= ctx->p->attr >> 15 & 1;
 	attr.translucent_id = poly_id;
 	attr.translucent = 1;
 	attr.backface = ctx->p->backface;
@@ -966,13 +966,11 @@ get_surrounding_id_depth(
 }
 
 static void
-scanline_apply_effects(gpu_3d_engine *gpu, s32 y)
+apply_edge_marking(gpu_3d_engine *gpu, s32 y)
 {
 	auto& re = gpu->re;
 
-	bool edge_marking = gpu->re.r.disp3dcnt & BIT(5);
-
-	for (u32 x = 0; edge_marking && x < 256; x++) {
+	for (u32 x = 0; x < 256; x++) {
 		auto attr = gpu->attr_buf[y][x];
 
 		if (attr.translucent || !attr.edge)
@@ -1001,6 +999,83 @@ scanline_apply_effects(gpu_3d_engine *gpu, s32 y)
 		gpu->color_buf[y][x].r = r;
 		gpu->color_buf[y][x].g = g;
 		gpu->color_buf[y][x].b = b;
+	}
+}
+
+static u8
+calculate_fog_density(u8 *fog_table, s32 fog_offset, s32 fog_step, s32 z)
+{
+	if (z < fog_offset + fog_step)
+		return fog_table[0];
+
+	if (z >= fog_offset + (fog_step * 32))
+		return fog_table[31];
+
+	s32 idx_l = (z - fog_offset) / fog_step - 1;
+	s32 idx_r = (z - fog_offset + fog_step - 1) / fog_step - 1;
+
+	if (idx_l == idx_r)
+		return fog_table[idx_l];
+
+	u8 y0 = fog_table[idx_l];
+	u8 y1 = fog_table[idx_r];
+	s32 pos = z - (fog_offset + fog_step * (idx_l + 1));
+
+	return y0 + (y1 - y0) * pos / fog_step;
+}
+
+static void
+apply_fog(gpu_3d_engine *gpu, s32 y)
+{
+	auto& re = gpu->re;
+
+	u16 fog_shift = re.r.disp3dcnt >> 8 & 0xF;
+	s32 fog_step = 0x400 >> fog_shift;
+	u16 fog_offset = re.r.fog_offset;
+	bool alpha_only = re.r.disp3dcnt & BIT(6);
+
+	u8 rf, gf, bf;
+	unpack_bgr555_3d(re.r.fog_color, &rf, &gf, &bf);
+	u8 af = re.r.fog_color >> 16 & 0x1F;
+
+	for (s32 x = 0; x < 256; x++) {
+		if (!gpu->attr_buf[y][x].fog)
+			continue;
+
+		u32 z = gpu->depth_buf[y][x] >> 9;
+		u8 t = calculate_fog_density(
+				re.r.fog_table, fog_offset, fog_step, z);
+		t &= 0x7F;
+
+		auto& dst = gpu->color_buf[y][x];
+		if (t < 127) {
+			dst.a = (af * t + dst.a * (128 - t)) >> 7;
+			if (!alpha_only) {
+				dst.r = (rf * t + dst.r * (128 - t)) >> 7;
+				dst.g = (gf * t + dst.g * (128 - t)) >> 7;
+				dst.b = (bf * t + dst.b * (128 - t)) >> 7;
+			}
+		} else {
+			dst.a = af;
+			if (!alpha_only) {
+				dst.r = rf;
+				dst.g = gf;
+				dst.b = bf;
+			}
+		}
+	}
+}
+
+static void
+scanline_apply_effects(gpu_3d_engine *gpu, s32 y)
+{
+
+	if (gpu->re.r.disp3dcnt & BIT(5)) {
+		apply_edge_marking(gpu, y);
+	}
+
+	if (gpu->re.r.disp3dcnt & BIT(7)) {
+		apply_fog(gpu, y);
 	}
 }
 
