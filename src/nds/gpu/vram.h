@@ -6,6 +6,8 @@
 
 namespace twice {
 
+struct nds_ctx;
+
 enum {
 	VRAM_A,
 	VRAM_B,
@@ -38,6 +40,13 @@ enum : u32 {
 	VRAM_H_MASK = 32_KiB - 1,
 	VRAM_I_SIZE = 16_KiB,
 	VRAM_I_MASK = 16_KiB - 1,
+};
+
+enum : u32 {
+	VRAM_TEXTURE_SIZE = 512_KiB,
+	VRAM_TEXTURE_MASK = 512_KiB - 1,
+	VRAM_TEXTURE_PALETTE_SIZE = 128_KiB,
+	VRAM_TEXTURE_PALETTE_MASK = 128_KiB - 1,
 };
 
 struct gpu_vram {
@@ -80,6 +89,10 @@ struct gpu_vram {
 	/* last two unused */
 	u8 *texture_palette_pt[8]{};
 	u16 texture_palette_bank[8]{};
+	u8 texture_fast[VRAM_TEXTURE_SIZE]{};
+	u8 texture_palette_fast[VRAM_TEXTURE_PALETTE_SIZE]{};
+	bool texture_changed{};
+	bool texture_palette_changed{};
 
 	u8 vramcnt[VRAM_NUM_BANKS]{};
 };
@@ -143,6 +156,8 @@ vram_bank_write(gpu_vram *vram, u32 offset, T value)
 		writearr<T>(vram->vram_i, offset & VRAM_I_MASK, value);
 	}
 }
+
+void setup_fast_texture_vram(nds_ctx *nds);
 
 } // namespace twice
 

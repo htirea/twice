@@ -1247,6 +1247,7 @@ setup_polygons(gpu_3d_engine *gpu)
 void
 gpu3d_render_frame(gpu_3d_engine *gpu)
 {
+	setup_fast_texture_vram(gpu->nds);
 	clear_buffers(gpu);
 	setup_polygons(gpu);
 

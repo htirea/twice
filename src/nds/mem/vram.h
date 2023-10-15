@@ -261,41 +261,15 @@ template <typename T>
 T
 vram_read_texture(nds_ctx *nds, u32 offset)
 {
-	u32 index = offset >> 17 & 3;
-	u8 *p = nds->vram.texture_pt[index];
-	if (p) {
-		return readarr<T>(p, offset & 0x1FFFF);
-	} else {
-		u16 mask = nds->vram.texture_bank[index];
-		T value = 0;
-
-		VRAM_READ_FROM_MASK(VRAM_A);
-		VRAM_READ_FROM_MASK(VRAM_B);
-		VRAM_READ_FROM_MASK(VRAM_C);
-		VRAM_READ_FROM_MASK(VRAM_D);
-
-		return value;
-	}
+	return readarr<T>(nds->vram.texture_fast, offset & VRAM_TEXTURE_MASK);
 }
 
 template <typename T>
 T
 vram_read_texture_palette(nds_ctx *nds, u32 offset)
 {
-	u32 index = offset >> 14 & 7;
-	u8 *p = nds->vram.texture_palette_pt[index];
-	if (p) {
-		return readarr<T>(p, offset & 0x3FFF);
-	} else {
-		u16 mask = nds->vram.texture_palette_bank[index];
-		T value = 0;
-
-		VRAM_READ_FROM_MASK(VRAM_E);
-		VRAM_READ_FROM_MASK(VRAM_F);
-		VRAM_READ_FROM_MASK(VRAM_G);
-
-		return value;
-	}
+	return readarr<T>(nds->vram.texture_palette_fast,
+			offset & VRAM_TEXTURE_PALETTE_MASK);
 }
 
 template <typename T>

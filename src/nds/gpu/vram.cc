@@ -1,3 +1,4 @@
+#include "nds/mem/vram.h"
 #include "nds/nds.h"
 
 #include "libtwice/exception.h"
@@ -309,6 +310,7 @@ map_texture(nds_ctx *nds, int bank, u8 *base, int i)
 	}
 
 	mask |= BIT(bank);
+	nds->vram.texture_changed = true;
 }
 
 static void
@@ -324,6 +326,8 @@ unmap_texture(nds_ctx *nds, int bank, int i)
 	} else {
 		nds->vram.texture_pt[i] = nullptr;
 	}
+
+	nds->vram.texture_changed = true;
 }
 
 static void
@@ -340,6 +344,8 @@ map_texture_palette(nds_ctx *nds, int bank, u8 *base, int start, int len)
 
 		mask |= BIT(bank);
 	}
+
+	nds->vram.texture_palette_changed = true;
 }
 
 static void
@@ -357,6 +363,8 @@ unmap_texture_palette(nds_ctx *nds, int bank, int start, int len)
 			nds->vram.texture_palette_pt[i] = nullptr;
 		}
 	}
+
+	nds->vram.texture_palette_changed = true;
 }
 
 template <int bank>
@@ -796,6 +804,105 @@ void
 vramcnt_g_write(nds_ctx *nds, u8 value)
 {
 	vramcnt_fg_write<VRAM_G>(nds, value);
+}
+
+template <typename T>
+T
+vram_read_texture_slow(nds_ctx *nds, u32 offset)
+{
+	u32 index = offset >> 17 & 3;
+	u16 mask = nds->vram.texture_bank[index];
+	T value = 0;
+
+	VRAM_READ_FROM_MASK(VRAM_A);
+	VRAM_READ_FROM_MASK(VRAM_B);
+	VRAM_READ_FROM_MASK(VRAM_C);
+	VRAM_READ_FROM_MASK(VRAM_D);
+
+	return value;
+}
+
+static void
+setup_fast_texture_array(nds_ctx *nds)
+{
+	auto& vram = nds->vram;
+	u8 *dest = vram.texture_fast;
+
+	for (u32 i = 0; i < 4; i++, dest += 0x20000) {
+		u8 *p = vram.texture_pt[i];
+		if (p) {
+			std::memcpy(dest, p, 0x20000);
+			continue;
+		}
+
+		u16 mask = vram.texture_bank[i];
+		if (mask == 0) {
+			std::fill(dest, dest + 0x20000, 0);
+			continue;
+		}
+
+		for (u32 j = 0; j < 0x20000; j += 8) {
+			u64 val = vram_read_texture_slow<u64>(
+					nds, i * 0x20000 + j);
+			writearr<u64>(dest, j, val);
+		}
+	}
+}
+
+template <typename T>
+T
+vram_read_texture_palette_slow(nds_ctx *nds, u32 offset)
+{
+	u32 index = offset >> 14 & 7;
+	u16 mask = nds->vram.texture_palette_bank[index];
+	T value = 0;
+
+	VRAM_READ_FROM_MASK(VRAM_E);
+	VRAM_READ_FROM_MASK(VRAM_F);
+	VRAM_READ_FROM_MASK(VRAM_G);
+
+	return value;
+}
+
+static void
+setup_fast_texture_palette_array(nds_ctx *nds)
+{
+	auto& vram = nds->vram;
+	u8 *dest = vram.texture_palette_fast;
+
+	for (u32 i = 0; i < 6; i++, dest += 0x4000) {
+		u8 *p = vram.texture_palette_pt[i];
+		if (p) {
+			std::memcpy(dest, p, 0x4000);
+			continue;
+		}
+
+		u16 mask = vram.texture_bank[i];
+		if (mask == 0) {
+			std::fill(dest, dest + 0x4000, 0);
+			continue;
+		}
+
+		for (u32 j = 0; j < 0x4000; j += 8) {
+			u64 val = vram_read_texture_palette_slow<u64>(
+					nds, i * 0x4000 + j);
+			writearr<u64>(dest, j, val);
+		}
+	}
+}
+
+void
+setup_fast_texture_vram(nds_ctx *nds)
+{
+	if (nds->vram.texture_changed) {
+		setup_fast_texture_array(nds);
+		nds->vram.texture_changed = false;
+	}
+
+	if (nds->vram.texture_palette_changed) {
+		setup_fast_texture_palette_array(nds);
+		nds->vram.texture_palette_changed = false;
+	}
 }
 
 } // namespace twice
