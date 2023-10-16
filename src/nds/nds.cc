@@ -44,6 +44,8 @@ void
 nds_firmware_boot(nds_ctx *nds)
 {
 	encrypt_secure_area(&nds->cart);
+	update_arm9_page_tables(nds->arm9.get());
+	update_arm7_page_tables(nds->arm7.get());
 	nds->arm9->arm_jump(0xFFFF0000);
 	nds->arm7->arm_jump(0x0);
 }
@@ -130,10 +132,11 @@ nds_direct_boot(nds_ctx *nds)
 void
 nds_run_frame(nds_ctx *nds)
 {
-	nds->audio_buf_idx = 0;
 	nds->frame_finished = false;
-	nds->arm9->cycles_executed = 0;
-	nds->arm7->cycles_executed = 0;
+
+	arm9_frame_start(nds->arm9.get());
+	arm7_frame_start(nds->arm7.get());
+	sound_frame_start(nds);
 
 	while (!nds->frame_finished) {
 		nds->arm_target_cycles[0] = get_next_event_time(nds);
@@ -178,11 +181,9 @@ nds_run_frame(nds_ctx *nds)
 		}
 	}
 
-	nds->arm9_usage = nds->arm9->cycles_executed / 1120380.0;
-	nds->arm7_usage = nds->arm7->cycles_executed / 560190.0;
-
-	nds->last_audio_buf_size = nds->audio_buf_idx * sizeof *nds->audio_buf;
-	extend_audio_samples(nds);
+	arm9_frame_end(nds->arm9.get());
+	arm7_frame_end(nds->arm7.get());
+	sound_frame_end(nds);
 }
 
 void
@@ -270,6 +271,22 @@ event_hblank_end(nds_ctx *nds)
 	}
 
 	reschedule_nds_event_after(nds, event_scheduler::HBLANK_END, 2130);
+}
+
+void
+nds_dump_prof(nds_ctx *nds)
+{
+	nds->prof.report();
+	LOG("arm9: fetch: %f, load %f, store %f\n",
+			(double)nds->arm9->fetch_hits / nds->arm9->fetch_total,
+			(double)nds->arm9->load_hits / nds->arm9->load_total,
+			(double)nds->arm9->store_hits /
+					nds->arm9->store_total);
+	LOG("arm7: fetch: %f, load %f, store %f\n",
+			(double)nds->arm7->fetch_hits / nds->arm7->fetch_total,
+			(double)nds->arm7->load_hits / nds->arm7->load_total,
+			(double)nds->arm7->store_hits /
+					nds->arm7->store_total);
 }
 
 } // namespace twice

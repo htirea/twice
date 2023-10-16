@@ -8,6 +8,17 @@ namespace twice {
 struct arm9_cpu final : arm_cpu {
 	arm9_cpu(nds_ctx *nds);
 
+	u8 *fetch_pt[PAGE_TABLE_SIZE]{};
+	u8 *load_pt[PAGE_TABLE_SIZE]{};
+	u8 *store_pt[PAGE_TABLE_SIZE]{};
+
+	u64 fetch_hits{};
+	u64 fetch_total{};
+	u64 load_hits{};
+	u64 load_total{};
+	u64 store_hits{};
+	u64 store_total{};
+
 	enum {
 		ITCM_SIZE = 32_KiB,
 		ITCM_MASK = 32_KiB - 1,
@@ -58,8 +69,11 @@ struct arm9_cpu final : arm_cpu {
 };
 
 void arm9_direct_boot(arm9_cpu *gpu, u32 entry_addr);
+void arm9_frame_start(arm9_cpu *cpu);
+void arm9_frame_end(arm9_cpu *cpu);
 u32 cp15_read(arm9_cpu *cpu, u32 reg);
 void cp15_write(arm9_cpu *cpu, u32 reg, u32 value);
+void update_arm9_page_tables(arm9_cpu *cpu);
 
 } // namespace twice
 

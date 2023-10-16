@@ -22,7 +22,27 @@ arm9_direct_boot(arm9_cpu *cpu, u32 entry_addr)
 	cpu->gpr[14] = entry_addr;
 	cpu->bankedr[arm_cpu::MODE_IRQ][0] = 0x03003F80;
 	cpu->bankedr[arm_cpu::MODE_SVC][0] = 0x03003FC0;
+
+	update_arm9_page_tables(cpu);
 	cpu->arm_jump(entry_addr);
+}
+
+void
+arm9_frame_start(arm9_cpu *cpu)
+{
+	cpu->cycles_executed = 0;
+	cpu->fetch_hits = 0;
+	cpu->fetch_total = 0;
+	cpu->load_hits = 0;
+	cpu->load_total = 0;
+	cpu->store_hits = 0;
+	cpu->store_total = 0;
+}
+
+void
+arm9_frame_end(arm9_cpu *cpu)
+{
+	cpu->nds->arm9_usage = cpu->cycles_executed / 1120380.0;
 }
 
 static bool
@@ -115,6 +135,14 @@ template <typename T>
 static T
 fetch(arm9_cpu *cpu, u32 addr)
 {
+	cpu->fetch_total++;
+
+	u8 *p = cpu->fetch_pt[addr >> arm_cpu::PAGE_SHIFT];
+	if (p) {
+		cpu->fetch_hits++;
+		return readarr<T>(p, addr & arm_cpu::PAGE_MASK);
+	}
+
 	if (cpu->read_itcm && 0 == (addr & cpu->itcm_addr_mask)) {
 		return readarr<T>(cpu->itcm, addr & cpu->itcm_array_mask);
 	}
@@ -126,6 +154,14 @@ template <typename T>
 static T
 load(arm9_cpu *cpu, u32 addr)
 {
+	cpu->load_total++;
+
+	u8 *p = cpu->load_pt[addr >> arm_cpu::PAGE_SHIFT];
+	if (p) {
+		cpu->load_hits++;
+		return readarr<T>(p, addr & arm_cpu::PAGE_MASK);
+	}
+
 	if (cpu->read_itcm && 0 == (addr & cpu->itcm_addr_mask)) {
 		return readarr<T>(cpu->itcm, addr & cpu->itcm_array_mask);
 	}
@@ -141,6 +177,15 @@ template <typename T>
 static void
 store(arm9_cpu *cpu, u32 addr, T value)
 {
+	cpu->store_total++;
+
+	u8 *p = cpu->store_pt[addr >> arm_cpu::PAGE_SHIFT];
+	if (p) {
+		cpu->store_hits++;
+		writearr<T>(p, addr & arm_cpu::PAGE_MASK, value);
+		return;
+	}
+
 	if (cpu->write_itcm && 0 == (addr & cpu->itcm_addr_mask)) {
 		writearr<T>(cpu->itcm, addr & cpu->itcm_array_mask, value);
 		return;
@@ -215,6 +260,106 @@ arm9_cpu::ldrsh(u32 addr)
 	return load16(addr & ~1);
 }
 
+static void
+reset_page_table_read(nds_ctx *nds, u8 **pt, u64 start, u64 end)
+{
+	for (u64 addr = start; addr < end; addr += arm_cpu::PAGE_SIZE) {
+		u64 page = addr >> arm_cpu::PAGE_SHIFT;
+		switch (addr >> 24) {
+		case 0x2:
+			pt[page] = &nds->main_ram[addr & MAIN_RAM_MASK];
+			break;
+		case 0x3:
+		{
+			u8 *p = nds->shared_wram_p[0];
+			pt[page] = &p[addr & nds->shared_wram_mask[0]];
+			break;
+		}
+		default:
+			pt[page] = nullptr;
+			break;
+		}
+	}
+}
+
+static void
+reset_page_table_write(nds_ctx *nds, u8 **pt, u64 start, u64 end)
+{
+	for (u64 addr = start; addr < end; addr += arm_cpu::PAGE_SIZE) {
+		u64 page = addr >> arm_cpu::PAGE_SHIFT;
+		switch (addr >> 24) {
+		case 0x2:
+			pt[page] = &nds->main_ram[addr & MAIN_RAM_MASK];
+			break;
+		case 0x3:
+		{
+			u8 *p = nds->shared_wram_p[0];
+			pt[page] = &p[addr & nds->shared_wram_mask[0]];
+			break;
+		}
+		default:
+			pt[page] = nullptr;
+			break;
+		}
+	}
+}
+
+static void
+reset_arm9_page_tables(arm9_cpu *cpu)
+{
+	reset_page_table_read(cpu->nds, cpu->fetch_pt, 0, 0x100000000);
+	reset_page_table_read(cpu->nds, cpu->load_pt, 0, 0x100000000);
+	reset_page_table_write(cpu->nds, cpu->store_pt, 0, 0x100000000);
+}
+
+static void
+map_dtcm_pages(arm9_cpu *cpu, u8 **pt, u64 start, u64 end)
+{
+	bool null_page = (end - start) < arm_cpu::PAGE_SIZE;
+
+	for (u64 addr = start; addr < end; addr += arm_cpu::PAGE_SIZE) {
+		u64 page = addr >> arm_cpu::PAGE_SHIFT;
+		pt[page] = null_page ? nullptr
+		                     : &cpu->dtcm[addr & cpu->dtcm_array_mask];
+	}
+}
+
+static void
+map_itcm_pages(arm9_cpu *cpu, u8 **pt, u64 end)
+{
+	bool null_page = end < arm_cpu::PAGE_SIZE;
+
+	for (u64 addr = 0; addr < end; addr += arm_cpu::PAGE_SIZE) {
+		u64 page = addr >> arm_cpu::PAGE_SHIFT;
+		pt[page] = null_page ? nullptr
+		                     : &cpu->itcm[addr & cpu->itcm_array_mask];
+	}
+}
+
+void
+update_arm9_page_tables(arm9_cpu *cpu)
+{
+	reset_arm9_page_tables(cpu);
+
+	u64 dtcm_end = cpu->dtcm_base + (u64)~cpu->dtcm_addr_mask + 1;
+	u64 itcm_end = (u64)~cpu->itcm_addr_mask + 1;
+
+	if (cpu->read_dtcm) {
+		map_dtcm_pages(cpu, cpu->load_pt, cpu->dtcm_base, dtcm_end);
+	}
+	if (cpu->read_itcm) {
+		map_itcm_pages(cpu, cpu->load_pt, itcm_end);
+		map_itcm_pages(cpu, cpu->fetch_pt, itcm_end);
+	}
+
+	if (cpu->write_dtcm) {
+		map_dtcm_pages(cpu, cpu->store_pt, cpu->dtcm_base, dtcm_end);
+	}
+	if (cpu->write_itcm) {
+		map_itcm_pages(cpu, cpu->store_pt, itcm_end);
+	}
+}
+
 u32
 cp15_read(arm9_cpu *cpu, u32 reg)
 {
@@ -264,22 +409,32 @@ ctrl_reg_write(arm9_cpu *cpu, u32 value)
 
 	cpu->exception_base = value & BIT(13) ? 0xFFFF0000 : 0;
 
+	bool tcm_changed = false;
+
 	if (diff & (BIT(16) | BIT(17))) {
 		cpu->read_dtcm = (value & BIT(16)) && !(value & BIT(17));
 		cpu->write_dtcm = value & BIT(16);
+		tcm_changed = true;
 	}
 
 	if (diff & (BIT(18) | BIT(19))) {
 		cpu->read_itcm = (value & BIT(18)) && !(value & BIT(19));
 		cpu->write_itcm = value & BIT(18);
+		tcm_changed = true;
 	}
 
 	cpu->ctrl_reg = (cpu->ctrl_reg & ~0xFF085) | (value & 0xFF085);
+
+	if (tcm_changed) {
+		update_arm9_page_tables(cpu);
+	}
 }
 
 void
 cp15_write(arm9_cpu *cpu, u32 reg, u32 value)
 {
+	bool tcm_changed = false;
+
 	switch (reg) {
 	case 0x100:
 		ctrl_reg_write(cpu, value);
@@ -292,6 +447,7 @@ cp15_write(arm9_cpu *cpu, u32 reg, u32 value)
 		cpu->dtcm_addr_mask = ~mask;
 		cpu->dtcm_array_mask = mask & arm9_cpu::DTCM_MASK;
 		cpu->dtcm_reg = value & 0xFFFFF03E;
+		tcm_changed = true;
 		break;
 	}
 	case 0x911:
@@ -301,6 +457,7 @@ cp15_write(arm9_cpu *cpu, u32 reg, u32 value)
 		cpu->itcm_addr_mask = ~mask;
 		cpu->itcm_array_mask = mask & arm9_cpu::ITCM_MASK;
 		cpu->itcm_reg = value & 0x3E;
+		tcm_changed = true;
 		break;
 	}
 	case 0x704:
@@ -358,6 +515,10 @@ cp15_write(arm9_cpu *cpu, u32 reg, u32 value)
 		break;
 	default:
 		LOG("unhandled cp15 write to %03X\n", reg);
+	}
+
+	if (tcm_changed) {
+		update_arm9_page_tables(cpu);
 	}
 }
 

@@ -16,7 +16,27 @@ arm7_direct_boot(arm7_cpu *cpu, u32 entry_addr)
 	cpu->gpr[14] = entry_addr;
 	cpu->bankedr[arm_cpu::MODE_IRQ][0] = 0x0380FF80;
 	cpu->bankedr[arm_cpu::MODE_SVC][0] = 0x0380FFC0;
+
+	update_arm7_page_tables(cpu);
 	cpu->arm_jump(entry_addr);
+}
+
+void
+arm7_frame_start(arm7_cpu *cpu)
+{
+	cpu->cycles_executed = 0;
+	cpu->fetch_hits = 0;
+	cpu->fetch_total = 0;
+	cpu->load_hits = 0;
+	cpu->load_total = 0;
+	cpu->store_hits = 0;
+	cpu->store_total = 0;
+}
+
+void
+arm7_frame_end(arm7_cpu *cpu)
+{
+	cpu->nds->arm7_usage = cpu->cycles_executed / 560190.0;
 }
 
 static bool
@@ -98,52 +118,98 @@ arm7_cpu::jump_cpsr(u32 addr)
 	}
 }
 
+template <typename T>
+static T
+fetch(arm7_cpu *cpu, u32 addr)
+{
+	cpu->fetch_total++;
+
+	u8 *p = cpu->pt[addr >> arm_cpu::PAGE_SHIFT];
+	if (p) {
+		cpu->fetch_hits++;
+		return readarr<T>(p, addr & arm_cpu::PAGE_MASK);
+	}
+
+	return bus7_read<T>(cpu->nds, addr);
+}
+
+template <typename T>
+static T
+load(arm7_cpu *cpu, u32 addr)
+{
+	cpu->load_total++;
+
+	u8 *p = cpu->pt[addr >> arm_cpu::PAGE_SHIFT];
+	if (p) {
+		cpu->load_hits++;
+		return readarr<T>(p, addr & arm_cpu::PAGE_MASK);
+	}
+
+	return bus7_read<T>(cpu->nds, addr);
+}
+
+template <typename T>
+static void
+store(arm7_cpu *cpu, u32 addr, T value)
+{
+	cpu->store_total++;
+
+	u8 *p = cpu->pt[addr >> arm_cpu::PAGE_SHIFT];
+	if (p) {
+		cpu->store_hits++;
+		writearr<T>(p, addr & arm_cpu::PAGE_MASK, value);
+		return;
+	}
+
+	bus7_write<T>(cpu->nds, addr, value);
+}
+
 u32
 arm7_cpu::fetch32(u32 addr)
 {
-	return bus7_read<u32>(nds, addr);
+	return fetch<u32>(this, addr);
 }
 
 u16
 arm7_cpu::fetch16(u32 addr)
 {
-	return bus7_read<u16>(nds, addr);
+	return fetch<u16>(this, addr);
 }
 
 u32
 arm7_cpu::load32(u32 addr)
 {
-	return bus7_read<u32>(nds, addr);
+	return load<u32>(this, addr);
 }
 
 u16
 arm7_cpu::load16(u32 addr)
 {
-	return bus7_read<u16>(nds, addr);
+	return load<u16>(this, addr);
 }
 
 u8
 arm7_cpu::load8(u32 addr)
 {
-	return bus7_read<u8>(nds, addr);
+	return load<u8>(this, addr);
 }
 
 void
 arm7_cpu::store32(u32 addr, u32 value)
 {
-	bus7_write<u32>(nds, addr, value);
+	store<u32>(this, addr, value);
 }
 
 void
 arm7_cpu::store16(u32 addr, u16 value)
 {
-	bus7_write<u16>(nds, addr, value);
+	store<u16>(this, addr, value);
 }
 
 void
 arm7_cpu::store8(u32 addr, u8 value)
 {
-	bus7_write<u8>(nds, addr, value);
+	store<u8>(this, addr, value);
 }
 
 u16
@@ -160,6 +226,37 @@ arm7_cpu::ldrsh(u32 addr)
 	} else {
 		return load16(addr);
 	}
+}
+
+static void
+update_arm7_page_table(nds_ctx *nds, u8 **pt, u64 start, u64 end)
+{
+	for (u64 addr = start; addr < end; addr += arm_cpu::PAGE_SIZE) {
+		u64 page = addr >> arm_cpu::PAGE_SHIFT;
+		switch (addr >> 23) {
+		case 0x20 >> 3:
+		case 0x28 >> 3:
+			pt[page] = &nds->main_ram[addr & MAIN_RAM_MASK];
+			break;
+		case 0x30 >> 3:
+		{
+			u8 *p = nds->shared_wram_p[1];
+			pt[page] = &p[addr & nds->shared_wram_mask[1]];
+			break;
+		}
+		case 0x38 >> 3:
+			pt[page] = &nds->arm7_wram[addr & ARM7_WRAM_MASK];
+			break;
+		default:
+			pt[page] = nullptr;
+		}
+	}
+}
+
+void
+update_arm7_page_tables(arm7_cpu *cpu)
+{
+	update_arm7_page_table(cpu->nds, cpu->pt, 0, 0x100000000);
 }
 
 } // namespace twice

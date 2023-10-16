@@ -251,7 +251,7 @@ nds_machine::dump_profiler_report()
 	if (!nds)
 		return;
 
-	nds->prof.report();
+	nds_dump_prof(nds.get());
 }
 
 } // namespace twice

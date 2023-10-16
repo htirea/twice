@@ -11,6 +11,32 @@ enum {
 	PSG_NOISE,
 };
 
+void
+sound_frame_start(nds_ctx *nds)
+{
+	nds->audio_buf_idx = 0;
+}
+
+static void
+extend_audio_samples(nds_ctx *nds)
+{
+	u32 idx = nds->audio_buf_idx;
+	s16 left = nds->audio_buf[idx - 2];
+	s16 right = nds->audio_buf[idx - 1];
+
+	for (u32 i = 0; i < 8; i++) {
+		nds->audio_buf[idx++] = left;
+		nds->audio_buf[idx++] = right;
+	}
+}
+
+void
+sound_frame_end(nds_ctx *nds)
+{
+	nds->last_audio_buf_size = nds->audio_buf_idx * sizeof *nds->audio_buf;
+	extend_audio_samples(nds);
+}
+
 static s32
 sample_channel(nds_ctx *nds, int ch_id)
 {
@@ -335,19 +361,6 @@ event_sample_audio(nds_ctx *nds)
 	nds->audio_buf[nds->audio_buf_idx++] = (right - 0x200) << 6;
 
 	reschedule_nds_event_after(nds, event_scheduler::SAMPLE_AUDIO, 1024);
-}
-
-void
-extend_audio_samples(nds_ctx *nds)
-{
-	u32 idx = nds->audio_buf_idx;
-	s16 left = nds->audio_buf[idx - 2];
-	s16 right = nds->audio_buf[idx - 1];
-
-	for (u32 i = 0; i < 8; i++) {
-		nds->audio_buf[idx++] = left;
-		nds->audio_buf[idx++] = right;
-	}
 }
 
 static void

@@ -8,6 +8,15 @@ namespace twice {
 struct arm7_cpu final : arm_cpu {
 	arm7_cpu(nds_ctx *nds);
 
+	u8 *pt[PAGE_TABLE_SIZE]{};
+
+	u64 fetch_hits{};
+	u64 fetch_total{};
+	u64 load_hits{};
+	u64 load_total{};
+	u64 store_hits{};
+	u64 store_total{};
+
 	void run() override;
 	void step() override;
 	void arm_jump(u32 addr) override;
@@ -33,6 +42,9 @@ struct arm7_cpu final : arm_cpu {
 };
 
 void arm7_direct_boot(arm7_cpu *cpu, u32 entry_addr);
+void arm7_frame_start(arm7_cpu *cpu);
+void arm7_frame_end(arm7_cpu *cpu);
+void update_arm7_page_tables(arm7_cpu *cpu);
 
 } // namespace twice
 

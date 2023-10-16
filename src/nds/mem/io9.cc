@@ -1,6 +1,8 @@
 #include "nds/mem/io.h"
 
 #include "common/logger.h"
+#include "nds/arm/arm7.h"
+#include "nds/arm/arm9.h"
 #include "nds/math.h"
 
 namespace twice {
@@ -8,6 +10,8 @@ namespace twice {
 void
 wramcnt_write(nds_ctx *nds, u8 value)
 {
+	bool changed = (nds->wramcnt != value);
+
 	nds->wramcnt = value;
 
 	switch (value & 3) {
@@ -34,6 +38,11 @@ wramcnt_write(nds_ctx *nds, u8 value)
 		nds->shared_wram_mask[0] = 0;
 		nds->shared_wram_p[1] = nds->shared_wram;
 		nds->shared_wram_mask[1] = 32_KiB - 1;
+	}
+
+	if (changed) {
+		update_arm9_page_tables(nds->arm9.get());
+		update_arm7_page_tables(nds->arm7.get());
 	}
 }
 
