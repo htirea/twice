@@ -20,7 +20,6 @@ interp_setup(interpolator *i, s32 x0, s32 x1, s32 w0, s32 w1, bool edge)
 	i->x1 = x1;
 	i->w0 = w0;
 	i->w1 = w1;
-	i->denom = (s64)w0 * w1 * (x1 - x0);
 
 	if ((edge && w0 == w1 && !(w0 & 0x7E)) ||
 			(!edge && w0 == w1 && !(w0 & 0x7F))) {
@@ -61,6 +60,7 @@ static void
 interp_update_yfactor(interpolator *i)
 {
 	i->yfactor = interp_get_yfactor(i);
+	i->ryfactor = ((u32)1 << i->precision) - i->yfactor;
 }
 
 static void
@@ -103,24 +103,20 @@ interpolate_perspective(interpolator *i, s32 y0, s32 y1)
 	if (y0 <= y1) {
 		return y0 + ((y1 - y0) * i->yfactor >> i->precision);
 	} else {
-		u32 one = (u32)1 << i->precision;
-		return y1 + ((y0 - y1) * (one - i->yfactor) >> i->precision);
+		return y1 + ((y0 - y1) * i->ryfactor >> i->precision);
 	}
 }
 
 static void
 interpolate_perspective_multiple(interpolator *i, s32 *y0, s32 *y1, s32 *y)
 {
-	u32 factor = i->yfactor;
-	u32 factor_r = ((u32)1 << i->precision) - i->yfactor;
-
 	for (u32 j = 0; j < 5; j++) {
 		if (y0[j] <= y1[j]) {
 			y[j] = y0[j] +
-			       ((y1[j] - y0[j]) * factor >> i->precision);
+			       ((y1[j] - y0[j]) * i->yfactor >> i->precision);
 		} else {
 			y[j] = y1[j] +
-			       ((y0[j] - y1[j]) * factor_r >> i->precision);
+			       ((y0[j] - y1[j]) * i->ryfactor >> i->precision);
 		}
 	}
 }
