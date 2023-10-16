@@ -2,6 +2,7 @@
 #include <cstring>
 #include <exception>
 #include <format>
+#include <fstream>
 #include <iostream>
 #include <memory>
 #include <string>
@@ -14,6 +15,7 @@
 #include "libtwice/nds/machine.h"
 
 #include "args.h"
+#include "database.h"
 #include "platform.h"
 
 twice::arg_parser twice::parser;
@@ -125,10 +127,13 @@ try {
 	}
 
 	try {
-		twice::nds_load_game_db(data_dir + "game_db.bin");
+		twice::initialize_nds_game_db_from_json(
+				data_dir + "game-db.json");
 	} catch (const twice::twice_exception& e) {
 		std::cerr << e.what() << '\n';
+		std::cerr << "could not load game database\n";
 	}
+
 	twice::nds_config config{ data_dir };
 	twice::nds_machine nds(config);
 	if (!cartridge_pathname.empty()) {

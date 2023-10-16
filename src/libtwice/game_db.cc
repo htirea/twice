@@ -4,30 +4,16 @@
 #include "common/logger.h"
 #include "common/util.h"
 
+#include <set>
+
 namespace twice {
 
-struct cartridge_db_entry {
-	u32 gamecode;
-	nds_savetype type;
-};
-
-static std::vector<cartridge_db_entry> game_db;
+static std::map<u32, cartridge_db_entry> game_db;
 
 void
-nds_load_game_db(const std::string& pathname)
+add_nds_game_db_entry(u32 gamecode, const cartridge_db_entry& entry)
 {
-	auto db = file_map(pathname, 1_MiB,
-			file_map::FILEMAP_PRIVATE | file_map::FILEMAP_LIMIT);
-	if (db.size() % 8 != 0) {
-		throw twice_error("invalid db file size");
-	}
-
-	for (size_t idx = 0; idx < db.size(); idx += 8) {
-		u32 gamecode = readarr<u32>(db.data(), idx);
-		s32 savetype = readarr<u32>(db.data(), idx + 4);
-
-		game_db.push_back({ gamecode, (nds_savetype)savetype });
-	}
+	game_db[gamecode] = entry;
 }
 
 static const char *
@@ -100,17 +86,14 @@ lookup_savetype(u32 gamecode)
 		return SAVETYPE_NONE;
 	}
 
-	auto it = std::lower_bound(game_db.begin(), game_db.end(), gamecode,
-			[](const auto& entry, const auto& gamecode) {
-				return entry.gamecode < gamecode;
-			});
-	if (it == game_db.end() || gamecode < it->gamecode) {
+	auto it = game_db.find(gamecode);
+	if (it == game_db.end()) {
 		LOG("unknown save type: gamecode %08X\n", gamecode);
 		return SAVETYPE_UNKNOWN;
 	}
 
-	LOG("detected save type: %s\n", savetype_to_str(it->type));
-	return it->type;
+	LOG("detected save type: %s\n", savetype_to_str(it->second.type));
+	return it->second.type;
 }
 
 nds_save_info

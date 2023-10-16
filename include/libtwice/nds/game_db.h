@@ -27,7 +27,11 @@ struct nds_save_info {
 	size_t size;
 };
 
-void nds_load_game_db(const std::string& pathname);
+struct cartridge_db_entry {
+	nds_savetype type;
+};
+
+void add_nds_game_db_entry(u32 gamecode, const cartridge_db_entry& entry);
 nds_save_info nds_get_save_info(const file_map& cartridge);
 
 } // namespace twice
