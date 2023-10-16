@@ -201,11 +201,24 @@ io7_write32(nds_ctx *nds, u32 addr, u32 value)
 {
 	switch (addr) {
 		IO_WRITE32_COMMON(1);
+	case 0x4000138:
+		rtc_write(nds, value);
+		return;
 	case 0x4000500:
 		nds->soundcnt = (nds->soundcnt & ~0xBF7F) | (value & 0xBF7F);
 		return;
+	case 0x4000508:
+		sound_capture_write_cnt(nds, 0, value);
+		sound_capture_write_cnt(nds, 1, value >> 8);
+		return;
 	case 0x4000510:
 		nds->sound_cap_ch[0].dad = value & 0x7FFFFFC;
+		return;
+	case 0x4000514:
+		nds->sound_cap_ch[0].len = value & 0xFFFF;
+		return;
+	case 0x400051C:
+		nds->sound_cap_ch[1].len = value & 0xFFFF;
 		return;
 	case 0x4000518:
 		nds->sound_cap_ch[1].dad = value & 0x7FFFFFC;
