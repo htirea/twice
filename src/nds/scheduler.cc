@@ -1,5 +1,6 @@
 #include "nds/nds.h"
 
+#include "nds/arm/arm.h"
 #include "nds/spi.h"
 
 #include "libtwice/exception.h"
@@ -30,7 +31,8 @@ get_next_event_time(nds_ctx *nds)
 	auto& sc = nds->scheduler;
 
 	timestamp curr = sc.current_time;
-	timestamp target = sc.current_time + 64;
+	timestamp limit = sc.current_time + 64;
+	timestamp target = -1;
 
 	for (int i = 0; i < event_scheduler::NUM_NDS_EVENTS; i++) {
 		if (sc.events[i].enabled) {
@@ -46,6 +48,12 @@ get_next_event_time(nds_ctx *nds)
 			target = std::min(
 					target, sc.arm_events[1][i].time << 1);
 		}
+	}
+
+	bool fast_skip = !nds->dma[0].active && !nds->dma[1].active &&
+	                 nds->cpu[0]->halted && nds->cpu[1]->halted;
+	if (!fast_skip) {
+		target = std::min(target, limit);
 	}
 
 	if (target == curr) {
