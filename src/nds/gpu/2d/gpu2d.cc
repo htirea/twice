@@ -627,11 +627,11 @@ capture_display(gpu_2d_engine *gpu, u16 y)
 }
 
 static color4
-alpha_blend(color4 color1, color4 color2, u8 eva, u8 evb)
+alpha_blend(color4 color1, color4 color2, u8 eva, u8 evb, u8 shift)
 {
-	u8 r = std::min(63, (color1.r * eva + color2.r * evb + 8) >> 4);
-	u8 g = std::min(63, (color1.g * eva + color2.g * evb + 8) >> 4);
-	u8 b = std::min(63, (color1.b * eva + color2.b * evb + 8) >> 4);
+	u8 r = std::min(63, (color1.r * eva + color2.r * evb + 8) >> shift);
+	u8 g = std::min(63, (color1.g * eva + color2.g * evb + 8) >> shift);
+	u8 b = std::min(63, (color1.b * eva + color2.b * evb + 8) >> shift);
 
 	return { r, g, b, 0xFF };
 }
@@ -908,19 +908,22 @@ graphics_display_scanline(gpu_2d_engine *gpu)
 
 		if (top.force_blend) {
 			if (bottom.effect_bottom) {
-				u8 ta, tb;
+				u8 ta, tb, shift;
 				if (top.from_3d) {
-					ta = top.color.p.a >> 1;
-					tb = 16 - ta;
+					ta = top.color.p.a + 1;
+					tb = 32 - ta;
+					shift = 5;
 				} else if (top.alpha_oam) {
 					ta = top.alpha_oam + 1;
 					tb = 16 - ta;
+					shift = 4;
 				} else {
 					ta = eva;
 					tb = evb;
+					shift = 4;
 				}
 				color_result = alpha_blend(top_color,
-						bottom_color, ta, tb);
+						bottom_color, ta, tb, shift);
 			}
 		} else {
 			switch (effect) {
@@ -930,8 +933,8 @@ graphics_display_scanline(gpu_2d_engine *gpu)
 			case 1:
 				if (top.effect_top && bottom.effect_bottom) {
 					color_result = alpha_blend(top_color,
-							bottom_color, eva,
-							evb);
+							bottom_color, eva, evb,
+							4);
 				}
 				break;
 			case 2:
