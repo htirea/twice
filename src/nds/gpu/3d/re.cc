@@ -726,11 +726,16 @@ render_translucent_pixel(gpu_3d_engine *gpu, render_polygon_ctx *ctx,
 	if (attr.translucent && attr.translucent_id == poly_id)
 		return;
 
-	if (!ctx->alpha_blending || gpu->color_buf[y][x].a == 0) {
-		gpu->color_buf[y][x] = color;
+	auto& dst_color = gpu->color_buf[y][x];
+	if (dst_color.a == 0) {
+		dst_color = color;
+	} else if (!ctx->alpha_blending) {
+		dst_color.r = color.r;
+		dst_color.g = color.g;
+		dst_color.b = color.b;
+		dst_color.a = std::max(dst_color.a, color.a);
 	} else {
-		gpu->color_buf[y][x] =
-				alpha_blend(color, gpu->color_buf[y][x]);
+		dst_color = alpha_blend(color, dst_color);
 	}
 
 	if (ctx->p->attr & BIT(11)) {
