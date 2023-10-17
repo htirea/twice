@@ -903,53 +903,49 @@ graphics_display_scanline(gpu_2d_engine *gpu)
 
 		color4 top_color = pixel_to_color(top);
 		color4 bottom_color = pixel_to_color(bottom);
-
 		color4 color_result = top_color;
 
-		if (top.force_blend) {
-			if (bottom.effect_bottom) {
-				u8 ta, tb, shift;
-				if (top.from_3d) {
-					ta = top.color.p.a + 1;
-					tb = 32 - ta;
-					shift = 5;
-				} else if (top.alpha_oam) {
-					ta = top.alpha_oam + 1;
-					tb = 16 - ta;
-					shift = 4;
-				} else {
-					ta = eva;
-					tb = evb;
-					shift = 4;
-				}
+		bool blended = false;
+		if (top.force_blend && bottom.effect_bottom) {
+			u8 ta, tb, shift;
+			if (top.from_3d) {
+				ta = top.color.p.a + 1;
+				tb = 32 - ta;
+				shift = 5;
+			} else if (top.alpha_oam) {
+				ta = top.alpha_oam + 1;
+				tb = 16 - ta;
+				shift = 4;
+			} else {
+				ta = eva;
+				tb = evb;
+				shift = 4;
+			}
+			color_result = alpha_blend(top_color, bottom_color, ta,
+					tb, shift);
+			blended = true;
+		}
+
+		switch (effect) {
+		case 1:
+			if (!blended && top.effect_top &&
+					bottom.effect_bottom) {
 				color_result = alpha_blend(top_color,
-						bottom_color, ta, tb, shift);
+						bottom_color, eva, evb, 4);
 			}
-		} else {
-			switch (effect) {
-			case 0:
-				color_result = top_color;
-				break;
-			case 1:
-				if (top.effect_top && bottom.effect_bottom) {
-					color_result = alpha_blend(top_color,
-							bottom_color, eva, evb,
-							4);
-				}
-				break;
-			case 2:
-				if (top.effect_top) {
-					color_result = increase_brightness(
-							top_color, evy);
-				}
-				break;
-			case 3:
-				if (top.effect_top) {
-					color_result = decrease_brightness(
-							top_color, evy);
-				}
-				break;
+			break;
+		case 2:
+			if (top.effect_top) {
+				color_result = increase_brightness(
+						top_color, evy);
 			}
+			break;
+		case 3:
+			if (top.effect_top) {
+				color_result = decrease_brightness(
+						top_color, evy);
+			}
+			break;
 		}
 
 		color_result.a = 1;
