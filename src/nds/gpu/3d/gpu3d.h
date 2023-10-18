@@ -130,9 +130,13 @@ struct gpu_3d_engine {
 			s32 x0;
 			s32 y0;
 			s32 m;
+			s32 x0_s;
+			s32 dx;
+			s32 dy;
 			bool negative;
 			bool xmajor;
 			bool vertical;
+			bool left;
 			vertex *v0{};
 			vertex *v1{};
 
@@ -202,19 +206,19 @@ struct gpu_3d_engine {
 	u32 position_sp{};
 	u32 texture_sp{};
 
-	color4 color_buf[192][256]{};
-	s32 depth_buf[192][256]{};
-	bool stencil_buf[256]{};
+	color4 color_buf[2][192][256]{};
+	s32 depth_buf[2][192][256]{};
+	bool stencil_buf[2][256]{};
 
 	struct {
-		u32 : 13;
+		u32 coverage : 5;
 		u32 edge : 1;
 		u32 fog : 1;
 		u32 translucent_id : 6;
 		u32 translucent : 1;
 		u32 backface : 1;
 		u32 opaque_id : 6;
-	} attr_buf[192][256]{};
+	} attr_buf[2][192][256]{};
 
 	nds_ctx *nds{};
 };

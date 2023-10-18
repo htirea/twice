@@ -543,7 +543,7 @@ capture_display(gpu_2d_engine *gpu, u16 y)
 
 	if (source != 1) {
 		if (gpu->dispcapcnt & BIT(24)) {
-			src_a = gpu->nds->gpu3d.color_buf[y];
+			src_a = gpu->nds->gpu3d.color_buf[0][y];
 		} else {
 			src_a = gpu->gfx_line;
 		}
@@ -1414,7 +1414,8 @@ render_3d(gpu_2d_engine *gpu)
 	bool effect_bottom = gpu->bldcnt & BIT(8);
 
 	for (; draw_x != draw_x_end; draw_x++, x++) {
-		color4 color = gpu->nds->gpu3d.color_buf[gpu->nds->vcount][x];
+		color4 color = gpu->nds->gpu3d.color_buf[0][gpu->nds->vcount]
+		                                        [x];
 		if (color.a != 0) {
 			draw_3d_bg_pixel(gpu, draw_x, color, priority,
 					effect_top, effect_bottom);
