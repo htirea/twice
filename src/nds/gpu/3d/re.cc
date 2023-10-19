@@ -872,11 +872,11 @@ render_polygon_scanline(
 		cov_r[1] ^= 0x3FF;
 	}
 
-	xr[0] = std::max(xr[0], xl[1]);
 	if (sr->vertical) {
 		xr[0]--;
 		xr[1]--;
 	}
+	xr[0] = std::max(xr[0], xl[1]);
 
 	interp_update_x(&sl->interp, y);
 	interp_update_x(&sr->interp, y);
