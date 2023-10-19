@@ -812,7 +812,7 @@ render_polygon_pixel(gpu_3d_engine *gpu, render_polygon_ctx *ctx,
 	bool shadow = ctx->pi->shadow;
 
 	if (shadow) {
-		if (!gpu->stencil_buf[0][x] && !gpu->stencil_buf[0][x])
+		if (!gpu->stencil_buf[0][x] && !gpu->stencil_buf[1][x])
 			return;
 		if (!gpu->stencil_buf[0][x]) {
 			layer = 1;
