@@ -823,7 +823,7 @@ render_shadow_mask_polygon_pixel(gpu_3d_engine *gpu, render_polygon_ctx *ctx,
 	interp_update_x(span, x);
 	s32 z = interpolate_z(span, ctx->zl, ctx->zr, ctx->p->wbuffering);
 
-	if (ctx->alpha < ctx->alpha_test_ref) {
+	if (ctx->alpha <= ctx->alpha_test_ref) {
 		return;
 	}
 
