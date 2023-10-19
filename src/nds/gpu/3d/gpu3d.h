@@ -130,11 +130,11 @@ struct gpu_3d_engine {
 			s32 x0;
 			s32 y0;
 			s32 m;
-			s32 x0_s;
 			s32 dx;
 			s32 dy;
 			bool negative;
 			bool xmajor;
+			bool wide;
 			bool vertical;
 			bool left;
 			vertex *v0{};

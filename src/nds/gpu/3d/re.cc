@@ -164,13 +164,15 @@ static void
 setup_polygon_slope(
 		slope *s, vertex *v0, vertex *v1, s32 w0, s32 w1, bool left)
 {
+	s32 one = (s32)1 << 18;
+	s32 half = (s32)1 << 17;
+
 	s32 x0 = v0->sx;
 	s32 y0 = v0->sy;
 	s32 x1 = v1->sx;
 	s32 y1 = v1->sy;
 
 	s->x0 = x0 << 18;
-	s->x0_s = x0;
 	s->y0 = y0;
 	s->v0 = v0;
 	s->v1 = v1;
@@ -181,28 +183,25 @@ setup_polygon_slope(
 		std::swap(x0, x1);
 	}
 
-	s32 dx = x1 - x0;
-	s32 dy = y1 - y0;
-	s->dx = dx;
-	s->dy = dy;
-	s->xmajor = dx > dy;
+	s->dx = x1 - x0;
+	s->dy = y1 - y0;
+	s->xmajor = s->dx > s->dy;
+	s->wide = s->dx >= s->dy << 1;
 
-	if (s->xmajor || dx == dy) {
-		s32 half = (s32)1 << 17;
+	if (s->dx >= s->dy) {
 		s->x0 = s->negative ? s->x0 - half : s->x0 + half;
 	}
 
-	s->m = dx;
-	if (dy != 0) {
-		s->m *= ((s32)1 << 18) / dy;
+	if (s->dx == 0 || s->dy == 0) {
+		s->m = 0;
 	} else {
-		s->m = ((s32)1 << 18);
+		s->m = s->dx * (one / s->dy);
 	}
-	s->vertical = s->m == 0 || dx == 0;
 
+	s->vertical = s->m == 0;
 	s->left = left;
 
-	bool adjust = (s->xmajor || dx == dy) && (left == s->negative);
+	bool adjust = (s->dx >= s->dy) && (s->left == s->negative);
 	interp_setup(&s->interp, v0->sy - adjust, v1->sy - adjust, w0, w1,
 			true);
 }
@@ -237,12 +236,10 @@ get_slope_x(slope *s, s32 *x, s32 *cov, s32 scanline)
 		s32 x0 = x[0] >> 18;
 		s32 x1 = x[1] >> 18;
 
-		cov[0] = (x0 - s->x0_s) * (s->dy << 10) / s->dx & 0x3FF;
-		cov[1] = (x1 - s->x0_s) * (s->dy << 10) / s->dx & 0x3FF;
+		cov[0] = (x0 - s->v0->sx) * (s->dy << 10) / s->dx & 0x3FF;
+		cov[1] = (x1 - s->v0->sx) * (s->dy << 10) / s->dx & 0x3FF;
 
-		bool wide = s->dx >= s->dy << 1;
-
-		if (wide) {
+		if (s->wide) {
 			if (cov[0] >= 0x200 && x0 != x1) {
 				cov[0] ^= 0x3FF;
 			}
@@ -257,9 +254,7 @@ get_slope_x(slope *s, s32 *x, s32 *cov, s32 scanline)
 			cov[0] ^= 0x3FF;
 			cov[1] ^= 0x3FF;
 		}
-	}
-
-	else {
+	} else {
 		cov[0] = x[0] >> 8 & 0x3FF;
 		cov[1] = cov[0];
 
