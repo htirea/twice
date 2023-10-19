@@ -80,6 +80,15 @@ byteswap64(u64 x)
 	return __builtin_bswap64(x);
 }
 
+inline s32
+ilerp(s32 y0, s32 y1, s32 x0, s32 x1, s32 x)
+{
+	s64 numer = y0 * ((s64)x1 - x) + y1 * ((s64)x - x0);
+	s64 denom = (s64)x1 - x0;
+
+	return denom == 0 ? y0 : numer / denom;
+}
+
 } // namespace twice
 
 #endif
