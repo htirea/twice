@@ -4,23 +4,7 @@
 
 namespace twice {
 
-static void
-powerman_write_reg(nds_ctx *nds, u8 value)
-{
-	auto& pwr = nds->powerman;
-
-	switch (pwr.reg_select) {
-	case 0:
-		pwr.reg[0] = (pwr.reg[0] & ~0x7F) | (value & 0x7F);
-		if (value & BIT(6)) {
-			nds->shutdown = true;
-		}
-		break;
-	default:
-		LOGV("powerman write to reg %d, value %02X\n", pwr.reg_select,
-				value);
-	}
-}
+static void powerman_write_reg(nds_ctx *nds, u8 value);
 
 void
 powerman_spi_transfer_byte(nds_ctx *nds, u8 value, bool keep_active)
@@ -44,6 +28,24 @@ powerman_spi_transfer_byte(nds_ctx *nds, u8 value, bool keep_active)
 	}
 
 	pwr.cs_active = keep_active;
+}
+
+static void
+powerman_write_reg(nds_ctx *nds, u8 value)
+{
+	auto& pwr = nds->powerman;
+
+	switch (pwr.reg_select) {
+	case 0:
+		pwr.reg[0] = (pwr.reg[0] & ~0x7F) | (value & 0x7F);
+		if (value & BIT(6)) {
+			nds->shutdown = true;
+		}
+		break;
+	default:
+		LOGV("powerman write to reg %d, value %02X\n", pwr.reg_select,
+				value);
+	}
 }
 
 void

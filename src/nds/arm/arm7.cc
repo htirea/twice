@@ -39,12 +39,6 @@ arm7_frame_end(arm7_cpu *cpu)
 	cpu->nds->arm7_usage = cpu->cycles_executed / 560190.0;
 }
 
-static bool
-check_cond(u32 cond, u32 cpsr)
-{
-	return arm_cond_table[cond] & (1 << (cpsr >> 28));
-}
-
 void
 arm7_cpu::run()
 {
@@ -57,6 +51,8 @@ arm7_cpu::run()
 		step();
 	}
 }
+
+static bool check_cond(u32 cond, u32 cpsr);
 
 void
 arm7_cpu::step()
@@ -87,6 +83,12 @@ arm7_cpu::step()
 
 	cycles += 1;
 	cycles_executed += 1;
+}
+
+static bool
+check_cond(u32 cond, u32 cpsr)
+{
+	return arm_cond_table[cond] & (1 << (cpsr >> 28));
 }
 
 void

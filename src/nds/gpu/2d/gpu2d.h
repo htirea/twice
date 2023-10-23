@@ -77,14 +77,14 @@ struct gpu_2d_engine {
 	int engineid{};
 };
 
-u32 gpu_2d_read32(gpu_2d_engine *gpu, u8 offset);
-u16 gpu_2d_read16(gpu_2d_engine *gpu, u8 offset);
-u8 gpu_2d_read8(gpu_2d_engine *gpu, u8 offset);
-void gpu_2d_write32(gpu_2d_engine *gpu, u8 offset, u32 value);
-void gpu_2d_write16(gpu_2d_engine *gpu, u8 offset, u16 value);
-void gpu_2d_write8(gpu_2d_engine *gpu, u8 offset, u8 value);
-
 void gpu_on_scanline_start(nds_ctx *nds);
+
+u8 gpu_2d_read8(gpu_2d_engine *gpu, u8 offset);
+u16 gpu_2d_read16(gpu_2d_engine *gpu, u8 offset);
+u32 gpu_2d_read32(gpu_2d_engine *gpu, u8 offset);
+void gpu_2d_write8(gpu_2d_engine *gpu, u8 offset, u8 value);
+void gpu_2d_write16(gpu_2d_engine *gpu, u8 offset, u16 value);
+void gpu_2d_write32(gpu_2d_engine *gpu, u8 offset, u32 value);
 
 } // namespace twice
 

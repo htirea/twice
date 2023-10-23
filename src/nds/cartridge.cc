@@ -8,6 +8,49 @@
 
 namespace twice {
 
+cartridge_backup::cartridge_backup(u8 *data, size_t size, int savetype)
+	: data(data), size(size), savetype(savetype)
+{
+	switch (savetype) {
+	case SAVETYPE_EEPROM_512B:
+		stat_reg = 0xF0;
+		break;
+	case SAVETYPE_FLASH_256K:
+		jedec_id = 0x204012;
+		break;
+	case SAVETYPE_FLASH_512K:
+		jedec_id = 0x204013;
+		break;
+	case SAVETYPE_FLASH_1M:
+		jedec_id = 0x204014;
+		break;
+	case SAVETYPE_FLASH_8M:
+		jedec_id = 0x204015;
+		break;
+	}
+}
+
+u32 cartridge_make_chip_id(size_t size);
+
+cartridge::cartridge(u8 *data, size_t size, u8 *save_data, size_t save_size,
+		int savetype, u8 *arm7_bios)
+	: data(data),
+	  size(size),
+	  read_mask(std::bit_ceil(size) - 1),
+	  chip_id(cartridge_make_chip_id(size)),
+	  backup(save_data, save_size, savetype)
+{
+	gamecode = readarr_checked<u32>(data, 0xC, size, 0);
+	if ((gamecode & 0xFF) == 'I') {
+		infrared = true;
+		LOG("deteced infrared cart\n");
+	}
+
+	for (u32 i = 0; i < 0x412; i++) {
+		keybuf_s[i] = readarr<u32>(arm7_bios, 0x30 + i * 4);
+	}
+}
+
 u32
 cartridge_make_chip_id(size_t size)
 {
@@ -25,6 +68,68 @@ cartridge_make_chip_id(size_t size)
 	u8 byte3 = 0;
 
 	return (u32)byte3 << 24 | (u32)byte2 << 16 | (u32)byte1 << 8 | byte0;
+}
+
+static void init_keycode(cartridge *cart, u32 gamecode, int level, u32 modulo);
+static void encrypt64(u8 *p, u32 *keybuf);
+
+void
+encrypt_secure_area(cartridge *cart)
+{
+	if (cart->size < 0x8000) {
+		return;
+	}
+	u64 id = readarr<u64>(cart->data, 0x4000);
+	if (id != 0xE7FFDEFFE7FFDEFF) {
+		return;
+	}
+
+	init_keycode(cart, cart->gamecode, 3, 8);
+	std::memcpy(cart->data + 0x4000, "encryObj", 8);
+	for (u32 i = 0; i < 0x800; i += 8) {
+		encrypt64(cart->data + 0x4000 + i, cart->keybuf);
+	}
+
+	init_keycode(cart, cart->gamecode, 2, 8);
+	encrypt64(cart->data + 0x4000, cart->keybuf);
+}
+
+static void apply_keycode(cartridge *cart, u32 modulo);
+
+static void
+init_keycode(cartridge *cart, u32 gamecode, int level, u32 modulo)
+{
+	std::memcpy(cart->keybuf, cart->keybuf_s, sizeof(cart->keybuf));
+
+	writearr<u32>(cart->keycode, 0, gamecode);
+	writearr<u32>(cart->keycode, 4, gamecode / 2);
+	writearr<u32>(cart->keycode, 8, gamecode * 2);
+	if (level >= 1)
+		apply_keycode(cart, modulo);
+	if (level >= 2)
+		apply_keycode(cart, modulo);
+	writearr<u32>(cart->keycode, 4, readarr<u32>(cart->keycode, 4) * 2);
+	writearr<u32>(cart->keycode, 8, readarr<u32>(cart->keycode, 8) / 2);
+	if (level >= 3)
+		apply_keycode(cart, modulo);
+}
+
+static void
+apply_keycode(cartridge *cart, u32 modulo)
+{
+	encrypt64(cart->keycode + 4, cart->keybuf);
+	encrypt64(cart->keycode, cart->keybuf);
+	for (u32 i = 0; i <= 0x11; i++) {
+		cart->keybuf[i] ^= byteswap32(
+				readarr<u32>(cart->keycode, i * 4 % modulo));
+	}
+
+	u8 scratch[8]{};
+	for (u32 i = 0; i <= 0x410; i += 2) {
+		encrypt64(&scratch[0], cart->keybuf);
+		cart->keybuf[i] = readarr<u32>(scratch, 4);
+		cart->keybuf[i + 1] = readarr<u32>(scratch, 0);
+	}
 }
 
 static void
@@ -67,115 +172,7 @@ decrypt64(u8 *p, u32 *keybuf)
 	writearr<u32>(p, 4, y ^ keybuf[0x0]);
 }
 
-static void
-apply_keycode(cartridge *cart, u32 modulo)
-{
-	encrypt64(cart->keycode + 4, cart->keybuf);
-	encrypt64(cart->keycode, cart->keybuf);
-	for (u32 i = 0; i <= 0x11; i++) {
-		cart->keybuf[i] ^= byteswap32(
-				readarr<u32>(cart->keycode, i * 4 % modulo));
-	}
-
-	u8 scratch[8]{};
-	for (u32 i = 0; i <= 0x410; i += 2) {
-		encrypt64(&scratch[0], cart->keybuf);
-		cart->keybuf[i] = readarr<u32>(scratch, 4);
-		cart->keybuf[i + 1] = readarr<u32>(scratch, 0);
-	}
-}
-
-static void
-init_keycode(cartridge *cart, u32 gamecode, int level, u32 modulo)
-{
-	std::memcpy(cart->keybuf, cart->keybuf_s, sizeof(cart->keybuf));
-
-	writearr<u32>(cart->keycode, 0, gamecode);
-	writearr<u32>(cart->keycode, 4, gamecode / 2);
-	writearr<u32>(cart->keycode, 8, gamecode * 2);
-	if (level >= 1)
-		apply_keycode(cart, modulo);
-	if (level >= 2)
-		apply_keycode(cart, modulo);
-	writearr<u32>(cart->keycode, 4, readarr<u32>(cart->keycode, 4) * 2);
-	writearr<u32>(cart->keycode, 8, readarr<u32>(cart->keycode, 8) / 2);
-	if (level >= 3)
-		apply_keycode(cart, modulo);
-}
-
-void
-encrypt_secure_area(cartridge *cart)
-{
-	if (cart->size < 0x8000) {
-		return;
-	}
-	u64 id = readarr<u64>(cart->data, 0x4000);
-	if (id != 0xE7FFDEFFE7FFDEFF) {
-		return;
-	}
-
-	init_keycode(cart, cart->gamecode, 3, 8);
-	std::memcpy(cart->data + 0x4000, "encryObj", 8);
-	for (u32 i = 0; i < 0x800; i += 8) {
-		encrypt64(cart->data + 0x4000 + i, cart->keybuf);
-	}
-
-	init_keycode(cart, cart->gamecode, 2, 8);
-	encrypt64(cart->data + 0x4000, cart->keybuf);
-}
-
-cartridge_backup::cartridge_backup(u8 *data, size_t size, int savetype)
-	: data(data),
-	  size(size),
-	  savetype(savetype)
-{
-	switch (savetype) {
-	case SAVETYPE_EEPROM_512B:
-		stat_reg = 0xF0;
-		break;
-	case SAVETYPE_FLASH_256K:
-		jedec_id = 0x204012;
-		break;
-	case SAVETYPE_FLASH_512K:
-		jedec_id = 0x204013;
-		break;
-	case SAVETYPE_FLASH_1M:
-		jedec_id = 0x204014;
-		break;
-	case SAVETYPE_FLASH_8M:
-		jedec_id = 0x204015;
-		break;
-	}
-}
-
-cartridge::cartridge(u8 *data, size_t size, u8 *save_data, size_t save_size,
-		int savetype, u8 *arm7_bios)
-	: data(data),
-	  size(size),
-	  read_mask(std::bit_ceil(size) - 1),
-	  chip_id(cartridge_make_chip_id(size)),
-	  backup(save_data, save_size, savetype)
-{
-	gamecode = readarr_checked<u32>(data, 0xC, size, 0);
-	if ((gamecode & 0xFF) == 'I') {
-		infrared = true;
-		LOG("deteced infrared cart\n");
-	}
-
-	for (u32 i = 0; i < 0x412; i++) {
-		keybuf_s[i] = readarr<u32>(arm7_bios, 0x30 + i * 4);
-	}
-}
-
-static void
-finish_rom_transfer(nds_ctx *nds)
-{
-	nds->romctrl &= ~BIT(31);
-	nds->romctrl &= ~BIT(23);
-	if (nds->auxspicnt & BIT(14)) {
-		request_interrupt(nds->cpu[nds->nds_slot_cpu], 19);
-	}
-}
+static void finish_rom_transfer(nds_ctx *nds);
 
 void
 event_advance_rom_transfer(nds_ctx *nds)
@@ -235,6 +232,69 @@ event_advance_rom_transfer(nds_ctx *nds)
 		finish_rom_transfer(nds);
 		return;
 	}
+}
+
+static void
+finish_rom_transfer(nds_ctx *nds)
+{
+	nds->romctrl &= ~BIT(31);
+	nds->romctrl &= ~BIT(23);
+	if (nds->auxspicnt & BIT(14)) {
+		request_interrupt(nds->cpu[nds->nds_slot_cpu], 19);
+	}
+}
+
+void
+event_auxspi_transfer_complete(nds_ctx *nds)
+{
+	nds->auxspicnt &= ~BIT(7);
+}
+
+u32
+read_cart_bus_data(nds_ctx *nds, int cpuid)
+{
+	if (cpuid != nds->nds_slot_cpu)
+		return 0;
+
+	auto& t = nds->cart.transfer;
+
+	t.bytes_read += 4;
+	if (t.bytes_read < t.transfer_size) {
+		u32 cycles_per_byte = nds->romctrl & BIT(27) ? 8 : 5;
+		schedule_nds_event_after(nds, cpuid,
+				event_scheduler::ROM_ADVANCE_TRANSFER,
+				cycles_per_byte * 4);
+		nds->romctrl &= ~BIT(23);
+	} else if (t.bytes_read == t.transfer_size) {
+		finish_rom_transfer(nds);
+	} else {
+		t.bytes_read = t.transfer_size;
+	}
+
+	return t.bus_data_r;
+}
+
+void cartridge_start_command(nds_ctx *nds, int cpuid);
+
+void
+romctrl_write(nds_ctx *nds, int cpuid, u32 value)
+{
+	if (cpuid != nds->nds_slot_cpu)
+		return;
+
+	bool old_start = nds->romctrl & BIT(31);
+	bool new_start = value & BIT(31);
+	nds->romctrl = (nds->romctrl & (BIT(23) | BIT(29))) |
+	               (value & ~(BIT(23) | BIT(31)));
+
+	if (!(!old_start && new_start))
+		return;
+	if (!(nds->auxspicnt & BIT(15)))
+		return;
+	if (nds->auxspicnt & BIT(13))
+		return;
+
+	cartridge_start_command(nds, cpuid);
 }
 
 void
@@ -315,51 +375,6 @@ cartridge_start_command(nds_ctx *nds, int cpuid)
 }
 
 void
-romctrl_write(nds_ctx *nds, int cpuid, u32 value)
-{
-	if (cpuid != nds->nds_slot_cpu)
-		return;
-
-	bool old_start = nds->romctrl & BIT(31);
-	bool new_start = value & BIT(31);
-	nds->romctrl = (nds->romctrl & (BIT(23) | BIT(29))) |
-	               (value & ~(BIT(23) | BIT(31)));
-
-	if (!(!old_start && new_start))
-		return;
-	if (!(nds->auxspicnt & BIT(15)))
-		return;
-	if (nds->auxspicnt & BIT(13))
-		return;
-
-	cartridge_start_command(nds, cpuid);
-}
-
-u32
-read_cart_bus_data(nds_ctx *nds, int cpuid)
-{
-	if (cpuid != nds->nds_slot_cpu)
-		return 0;
-
-	auto& t = nds->cart.transfer;
-
-	t.bytes_read += 4;
-	if (t.bytes_read < t.transfer_size) {
-		u32 cycles_per_byte = nds->romctrl & BIT(27) ? 8 : 5;
-		schedule_nds_event_after(nds, cpuid,
-				event_scheduler::ROM_ADVANCE_TRANSFER,
-				cycles_per_byte * 4);
-		nds->romctrl &= ~BIT(23);
-	} else if (t.bytes_read == t.transfer_size) {
-		finish_rom_transfer(nds);
-	} else {
-		t.bytes_read = t.transfer_size;
-	}
-
-	return t.bus_data_r;
-}
-
-void
 auxspicnt_write_l(nds_ctx *nds, int cpuid, u8 value)
 {
 	if (cpuid != nds->nds_slot_cpu)
@@ -368,11 +383,7 @@ auxspicnt_write_l(nds_ctx *nds, int cpuid, u8 value)
 	nds->auxspicnt = (nds->auxspicnt & ~0x43) | (value & 0x43);
 }
 
-static void
-reset_auxspi(nds_ctx *nds)
-{
-	nds->cart.backup.cs_active = false;
-}
+static void reset_auxspi(nds_ctx *nds);
 
 void
 auxspicnt_write_h(nds_ctx *nds, int cpuid, u8 value)
@@ -404,36 +415,57 @@ auxspicnt_write(nds_ctx *nds, int cpuid, u16 value)
 }
 
 static void
-eeprom_common_transfer_byte(nds_ctx *nds, u8 value)
+reset_auxspi(nds_ctx *nds)
 {
-	auto& bk = nds->cart.backup;
-
-	switch (bk.command) {
-	case 0x6:
-		bk.stat_reg |= BIT(1);
-		break;
-	case 0x4:
-		bk.stat_reg &= ~BIT(1);
-		break;
-	case 0x5:
-		if (bk.count > 0) {
-			nds->auxspidata_r = bk.stat_reg;
-		}
-		break;
-	case 0x1:
-		if (bk.count == 1) {
-			bk.stat_reg = (bk.stat_reg & ~0xC) | (value & 0xC);
-		}
-		break;
-	case 0x9F:
-		if (bk.count > 0) {
-			nds->auxspidata_r = -1;
-		}
-		break;
-	default:
-		LOG("unknown eeprom command %02X\n", bk.command);
-	}
+	nds->cart.backup.cs_active = false;
 }
+
+static void eeprom_512b_transfer_byte(
+		nds_ctx *nds, u8 value, bool keep_active);
+static void eeprom_8k_transfer_byte(nds_ctx *nds, u8 value, bool keep_active);
+static void flash_transfer_byte(nds_ctx *nds, u8 value, bool keep_active);
+static void infrared_transfer_byte(nds_ctx *nds, u8 value, bool keep_active);
+
+void
+auxspidata_write(nds_ctx *nds, int cpuid, u8 value)
+{
+	if (cpuid != nds->nds_slot_cpu)
+		return;
+	if (!(nds->auxspicnt & BIT(15)))
+		return;
+	if (!(nds->auxspicnt & BIT(13)))
+		return;
+
+	nds->auxspidata_w = value;
+	bool keep_active = nds->auxspicnt & BIT(6);
+
+	switch (nds->cart.backup.savetype) {
+	case SAVETYPE_EEPROM_512B:
+		eeprom_512b_transfer_byte(nds, value, keep_active);
+		break;
+	case SAVETYPE_EEPROM_8K:
+	case SAVETYPE_EEPROM_64K:
+		eeprom_8k_transfer_byte(nds, value, keep_active);
+		break;
+	case SAVETYPE_FLASH_256K:
+	case SAVETYPE_FLASH_512K:
+	case SAVETYPE_FLASH_1M:
+	case SAVETYPE_FLASH_8M:
+		if (nds->cart.infrared) {
+			infrared_transfer_byte(nds, value, keep_active);
+		} else {
+			flash_transfer_byte(nds, value, keep_active);
+		}
+		break;
+	}
+
+	schedule_nds_event_after(nds, cpuid,
+			event_scheduler::AUXSPI_TRANSFER_COMPLETE,
+			64 << (nds->auxspicnt & 3));
+	nds->auxspicnt |= BIT(7);
+}
+
+static void eeprom_common_transfer_byte(nds_ctx *nds, u8 value);
 
 static void
 eeprom_512b_transfer_byte(nds_ctx *nds, u8 value, bool keep_active)
@@ -538,6 +570,90 @@ eeprom_8k_transfer_byte(nds_ctx *nds, u8 value, bool keep_active)
 }
 
 static void
+eeprom_common_transfer_byte(nds_ctx *nds, u8 value)
+{
+	auto& bk = nds->cart.backup;
+
+	switch (bk.command) {
+	case 0x6:
+		bk.stat_reg |= BIT(1);
+		break;
+	case 0x4:
+		bk.stat_reg &= ~BIT(1);
+		break;
+	case 0x5:
+		if (bk.count > 0) {
+			nds->auxspidata_r = bk.stat_reg;
+		}
+		break;
+	case 0x1:
+		if (bk.count == 1) {
+			bk.stat_reg = (bk.stat_reg & ~0xC) | (value & 0xC);
+		}
+		break;
+	case 0x9F:
+		if (bk.count > 0) {
+			nds->auxspidata_r = -1;
+		}
+		break;
+	default:
+		LOG("unknown eeprom command %02X\n", bk.command);
+	}
+}
+
+static void flash_common_transfer_byte(nds_ctx *nds, u8 value);
+
+static void
+flash_transfer_byte(nds_ctx *nds, u8 value, bool keep_active)
+{
+	auto& bk = nds->cart.backup;
+
+	if (!bk.cs_active) {
+		bk.command = value;
+		bk.count = 0;
+	}
+
+	flash_common_transfer_byte(nds, value);
+
+	bk.count++;
+	bk.cs_active = keep_active;
+}
+
+static void
+infrared_transfer_byte(nds_ctx *nds, u8 value, bool keep_active)
+{
+	auto& bk = nds->cart.backup;
+
+	if (!bk.cs_active) {
+		bk.ir_command = value;
+		bk.ir_count = 0;
+	}
+
+	switch (bk.ir_command) {
+	case 0x0:
+		if (bk.ir_count == 1) {
+			bk.command = value;
+			bk.count = 0;
+		}
+		if (bk.ir_count > 0) {
+			flash_common_transfer_byte(nds, value);
+			bk.count++;
+		}
+		break;
+	case 0x8:
+		if (bk.ir_count > 0) {
+			nds->auxspidata_r = 0xAA;
+		}
+		break;
+	default:
+		LOG("unhandled IR command %02X\n", bk.ir_command);
+	}
+
+	bk.ir_count++;
+	bk.cs_active = keep_active;
+}
+
+static void
 flash_common_transfer_byte(nds_ctx *nds, u8 value)
 {
 	auto& bk = nds->cart.backup;
@@ -618,101 +734,6 @@ flash_common_transfer_byte(nds_ctx *nds, u8 value)
 		LOG("unknown flash command %02X\n", bk.command);
 		throw twice_error("unknown flash command");
 	}
-}
-
-static void
-flash_transfer_byte(nds_ctx *nds, u8 value, bool keep_active)
-{
-	auto& bk = nds->cart.backup;
-
-	if (!bk.cs_active) {
-		bk.command = value;
-		bk.count = 0;
-	}
-
-	flash_common_transfer_byte(nds, value);
-
-	bk.count++;
-	bk.cs_active = keep_active;
-}
-
-static void
-infrared_transfer_byte(nds_ctx *nds, u8 value, bool keep_active)
-{
-	auto& bk = nds->cart.backup;
-
-	if (!bk.cs_active) {
-		bk.ir_command = value;
-		bk.ir_count = 0;
-	}
-
-	switch (bk.ir_command) {
-	case 0x0:
-		if (bk.ir_count == 1) {
-			bk.command = value;
-			bk.count = 0;
-		}
-		if (bk.ir_count > 0) {
-			flash_common_transfer_byte(nds, value);
-			bk.count++;
-		}
-		break;
-	case 0x8:
-		if (bk.ir_count > 0) {
-			nds->auxspidata_r = 0xAA;
-		}
-		break;
-	default:
-		LOG("unhandled IR command %02X\n", bk.ir_command);
-	}
-
-	bk.ir_count++;
-	bk.cs_active = keep_active;
-}
-
-void
-auxspidata_write(nds_ctx *nds, int cpuid, u8 value)
-{
-	if (cpuid != nds->nds_slot_cpu)
-		return;
-	if (!(nds->auxspicnt & BIT(15)))
-		return;
-	if (!(nds->auxspicnt & BIT(13)))
-		return;
-
-	nds->auxspidata_w = value;
-	bool keep_active = nds->auxspicnt & BIT(6);
-
-	switch (nds->cart.backup.savetype) {
-	case SAVETYPE_EEPROM_512B:
-		eeprom_512b_transfer_byte(nds, value, keep_active);
-		break;
-	case SAVETYPE_EEPROM_8K:
-	case SAVETYPE_EEPROM_64K:
-		eeprom_8k_transfer_byte(nds, value, keep_active);
-		break;
-	case SAVETYPE_FLASH_256K:
-	case SAVETYPE_FLASH_512K:
-	case SAVETYPE_FLASH_1M:
-	case SAVETYPE_FLASH_8M:
-		if (nds->cart.infrared) {
-			infrared_transfer_byte(nds, value, keep_active);
-		} else {
-			flash_transfer_byte(nds, value, keep_active);
-		}
-		break;
-	}
-
-	schedule_nds_event_after(nds, cpuid,
-			event_scheduler::AUXSPI_TRANSFER_COMPLETE,
-			64 << (nds->auxspicnt & 3));
-	nds->auxspicnt |= BIT(7);
-}
-
-void
-event_auxspi_transfer_complete(nds_ctx *nds)
-{
-	nds->auxspicnt &= ~BIT(7);
 }
 
 } // namespace twice

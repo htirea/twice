@@ -45,12 +45,6 @@ arm9_frame_end(arm9_cpu *cpu)
 	cpu->nds->arm9_usage = cpu->cycles_executed / 1120380.0;
 }
 
-static bool
-check_cond(u32 cond, u32 cpsr)
-{
-	return arm_cond_table[cond] & (1 << (cpsr >> 28));
-}
-
 void
 arm9_cpu::run()
 {
@@ -63,6 +57,8 @@ arm9_cpu::run()
 		step();
 	}
 }
+
+static bool check_cond(u32 cond, u32 cpsr);
 
 void
 arm9_cpu::step()
@@ -100,6 +96,12 @@ arm9_cpu::step()
 
 	cycles += 1;
 	cycles_executed += 1;
+}
+
+static bool
+check_cond(u32 cond, u32 cpsr)
+{
+	return arm_cond_table[cond] & (1 << (cpsr >> 28));
 }
 
 void
@@ -304,6 +306,34 @@ reset_page_table_write(nds_ctx *nds, u8 **pt, u64 start, u64 end)
 	}
 }
 
+static void reset_arm9_page_tables(arm9_cpu *cpu);
+static void map_dtcm_pages(arm9_cpu *cpu, u8 **pt, u64 start, u64 end);
+static void map_itcm_pages(arm9_cpu *cpu, u8 **pt, u64 end);
+
+void
+update_arm9_page_tables(arm9_cpu *cpu)
+{
+	reset_arm9_page_tables(cpu);
+
+	u64 dtcm_end = cpu->dtcm_base + (u64)~cpu->dtcm_addr_mask + 1;
+	u64 itcm_end = (u64)~cpu->itcm_addr_mask + 1;
+
+	if (cpu->read_dtcm) {
+		map_dtcm_pages(cpu, cpu->load_pt, cpu->dtcm_base, dtcm_end);
+	}
+	if (cpu->read_itcm) {
+		map_itcm_pages(cpu, cpu->load_pt, itcm_end);
+		map_itcm_pages(cpu, cpu->fetch_pt, itcm_end);
+	}
+
+	if (cpu->write_dtcm) {
+		map_dtcm_pages(cpu, cpu->store_pt, cpu->dtcm_base, dtcm_end);
+	}
+	if (cpu->write_itcm) {
+		map_itcm_pages(cpu, cpu->store_pt, itcm_end);
+	}
+}
+
 static void
 reset_arm9_page_tables(arm9_cpu *cpu)
 {
@@ -333,30 +363,6 @@ map_itcm_pages(arm9_cpu *cpu, u8 **pt, u64 end)
 		u64 page = addr >> arm_cpu::PAGE_SHIFT;
 		pt[page] = null_page ? nullptr
 		                     : &cpu->itcm[addr & cpu->itcm_array_mask];
-	}
-}
-
-void
-update_arm9_page_tables(arm9_cpu *cpu)
-{
-	reset_arm9_page_tables(cpu);
-
-	u64 dtcm_end = cpu->dtcm_base + (u64)~cpu->dtcm_addr_mask + 1;
-	u64 itcm_end = (u64)~cpu->itcm_addr_mask + 1;
-
-	if (cpu->read_dtcm) {
-		map_dtcm_pages(cpu, cpu->load_pt, cpu->dtcm_base, dtcm_end);
-	}
-	if (cpu->read_itcm) {
-		map_itcm_pages(cpu, cpu->load_pt, itcm_end);
-		map_itcm_pages(cpu, cpu->fetch_pt, itcm_end);
-	}
-
-	if (cpu->write_dtcm) {
-		map_dtcm_pages(cpu, cpu->store_pt, cpu->dtcm_base, dtcm_end);
-	}
-	if (cpu->write_itcm) {
-		map_itcm_pages(cpu, cpu->store_pt, itcm_end);
 	}
 }
 
@@ -397,38 +403,7 @@ cp15_read(arm9_cpu *cpu, u32 reg)
 	}
 }
 
-static void
-ctrl_reg_write(arm9_cpu *cpu, u32 value)
-{
-	u32 diff = cpu->ctrl_reg ^ value;
-	u32 unhandled = BIT(0) | BIT(2) | BIT(7) | BIT(12) | BIT(14) | BIT(15);
-
-	if (diff & unhandled) {
-		LOG("unhandled bits in cp15 write %08X\n", value);
-	}
-
-	cpu->exception_base = value & BIT(13) ? 0xFFFF0000 : 0;
-
-	bool tcm_changed = false;
-
-	if (diff & (BIT(16) | BIT(17))) {
-		cpu->read_dtcm = (value & BIT(16)) && !(value & BIT(17));
-		cpu->write_dtcm = value & BIT(16);
-		tcm_changed = true;
-	}
-
-	if (diff & (BIT(18) | BIT(19))) {
-		cpu->read_itcm = (value & BIT(18)) && !(value & BIT(19));
-		cpu->write_itcm = value & BIT(18);
-		tcm_changed = true;
-	}
-
-	cpu->ctrl_reg = (cpu->ctrl_reg & ~0xFF085) | (value & 0xFF085);
-
-	if (tcm_changed) {
-		update_arm9_page_tables(cpu);
-	}
-}
+static void ctrl_reg_write(arm9_cpu *cpu, u32 value);
 
 void
 cp15_write(arm9_cpu *cpu, u32 reg, u32 value)
@@ -516,6 +491,39 @@ cp15_write(arm9_cpu *cpu, u32 reg, u32 value)
 	default:
 		LOG("unhandled cp15 write to %03X\n", reg);
 	}
+
+	if (tcm_changed) {
+		update_arm9_page_tables(cpu);
+	}
+}
+
+static void
+ctrl_reg_write(arm9_cpu *cpu, u32 value)
+{
+	u32 diff = cpu->ctrl_reg ^ value;
+	u32 unhandled = BIT(0) | BIT(2) | BIT(7) | BIT(12) | BIT(14) | BIT(15);
+
+	if (diff & unhandled) {
+		LOG("unhandled bits in cp15 write %08X\n", value);
+	}
+
+	cpu->exception_base = value & BIT(13) ? 0xFFFF0000 : 0;
+
+	bool tcm_changed = false;
+
+	if (diff & (BIT(16) | BIT(17))) {
+		cpu->read_dtcm = (value & BIT(16)) && !(value & BIT(17));
+		cpu->write_dtcm = value & BIT(16);
+		tcm_changed = true;
+	}
+
+	if (diff & (BIT(18) | BIT(19))) {
+		cpu->read_itcm = (value & BIT(18)) && !(value & BIT(19));
+		cpu->write_itcm = value & BIT(18);
+		tcm_changed = true;
+	}
+
+	cpu->ctrl_reg = (cpu->ctrl_reg & ~0xFF085) | (value & 0xFF085);
 
 	if (tcm_changed) {
 		update_arm9_page_tables(cpu);

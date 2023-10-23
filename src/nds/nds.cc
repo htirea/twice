@@ -50,6 +50,43 @@ nds_firmware_boot(nds_ctx *nds)
 	nds->arm7->arm_jump(0x0);
 }
 
+static void parse_header(nds_ctx *nds, u32 *entry_addr_ret);
+
+void
+nds_direct_boot(nds_ctx *nds)
+{
+	/* give shared wram to arm7 before we do anything else */
+	wramcnt_write(nds, 0x3);
+	powcnt1_write(nds, 0x1);
+	nds->soundbias = 0x200;
+	nds->postflg[0] = 0x1;
+	nds->postflg[1] = 0x1;
+
+	u32 chip_id = nds->cart.chip_id;
+	writearr<u32>(nds->main_ram, 0x3FF800, chip_id);
+	writearr<u32>(nds->main_ram, 0x3FF804, chip_id);
+	writearr<u16>(nds->main_ram, 0x3FF850, 0x5835);
+	writearr<u32>(nds->main_ram, 0x3FF880, 0x7);
+	writearr<u32>(nds->main_ram, 0x3FF884, 0x6);
+	writearr<u32>(nds->main_ram, 0x3FFC00, chip_id);
+	writearr<u32>(nds->main_ram, 0x3FFC04, chip_id);
+	writearr<u16>(nds->main_ram, 0x3FFC10, 0x5835);
+	writearr<u16>(nds->main_ram, 0x3FFC40, 0x1);
+
+	std::memcpy(nds->main_ram + 0x3FFC80, nds->firmware.user_settings,
+			0x70);
+
+	u32 entry_addr[2];
+	parse_header(nds, entry_addr);
+	std::memcpy(nds->main_ram + 0x3FFE00, nds->cart.data,
+			std::min((size_t)0x170, nds->cart.size));
+
+	arm9_direct_boot(nds->arm9.get(), entry_addr[0]);
+	arm7_direct_boot(nds->arm7.get(), entry_addr[1]);
+
+	/* TODO: more stuff for direct booting */
+}
+
 static void
 parse_header(nds_ctx *nds, u32 *entry_addr_ret)
 {
@@ -92,41 +129,6 @@ parse_header(nds_ctx *nds, u32 *entry_addr_ret)
 
 	entry_addr_ret[0] = entry_addr[0] & ~3;
 	entry_addr_ret[1] = entry_addr[1] & ~3;
-}
-
-void
-nds_direct_boot(nds_ctx *nds)
-{
-	/* give shared wram to arm7 before we do anything else */
-	wramcnt_write(nds, 0x3);
-	powcnt1_write(nds, 0x1);
-	nds->soundbias = 0x200;
-	nds->postflg[0] = 0x1;
-	nds->postflg[1] = 0x1;
-
-	u32 chip_id = nds->cart.chip_id;
-	writearr<u32>(nds->main_ram, 0x3FF800, chip_id);
-	writearr<u32>(nds->main_ram, 0x3FF804, chip_id);
-	writearr<u16>(nds->main_ram, 0x3FF850, 0x5835);
-	writearr<u32>(nds->main_ram, 0x3FF880, 0x7);
-	writearr<u32>(nds->main_ram, 0x3FF884, 0x6);
-	writearr<u32>(nds->main_ram, 0x3FFC00, chip_id);
-	writearr<u32>(nds->main_ram, 0x3FFC04, chip_id);
-	writearr<u16>(nds->main_ram, 0x3FFC10, 0x5835);
-	writearr<u16>(nds->main_ram, 0x3FFC40, 0x1);
-
-	std::memcpy(nds->main_ram + 0x3FFC80, nds->firmware.user_settings,
-			0x70);
-
-	u32 entry_addr[2];
-	parse_header(nds, entry_addr);
-	std::memcpy(nds->main_ram + 0x3FFE00, nds->cart.data,
-			std::min((size_t)0x170, nds->cart.size));
-
-	arm9_direct_boot(nds->arm9.get(), entry_addr[0]);
-	arm7_direct_boot(nds->arm7.get(), entry_addr[1]);
-
-	/* TODO: more stuff for direct booting */
 }
 
 void
@@ -205,31 +207,7 @@ event_hblank_start(nds_ctx *nds)
 	reschedule_nds_event_after(nds, event_scheduler::HBLANK_START, 2130);
 }
 
-static u16
-get_lyc(u16 dispstat)
-{
-	return (dispstat & BIT(7)) << 1 | dispstat >> 8;
-}
-
-static void
-nds_on_vblank(nds_ctx *nds)
-{
-	nds->dispstat[0] |= BIT(0);
-	nds->dispstat[1] |= BIT(0);
-
-	if (nds->dispstat[0] & BIT(3)) {
-		request_interrupt(nds->cpu[0], 0);
-	}
-
-	if (nds->dispstat[1] & BIT(3)) {
-		request_interrupt(nds->cpu[1], 0);
-	}
-
-	gpu3d_on_vblank(&nds->gpu3d);
-	dma_on_vblank(nds);
-
-	nds->frame_finished = true;
-}
+static void nds_on_vblank(nds_ctx *nds);
 
 void
 event_hblank_end(nds_ctx *nds)
@@ -245,7 +223,8 @@ event_hblank_end(nds_ctx *nds)
 	/* the next scanline starts here */
 
 	for (int i = 0; i < 2; i++) {
-		u16 lyc = get_lyc(nds->dispstat[i]);
+		u16 lyc = (nds->dispstat[i] & 0x80) << 1 |
+		          nds->dispstat[i] >> 8;
 		if (nds->vcount == lyc) {
 			nds->dispstat[i] |= BIT(2);
 			if (nds->dispstat[i] & BIT(5)) {
@@ -271,6 +250,26 @@ event_hblank_end(nds_ctx *nds)
 	}
 
 	reschedule_nds_event_after(nds, event_scheduler::HBLANK_END, 2130);
+}
+
+static void
+nds_on_vblank(nds_ctx *nds)
+{
+	nds->dispstat[0] |= BIT(0);
+	nds->dispstat[1] |= BIT(0);
+
+	if (nds->dispstat[0] & BIT(3)) {
+		request_interrupt(nds->cpu[0], 0);
+	}
+
+	if (nds->dispstat[1] & BIT(3)) {
+		request_interrupt(nds->cpu[1], 0);
+	}
+
+	gpu3d_on_vblank(&nds->gpu3d);
+	dma_on_vblank(nds);
+
+	nds->frame_finished = true;
 }
 
 void

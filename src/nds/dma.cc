@@ -70,93 +70,10 @@ run_dma7(nds_ctx *nds)
 	run_dma<1>(nds);
 }
 
-static void
-set_addr_step_and_width(dma_controller *dma, int channel, u16 dmacnt)
-{
-	auto& t = dma->transfers[channel];
-
-	switch (dmacnt >> 5 & 0x3) {
-	case 0:
-		t.dad_step = 1;
-		break;
-	case 1:
-		t.dad_step = -1;
-		break;
-	case 2:
-		t.dad_step = 0;
-		break;
-	case 3:
-		t.dad_step = 1;
-		break;
-	}
-
-	switch (dmacnt >> 7 & 0x3) {
-	case 0:
-		t.sad_step = 1;
-		break;
-	case 1:
-		t.sad_step = -1;
-		break;
-	case 2:
-		t.sad_step = 0;
-		break;
-	case 3:
-		throw twice_error("dma invalid source adr step");
-	}
-
-	if (dmacnt & BIT(10)) {
-		t.word_width = 4;
-	} else {
-		t.word_width = 2;
-	}
-
-	t.sad_step *= t.word_width;
-	t.dad_step *= t.word_width;
-}
-
-static void
-load_dad(nds_ctx *nds, int cpuid, int channel)
-{
-	auto& dad = nds->dma[cpuid].transfers[channel].dad;
-
-	if (cpuid == 0) {
-		dad = nds->dma_dad[0][channel] & MASK(28);
-	} else {
-		if (channel == 3) {
-			dad = nds->dma_dad[1][channel] & MASK(28);
-		} else {
-			dad = nds->dma_dad[1][channel] & MASK(27);
-		}
-	}
-}
-
-static void
-load_dmacnt_l(nds_ctx *nds, int cpuid, int channel)
-{
-	auto& word_count = nds->dma[cpuid].transfers[channel].word_count;
-
-	if (cpuid == 0) {
-		word_count = nds->dmacnt_l[0][channel] & MASK(21);
-
-		if (word_count == 0) {
-			word_count = 0x200000;
-		}
-	} else {
-		if (channel == 3) {
-			word_count = nds->dmacnt_l[1][channel] & MASK(16);
-
-			if (word_count == 0) {
-				word_count = 0x10000;
-			}
-		} else {
-			word_count = nds->dmacnt_l[1][channel] & MASK(14);
-
-			if (word_count == 0) {
-				word_count = 0x4000;
-			}
-		}
-	}
-}
+static void set_addr_step_and_width(
+		dma_controller *dma, int channel, u16 dmacnt);
+static void load_dad(nds_ctx *nds, int cpuid, int channel);
+static void load_dmacnt_l(nds_ctx *nds, int cpuid, int channel);
 
 static void
 dma9_dmacnt_h_write(nds_ctx *nds, int channel, u16 value)
@@ -250,6 +167,94 @@ dmacnt_h_write(nds_ctx *nds, int cpuid, int channel, u16 value)
 		dma9_dmacnt_h_write(nds, channel, value);
 	} else {
 		dma7_dmacnt_h_write(nds, channel, value);
+	}
+}
+
+static void
+set_addr_step_and_width(dma_controller *dma, int channel, u16 dmacnt)
+{
+	auto& t = dma->transfers[channel];
+
+	switch (dmacnt >> 5 & 0x3) {
+	case 0:
+		t.dad_step = 1;
+		break;
+	case 1:
+		t.dad_step = -1;
+		break;
+	case 2:
+		t.dad_step = 0;
+		break;
+	case 3:
+		t.dad_step = 1;
+		break;
+	}
+
+	switch (dmacnt >> 7 & 0x3) {
+	case 0:
+		t.sad_step = 1;
+		break;
+	case 1:
+		t.sad_step = -1;
+		break;
+	case 2:
+		t.sad_step = 0;
+		break;
+	case 3:
+		throw twice_error("dma invalid source adr step");
+	}
+
+	if (dmacnt & BIT(10)) {
+		t.word_width = 4;
+	} else {
+		t.word_width = 2;
+	}
+
+	t.sad_step *= t.word_width;
+	t.dad_step *= t.word_width;
+}
+
+static void
+load_dad(nds_ctx *nds, int cpuid, int channel)
+{
+	auto& dad = nds->dma[cpuid].transfers[channel].dad;
+
+	if (cpuid == 0) {
+		dad = nds->dma_dad[0][channel] & MASK(28);
+	} else {
+		if (channel == 3) {
+			dad = nds->dma_dad[1][channel] & MASK(28);
+		} else {
+			dad = nds->dma_dad[1][channel] & MASK(27);
+		}
+	}
+}
+
+static void
+load_dmacnt_l(nds_ctx *nds, int cpuid, int channel)
+{
+	auto& word_count = nds->dma[cpuid].transfers[channel].word_count;
+
+	if (cpuid == 0) {
+		word_count = nds->dmacnt_l[0][channel] & MASK(21);
+
+		if (word_count == 0) {
+			word_count = 0x200000;
+		}
+	} else {
+		if (channel == 3) {
+			word_count = nds->dmacnt_l[1][channel] & MASK(16);
+
+			if (word_count == 0) {
+				word_count = 0x10000;
+			}
+		} else {
+			word_count = nds->dmacnt_l[1][channel] & MASK(14);
+
+			if (word_count == 0) {
+				word_count = 0x4000;
+			}
+		}
 	}
 }
 

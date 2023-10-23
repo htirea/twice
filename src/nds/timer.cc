@@ -5,15 +5,14 @@
 
 namespace twice {
 
-static int
-get_freq_shift(u16 ctrl)
+static void update_timer_counter(nds_ctx *nds, int cpuid, int timer_id);
+
+u16
+read_timer_counter(nds_ctx *nds, int cpuid, int timer_id)
 {
-	u16 bits = ctrl & 3;
-	if (bits == 0) {
-		return 10;
-	} else {
-		return 10 - (4 + (bits << 1));
-	}
+	auto& t = nds->tmr[cpuid][timer_id];
+	update_timer_counter(nds, cpuid, timer_id);
+	return t.counter >> 10;
 }
 
 static void
@@ -33,30 +32,9 @@ update_timer_counter(nds_ctx *nds, int cpuid, int timer_id)
 	}
 }
 
-u16
-read_timer_counter(nds_ctx *nds, int cpuid, int timer_id)
-{
-	auto& t = nds->tmr[cpuid][timer_id];
-	update_timer_counter(nds, cpuid, timer_id);
-	return t.counter >> 10;
-}
-
-static void
-stop_timer(nds_ctx *nds, int cpuid, int timer_id)
-{
-	int event = event_scheduler::TIMER0_OVERFLOW + timer_id;
-	cancel_cpu_event(nds, cpuid, event);
-}
-
-static void
-schedule_timer_overflow(nds_ctx *nds, int cpuid, int timer_id)
-{
-	auto& t = nds->tmr[cpuid][timer_id];
-	timestamp dt = ((u32)0x10000 << 10) - (t.counter & MASK(26));
-	dt >>= t.shift;
-	int event = event_scheduler::TIMER0_OVERFLOW + timer_id;
-	schedule_cpu_event_after(nds, cpuid, event, dt);
-}
+static int get_freq_shift(u16 ctrl);
+static void stop_timer(nds_ctx *nds, int cpuid, int timer_id);
+static void schedule_timer_overflow(nds_ctx *nds, int cpuid, int timer_id);
 
 void
 write_timer_ctrl(nds_ctx *nds, int cpuid, int timer_id, u8 value)
@@ -95,6 +73,34 @@ write_timer_ctrl(nds_ctx *nds, int cpuid, int timer_id, u8 value)
 	if (!(value & BIT(2))) {
 		schedule_timer_overflow(nds, cpuid, timer_id);
 	}
+}
+
+static int
+get_freq_shift(u16 ctrl)
+{
+	u16 bits = ctrl & 3;
+	if (bits == 0) {
+		return 10;
+	} else {
+		return 10 - (4 + (bits << 1));
+	}
+}
+
+static void
+stop_timer(nds_ctx *nds, int cpuid, int timer_id)
+{
+	int event = event_scheduler::TIMER0_OVERFLOW + timer_id;
+	cancel_cpu_event(nds, cpuid, event);
+}
+
+static void
+schedule_timer_overflow(nds_ctx *nds, int cpuid, int timer_id)
+{
+	auto& t = nds->tmr[cpuid][timer_id];
+	timestamp dt = ((u32)0x10000 << 10) - (t.counter & MASK(26));
+	dt >>= t.shift;
+	int event = event_scheduler::TIMER0_OVERFLOW + timer_id;
+	schedule_cpu_event_after(nds, cpuid, event, dt);
 }
 
 static void

@@ -6,9 +6,26 @@
 
 namespace twice {
 
-[[maybe_unused]] static u32
-sqrt64_bisect(u64 n)
+static u32 sqrt64(u64 n);
+static u32 sqrt32(u32 n);
+
+void
+nds_math_sqrt(nds_ctx *nds)
 {
+	if (nds->sqrtcnt & 1) {
+		u64 n = (u64)nds->sqrt_param[1] << 32 | nds->sqrt_param[0];
+		nds->sqrt_result = sqrt64(n);
+	} else {
+		nds->sqrt_result = sqrt32(nds->sqrt_param[0]);
+	}
+}
+
+static u32
+sqrt64(u64 n)
+{
+#if LDBL_MANT_DIG >= 64
+	return std::sqrt((long double)n);
+#else
 	u64 r = 0;
 	u64 r2 = 0;
 
@@ -21,15 +38,6 @@ sqrt64_bisect(u64 n)
 	}
 
 	return r;
-}
-
-static u32
-sqrt64(u64 n)
-{
-#if LDBL_MANT_DIG >= 64
-	return std::sqrt((long double)n);
-#else
-	return sqrt64_bisect(n);
 #endif
 }
 
@@ -39,14 +47,29 @@ sqrt32(u32 n)
 	return std::sqrt((double)n);
 }
 
+static void div32(nds_ctx *nds);
+static void div64(nds_ctx *nds, bool denom_is_64_bits);
+
 void
-nds_math_sqrt(nds_ctx *nds)
+nds_math_div(nds_ctx *nds)
 {
-	if (nds->sqrtcnt & 1) {
-		u64 n = (u64)nds->sqrt_param[1] << 32 | nds->sqrt_param[0];
-		nds->sqrt_result = sqrt64(n);
+	switch (nds->divcnt & 0x3) {
+	case 0:
+		div32(nds);
+		break;
+	case 1:
+	case 3:
+		div64(nds, false);
+		break;
+	case 2:
+		div64(nds, true);
+		break;
+	}
+
+	if (nds->div_denom[0] == 0 && nds->div_denom[1] == 0) {
+		nds->divcnt |= BIT(14);
 	} else {
-		nds->sqrt_result = sqrt32(nds->sqrt_param[0]);
+		nds->divcnt &= ~BIT(14);
 	}
 }
 
@@ -105,29 +128,6 @@ div64(nds_ctx *nds, bool denom_is_64_bits)
 	nds->div_result[1] = result >> 32;
 	nds->divrem_result[0] = rem;
 	nds->divrem_result[1] = rem >> 32;
-}
-
-void
-nds_math_div(nds_ctx *nds)
-{
-	switch (nds->divcnt & 0x3) {
-	case 0:
-		div32(nds);
-		break;
-	case 1:
-	case 3:
-		div64(nds, false);
-		break;
-	case 2:
-		div64(nds, true);
-		break;
-	}
-
-	if (nds->div_denom[0] == 0 && nds->div_denom[1] == 0) {
-		nds->divcnt |= BIT(14);
-	} else {
-		nds->divcnt &= ~BIT(14);
-	}
 }
 
 } // namespace twice

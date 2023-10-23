@@ -28,7 +28,9 @@ add_library(twice STATIC
 	nds/arm/interpreter/lut.cc
 	nds/cartridge.cc
 	nds/firmware.cc
+	nds/gpu/2d/bg.cc
 	nds/gpu/2d/gpu2d.cc
+	nds/gpu/2d/obj.cc
 	nds/gpu/3d/ge.cc
 	nds/gpu/3d/re.cc
 	nds/gpu/3d/gpu3d.cc

@@ -6,6 +6,29 @@
 
 namespace twice {
 
+static u16 calculate_crc16(u8 *p, size_t num_bytes);
+
+firmware_flash::firmware_flash(u8 *data) : data(data)
+{
+	u32 user_settings_offset = readarr<u16>(data, 0x20) << 3;
+	if (user_settings_offset != 0x3FE00) {
+		throw twice_error("unhandled firmware user settings offset");
+	}
+
+	user_settings = data + user_settings_offset;
+	writearr<u16>(user_settings, 0x58, 0);
+	writearr<u16>(user_settings, 0x5A, 0);
+	writearr<u8>(user_settings, 0x5C, 0);
+	writearr<u8>(user_settings, 0x5D, 0);
+	writearr<u16>(user_settings, 0x5E, 255 << 4);
+	writearr<u16>(user_settings, 0x60, 191 << 4);
+	writearr<u8>(user_settings, 0x62, 255);
+	writearr<u8>(user_settings, 0x63, 191);
+
+	u16 checksum = calculate_crc16(user_settings, 0x70);
+	writearr<u16>(user_settings, 0x72, checksum);
+}
+
 static u16
 calculate_crc16(u8 *p, size_t num_bytes)
 {
@@ -25,28 +48,6 @@ calculate_crc16(u8 *p, size_t num_bytes)
 	}
 
 	return crc;
-}
-
-firmware_flash::firmware_flash(u8 *data)
-	: data(data)
-{
-	u32 user_settings_offset = readarr<u16>(data, 0x20) << 3;
-	if (user_settings_offset != 0x3FE00) {
-		throw twice_error("unhandled firmware user settings offset");
-	}
-
-	user_settings = data + user_settings_offset;
-	writearr<u16>(user_settings, 0x58, 0);
-	writearr<u16>(user_settings, 0x5A, 0);
-	writearr<u8>(user_settings, 0x5C, 0);
-	writearr<u8>(user_settings, 0x5D, 0);
-	writearr<u16>(user_settings, 0x5E, 255 << 4);
-	writearr<u16>(user_settings, 0x60, 191 << 4);
-	writearr<u8>(user_settings, 0x62, 255);
-	writearr<u8>(user_settings, 0x63, 191);
-
-	u16 checksum = calculate_crc16(user_settings, 0x70);
-	writearr<u16>(user_settings, 0x72, checksum);
 }
 
 void

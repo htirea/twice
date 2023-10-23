@@ -71,9 +71,9 @@ struct arm9_cpu final : arm_cpu {
 void arm9_direct_boot(arm9_cpu *gpu, u32 entry_addr);
 void arm9_frame_start(arm9_cpu *cpu);
 void arm9_frame_end(arm9_cpu *cpu);
+void update_arm9_page_tables(arm9_cpu *cpu);
 u32 cp15_read(arm9_cpu *cpu, u32 reg);
 void cp15_write(arm9_cpu *cpu, u32 reg, u32 value);
-void update_arm9_page_tables(arm9_cpu *cpu);
 
 } // namespace twice
 

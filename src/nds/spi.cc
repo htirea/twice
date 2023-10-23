@@ -46,13 +46,7 @@ spidata_write(nds_ctx *nds, u8 value)
 	nds->spicnt |= BIT(7);
 }
 
-static void
-reset_spi(nds_ctx *nds)
-{
-	firmware_spi_reset(nds);
-	touchscreen_spi_reset(nds);
-	powerman_spi_reset(nds);
-}
+static void reset_spi(nds_ctx *nds);
 
 void
 spicnt_write(nds_ctx *nds, u16 value)
@@ -63,6 +57,14 @@ spicnt_write(nds_ctx *nds, u16 value)
 	if (!old_enabled && new_enabled) {
 		reset_spi(nds);
 	}
+}
+
+static void
+reset_spi(nds_ctx *nds)
+{
+	firmware_spi_reset(nds);
+	touchscreen_spi_reset(nds);
+	powerman_spi_reset(nds);
 }
 
 void

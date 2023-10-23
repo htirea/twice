@@ -53,16 +53,15 @@ struct cartridge {
 };
 
 void encrypt_secure_area(cartridge *cart);
-u32 read_cart_bus_data(nds_ctx *nds, int cpuid);
-void cartridge_start_command(nds_ctx *nds, int cpuid);
 void event_advance_rom_transfer(nds_ctx *nds);
 void event_auxspi_transfer_complete(nds_ctx *nds);
 
+u32 read_cart_bus_data(nds_ctx *nds, int cpuid);
+void romctrl_write(nds_ctx *nds, int cpuid, u32 value);
 void auxspicnt_write_l(nds_ctx *nds, int cpuid, u8 value);
 void auxspicnt_write_h(nds_ctx *nds, int cpuid, u8 value);
 void auxspicnt_write(nds_ctx *nds, int cpuid, u16 value);
 void auxspidata_write(nds_ctx *nds, int cpuid, u8 value);
-void romctrl_write(nds_ctx *nds, int cpuid, u32 value);
 
 } // namespace twice
 

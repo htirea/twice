@@ -20,16 +20,11 @@ nds_machine::nds_machine(const nds_config& config)
 
 nds_machine::~nds_machine() = default;
 
-static std::string
-make_savefile_pathname(const std::string& pathname)
-{
-	namespace fs = std::filesystem;
-	return fs::path(pathname).replace_extension(".sav");
-}
-
 void
 nds_machine::load_cartridge(const std::string& pathname)
 {
+	namespace fs = std::filesystem;
+
 	auto cartridge = file_map(pathname, MAX_CART_SIZE,
 			file_map::FILEMAP_PRIVATE | file_map::FILEMAP_LIMIT);
 	if (cartridge.size() < 0x160) {
@@ -43,7 +38,8 @@ nds_machine::load_cartridge(const std::string& pathname)
 
 	file_map savefile;
 	if (save_info.type != SAVETYPE_NONE) {
-		std::string savepath = make_savefile_pathname(pathname);
+		std::string savepath =
+				fs::path(pathname).replace_extension(".sav");
 		savefile = file_map(savepath, save_info.size,
 				file_map::FILEMAP_SHARED);
 	}
@@ -238,9 +234,8 @@ nds_machine::update_real_time_clock(int year, int month, int day, int weekday,
 std::pair<double, double>
 nds_machine::get_cpu_usage()
 {
-	if (!nds) {
+	if (!nds)
 		return { 0, 0 };
-	}
 
 	return { nds->arm9_usage, nds->arm7_usage };
 }

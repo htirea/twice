@@ -8,30 +8,14 @@ using vertex = gpu_3d_engine::vertex;
 using polygon = gpu_3d_engine::polygon;
 using interpolator = gpu_3d_engine::rendering_engine::interpolator;
 
-static void
-update_clip_matrix(gpu_3d_engine *gpu)
-{
-	mtx_mult_mtx(&gpu->clip_mtx, &gpu->projection_mtx, &gpu->position_mtx);
-}
+static void update_clip_matrix(gpu_3d_engine *gpu);
+static void update_projection_sp(gpu_3d_engine *gpu);
+static void update_position_sp(gpu_3d_engine *gpu, s32 offset);
 
 static void
 cmd_mtx_mode(gpu_3d_engine *gpu)
 {
 	gpu->mtx_mode = gpu->cmd_params[0] & 3;
-}
-
-static void
-update_projection_sp(gpu_3d_engine *gpu)
-{
-	gpu->projection_sp ^= 1;
-	gpu->gxstat = (gpu->gxstat & ~BIT(13)) | (gpu->projection_sp << 13);
-}
-
-static void
-update_position_sp(gpu_3d_engine *gpu, s32 offset)
-{
-	gpu->position_sp = (gpu->position_sp + offset) & 0x3F;
-	gpu->gxstat = (gpu->gxstat & ~0x1F00) | (gpu->position_sp & 0x1F) << 8;
 }
 
 static void
@@ -333,51 +317,32 @@ cmd_mtx_trans(gpu_3d_engine *gpu)
 }
 
 static void
+update_clip_matrix(gpu_3d_engine *gpu)
+{
+	mtx_mult_mtx(&gpu->clip_mtx, &gpu->projection_mtx, &gpu->position_mtx);
+}
+
+static void
+update_projection_sp(gpu_3d_engine *gpu)
+{
+	gpu->projection_sp ^= 1;
+	gpu->gxstat = (gpu->gxstat & ~BIT(13)) | (gpu->projection_sp << 13);
+}
+
+static void
+update_position_sp(gpu_3d_engine *gpu, s32 offset)
+{
+	gpu->position_sp = (gpu->position_sp + offset) & 0x3F;
+	gpu->gxstat = (gpu->gxstat & ~0x1F00) | (gpu->position_sp & 0x1F) << 8;
+}
+
+static void
 cmd_color(gpu_3d_engine *gpu)
 {
 	unpack_bgr555_3d(gpu->cmd_params[0], gpu->ge.vtx_color);
 }
 
-static void
-texcoord_transform_1(gpu_3d_engine *gpu)
-{
-	auto& ge = gpu->ge;
-	auto& m = gpu->texture_mtx;
-
-	s64 s = ge.texcoord[0];
-	s64 t = ge.texcoord[1];
-	s64 r0 = (s * m.v[0][0] + t * m.v[1][0] + m.v[2][0] + m.v[3][0]) >> 12;
-	s64 r1 = (s * m.v[0][1] + t * m.v[1][1] + m.v[2][1] + m.v[3][1]) >> 12;
-
-	ge.vtx_texcoord[0] = r0;
-	ge.vtx_texcoord[1] = r1;
-}
-
-static void
-texcoord_transform_2(gpu_3d_engine *gpu, s64 nx, s64 ny, s64 nz)
-{
-	auto& ge = gpu->ge;
-	auto& m = gpu->texture_mtx;
-
-	s64 r0 = (nx * m.v[0][0] + ny * m.v[1][0] + nz * m.v[2][0]) >> 21;
-	s64 r1 = (nx * m.v[0][1] + ny * m.v[1][1] + nz * m.v[2][1]) >> 21;
-
-	ge.vtx_texcoord[0] = ge.texcoord[0] + r0;
-	ge.vtx_texcoord[1] = ge.texcoord[1] + r1;
-}
-
-static void
-texcoord_transform_3(gpu_3d_engine *gpu, s64 vx, s64 vy, s64 vz)
-{
-	auto& ge = gpu->ge;
-	auto& m = gpu->texture_mtx;
-
-	s64 r0 = (vx * m.v[0][0] + vy * m.v[1][0] + vz * m.v[2][0]) >> 24;
-	s64 r1 = (vx * m.v[0][1] + vy * m.v[1][1] + vz * m.v[2][1]) >> 24;
-
-	ge.vtx_texcoord[0] = ge.texcoord[0] + r0;
-	ge.vtx_texcoord[1] = ge.texcoord[1] + r1;
-}
+static void texcoord_transform_2(gpu_3d_engine *gpu, s64 nx, s64 ny, s64 nz);
 
 static void
 cmd_normal(gpu_3d_engine *gpu)
@@ -439,6 +404,21 @@ cmd_normal(gpu_3d_engine *gpu)
 }
 
 static void
+texcoord_transform_2(gpu_3d_engine *gpu, s64 nx, s64 ny, s64 nz)
+{
+	auto& ge = gpu->ge;
+	auto& m = gpu->texture_mtx;
+
+	s64 r0 = (nx * m.v[0][0] + ny * m.v[1][0] + nz * m.v[2][0]) >> 21;
+	s64 r1 = (nx * m.v[0][1] + ny * m.v[1][1] + nz * m.v[2][1]) >> 21;
+
+	ge.vtx_texcoord[0] = ge.texcoord[0] + r0;
+	ge.vtx_texcoord[1] = ge.texcoord[1] + r1;
+}
+
+static void texcoord_transform_1(gpu_3d_engine *gpu);
+
+static void
 cmd_texcoord(gpu_3d_engine *gpu)
 {
 	u32 param = gpu->cmd_params[0];
@@ -455,168 +435,147 @@ cmd_texcoord(gpu_3d_engine *gpu)
 	}
 }
 
-static s64
-get_face_direction(vertex **vertices)
+static void
+texcoord_transform_1(gpu_3d_engine *gpu)
 {
-	vertex *v0 = vertices[0];
-	vertex *v1 = vertices[1];
-	vertex *v2 = vertices[2];
+	auto& ge = gpu->ge;
+	auto& m = gpu->texture_mtx;
 
-	s32 ax = v1->pos[0] - v0->pos[0];
-	s32 ay = v1->pos[1] - v0->pos[1];
-	s32 az = v1->pos[3] - v0->pos[3];
-	s32 bx = v2->pos[0] - v0->pos[0];
-	s32 by = v2->pos[1] - v0->pos[1];
-	s32 bz = v2->pos[3] - v0->pos[3];
+	s64 s = ge.texcoord[0];
+	s64 t = ge.texcoord[1];
+	s64 r0 = (s * m.v[0][0] + t * m.v[1][0] + m.v[2][0] + m.v[3][0]) >> 12;
+	s64 r1 = (s * m.v[0][1] + t * m.v[1][1] + m.v[2][1] + m.v[3][1]) >> 12;
 
-	s64 cx = (s64)ay * bz - (s64)az * by;
-	s64 cy = (s64)az * bx - (s64)ax * bz;
-	s64 cz = (s64)ax * by - (s64)ay * bx;
-
-	int max_bits = 0;
-	max_bits = std::max(max_bits,
-			1 + std::bit_width((cx >= 0 ? (u64)cx : ~(u64)cx)));
-	max_bits = std::max(max_bits,
-			1 + std::bit_width((cy >= 0 ? (u64)cy : ~(u64)cy)));
-	max_bits = std::max(max_bits,
-			1 + std::bit_width((cz >= 0 ? (u64)cz : ~(u64)cz)));
-	int shift = (max_bits - 32 + 4 - 1) & ~3;
-	if (shift > 0) {
-		cx >>= shift;
-		cy >>= shift;
-		cz >>= shift;
-	}
-
-	return cx * v0->pos[0] + cy * v0->pos[1] + cz * v0->pos[3];
+	ge.vtx_texcoord[0] = r0;
+	ge.vtx_texcoord[1] = r1;
 }
 
-static s32
-clip_lerp(s32 y0, s32 y1, interpolator *i, int positive)
+static void
+texcoord_transform_3(gpu_3d_engine *gpu, s64 vx, s64 vy, s64 vz)
 {
-	if (i->denom == 0) {
-		return y0;
-	}
+	auto& ge = gpu->ge;
+	auto& m = gpu->texture_mtx;
 
-	if (positive) {
-		return ((s64)y0 * (i->w1 - i->x1) +
-				       (s64)y1 * (i->x0 - i->w0)) /
-		       i->denom;
-	} else {
-		return ((s64)y1 * (i->x0 + i->w0) -
-				       (s64)y0 * (i->w1 + i->x1)) /
-		       i->denom;
-	}
+	s64 r0 = (vx * m.v[0][0] + vy * m.v[1][0] + vz * m.v[2][0]) >> 24;
+	s64 r1 = (vx * m.v[0][1] + vy * m.v[1][1] + vz * m.v[2][1]) >> 24;
+
+	ge.vtx_texcoord[0] = ge.texcoord[0] + r0;
+	ge.vtx_texcoord[1] = ge.texcoord[1] + r1;
 }
 
-static vertex
-create_clipped_vertex(vertex *v0, vertex *v1, int plane, int positive)
-{
-	vertex r;
-	interpolator i;
-	i.x0 = v0->pos[plane];
-	i.x1 = v1->pos[plane];
-	i.w0 = v0->pos[3];
-	i.w1 = v1->pos[3];
-	i.denom = positive ? i.x0 - i.w0 + i.w1 - i.x1
-	                   : i.x0 + i.w0 - i.w1 - i.x1;
+static void add_vertex(gpu_3d_engine *gpu);
 
-	if (i.denom == 0) {
-		r.pos[3] = i.w1;
-	} else {
-		r.pos[3] = ((s64)i.w1 * i.x0 - (s64)i.w0 * i.x1) / i.denom;
+static void
+cmd_vtx_16(gpu_3d_engine *gpu)
+{
+	gpu->ge.vx = (s32)(gpu->cmd_params[0] << 16) >> 16;
+	gpu->ge.vy = (s32)(gpu->cmd_params[0]) >> 16;
+	gpu->ge.vz = (s32)(gpu->cmd_params[1] << 16) >> 16;
+	add_vertex(gpu);
+}
+
+static void
+cmd_vtx_10(gpu_3d_engine *gpu)
+{
+	gpu->ge.vx = (s32)(gpu->cmd_params[0] << 22) >> 22 << 6;
+	gpu->ge.vy = (s32)(gpu->cmd_params[0] << 12) >> 22 << 6;
+	gpu->ge.vz = (s32)(gpu->cmd_params[0] << 2) >> 22 << 6;
+	add_vertex(gpu);
+}
+
+static void
+cmd_vtx_xy(gpu_3d_engine *gpu)
+{
+	gpu->ge.vx = (s32)(gpu->cmd_params[0] << 16) >> 16;
+	gpu->ge.vy = (s32)(gpu->cmd_params[0]) >> 16;
+	add_vertex(gpu);
+}
+
+static void
+cmd_vtx_xz(gpu_3d_engine *gpu)
+{
+	gpu->ge.vx = (s32)(gpu->cmd_params[0] << 16) >> 16;
+	gpu->ge.vz = (s32)(gpu->cmd_params[0]) >> 16;
+	add_vertex(gpu);
+}
+
+static void
+cmd_vtx_yz(gpu_3d_engine *gpu)
+{
+	gpu->ge.vy = (s32)(gpu->cmd_params[0] << 16) >> 16;
+	gpu->ge.vz = (s32)(gpu->cmd_params[0]) >> 16;
+	add_vertex(gpu);
+}
+
+static void
+cmd_vtx_diff(gpu_3d_engine *gpu)
+{
+	gpu->ge.vx += (s16)(gpu->cmd_params[0] << 6) >> 6;
+	gpu->ge.vy += (s16)(gpu->cmd_params[0] >> 4) >> 6;
+	gpu->ge.vz += (s16)(gpu->cmd_params[0] >> 14) >> 6;
+	add_vertex(gpu);
+}
+
+static void add_polygon(gpu_3d_engine *gpu);
+
+static void
+add_vertex(gpu_3d_engine *gpu)
+{
+	auto& ge = gpu->ge;
+	auto& vr = gpu->vtx_ram[gpu->ge_buf];
+
+	if (vr.count >= 6144) {
+		printf("vertex ram full\n");
+		return;
 	}
 
-	switch (plane) {
+	ge_vector vtx_point = { ge.vx, ge.vy, ge.vz, 1 << 12 };
+	ge_vector result;
+	mtx_mult_vec(&result, &gpu->clip_mtx, &vtx_point);
+
+	vertex *v = &ge.vtx_buf[ge.vtx_count & 3];
+	v->pos[0] = result.v[0];
+	v->pos[1] = result.v[1];
+	v->pos[2] = result.v[2];
+	v->pos[3] = result.v[3];
+	v->attr[0] = ge.vtx_color[0];
+	v->attr[1] = ge.vtx_color[1];
+	v->attr[2] = ge.vtx_color[2];
+
+	if (ge.teximage_param >> 30 == 3) {
+		texcoord_transform_3(gpu, ge.vx, ge.vy, ge.vz);
+	}
+	v->attr[3] = ge.vtx_texcoord[0];
+	v->attr[4] = ge.vtx_texcoord[1];
+
+	ge.vtx_count++;
+
+	switch (ge.primitive_type) {
 	case 0:
-		r.pos[0] = positive ? r.pos[3] : -r.pos[3];
-		r.pos[1] = clip_lerp(v0->pos[1], v1->pos[1], &i, positive);
-		r.pos[2] = clip_lerp(v0->pos[2], v1->pos[2], &i, positive);
+		if (ge.vtx_count % 3 == 0) {
+			add_polygon(gpu);
+		}
 		break;
 	case 1:
-		r.pos[1] = positive ? r.pos[3] : -r.pos[3];
-		r.pos[0] = clip_lerp(v0->pos[0], v1->pos[0], &i, positive);
-		r.pos[2] = clip_lerp(v0->pos[2], v1->pos[2], &i, positive);
+		if (ge.vtx_count % 4 == 0) {
+			add_polygon(gpu);
+		}
 		break;
 	case 2:
-		r.pos[2] = positive ? r.pos[3] : -r.pos[3];
-		r.pos[0] = clip_lerp(v0->pos[0], v1->pos[0], &i, positive);
-		r.pos[1] = clip_lerp(v0->pos[1], v1->pos[1], &i, positive);
+		if (ge.vtx_count >= 3) {
+			add_polygon(gpu);
+		}
 		break;
-	}
-
-	for (u32 j = 0; j < 5; j++) {
-		r.attr[j] = clip_lerp(v0->attr[j], v1->attr[j], &i, positive);
-	}
-
-	return r;
-}
-
-static bool
-vertex_inside(vertex *v, int plane, int positive)
-{
-	return positive ? v->pos[plane] <= v->pos[3]
-	                : v->pos[plane] >= -v->pos[3];
-}
-
-static std::vector<vertex>
-clip_polygon_plane(std::vector<vertex>& in, int plane, int positive,
-		bool render_clipped)
-{
-	std::vector<vertex> out;
-	size_t n = in.size();
-
-	for (u32 curr_idx = 0; curr_idx < n; curr_idx++) {
-		u32 next_idx = (curr_idx + 1) % n;
-		vertex *curr = &in[curr_idx];
-		vertex *next = &in[next_idx];
-		bool curr_inside = vertex_inside(curr, plane, positive);
-		bool next_inside = vertex_inside(next, plane, positive);
-
-		if (!(curr_inside && next_inside) && !render_clipped) {
-			return {};
-		}
-
-		if (curr_inside && next_inside) {
-			out.push_back(*curr);
-		} else if (curr_inside) {
-			out.push_back(*curr);
-			out.push_back(create_clipped_vertex(
-					curr, next, plane, positive));
-		} else if (next_inside) {
-			out.push_back(create_clipped_vertex(
-					curr, next, plane, positive));
+	case 3:
+		if (ge.vtx_count >= 4 && ge.vtx_count % 2 == 0) {
+			add_polygon(gpu);
 		}
 	}
-
-	return out;
 }
 
-static std::vector<vertex>
-clip_polygon_vertices(vertex **in, u32 num_vertices, bool render_clipped_far)
-{
-	std::vector<vertex> out;
-	for (u32 i = 0; i < num_vertices; i++) {
-		out.push_back(*in[i]);
-	}
-
-	out = clip_polygon_plane(out, 2, 1, render_clipped_far);
-	out = clip_polygon_plane(out, 2, 0, true);
-	out = clip_polygon_plane(out, 1, 1, true);
-	out = clip_polygon_plane(out, 1, 0, true);
-	out = clip_polygon_plane(out, 0, 1, true);
-	out = clip_polygon_plane(out, 0, 0, true);
-
-	return out;
-}
-
-static bool
-polygon_is_translucent(polygon *p)
-{
-	u32 alpha = p->attr >> 16 & 0x1F;
-	u32 format = p->tx_param >> 26 & 7;
-
-	return (1 <= alpha && alpha <= 30) || (format == 1 || format == 6);
-}
+static s64 get_face_direction(vertex **vertices);
+static std::vector<vertex> clip_polygon_vertices(
+		vertex **in, u32 num_vertices, bool render_clipped_far);
 
 static void
 add_polygon(gpu_3d_engine *gpu)
@@ -765,160 +724,221 @@ add_polygon(gpu_3d_engine *gpu)
 		return;
 	}
 
-	polygon *poly = &pr.polygons[pr.count++];
+	polygon *p = &pr.polygons[pr.count++];
 	for (u32 i = 0; i < num_vertices; i++) {
 		u32 reused = clipped_vertices[i].reused;
 		if (reused) {
-			poly->vertices[i] = last_strip_vtx_s[reused & 1];
+			p->vertices[i] = last_strip_vtx_s[reused & 1];
 		} else {
 			u32 idx = vr.count++;
 			vr.vertices[idx] = clipped_vertices[i];
-			poly->vertices[i] = &vr.vertices[idx];
+			p->vertices[i] = &vr.vertices[idx];
 		}
 		u32 strip_vtx = clipped_vertices[i].strip_vtx;
 		if (strip_vtx) {
-			ge.last_strip_vtx[strip_vtx & 1] = poly->vertices[i];
+			ge.last_strip_vtx[strip_vtx & 1] = p->vertices[i];
 		}
 	}
-	poly->num_vertices = num_vertices;
+	p->num_vertices = num_vertices;
 
-	poly->wshift = (max_bits - 16 + 4 - 1) & ~3;
-	poly->wbuffering = ge.swap_bits & BIT(1);
-	for (u32 i = 0; i < poly->num_vertices; i++) {
-		vertex *v = poly->vertices[i];
-		if (poly->wshift >= 0) {
-			poly->normalized_w[i] = v->pos[3] >> poly->wshift;
+	p->wshift = (max_bits - 16 + 4 - 1) & ~3;
+	p->wbuffering = ge.swap_bits & BIT(1);
+	for (u32 i = 0; i < p->num_vertices; i++) {
+		vertex *v = p->vertices[i];
+		if (p->wshift >= 0) {
+			p->normalized_w[i] = v->pos[3] >> p->wshift;
 		} else {
-			poly->normalized_w[i] = v->pos[3] << -poly->wshift;
+			p->normalized_w[i] = v->pos[3] << -p->wshift;
 		}
 
-		if (poly->wbuffering) {
-			poly->z[i] = poly->normalized_w[i];
-			if (poly->wshift >= 0) {
-				poly->z[i] <<= poly->wshift;
+		if (p->wbuffering) {
+			p->z[i] = p->normalized_w[i];
+			if (p->wshift >= 0) {
+				p->z[i] <<= p->wshift;
 			} else {
-				poly->z[i] >>= -poly->wshift;
+				p->z[i] >>= -p->wshift;
 			}
 		} else if (v->pos[3] != 0) {
-			poly->z[i] = ((s64)v->pos[2] * 0x4000 / v->pos[3] +
-						     0x3FFF) *
-			             0x200;
+			p->z[i] = ((s64)v->pos[2] * 0x4000 / v->pos[3] +
+						  0x3FFF) *
+			          0x200;
 		} else {
 			/* TODO: */
 		}
 	}
 
-	poly->attr = ge.poly_attr;
-	poly->tx_param = ge.teximage_param;
-	poly->pltt_base = ge.pltt_base;
-	poly->backface = face_dir < 0;
-	poly->translucent = polygon_is_translucent(poly);
+	p->attr = ge.poly_attr;
+	p->tx_param = ge.teximage_param;
+	p->pltt_base = ge.pltt_base;
+	p->backface = face_dir < 0;
+
+	u32 alpha = p->attr >> 16 & 0x1F;
+	u32 format = p->tx_param >> 26 & 7;
+	p->translucent = (1 <= alpha && alpha <= 30) ||
+	                 (format == 1 || format == 6);
 }
 
-static void
-add_vertex(gpu_3d_engine *gpu)
+static s64
+get_face_direction(vertex **vertices)
 {
-	auto& ge = gpu->ge;
-	auto& vr = gpu->vtx_ram[gpu->ge_buf];
+	vertex *v0 = vertices[0];
+	vertex *v1 = vertices[1];
+	vertex *v2 = vertices[2];
 
-	if (vr.count >= 6144) {
-		printf("vertex ram full\n");
-		return;
+	s32 ax = v1->pos[0] - v0->pos[0];
+	s32 ay = v1->pos[1] - v0->pos[1];
+	s32 az = v1->pos[3] - v0->pos[3];
+	s32 bx = v2->pos[0] - v0->pos[0];
+	s32 by = v2->pos[1] - v0->pos[1];
+	s32 bz = v2->pos[3] - v0->pos[3];
+
+	s64 cx = (s64)ay * bz - (s64)az * by;
+	s64 cy = (s64)az * bx - (s64)ax * bz;
+	s64 cz = (s64)ax * by - (s64)ay * bx;
+
+	int max_bits = 0;
+	max_bits = std::max(max_bits,
+			1 + std::bit_width((cx >= 0 ? (u64)cx : ~(u64)cx)));
+	max_bits = std::max(max_bits,
+			1 + std::bit_width((cy >= 0 ? (u64)cy : ~(u64)cy)));
+	max_bits = std::max(max_bits,
+			1 + std::bit_width((cz >= 0 ? (u64)cz : ~(u64)cz)));
+	int shift = (max_bits - 32 + 4 - 1) & ~3;
+	if (shift > 0) {
+		cx >>= shift;
+		cy >>= shift;
+		cz >>= shift;
 	}
 
-	ge_vector vtx_point = { ge.vx, ge.vy, ge.vz, 1 << 12 };
-	ge_vector result;
-	mtx_mult_vec(&result, &gpu->clip_mtx, &vtx_point);
+	return cx * v0->pos[0] + cy * v0->pos[1] + cz * v0->pos[3];
+}
 
-	vertex *v = &ge.vtx_buf[ge.vtx_count & 3];
-	v->pos[0] = result.v[0];
-	v->pos[1] = result.v[1];
-	v->pos[2] = result.v[2];
-	v->pos[3] = result.v[3];
-	v->attr[0] = ge.vtx_color[0];
-	v->attr[1] = ge.vtx_color[1];
-	v->attr[2] = ge.vtx_color[2];
+static std::vector<vertex> clip_polygon_plane(std::vector<vertex>& in,
+		int plane, int positive, bool render_clipped);
 
-	if (ge.teximage_param >> 30 == 3) {
-		texcoord_transform_3(gpu, ge.vx, ge.vy, ge.vz);
+static std::vector<vertex>
+clip_polygon_vertices(vertex **in, u32 num_vertices, bool render_clipped_far)
+{
+	std::vector<vertex> out;
+	for (u32 i = 0; i < num_vertices; i++) {
+		out.push_back(*in[i]);
 	}
-	v->attr[3] = ge.vtx_texcoord[0];
-	v->attr[4] = ge.vtx_texcoord[1];
 
-	ge.vtx_count++;
+	out = clip_polygon_plane(out, 2, 1, render_clipped_far);
+	out = clip_polygon_plane(out, 2, 0, true);
+	out = clip_polygon_plane(out, 1, 1, true);
+	out = clip_polygon_plane(out, 1, 0, true);
+	out = clip_polygon_plane(out, 0, 1, true);
+	out = clip_polygon_plane(out, 0, 0, true);
 
-	switch (ge.primitive_type) {
-	case 0:
-		if (ge.vtx_count % 3 == 0) {
-			add_polygon(gpu);
+	return out;
+}
+
+static bool vertex_inside(vertex *v, int plane, int positive);
+static vertex create_clipped_vertex(
+		vertex *v0, vertex *v1, int plane, int positive);
+
+static std::vector<vertex>
+clip_polygon_plane(std::vector<vertex>& in, int plane, int positive,
+		bool render_clipped)
+{
+	std::vector<vertex> out;
+	size_t n = in.size();
+
+	for (u32 curr_idx = 0; curr_idx < n; curr_idx++) {
+		u32 next_idx = (curr_idx + 1) % n;
+		vertex *curr = &in[curr_idx];
+		vertex *next = &in[next_idx];
+		bool curr_inside = vertex_inside(curr, plane, positive);
+		bool next_inside = vertex_inside(next, plane, positive);
+
+		if (!(curr_inside && next_inside) && !render_clipped) {
+			return {};
 		}
+
+		if (curr_inside && next_inside) {
+			out.push_back(*curr);
+		} else if (curr_inside) {
+			out.push_back(*curr);
+			out.push_back(create_clipped_vertex(
+					curr, next, plane, positive));
+		} else if (next_inside) {
+			out.push_back(create_clipped_vertex(
+					curr, next, plane, positive));
+		}
+	}
+
+	return out;
+}
+
+static bool
+vertex_inside(vertex *v, int plane, int positive)
+{
+	return positive ? v->pos[plane] <= v->pos[3]
+	                : v->pos[plane] >= -v->pos[3];
+}
+
+static s32 clip_lerp(s32 y0, s32 y1, interpolator *i, int positive);
+
+static vertex
+create_clipped_vertex(vertex *v0, vertex *v1, int plane, int positive)
+{
+	vertex r;
+	interpolator i;
+	i.x0 = v0->pos[plane];
+	i.x1 = v1->pos[plane];
+	i.w0 = v0->pos[3];
+	i.w1 = v1->pos[3];
+	i.denom = positive ? i.x0 - i.w0 + i.w1 - i.x1
+	                   : i.x0 + i.w0 - i.w1 - i.x1;
+
+	if (i.denom == 0) {
+		r.pos[3] = i.w1;
+	} else {
+		r.pos[3] = ((s64)i.w1 * i.x0 - (s64)i.w0 * i.x1) / i.denom;
+	}
+
+	switch (plane) {
+	case 0:
+		r.pos[0] = positive ? r.pos[3] : -r.pos[3];
+		r.pos[1] = clip_lerp(v0->pos[1], v1->pos[1], &i, positive);
+		r.pos[2] = clip_lerp(v0->pos[2], v1->pos[2], &i, positive);
 		break;
 	case 1:
-		if (ge.vtx_count % 4 == 0) {
-			add_polygon(gpu);
-		}
+		r.pos[1] = positive ? r.pos[3] : -r.pos[3];
+		r.pos[0] = clip_lerp(v0->pos[0], v1->pos[0], &i, positive);
+		r.pos[2] = clip_lerp(v0->pos[2], v1->pos[2], &i, positive);
 		break;
 	case 2:
-		if (ge.vtx_count >= 3) {
-			add_polygon(gpu);
-		}
+		r.pos[2] = positive ? r.pos[3] : -r.pos[3];
+		r.pos[0] = clip_lerp(v0->pos[0], v1->pos[0], &i, positive);
+		r.pos[1] = clip_lerp(v0->pos[1], v1->pos[1], &i, positive);
 		break;
-	case 3:
-		if (ge.vtx_count >= 4 && ge.vtx_count % 2 == 0) {
-			add_polygon(gpu);
-		}
 	}
+
+	for (u32 j = 0; j < 5; j++) {
+		r.attr[j] = clip_lerp(v0->attr[j], v1->attr[j], &i, positive);
+	}
+
+	return r;
 }
 
-static void
-cmd_vtx_16(gpu_3d_engine *gpu)
+static s32
+clip_lerp(s32 y0, s32 y1, interpolator *i, int positive)
 {
-	gpu->ge.vx = (s32)(gpu->cmd_params[0] << 16) >> 16;
-	gpu->ge.vy = (s32)(gpu->cmd_params[0]) >> 16;
-	gpu->ge.vz = (s32)(gpu->cmd_params[1] << 16) >> 16;
-	add_vertex(gpu);
-}
+	if (i->denom == 0) {
+		return y0;
+	}
 
-static void
-cmd_vtx_10(gpu_3d_engine *gpu)
-{
-	gpu->ge.vx = (s32)(gpu->cmd_params[0] << 22) >> 22 << 6;
-	gpu->ge.vy = (s32)(gpu->cmd_params[0] << 12) >> 22 << 6;
-	gpu->ge.vz = (s32)(gpu->cmd_params[0] << 2) >> 22 << 6;
-	add_vertex(gpu);
-}
-
-static void
-cmd_vtx_xy(gpu_3d_engine *gpu)
-{
-	gpu->ge.vx = (s32)(gpu->cmd_params[0] << 16) >> 16;
-	gpu->ge.vy = (s32)(gpu->cmd_params[0]) >> 16;
-	add_vertex(gpu);
-}
-
-static void
-cmd_vtx_xz(gpu_3d_engine *gpu)
-{
-	gpu->ge.vx = (s32)(gpu->cmd_params[0] << 16) >> 16;
-	gpu->ge.vz = (s32)(gpu->cmd_params[0]) >> 16;
-	add_vertex(gpu);
-}
-
-static void
-cmd_vtx_yz(gpu_3d_engine *gpu)
-{
-	gpu->ge.vy = (s32)(gpu->cmd_params[0] << 16) >> 16;
-	gpu->ge.vz = (s32)(gpu->cmd_params[0]) >> 16;
-	add_vertex(gpu);
-}
-
-static void
-cmd_vtx_diff(gpu_3d_engine *gpu)
-{
-	gpu->ge.vx += (s16)(gpu->cmd_params[0] << 6) >> 6;
-	gpu->ge.vy += (s16)(gpu->cmd_params[0] >> 4) >> 6;
-	gpu->ge.vz += (s16)(gpu->cmd_params[0] >> 14) >> 6;
-	add_vertex(gpu);
+	if (positive) {
+		return ((s64)y0 * (i->w1 - i->x1) +
+				       (s64)y1 * (i->x0 - i->w0)) /
+		       i->denom;
+	} else {
+		return ((s64)y1 * (i->x0 + i->w0) -
+				       (s64)y0 * (i->w1 + i->x1)) /
+		       i->denom;
+	}
 }
 
 static void
@@ -1022,16 +1042,7 @@ cmd_viewport(gpu_3d_engine *gpu)
 	gpu->viewport_h = gpu->viewport_y[1] - gpu->viewport_y[0] + 1;
 }
 
-static void
-set_box_vertex(gpu_3d_engine *gpu, vertex *v, s32 x, s32 y, s32 z)
-{
-	ge_vector vtx_point = { x, y, z, 1 << 12 };
-	ge_vector result;
-	mtx_mult_vec(&result, &gpu->clip_mtx, &vtx_point);
-
-	for (u32 i = 0; i < 4; i++)
-		v->pos[i] = result.v[i];
-}
+static void set_box_vertex(gpu_3d_engine *gpu, vertex *v, s32 x, s32 y, s32 z);
 
 static void
 cmd_box_test(gpu_3d_engine *gpu)
@@ -1070,6 +1081,17 @@ cmd_box_test(gpu_3d_engine *gpu)
 	}
 
 	gpu->gxstat &= ~BIT(1);
+}
+
+static void
+set_box_vertex(gpu_3d_engine *gpu, vertex *v, s32 x, s32 y, s32 z)
+{
+	ge_vector vtx_point = { x, y, z, 1 << 12 };
+	ge_vector result;
+	mtx_mult_vec(&result, &gpu->clip_mtx, &vtx_point);
+
+	for (u32 i = 0; i < 4; i++)
+		v->pos[i] = result.v[i];
 }
 
 void

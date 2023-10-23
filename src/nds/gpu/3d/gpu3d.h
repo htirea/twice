@@ -228,12 +228,12 @@ void gpu3d_on_scanline_start(nds_ctx *nds);
 void gpu3d_render_frame(gpu_3d_engine *gpu);
 void gxfifo_check_irq(gpu_3d_engine *gpu);
 
-u32 gpu_3d_read32(gpu_3d_engine *gpu, u16 offset);
-u16 gpu_3d_read16(gpu_3d_engine *gpu, u16 offset);
 u8 gpu_3d_read8(gpu_3d_engine *gpu, u16 offset);
-void gpu_3d_write32(gpu_3d_engine *gpu, u16 offset, u32 value);
-void gpu_3d_write16(gpu_3d_engine *gpu, u16 offset, u16 value);
+u16 gpu_3d_read16(gpu_3d_engine *gpu, u16 offset);
+u32 gpu_3d_read32(gpu_3d_engine *gpu, u16 offset);
 void gpu_3d_write8(gpu_3d_engine *gpu, u16 offset, u8 value);
+void gpu_3d_write16(gpu_3d_engine *gpu, u16 offset, u16 value);
+void gpu_3d_write32(gpu_3d_engine *gpu, u16 offset, u32 value);
 
 void ge_execute_command(gpu_3d_engine *gpu, u8 cmd);
 
