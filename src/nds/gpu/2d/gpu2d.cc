@@ -15,8 +15,8 @@ gpu_2d_engine::gpu_2d_engine(nds_ctx *nds, int engineid)
 }
 
 static void update_window_y_in_range(gpu_2d_engine *gpu, u16 scanline);
-static void reload_bg_ref_xy(gpu_2d_engine *gpu, bool force_reload);
-static void increment_bg_ref_xy(gpu_2d_engine *gpu);
+static void update_mosaic_and_ref_xy(gpu_2d_engine *gpu, u16 y);
+static void update_mosaic_counters(gpu_2d_engine *gpu);
 static void draw_scanline(gpu_2d_engine *gpu, u16 scanline);
 
 void
@@ -30,15 +30,14 @@ gpu_on_scanline_start(nds_ctx *nds)
 	}
 
 	if (nds->vcount < 192) {
-		bool force_reload = nds->vcount == 0;
-		reload_bg_ref_xy(&nds->gpu2d[0], force_reload);
-		reload_bg_ref_xy(&nds->gpu2d[1], force_reload);
+		update_mosaic_and_ref_xy(&nds->gpu2d[0], nds->vcount);
+		update_mosaic_and_ref_xy(&nds->gpu2d[1], nds->vcount);
 
 		draw_scanline(&nds->gpu2d[0], nds->vcount);
 		draw_scanline(&nds->gpu2d[1], nds->vcount);
 
-		increment_bg_ref_xy(&nds->gpu2d[0]);
-		increment_bg_ref_xy(&nds->gpu2d[1]);
+		update_mosaic_counters(&nds->gpu2d[0]);
+		update_mosaic_counters(&nds->gpu2d[1]);
 	}
 
 	if (nds->vcount == 192 && nds->gpu2d[0].display_capture) {
@@ -64,14 +63,32 @@ update_window_y_in_range(gpu_2d_engine *gpu, u16 scanline)
 }
 
 static void
-reload_bg_ref_xy(gpu_2d_engine *gpu, bool force_reload)
+update_mosaic_and_ref_xy(gpu_2d_engine *gpu, u16 y)
 {
+	s32 mosaic_step = y == 0 ? 0 : gpu->mosaic_countup;
+	bool boundary = y == 0 || gpu->mosaic_countdown == 0;
+
+	if (boundary) {
+		gpu->mosaic_countup = 0;
+		gpu->mosaic_countdown = (gpu->mosaic >> 4 & 0xF) + 1;
+	}
+
 	for (int i = 0; i < 2; i++) {
-		if (gpu->bg_ref_x_reload[i] || force_reload) {
+		bool mosaic = gpu->bg_cnt[i + 2] & BIT(6);
+		if (mosaic && !boundary)
+			continue;
+
+		s32 step = mosaic ? mosaic_step : 1;
+		gpu->bg_ref_x[i] += step * (s16)gpu->bg_pb[i];
+		gpu->bg_ref_y[i] += step * (s16)gpu->bg_pd[i];
+	}
+
+	for (int i = 0; i < 2; i++) {
+		if (gpu->bg_ref_x_reload[i] || y == 0) {
 			gpu->bg_ref_x[i] = SEXT<28>(gpu->bg_ref_x_latch[i]);
 			gpu->bg_ref_x_reload[i] = false;
 		}
-		if (gpu->bg_ref_y_reload[i] || force_reload) {
+		if (gpu->bg_ref_y_reload[i] || y == 0) {
 			gpu->bg_ref_y[i] = SEXT<28>(gpu->bg_ref_y_latch[i]);
 			gpu->bg_ref_y_reload[i] = false;
 		}
@@ -79,12 +96,10 @@ reload_bg_ref_xy(gpu_2d_engine *gpu, bool force_reload)
 }
 
 static void
-increment_bg_ref_xy(gpu_2d_engine *gpu)
+update_mosaic_counters(gpu_2d_engine *gpu)
 {
-	for (int i = 0; i < 2; i++) {
-		gpu->bg_ref_x[i] += (s16)gpu->bg_pb[i];
-		gpu->bg_ref_y[i] += (s16)gpu->bg_pd[i];
-	}
+	gpu->mosaic_countup++;
+	gpu->mosaic_countdown--;
 }
 
 static void fb_fill_white(u32 *fb, u16 y);

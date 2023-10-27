@@ -37,6 +37,9 @@ struct gpu_2d_engine {
 	u16 bldy{};
 	u16 master_bright{};
 
+	s32 mosaic_countup{};
+	s32 mosaic_countdown{};
+
 	bool display_capture{};
 	u32 dispcapcnt{};
 

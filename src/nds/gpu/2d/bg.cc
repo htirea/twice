@@ -84,13 +84,12 @@ render_text_bg(gpu_2d_engine *gpu, int bg)
 	u32 bg_h = text_bg_heights[bg_size_bits];
 
 	u32 mosaic_h = (gpu->mosaic & 0xF) + 1;
-	u32 mosaic_v = (gpu->mosaic >> 4 & 0xF) + 1;
 	bool apply_mosaic_h = gpu->bg_cnt[bg] & BIT(6) && mosaic_h != 1;
 
 	u32 bg_x = gpu->bg_hofs[bg] & (bg_w - 1);
 	u32 bg_y;
 	if (gpu->bg_cnt[bg] & BIT(6)) {
-		u32 line = gpu->nds->vcount / mosaic_v * mosaic_v;
+		u32 line = gpu->nds->vcount - gpu->mosaic_countup;
 		bg_y = (gpu->bg_vofs[bg] + line) & (bg_h - 1);
 	} else {
 		bg_y = (gpu->bg_vofs[bg] + gpu->nds->vcount) & (bg_h - 1);
@@ -265,7 +264,20 @@ render_affine_bg(gpu_2d_engine *gpu, int bg)
 	bool effect_top = gpu->bldcnt & BIT(0 + bg);
 	bool effect_bottom = gpu->bldcnt & BIT(8 + bg);
 
-	for (int i = 0; i < 256; i++, ref_x += pa, ref_y += pc) {
+	s32 mosaic_h = (gpu->mosaic & 0xF) + 1;
+	bool mosaic = gpu->bg_cnt[bg] & BIT(6) && mosaic_h != 1;
+
+	auto step = [&](int i) {
+		if (!mosaic) {
+			ref_x += pa;
+			ref_y += pc;
+		} else if (i % mosaic_h == 0) {
+			ref_x += mosaic_h * pa;
+			ref_y += mosaic_h * pc;
+		}
+	};
+
+	for (int i = 0; i < 256; i++, step(i)) {
 		u32 bg_x = ref_x >> 8;
 		u32 bg_y = ref_y >> 8;
 
@@ -327,7 +339,20 @@ render_extended_text_bg(gpu_2d_engine *gpu, int bg)
 		slot |= 2;
 	}
 
-	for (int i = 0; i < 256; i++, ref_x += pa, ref_y += pc) {
+	s32 mosaic_h = (gpu->mosaic & 0xF) + 1;
+	bool mosaic = gpu->bg_cnt[bg] & BIT(6) && mosaic_h != 1;
+
+	auto step = [&](int i) {
+		if (!mosaic) {
+			ref_x += pa;
+			ref_y += pc;
+		} else if (i % mosaic_h == 0) {
+			ref_x += mosaic_h * pa;
+			ref_y += mosaic_h * pc;
+		}
+	};
+
+	for (int i = 0; i < 256; i++, step(i)) {
 		u32 bg_x = ref_x >> 8;
 		u32 bg_y = ref_y >> 8;
 
@@ -391,8 +416,20 @@ render_extended_bitmap_bg(gpu_2d_engine *gpu, int bg, bool direct_color)
 	bool wrap_bg = gpu->bg_cnt[bg] & BIT(13);
 	bool effect_top = gpu->bldcnt & BIT(0 + bg);
 	bool effect_bottom = gpu->bldcnt & BIT(8 + bg);
+	s32 mosaic_h = (gpu->mosaic & 0xF) + 1;
+	bool mosaic = gpu->bg_cnt[bg] & BIT(6) && mosaic_h != 1;
 
-	for (int i = 0; i < 256; i++, ref_x += pa, ref_y += pc) {
+	auto step = [&](int i) {
+		if (!mosaic) {
+			ref_x += pa;
+			ref_y += pc;
+		} else if (i % mosaic_h == 0) {
+			ref_x += mosaic_h * pa;
+			ref_y += mosaic_h * pc;
+		}
+	};
+
+	for (int i = 0; i < 256; i++, step(i)) {
 		u32 bg_x = ref_x >> 8;
 		u32 bg_y = ref_y >> 8;
 
@@ -466,8 +503,20 @@ render_large_bitmap_bg(gpu_2d_engine *gpu)
 	bool wrap_bg = gpu->bg_cnt[bg] & BIT(13);
 	bool effect_top = gpu->bldcnt & BIT(0 + bg);
 	bool effect_bottom = gpu->bldcnt & BIT(8 + bg);
+	s32 mosaic_h = (gpu->mosaic & 0xF) + 1;
+	bool mosaic = gpu->bg_cnt[bg] & BIT(6) && mosaic_h != 1;
 
-	for (int i = 0; i < 256; i++, ref_x += pa, ref_y += pc) {
+	auto step = [&](int i) {
+		if (!mosaic) {
+			ref_x += pa;
+			ref_y += pc;
+		} else if (i % mosaic_h == 0) {
+			ref_x += mosaic_h * pa;
+			ref_y += mosaic_h * pc;
+		}
+	};
+
+	for (int i = 0; i < 256; i++, step(i)) {
 		u32 bg_x = ref_x >> 8;
 		u32 bg_y = ref_y >> 8;
 
