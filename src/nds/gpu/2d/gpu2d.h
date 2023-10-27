@@ -23,6 +23,8 @@ struct gpu_2d_engine {
 	u16 bg_pd[2]{};
 	s32 bg_ref_x[2]{};
 	s32 bg_ref_y[2]{};
+	s32 bg_ref_x_nonmosaic[2]{};
+	s32 bg_ref_y_nonmosaic[2]{};
 	u32 bg_ref_x_latch[2]{};
 	u32 bg_ref_y_latch[2]{};
 	bool bg_ref_x_reload[2]{};

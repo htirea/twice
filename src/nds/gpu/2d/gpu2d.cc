@@ -74,22 +74,31 @@ update_mosaic_and_ref_xy(gpu_2d_engine *gpu, u16 y)
 	}
 
 	for (int i = 0; i < 2; i++) {
+		gpu->bg_ref_x_nonmosaic[i] += (s16)gpu->bg_pb[i];
+		gpu->bg_ref_y_nonmosaic[i] += (s16)gpu->bg_pd[i];
+
 		bool mosaic = gpu->bg_cnt[i + 2] & BIT(6);
 		if (mosaic && !boundary)
 			continue;
 
-		s32 step = mosaic ? mosaic_step : 1;
-		gpu->bg_ref_x[i] += step * (s16)gpu->bg_pb[i];
-		gpu->bg_ref_y[i] += step * (s16)gpu->bg_pd[i];
+		if (mosaic) {
+			gpu->bg_ref_x[i] += mosaic_step * (s16)gpu->bg_pb[i];
+			gpu->bg_ref_y[i] += mosaic_step * (s16)gpu->bg_pd[i];
+		} else {
+			gpu->bg_ref_x[i] = gpu->bg_ref_x_nonmosaic[i];
+			gpu->bg_ref_y[i] = gpu->bg_ref_y_nonmosaic[i];
+		}
 	}
 
 	for (int i = 0; i < 2; i++) {
 		if (gpu->bg_ref_x_reload[i] || y == 0) {
 			gpu->bg_ref_x[i] = SEXT<28>(gpu->bg_ref_x_latch[i]);
+			gpu->bg_ref_x_nonmosaic[i] = gpu->bg_ref_x[i];
 			gpu->bg_ref_x_reload[i] = false;
 		}
 		if (gpu->bg_ref_y_reload[i] || y == 0) {
 			gpu->bg_ref_y[i] = SEXT<28>(gpu->bg_ref_y_latch[i]);
+			gpu->bg_ref_y_nonmosaic[i] = gpu->bg_ref_y[i];
 			gpu->bg_ref_y_reload[i] = false;
 		}
 	}
