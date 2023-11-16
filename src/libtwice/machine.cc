@@ -23,6 +23,15 @@ nds_machine::~nds_machine() = default;
 void
 nds_machine::load_cartridge(const std::string& pathname)
 {
+	nds_save_info save_info{ SAVETYPE_UNKNOWN, 0 };
+
+	load_cartridge(pathname, save_info);
+}
+
+void
+nds_machine::load_cartridge(
+		const std::string& pathname, nds_save_info save_info)
+{
 	namespace fs = std::filesystem;
 
 	auto cartridge = file_map(pathname, MAX_CART_SIZE,
@@ -31,9 +40,8 @@ nds_machine::load_cartridge(const std::string& pathname)
 		throw twice_error("cartridge size too small: " + pathname);
 	}
 
-	nds_save_info save_info = nds_get_save_info(cartridge);
 	if (save_info.type == SAVETYPE_UNKNOWN) {
-		throw twice_error("unknown save type");
+		save_info = nds_get_save_info(cartridge);
 	}
 
 	file_map savefile;
@@ -54,6 +62,10 @@ nds_machine::boot(bool direct_boot)
 {
 	if (direct_boot && !cartridge) {
 		throw twice_error("cartridge not loaded");
+	}
+
+	if (save_info.type == SAVETYPE_UNKNOWN) {
+		throw twice_error("unknown save type");
 	}
 
 	auto ctx = std::make_unique<nds_ctx>(arm7_bios.data(),

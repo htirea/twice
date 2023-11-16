@@ -33,6 +33,9 @@ struct cartridge_db_entry {
 
 void add_nds_game_db_entry(u32 gamecode, const cartridge_db_entry& entry);
 nds_save_info nds_get_save_info(const file_map& cartridge);
+const char *nds_savetype_to_str(nds_savetype type);
+size_t nds_savetype_to_size(nds_savetype type);
+nds_savetype nds_parse_savetype_string(const std::string& s);
 
 } // namespace twice
 

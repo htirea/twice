@@ -17,19 +17,16 @@ add_nds_game_db_entry(u32 gamecode, const cartridge_db_entry& entry)
 }
 
 static nds_savetype lookup_savetype(u32 gamecode);
-static size_t savetype_to_size(nds_savetype type);
 
 nds_save_info
 nds_get_save_info(const file_map& cartridge)
 {
 	u32 gamecode = readarr<u32>(cartridge.data(), 0xC);
 	nds_savetype type = lookup_savetype(gamecode);
-	size_t size = savetype_to_size(type);
+	size_t size = nds_savetype_to_size(type);
 
 	return { type, size };
 }
-
-static const char *savetype_to_str(nds_savetype type);
 
 static nds_savetype
 lookup_savetype(u32 gamecode)
@@ -45,12 +42,12 @@ lookup_savetype(u32 gamecode)
 		return SAVETYPE_UNKNOWN;
 	}
 
-	LOG("detected save type: %s\n", savetype_to_str(it->second.type));
+	LOG("detected save type: %s\n", nds_savetype_to_str(it->second.type));
 	return it->second.type;
 }
 
-static const char *
-savetype_to_str(nds_savetype type)
+const char *
+nds_savetype_to_str(nds_savetype type)
 {
 	switch (type) {
 	case SAVETYPE_UNKNOWN:
@@ -80,8 +77,8 @@ savetype_to_str(nds_savetype type)
 	}
 }
 
-static size_t
-savetype_to_size(nds_savetype type)
+size_t
+nds_savetype_to_size(nds_savetype type)
 {
 	switch (type) {
 	case SAVETYPE_UNKNOWN:
@@ -109,6 +106,53 @@ savetype_to_size(nds_savetype type)
 	default:
 		throw twice_error("invalid savetype");
 	}
+}
+
+static bool
+contains(const std::string& s, const std::string& substr)
+{
+	return s.find(substr) != s.npos;
+}
+
+nds_savetype
+nds_parse_savetype_string(const std::string& s)
+{
+	if (s.length() == 0)
+		return SAVETYPE_NONE;
+
+	if (s == "unknown")
+		return SAVETYPE_UNKNOWN;
+
+	if (s == "none")
+		return SAVETYPE_NONE;
+
+	if (s[0] == 'e') {
+		if (contains(s, "512"))
+			return SAVETYPE_EEPROM_512B;
+		else if (contains(s, "128"))
+			return SAVETYPE_EEPROM_128K;
+		else if (contains(s, "64"))
+			return SAVETYPE_EEPROM_64K;
+		else if (contains(s, "8"))
+			return SAVETYPE_EEPROM_8K;
+		else
+			throw twice_error("invalid eeprom: " + s);
+	}
+
+	if (s[0] == 'f') {
+		if (contains(s, "512"))
+			return SAVETYPE_FLASH_512K;
+		else if (contains(s, "256"))
+			return SAVETYPE_FLASH_256K;
+		else if (contains(s, "1"))
+			return SAVETYPE_FLASH_1M;
+		else if (contains(s, "8"))
+			return SAVETYPE_FLASH_8M;
+		else
+			throw twice_error("invalid flash: " + s);
+	}
+
+	throw twice_error("could not parse save type from: " + s);
 }
 
 } // namespace twice

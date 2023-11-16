@@ -62,9 +62,15 @@ struct nds_machine {
 	/**
 	 * Load a cartridge into the machine.
 	 *
+	 * If `save_info` is not given, it will attempt to determine the save
+	 * info automatically.
+	 *
 	 * \param pathname the file to open
+	 * \param save_info the save info for the cartridge
 	 */
 	void load_cartridge(const std::string& pathname);
+	void load_cartridge(
+			const std::string& pathname, nds_save_info save_info);
 
 	/**
 	 * Boot up the machine.
@@ -180,7 +186,7 @@ struct nds_machine {
 	file_map firmware;
 	file_map cartridge;
 	file_map savefile;
-	nds_save_info save_info;
+	nds_save_info save_info{ SAVETYPE_UNKNOWN, 0 };
 	std::unique_ptr<nds_ctx> nds;
 };
 

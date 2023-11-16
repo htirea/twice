@@ -32,12 +32,13 @@ twice::arg_parser::opt_list twice::arg_parser::options = {
 	{ "filter", '\0', 1 },
 	{ "fullscreen", 'f', 0 },
 	{ "help", 'h', 0 },
+	{ "save", 's', 1 },
 	{ "verbose", 'v', 0 },
 };
 
 twice::arg_parser::valid_opt_arg_list twice::arg_parser::valid_option_args = {
-	{ "filter", { "nearest", "linear" } },
 	{ "boot", { "firmware", "direct" } },
+	{ "filter", { "nearest", "linear" } },
 };
 
 static void
@@ -48,6 +49,8 @@ print_usage()
 Emulation options:
   -b, --boot <mode>     Set the boot mode. Defaults to direct boot.
                         (mode = 'direct' | 'firmware')
+  -s, --save <type>     Set the save type. Defaults to unknown.
+                        (type = 'unknown' | 'none' | 'eeprom <size>' | 'flash <size>')
 
 Other options:
   -1, -2, -3, -4        Scale the viewport by 1x, 2x, 3x, 4x.
@@ -90,6 +93,15 @@ try {
 		} else if (opt->arg == "linear") {
 			sdl_config.scale_mode = SDL_ScaleModeLinear;
 		}
+	}
+
+	twice::nds_save_info save_info{ twice::SAVETYPE_UNKNOWN, 0 };
+	if (auto opt = parser.get_option("save")) {
+		save_info.type = twice::nds_parse_savetype_string(opt->arg);
+		save_info.size = twice::nds_savetype_to_size(save_info.type);
+		std::cerr << "using save type: "
+			  << twice::nds_savetype_to_str(save_info.type)
+			  << '\n';
 	}
 
 	if (parser.get_option("1x")) {
@@ -137,7 +149,7 @@ try {
 	twice::nds_config config{ data_dir };
 	twice::nds_machine nds(config);
 	if (!cartridge_pathname.empty()) {
-		nds.load_cartridge(cartridge_pathname);
+		nds.load_cartridge(cartridge_pathname, save_info);
 	}
 	nds.boot(direct_boot);
 
