@@ -434,12 +434,26 @@ render_polygon_scanline(gpu_3d_engine *gpu, s32 y, u32 poly_num)
 		cov_r[1] ^= 0x3FF;
 	}
 
-	if (sr->vertical) {
+	bool fill_vertical_right_edge = false;
+	if (sr->vertical && !swapped) {
 		xr[0]--;
 		xr[1]--;
+		fill_vertical_right_edge = true;
 	}
 
-	xr[0] = std::max(xr[0], xl[1]);
+	bool fill_vertical_left_edge = false;
+	if (sl->vertical && swapped) {
+		xl[0]--;
+		xl[1]--;
+		fill_vertical_left_edge = true;
+	}
+
+	if (swapped) {
+		xl[1] = std::min(xl[1], xr[0]);
+	} else {
+		xr[0] = std::max(xr[0], xl[1]);
+	}
+
 	xm[0] = xl[1];
 	xm[1] = xr[0];
 
@@ -495,7 +509,8 @@ render_polygon_scanline(gpu_3d_engine *gpu, s32 y, u32 poly_num)
 	ctx.antialiasing = antialiasing;
 
 	bool fill_left = sl->negative || !sl->xmajor || force_fill_edge ||
-	                 sl->line || (sl->xmajor && bottom_edge_fill_rule);
+	                 fill_vertical_left_edge || sl->line ||
+	                 (sl->xmajor && bottom_edge_fill_rule);
 	if (fill_left) {
 		s32 start = std::max(0, xl[0]);
 		s32 end = std::min(256, xl[1]);
@@ -540,8 +555,8 @@ render_polygon_scanline(gpu_3d_engine *gpu, s32 y, u32 poly_num)
 		}
 	}
 
-	bool fill_right = (!sr->negative && sr->xmajor) || sr->vertical ||
-	                  force_fill_edge ||
+	bool fill_right = (!sr->negative && sr->xmajor) ||
+	                  fill_vertical_right_edge || force_fill_edge ||
 	                  (sr->xmajor && bottom_edge_fill_rule);
 	if (fill_right) {
 		s32 start = std::max(0, xr[0]);
