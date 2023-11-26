@@ -137,6 +137,7 @@ struct gpu_3d_engine {
 			bool wide;
 			bool vertical;
 			bool left;
+			bool line;
 			vertex *v0{};
 			vertex *v1{};
 

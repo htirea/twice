@@ -228,6 +228,8 @@ setup_polygon_scanline(gpu_3d_engine *gpu, s32 y, u32 poly_num)
 {
 	polygon *p = gpu->re.polygons[poly_num];
 	polygon_info *pi = &gpu->re.poly_info[poly_num];
+	slope *sl = &pi->left_slope;
+	slope *sr = &pi->right_slope;
 
 	u32 curr, next;
 
@@ -244,7 +246,7 @@ setup_polygon_scanline(gpu_3d_engine *gpu, s32 y, u32 poly_num)
 			}
 		}
 		if (next != curr) {
-			setup_polygon_slope(&pi->left_slope, p->vertices[curr],
+			setup_polygon_slope(sl, p->vertices[curr],
 					p->vertices[next],
 					p->normalized_w[curr],
 					p->normalized_w[next], true);
@@ -265,14 +267,18 @@ setup_polygon_scanline(gpu_3d_engine *gpu, s32 y, u32 poly_num)
 			}
 		}
 		if (next != curr) {
-			setup_polygon_slope(&pi->right_slope,
-					p->vertices[curr], p->vertices[next],
+			setup_polygon_slope(sr, p->vertices[curr],
+					p->vertices[next],
 					p->normalized_w[curr],
 					p->normalized_w[next], false);
 			pi->prev_right = curr;
 			pi->right = next;
 		}
 	}
+
+	sl->line = sr->line =
+			sl->v0->sx == sr->v0->sx && sl->v0->sy == sr->v0->sy &&
+			sl->v1->sx == sr->v1->sx && sl->v1->sy == sr->v1->sy;
 }
 
 static void interp_setup(
@@ -487,7 +493,8 @@ render_polygon_scanline(gpu_3d_engine *gpu, s32 y, u32 poly_num)
 	ctx.alpha_blending = alpha_blending;
 	ctx.antialiasing = antialiasing;
 
-	bool fill_left = sl->negative || !sl->xmajor || force_fill_edge;
+	bool fill_left = sl->negative || !sl->xmajor || force_fill_edge ||
+	                 sl->line;
 	if (fill_left) {
 		s32 start = std::max(0, xl[0]);
 		s32 end = std::min(256, xl[1]);
