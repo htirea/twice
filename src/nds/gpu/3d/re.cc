@@ -459,18 +459,10 @@ render_polygon_scanline(gpu_3d_engine *gpu, s32 y, u32 poly_num)
 
 	if (swapped) {
 		if (sl->xmajor) {
-			if (!sl->negative) {
-				xl[1] = xl[0] + 1;
-			} else {
-				xl[0] = xl[1] - 1;
-			}
+			xl[0] = xl[1] - 1;
 		}
 		if (sr->xmajor) {
-			if (!sr->negative) {
-				xr[1] = xr[0] + 1;
-			} else {
-				xr[0] = xr[1] - 1;
-			}
+			xr[1] = xr[0] + 1;
 		}
 	}
 
