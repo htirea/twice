@@ -484,9 +484,10 @@ render_polygon_scanline(gpu_3d_engine *gpu, s32 y, u32 poly_num)
 	bool alpha_blending = gpu->re.r.disp3dcnt & BIT(3);
 	bool antialiasing = gpu->re.r.disp3dcnt & BIT(4);
 	bool edge_marking = gpu->re.r.disp3dcnt & BIT(5);
-	bool last_scanline = y == 191;
+	bool bottom_edge_fill_rule =
+			y == pi->bottom_edge && sl->v1->sx != sr->v1->sx;
 	bool force_fill_edge = wireframe || (translucent && alpha_blending) ||
-	                       antialiasing || edge_marking || last_scanline;
+	                       antialiasing || edge_marking;
 
 	ctx.alpha = alpha == 0 ? 31 : alpha;
 	ctx.alpha_test_ref = alpha_test ? gpu->re.r.alpha_test_ref : 0;
@@ -494,7 +495,7 @@ render_polygon_scanline(gpu_3d_engine *gpu, s32 y, u32 poly_num)
 	ctx.antialiasing = antialiasing;
 
 	bool fill_left = sl->negative || !sl->xmajor || force_fill_edge ||
-	                 sl->line;
+	                 sl->line || (sl->xmajor && bottom_edge_fill_rule);
 	if (fill_left) {
 		s32 start = std::max(0, xl[0]);
 		s32 end = std::min(256, xl[1]);
@@ -540,7 +541,8 @@ render_polygon_scanline(gpu_3d_engine *gpu, s32 y, u32 poly_num)
 	}
 
 	bool fill_right = (!sr->negative && sr->xmajor) || sr->vertical ||
-	                  force_fill_edge;
+	                  force_fill_edge ||
+	                  (sr->xmajor && bottom_edge_fill_rule);
 	if (fill_right) {
 		s32 start = std::max(0, xr[0]);
 		s32 end = std::min(256, xr[1]);
