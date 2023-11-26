@@ -407,10 +407,12 @@ render_polygon_scanline(gpu_3d_engine *gpu, s32 y, u32 poly_num)
 	s32 zl[2] = { p->z[pi->prev_left], p->z[pi->left] };
 	s32 zr[2] = { p->z[pi->prev_right], p->z[pi->right] };
 
-	s32 xl[2], xr[2], cov_l[2], cov_r[2];
+	s32 xl[2], xr[2], xm[2], cov_l[2], cov_r[2];
 	get_slope_x_start_end(sl, sr, xl, xr, cov_l, cov_r, y);
 
+	bool swapped = false;
 	if (xl[0] > xr[0] || xl[1] > xr[1]) {
+		swapped = true;
 		std::swap(sl, sr);
 		std::swap(xl[0], xr[0]);
 		std::swap(xl[1], xr[1]);
@@ -430,7 +432,27 @@ render_polygon_scanline(gpu_3d_engine *gpu, s32 y, u32 poly_num)
 		xr[0]--;
 		xr[1]--;
 	}
+
 	xr[0] = std::max(xr[0], xl[1]);
+	xm[0] = xl[1];
+	xm[1] = xr[0];
+
+	if (swapped) {
+		if (sl->xmajor) {
+			if (!sl->negative) {
+				xl[1] = xl[0] + 1;
+			} else {
+				xl[0] = xl[1] - 1;
+			}
+		}
+		if (sr->xmajor) {
+			if (!sr->negative) {
+				xr[1] = xr[0] + 1;
+			} else {
+				xr[0] = xr[1] - 1;
+			}
+		}
+	}
 
 	interp_update_x(&sl->interp, y);
 	interp_update_x(&sr->interp, y);
@@ -490,8 +512,8 @@ render_polygon_scanline(gpu_3d_engine *gpu, s32 y, u32 poly_num)
 	bool edge = y == pi->top_edge || y == pi->bottom_edge;
 	bool fill_middle = !wireframe || edge;
 	if (fill_middle) {
-		s32 start = std::max(0, xl[1]);
-		s32 end = std::min(256, xr[0]);
+		s32 start = std::max(0, xm[0]);
+		s32 end = std::min(256, xm[1]);
 
 		for (s32 x = start; shadow_mask && x < end; x++) {
 			render_shadow_mask_polygon_pixel(
