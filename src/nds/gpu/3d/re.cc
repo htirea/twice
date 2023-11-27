@@ -470,18 +470,14 @@ render_polygon_scanline(gpu_3d_engine *gpu, s32 y, u32 poly_num)
 		cov_r[1] ^= 0x3FF;
 	}
 
-	bool fill_vertical_right_edge = false;
 	if (sr->vertical && !swapped) {
 		xr[0]--;
 		xr[1]--;
-		fill_vertical_right_edge = true;
 	}
 
-	bool fill_vertical_left_edge = false;
 	if (sl->vertical && swapped) {
 		xl[0]--;
 		xl[1]--;
-		fill_vertical_left_edge = true;
 	}
 
 	xr[0] = std::max(xr[0], xl[1]);
@@ -531,9 +527,36 @@ render_polygon_scanline(gpu_3d_engine *gpu, s32 y, u32 poly_num)
 	ctx.alpha_blending = alpha_blending;
 	ctx.antialiasing = antialiasing;
 
-	bool fill_left = sl->negative || !sl->xmajor || force_fill_edge ||
-	                 fill_vertical_left_edge || sl->line ||
-	                 (sl->xmajor && bottom_edge_fill_rule);
+	bool fill_left, fill_right;
+	bool default_left_fill_rule = sl->negative || !sl->xmajor ||
+	                              sl->line ||
+	                              (sl->xmajor && bottom_edge_fill_rule);
+	bool default_right_fill_rule = (!sr->negative && sr->xmajor) ||
+	                               (sr->xmajor && bottom_edge_fill_rule);
+	if (!swapped) {
+		fill_left = default_left_fill_rule;
+
+		if (sr->vertical)
+			fill_right = true;
+		else
+			fill_right = default_right_fill_rule;
+	} else {
+		if (sl->vertical)
+			fill_left = true;
+		else
+			fill_left = default_left_fill_rule;
+
+		if (sl->vertical)
+			fill_right = !(sr->negative && sr->xmajor);
+		else if (sr->vertical)
+			fill_right = false;
+		else
+			fill_right = default_right_fill_rule;
+	}
+
+	fill_left = fill_left || force_fill_edge;
+	fill_right = fill_right || force_fill_edge;
+
 	if (fill_left) {
 		s32 start = std::max(0, xl[0]);
 		s32 end = std::min(256, xl[1]);
@@ -578,9 +601,6 @@ render_polygon_scanline(gpu_3d_engine *gpu, s32 y, u32 poly_num)
 		}
 	}
 
-	bool fill_right = (!sr->negative && sr->xmajor) ||
-	                  fill_vertical_right_edge || force_fill_edge ||
-	                  (sr->xmajor && bottom_edge_fill_rule);
 	if (fill_right) {
 		s32 start = std::max(0, xr[0]);
 		s32 end = std::min(256, xr[1]);
