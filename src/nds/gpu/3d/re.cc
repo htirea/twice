@@ -177,15 +177,39 @@ set_polygon_bounds(polygon *p, polygon_info *pi)
 
 	if (y_start == y_end) {
 		y_end++;
+
+		u32 left = p->num_vertices - 1;
+		s32 left_x = p->vertices[left]->sx;
+		u32 right = left;
+		s32 right_x = left_x;
+
+		for (u32 i = 0; i < 2 && i < p->num_vertices; i++) {
+			s32 x = p->vertices[i]->sx;
+			if (x < left_x) {
+				left_x = x;
+				left = i;
+			}
+			if (x > right_x) {
+				right_x = x;
+				right = i;
+			}
+		}
+
+		pi->left = left;
+		pi->prev_left = left;
+		pi->right = right;
+		pi->prev_right = right;
+		pi->horizontal_line = true;
+	} else {
+		pi->left = p->start;
+		pi->prev_left = p->start;
+		pi->right = p->start;
+		pi->prev_right = p->start;
+		pi->horizontal_line = false;
 	}
 
 	pi->y_start = y_start;
 	pi->y_end = y_end;
-
-	pi->left = p->start;
-	pi->prev_left = p->start;
-	pi->right = p->start;
-	pi->prev_right = p->start;
 
 	s32 top_count = 0;
 	s32 bottom_count = 0;
@@ -230,6 +254,18 @@ setup_polygon_scanline(gpu_3d_engine *gpu, s32 y, u32 poly_num)
 	polygon_info *pi = &gpu->re.poly_info[poly_num];
 	slope *sl = &pi->left_slope;
 	slope *sr = &pi->right_slope;
+
+	if (pi->horizontal_line) {
+		setup_polygon_slope(sl, p->vertices[pi->left],
+				p->vertices[pi->left],
+				p->normalized_w[pi->left],
+				p->normalized_w[pi->left], true);
+		setup_polygon_slope(sr, p->vertices[pi->right],
+				p->vertices[pi->right],
+				p->normalized_w[pi->right],
+				p->normalized_w[pi->right], false);
+		return;
+	}
 
 	u32 curr, next;
 

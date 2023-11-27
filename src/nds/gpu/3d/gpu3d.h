@@ -157,6 +157,7 @@ struct gpu_3d_engine {
 			u32 poly_id;
 			s32 top_edge;
 			s32 bottom_edge;
+			bool horizontal_line;
 		} poly_info[2048];
 	} re;
 
