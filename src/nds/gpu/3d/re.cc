@@ -452,6 +452,11 @@ render_polygon_scanline(gpu_3d_engine *gpu, s32 y, u32 poly_num)
 	s32 xl[2], xr[2], xm[2], cov_l[2], cov_r[2];
 	get_slope_x_start_end(sl, sr, xl, xr, cov_l, cov_r, y);
 
+	if (sr->vertical && xr[0] != 0 && !(sl->vertical && xl[0] == xr[0])) {
+		xr[0]--;
+		xr[1]--;
+	}
+
 	bool swapped = false;
 	if (xl[0] >= xr[1]) {
 		swapped = true;
@@ -468,16 +473,6 @@ render_polygon_scanline(gpu_3d_engine *gpu, s32 y, u32 poly_num)
 		cov_l[1] ^= 0x3FF;
 		cov_r[0] ^= 0x3FF;
 		cov_r[1] ^= 0x3FF;
-	}
-
-	if (sr->vertical && !swapped) {
-		xr[0]--;
-		xr[1]--;
-	}
-
-	if (sl->vertical && swapped) {
-		xl[0]--;
-		xl[1]--;
 	}
 
 	xr[0] = std::max(xr[0], xl[1]);
