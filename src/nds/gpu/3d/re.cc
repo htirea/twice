@@ -1298,32 +1298,25 @@ apply_fog(gpu_3d_engine *gpu, s32 y)
 	u8 af = re.r.fog_color >> 16 & 0x1F;
 
 	for (s32 x = 0; x < 256; x++) {
-		if (!gpu->attr_buf[0][y][x].fog)
-			continue;
+		for (int layer = 0; layer < 2; layer++) {
+			if (!gpu->attr_buf[layer][y][x].fog)
+				continue;
 
-		u32 z = gpu->depth_buf[0][y][x] >> 9;
-		u8 t = calculate_fog_density(
-				re.r.fog_table, fog_offset, fog_step, z);
-		t &= 0x7F;
+			u32 z = gpu->depth_buf[layer][y][x] >> 9;
+			u8 t = calculate_fog_density(re.r.fog_table,
+					fog_offset, fog_step, z);
+			if (t >= 127) {
+				t = 128;
+			}
 
-		auto& dst = gpu->color_buf[0][y][x];
-		if (t < 127) {
+			auto& dst = gpu->color_buf[layer][y][x];
 			dst.a = (af * t + dst.a * (128 - t)) >> 7;
 			if (!alpha_only) {
 				dst.r = (rf * t + dst.r * (128 - t)) >> 7;
 				dst.g = (gf * t + dst.g * (128 - t)) >> 7;
 				dst.b = (bf * t + dst.b * (128 - t)) >> 7;
 			}
-		} else {
-			dst.a = af;
-			if (!alpha_only) {
-				dst.r = rf;
-				dst.g = gf;
-				dst.b = bf;
-			}
 		}
-
-		/* TODO: bottom layer */
 	}
 }
 
