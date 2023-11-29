@@ -404,6 +404,8 @@ render_polygon_scanline(gpu_3d_engine *gpu, s32 y, u32 poly_num)
 
 	slope *sl = &pi->left_slope;
 	slope *sr = &pi->right_slope;
+	s32 zl[2] = { p->z[pi->prev_left], p->z[pi->left] };
+	s32 zr[2] = { p->z[pi->prev_right], p->z[pi->right] };
 
 	s32 xl[2], xr[2], cov_l[2], cov_r[2];
 	get_slope_x_start_end(sl, sr, xl, xr, cov_l, cov_r, y);
@@ -414,6 +416,8 @@ render_polygon_scanline(gpu_3d_engine *gpu, s32 y, u32 poly_num)
 		std::swap(xl[1], xr[1]);
 		std::swap(cov_l[0], cov_r[0]);
 		std::swap(cov_l[1], cov_r[1]);
+		std::swap(zl[0], zr[0]);
+		std::swap(zl[1], zr[1]);
 
 		/* TODO: break antialiasing */
 		cov_l[0] ^= 0x3FF;
@@ -432,10 +436,8 @@ render_polygon_scanline(gpu_3d_engine *gpu, s32 y, u32 poly_num)
 	interp_update_x(&sr->interp, y);
 	s32 wl = interpolate(&sl->interp, sl->interp.w0, sl->interp.w1);
 	s32 wr = interpolate(&sr->interp, sr->interp.w0, sr->interp.w1);
-	ctx.zl = interpolate_z(&sl->interp, p->z[pi->prev_left],
-			p->z[pi->left], p->wbuffering);
-	ctx.zr = interpolate_z(&sr->interp, p->z[pi->prev_right],
-			p->z[pi->right], p->wbuffering);
+	ctx.zl = interpolate_z(&sl->interp, zl[0], zl[1], p->wbuffering);
+	ctx.zr = interpolate_z(&sr->interp, zr[0], zr[1], p->wbuffering);
 
 	if (!shadow_mask) {
 		interpolate_multiple(&sl->interp, sl->v0->attr, sl->v1->attr,
