@@ -236,12 +236,10 @@ sdl_platform::loop()
 
 		handle_events();
 
-		if (!paused) {
+		if (!paused || step_frame) {
 			nds->run_frame();
-		}
-
-		if (!paused) {
 			render(nds->get_framebuffer());
+			step_frame = false;
 		}
 
 		if (!paused && throttle && !audio_muted) {
@@ -434,6 +432,9 @@ sdl_platform::handle_key_event(SDL_Keycode key, bool down)
 			break;
 		case SDLK_ESCAPE:
 			paused = !paused;
+			break;
+		case SDLK_PERIOD:
+			step_frame = true;
 			break;
 		}
 	}
