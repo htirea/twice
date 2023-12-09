@@ -43,6 +43,7 @@ nds_ctx::~nds_ctx() = default;
 void
 nds_firmware_boot(nds_ctx *nds)
 {
+	nds->soundbias = 0x200;
 	encrypt_secure_area(&nds->cart);
 	update_arm9_page_tables(nds->arm9.get());
 	update_arm7_page_tables(nds->arm7.get());
