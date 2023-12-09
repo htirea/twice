@@ -64,7 +64,7 @@ nds_machine::boot(bool direct_boot)
 		throw twice_error("cartridge not loaded");
 	}
 
-	if (save_info.type == SAVETYPE_UNKNOWN) {
+	if (cartridge && save_info.type == SAVETYPE_UNKNOWN) {
 		throw twice_error("unknown save type");
 	}
 
