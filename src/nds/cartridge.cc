@@ -180,6 +180,11 @@ event_advance_rom_transfer(nds_ctx *nds)
 	auto& cart = nds->cart;
 	auto& t = nds->cart.transfer;
 
+	if (t.transfer_size == 0) {
+		finish_rom_transfer(nds);
+		return;
+	}
+
 	nds->romctrl |= BIT(23);
 
 	if (t.key1_mode) {
@@ -227,11 +232,6 @@ event_advance_rom_transfer(nds_ctx *nds)
 	}
 
 	start_cartridge_dmas(nds, nds->nds_slot_cpu);
-
-	if (t.transfer_size == 0) {
-		finish_rom_transfer(nds);
-		return;
-	}
 }
 
 static void
