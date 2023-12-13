@@ -5,22 +5,87 @@
 
 namespace twice {
 
-static void update_timer_counter(nds_ctx *nds, int cpuid, int timer_id);
+static void update_timer_counter(nds_ctx *, int cpuid, int timer_id);
+static void update_cascade_counter(nds_ctx *, int cpuid, int timer_id);
+static void stop_timer(nds_ctx *, int cpuid, int timer_id);
+static void reload_timer_counter(nds_ctx *, int cpuid, int timer_id);
+static void schedule_timer_overflow(nds_ctx *, int cpuid, int timer_id);
+
+static const int timer_scale_shift[4] = { 10, 4, 2, 0 };
 
 u16
 read_timer_counter(nds_ctx *nds, int cpuid, int timer_id)
 {
-	auto& t = nds->tmr[cpuid][timer_id];
 	update_timer_counter(nds, cpuid, timer_id);
-	return t.counter >> 10;
+	return nds->tmr[cpuid][timer_id].counter >> 10;
+}
+
+void
+write_timer_ctrl(nds_ctx *nds, int cpuid, int timer_id, u8 value)
+{
+	auto& t = nds->tmr[cpuid][timer_id];
+	bool old_enabled = t.ctrl & BIT(7);
+	bool enabled = value & BIT(7);
+	bool cascade = value & BIT(2);
+
+	if (!old_enabled && !enabled) {
+		;
+	} else if (!old_enabled) {
+		reload_timer_counter(nds, cpuid, timer_id);
+	} else if (!enabled) {
+		update_timer_counter(nds, cpuid, timer_id);
+		stop_timer(nds, cpuid, timer_id);
+	} else {
+		update_timer_counter(nds, cpuid, timer_id);
+		if (cascade) {
+			stop_timer(nds, cpuid, timer_id);
+		}
+	}
+
+	t.ctrl = value & 0xC7;
+	t.shift = timer_scale_shift[value & 3];
+
+	if (enabled && !cascade) {
+		schedule_timer_overflow(nds, cpuid, timer_id);
+	}
+}
+
+static void
+on_timer_overflow(nds_ctx *nds, int cpuid, int timer_id)
+{
+	auto& t = nds->tmr[cpuid][timer_id];
+	bool irq_enabled = t.ctrl & BIT(6);
+	bool cascade = t.ctrl & BIT(2);
+
+	reload_timer_counter(nds, cpuid, timer_id);
+
+	if (irq_enabled) {
+		request_interrupt(nds->cpu[cpuid], 3 + timer_id);
+	}
+
+	if (timer_id != 3) {
+		update_cascade_counter(nds, cpuid, timer_id + 1);
+	}
+
+	if (!cascade) {
+		schedule_timer_overflow(nds, cpuid, timer_id);
+	}
+}
+
+void
+event_timer_overflow(nds_ctx *nds, int cpuid, intptr_t timer_id)
+{
+	on_timer_overflow(nds, cpuid, timer_id);
 }
 
 static void
 update_timer_counter(nds_ctx *nds, int cpuid, int timer_id)
 {
 	auto& t = nds->tmr[cpuid][timer_id];
+	bool enabled = t.ctrl & BIT(7);
+	bool cascade = t.ctrl & BIT(2);
 
-	if (t.ctrl & BIT(7) && !(t.ctrl & BIT(2))) {
+	if (enabled && !cascade) {
 		timestamp current_time = nds->arm_cycles[cpuid];
 		timestamp elapsed = current_time - t.last_update;
 		if (cpuid == 0) {
@@ -32,113 +97,46 @@ update_timer_counter(nds_ctx *nds, int cpuid, int timer_id)
 	}
 }
 
-static int get_freq_shift(u16 ctrl);
-static void stop_timer(nds_ctx *nds, int cpuid, int timer_id);
-static void schedule_timer_overflow(nds_ctx *nds, int cpuid, int timer_id);
-
-void
-write_timer_ctrl(nds_ctx *nds, int cpuid, int timer_id, u8 value)
+static void
+update_cascade_counter(nds_ctx *nds, int cpuid, int timer_id)
 {
 	auto& t = nds->tmr[cpuid][timer_id];
-	bool old_enabled = t.ctrl & BIT(7);
-	bool new_enabled = value & BIT(7);
+	bool enabled = t.ctrl & BIT(7);
+	bool cascade = t.ctrl & BIT(2);
 
-	if (!old_enabled && !new_enabled) {
-		t.ctrl = value & 0xC7;
-		t.shift = get_freq_shift(value);
-		return;
-	}
+	if (enabled && cascade) {
+		t.counter += 1 << 10;
 
-	if (old_enabled && !new_enabled) {
-		update_timer_counter(nds, cpuid, timer_id);
-		stop_timer(nds, cpuid, timer_id);
-		t.ctrl = value & 0xC7;
-		t.shift = get_freq_shift(value);
-		return;
-	}
-
-	if (!old_enabled && new_enabled) {
-		t.counter = (u32)t.reload_val << 10;
-		t.last_update = nds->arm_cycles[cpuid];
-	} else if (new_enabled) {
-		update_timer_counter(nds, cpuid, timer_id);
-		if (value & BIT(2)) {
-			stop_timer(nds, cpuid, timer_id);
+		if (t.counter >> 10 >= 0x10000) {
+			on_timer_overflow(nds, cpuid, timer_id);
 		}
-	}
-
-	t.ctrl = value & 0xC7;
-	t.shift = get_freq_shift(value);
-
-	if (!(value & BIT(2))) {
-		schedule_timer_overflow(nds, cpuid, timer_id);
-	}
-}
-
-static int
-get_freq_shift(u16 ctrl)
-{
-	u16 bits = ctrl & 3;
-	if (bits == 0) {
-		return 10;
-	} else {
-		return 10 - (4 + (bits << 1));
 	}
 }
 
 static void
 stop_timer(nds_ctx *nds, int cpuid, int timer_id)
 {
-	int event = event_scheduler::TIMER0_OVERFLOW + timer_id;
-	cancel_cpu_event(nds, cpuid, event);
+	cancel_cpu_event(nds, cpuid,
+			event_scheduler::TIMER0_OVERFLOW + timer_id);
+}
+
+static void
+reload_timer_counter(nds_ctx *nds, int cpuid, int timer_id)
+{
+	auto& t = nds->tmr[cpuid][timer_id];
+	t.counter = (u32)t.reload_val << 10;
+	t.last_update = nds->arm_cycles[cpuid];
 }
 
 static void
 schedule_timer_overflow(nds_ctx *nds, int cpuid, int timer_id)
 {
 	auto& t = nds->tmr[cpuid][timer_id];
-	timestamp dt = ((u32)0x10000 << 10) - (t.counter & MASK(26));
-	dt >>= t.shift;
-	int event = event_scheduler::TIMER0_OVERFLOW + timer_id;
-	schedule_cpu_event_after(nds, cpuid, event, dt);
-}
+	timestamp dt = (((u32)0x10000 << 10) - (t.counter & MASK(26))) >>
+	               t.shift;
 
-static void
-on_timer_overflow(nds_ctx *nds, int cpuid, int timer_id)
-{
-	auto& t = nds->tmr[cpuid][timer_id];
-
-	if (!(t.ctrl & BIT(7))) {
-		throw twice_error("timer should not be enabled");
-	}
-
-	timestamp current_time = nds->arm_cycles[cpuid];
-	t.counter = (u32)t.reload_val << 10;
-	t.last_update = current_time;
-
-	if (t.ctrl & BIT(6)) {
-		request_interrupt(nds->cpu[cpuid], 3 + timer_id);
-	}
-
-	if (timer_id != 3) {
-		auto& next_t = nds->tmr[cpuid][timer_id + 1];
-		if (next_t.ctrl & BIT(7) && next_t.ctrl & BIT(2)) {
-			next_t.counter += 1 << 10;
-			if ((next_t.counter >> 10 & 0xFFFF) == 0) {
-				on_timer_overflow(nds, cpuid, timer_id + 1);
-			}
-		}
-	}
-
-	if (!(t.ctrl & BIT(2))) {
-		schedule_timer_overflow(nds, cpuid, timer_id);
-	}
-}
-
-void
-event_timer_overflow(nds_ctx *nds, int cpuid, intptr_t timer_id)
-{
-	on_timer_overflow(nds, cpuid, timer_id);
+	schedule_cpu_event_after(nds, cpuid,
+			event_scheduler::TIMER0_OVERFLOW + timer_id, dt);
 }
 
 } // namespace twice

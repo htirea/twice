@@ -17,7 +17,6 @@ struct timer {
 
 u16 read_timer_counter(nds_ctx *nds, int cpuid, int timer_id);
 void write_timer_ctrl(nds_ctx *nds, int cpuid, int timer_id, u8 value);
-
 void event_timer_overflow(nds_ctx *nds, int cpuid, intptr_t timer_id);
 
 } // namespace twice
