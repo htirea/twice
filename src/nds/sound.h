@@ -13,6 +13,7 @@ struct sound_channel {
 	u32 tmr_reload{};
 	u32 pnt{};
 	u32 len{};
+	bool start{};
 
 	u32 tmr{};
 	u32 address{};

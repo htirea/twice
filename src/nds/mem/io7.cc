@@ -55,6 +55,8 @@ io7_read16(nds_ctx *nds, u32 addr)
 		return spidata_read(nds);
 	case 0x4000304:
 		return nds->powcnt2;
+	case 0x4000500:
+		return nds->soundcnt;
 	case 0x4000504:
 		return nds->soundbias;
 	case 0x4000508:
@@ -77,6 +79,10 @@ io7_read32(nds_ctx *nds, u32 addr)
 		IO_READ32_COMMON(1);
 	case 0x40001C0:
 		return (u32)spidata_read(nds) << 16 | nds->spicnt;
+	case 0x4000500:
+		return nds->soundcnt;
+	case 0x5000504:
+		return nds->soundbias;
 	}
 
 	if (0x4000400 <= addr && addr < 0x4000500) {

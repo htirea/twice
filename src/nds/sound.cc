@@ -189,10 +189,15 @@ sample_audio_channels(nds_ctx *nds, s32 *left_out, s32 *right_out)
 	*right_out = right;
 }
 
+static void start_channel(nds_ctx *nds, int ch_id);
+
 static s32
 sample_channel(nds_ctx *nds, int ch_id)
 {
 	auto& ch = nds->sound_ch[ch_id];
+	if (ch.start) {
+		start_channel(nds, ch_id);
+	}
 
 	switch (ch.cnt >> 29 & 3) {
 	case 0:
@@ -206,6 +211,38 @@ sample_channel(nds_ctx *nds, int ch_id)
 	}
 
 	return 0;
+}
+
+static void
+start_channel(nds_ctx *nds, int ch_id)
+{
+	auto& ch = nds->sound_ch[ch_id];
+
+	ch.tmr = ch.tmr_reload;
+	ch.address = ch.sad;
+
+	switch (ch.cnt >> 29 & 3) {
+	case 2:
+		ch.adpcm.header = bus7_read<u32>(nds, ch.address);
+		ch.adpcm.value = (s16)ch.adpcm.header;
+		ch.adpcm.index = ch.adpcm.header >> 16 & 0x7F;
+		ch.adpcm.first = true;
+		ch.address += 4;
+		break;
+	case 3:
+		if (8 <= ch_id && ch_id <= 13) {
+			ch.psg.mode = psg_mode::WAVE;
+			ch.psg.wave_pos = 0;
+		} else if (14 <= ch_id && ch_id <= 15) {
+			ch.psg.mode = psg_mode::NOISE;
+			ch.psg.lfsr = 0x7FFF;
+		} else {
+			ch.psg.mode = psg_mode::INVALID;
+		}
+		ch.psg.value = 0;
+	}
+
+	ch.start = false;
 }
 
 static const s32 adpcm_index_table[] = { -1, -1, -1, -1, 2, 4, 6, 8 };
@@ -416,7 +453,6 @@ sound_read32(nds_ctx *nds, u8 addr)
 	return 0;
 }
 
-static void start_channel(nds_ctx *nds, int ch_id);
 static void write_tmr_reload(nds_ctx *nds, int ch_id, u16 value);
 
 void
@@ -437,12 +473,9 @@ sound_write8(nds_ctx *nds, u8 addr, u8 value)
 		return;
 	case 3:
 	{
-		bool start = !(ch.cnt & BIT(31)) && value & BIT(7);
+		ch.start = !(ch.cnt & BIT(31)) && value & BIT(7);
 		ch.cnt = (ch.cnt & ~0xFF000000) |
 		         ((u32)value << 24 & 0xFF000000);
-		if (start) {
-			start_channel(nds, addr >> 4);
-		}
 		return;
 	}
 	case 4:
@@ -493,11 +526,8 @@ sound_write32(nds_ctx *nds, u8 addr, u32 value)
 	switch (offset) {
 	case 0x0:
 	{
-		bool start = ~ch.cnt & value & BIT(31);
+		ch.start = ~ch.cnt & value & BIT(31);
 		ch.cnt = value & 0xFF7F837F;
-		if (start) {
-			start_channel(nds, addr >> 4);
-		}
 		return;
 	}
 	case 0x4:
@@ -513,36 +543,6 @@ sound_write32(nds_ctx *nds, u8 addr, u32 value)
 	}
 
 	LOG("sound write 32 at %02X\n", addr);
-}
-
-static void
-start_channel(nds_ctx *nds, int ch_id)
-{
-	auto& ch = nds->sound_ch[ch_id];
-
-	ch.tmr = ch.tmr_reload;
-	ch.address = ch.sad;
-
-	switch (ch.cnt >> 29 & 3) {
-	case 2:
-		ch.adpcm.header = bus7_read<u32>(nds, ch.address);
-		ch.adpcm.value = (s16)ch.adpcm.header;
-		ch.adpcm.index = ch.adpcm.header >> 16 & 0x7F;
-		ch.adpcm.first = true;
-		ch.address += 4;
-		break;
-	case 3:
-		if (8 <= ch_id && ch_id <= 13) {
-			ch.psg.mode = psg_mode::WAVE;
-			ch.psg.wave_pos = 0;
-		} else if (14 <= ch_id && ch_id <= 15) {
-			ch.psg.mode = psg_mode::NOISE;
-			ch.psg.lfsr = 0x7FFF;
-		} else {
-			ch.psg.mode = psg_mode::INVALID;
-		}
-		ch.psg.value = 0;
-	}
 }
 
 static void
