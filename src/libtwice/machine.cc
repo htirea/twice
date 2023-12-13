@@ -174,17 +174,9 @@ nds_machine::update_touchscreen_state(int x, int y, bool down)
 	if (!nds)
 		return;
 
-	if (down) {
-		x = std::clamp(x, 0, 255);
-		y = std::clamp(y, 0, 191);
-	}
-
-	if (down) {
-		nds_set_touchscreen_state(nds.get(), x, y, down);
-		nds->extkeyin &= ~BIT(6);
-	} else {
-		nds->extkeyin |= BIT(6);
-	}
+	x = std::clamp(x, 0, 255);
+	y = std::clamp(y, 0, 191);
+	nds_set_touchscreen_state(nds.get(), x, y, down);
 }
 
 static bool

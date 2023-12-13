@@ -72,7 +72,7 @@ struct nds_ctx {
 	timer tmr[2][4];
 	real_time_clock rtc;
 	firmware_flash firmware;
-	touchscreen_controller touchscreen;
+	touchscreen ts;
 	cartridge cart;
 	power_management_device powerman;
 	sound_channel sound_ch[16];
