@@ -6,8 +6,10 @@
 
 namespace twice {
 
-static u32 sqrt64(u64 n);
+static void div32(nds_ctx *nds);
+static void div64(nds_ctx *nds, bool denom_is_64_bits);
 static u32 sqrt32(u32 n);
+static u32 sqrt64(u64 n);
 
 void
 nds_math_sqrt(nds_ctx *nds)
@@ -19,36 +21,6 @@ nds_math_sqrt(nds_ctx *nds)
 		nds->sqrt_result = sqrt32(nds->sqrt_param[0]);
 	}
 }
-
-static u32
-sqrt64(u64 n)
-{
-#if LDBL_MANT_DIG >= 64
-	return std::sqrt((long double)n);
-#else
-	u64 r = 0;
-	u64 r2 = 0;
-
-	for (int i = 32; i--;) {
-		u64 t = r2 + (r << (i + 1)) + ((u64)1 << (i << 1));
-		if (t <= n) {
-			r |= (u64)1 << i;
-			r2 = t;
-		}
-	}
-
-	return r;
-#endif
-}
-
-static u32
-sqrt32(u32 n)
-{
-	return std::sqrt((double)n);
-}
-
-static void div32(nds_ctx *nds);
-static void div64(nds_ctx *nds, bool denom_is_64_bits);
 
 void
 nds_math_div(nds_ctx *nds)
@@ -103,9 +75,7 @@ static void
 div64(nds_ctx *nds, bool denom_is_64_bits)
 {
 	s64 numer = (u64)nds->div_numer[1] << 32 | nds->div_numer[0];
-	s64 denom;
-	s64 result;
-	s64 rem;
+	s64 denom, result, rem;
 
 	if (denom_is_64_bits) {
 		denom = (u64)nds->div_denom[1] << 32 | nds->div_denom[0];
@@ -128,6 +98,33 @@ div64(nds_ctx *nds, bool denom_is_64_bits)
 	nds->div_result[1] = result >> 32;
 	nds->divrem_result[0] = rem;
 	nds->divrem_result[1] = rem >> 32;
+}
+
+static u32
+sqrt32(u32 n)
+{
+	return std::sqrt((double)n);
+}
+
+static u32
+sqrt64(u64 n)
+{
+#if LDBL_MANT_DIG >= 64
+	return std::sqrt((long double)n);
+#else
+	u64 r = 0;
+	u64 r2 = 0;
+
+	for (int i = 32; i--;) {
+		u64 t = r2 + (r << (i + 1)) + ((u64)1 << (i << 1));
+		if (t <= n) {
+			r |= (u64)1 << i;
+			r2 = t;
+		}
+	}
+
+	return r;
+#endif
 }
 
 } // namespace twice
