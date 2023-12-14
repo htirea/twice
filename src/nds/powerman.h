@@ -7,9 +7,11 @@ namespace twice {
 
 struct nds_ctx;
 
-struct power_management_device {
-	u8 reg[4]{};
-	u8 output_byte{};
+struct powerman {
+	u8 ctrl{};
+	u8 battery_status{};
+	u8 mic_amp_enabled{};
+	u8 mic_amp_gain{};
 	u8 reg_select{};
 	bool read_mode{};
 	bool cs_active{};

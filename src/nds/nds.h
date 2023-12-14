@@ -74,7 +74,7 @@ struct nds_ctx {
 	firmware_flash firmware;
 	touchscreen ts;
 	cartridge cart;
-	power_management_device powerman;
+	powerman pwr;
 	sound_channel sound_ch[16];
 	sound_capture_channel sound_cap_ch[2];
 
