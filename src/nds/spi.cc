@@ -7,6 +7,8 @@
 
 namespace twice {
 
+static void reset_spi(nds_ctx *);
+
 u8
 spidata_read(nds_ctx *nds)
 {
@@ -16,14 +18,12 @@ spidata_read(nds_ctx *nds)
 void
 spidata_write(nds_ctx *nds, u8 value)
 {
-	if (!(nds->spicnt & BIT(15))) {
-		return;
-	}
-
-	nds->spidata_w = value;
-
-	u16 device = nds->spicnt >> 8 & 3;
+	bool enabled = nds->spicnt & BIT(15);
 	bool keep_active = nds->spicnt & BIT(11);
+	u16 device = nds->spicnt >> 8 & 3;
+
+	if (!enabled)
+		return;
 
 	switch (device) {
 	case 0:
@@ -46,25 +46,16 @@ spidata_write(nds_ctx *nds, u8 value)
 	nds->spicnt |= BIT(7);
 }
 
-static void reset_spi(nds_ctx *nds);
-
 void
 spicnt_write(nds_ctx *nds, u16 value)
 {
 	bool old_enabled = nds->spicnt & BIT(15);
-	bool new_enabled = value & BIT(15);
+	bool enabled = value & BIT(15);
+
 	nds->spicnt = (nds->spicnt & ~0xCF03) | (value & 0xCF03);
-	if (!old_enabled && new_enabled) {
+	if (!old_enabled && enabled) {
 		reset_spi(nds);
 	}
-}
-
-static void
-reset_spi(nds_ctx *nds)
-{
-	firmware_spi_reset(nds);
-	touchscreen_spi_reset(nds);
-	powerman_spi_reset(nds);
 }
 
 void
@@ -74,6 +65,14 @@ event_spi_transfer_complete(nds_ctx *nds, int, intptr_t)
 	if (nds->spicnt & BIT(14)) {
 		request_interrupt(nds->cpu[1], 23);
 	}
+}
+
+static void
+reset_spi(nds_ctx *nds)
+{
+	firmware_spi_reset(nds);
+	touchscreen_spi_reset(nds);
+	powerman_spi_reset(nds);
 }
 
 } // namespace twice

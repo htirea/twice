@@ -154,7 +154,6 @@ struct nds_ctx {
 
 	u16 spicnt{};
 	u8 spidata_r{};
-	u8 spidata_w{};
 
 	/*
 	 * MISC
