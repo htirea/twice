@@ -71,7 +71,7 @@ struct nds_ctx {
 	dma_controller dma[2];
 	timer tmr[2][4];
 	real_time_clock rtc;
-	firmware_flash firmware;
+	firmware fw;
 	touchscreen ts;
 	cartridge cart;
 	powerman pwr;

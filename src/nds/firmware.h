@@ -7,12 +7,11 @@ namespace twice {
 
 struct nds_ctx;
 
-struct firmware_flash {
-	firmware_flash(u8 *data);
+struct firmware {
+	firmware(u8 *data);
 
 	u8 *data{};
 	u8 *user_settings{};
-
 	u8 command{};
 	u32 count{};
 	u32 addr{};

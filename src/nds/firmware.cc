@@ -6,9 +6,9 @@
 
 namespace twice {
 
-static u16 calculate_crc16(u8 *p, size_t num_bytes);
+static u16 calculate_crc16(u8 *p, size_t length);
 
-firmware_flash::firmware_flash(u8 *data) : data(data)
+firmware::firmware(u8 *data) : data(data)
 {
 	u32 user_settings_offset = readarr<u16>(data, 0x20) << 3;
 	if (user_settings_offset != 0x3FE00) {
@@ -16,6 +16,8 @@ firmware_flash::firmware_flash(u8 *data) : data(data)
 	}
 
 	user_settings = data + user_settings_offset;
+
+	/* overwrite touchscreen calibration data */
 	writearr<u16>(user_settings, 0x58, 0);
 	writearr<u16>(user_settings, 0x5A, 0);
 	writearr<u8>(user_settings, 0x5C, 0);
@@ -29,31 +31,10 @@ firmware_flash::firmware_flash(u8 *data) : data(data)
 	writearr<u16>(user_settings, 0x72, checksum);
 }
 
-static u16
-calculate_crc16(u8 *p, size_t num_bytes)
-{
-	u16 v[] = { 0xC0C1, 0xC181, 0xC301, 0xC601, 0xCC01, 0xD801, 0xF001,
-		0xA001 };
-
-	u32 crc = 0xFFFF;
-	for (size_t i = 0; i < num_bytes; i++) {
-		crc ^= p[i];
-		for (int j = 0; j < 8; j++) {
-			bool carry = crc & 1;
-			crc >>= 1;
-			if (carry) {
-				crc ^= v[j] << (7 - j);
-			}
-		}
-	}
-
-	return crc;
-}
-
 void
 firmware_spi_transfer_byte(nds_ctx *nds, u8 value, bool keep_active)
 {
-	auto& fw = nds->firmware;
+	auto& fw = nds->fw;
 
 	if (!fw.cs_active) {
 		fw.command = value;
@@ -96,8 +77,29 @@ firmware_spi_transfer_byte(nds_ctx *nds, u8 value, bool keep_active)
 void
 firmware_spi_reset(nds_ctx *nds)
 {
-	auto& fw = nds->firmware;
+	auto& fw = nds->fw;
 	fw.cs_active = false;
+}
+
+static u16
+calculate_crc16(u8 *p, size_t length)
+{
+	u16 v[] = { 0xC0C1, 0xC181, 0xC301, 0xC601, 0xCC01, 0xD801, 0xF001,
+		0xA001 };
+	u32 crc = 0xFFFF;
+
+	for (size_t i = 0; i < length; i++) {
+		crc ^= p[i];
+		for (u32 j = 0; j < 8; j++) {
+			bool carry = crc & 1;
+			crc >>= 1;
+			if (carry) {
+				crc ^= v[j] << (7 - j);
+			}
+		}
+	}
+
+	return crc;
 }
 
 } // namespace twice
