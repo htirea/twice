@@ -24,17 +24,19 @@ add_library(twice STATIC
 	nds/arm/arm.cc
 	nds/arm/arm7.cc
 	nds/arm/arm9.cc
-	nds/dma.cc
 	nds/arm/interpreter/lut.cc
-	nds/cartridge.cc
+	nds/cart/backup.cc
+	nds/cart/cart.cc
+	nds/cart/key.cc
+	nds/dma.cc
 	nds/firmware.cc
 	nds/gpu/2d/bg.cc
 	nds/gpu/2d/gpu2d.cc
 	nds/gpu/2d/obj.cc
 	nds/gpu/3d/ge.cc
-	nds/gpu/3d/re.cc
 	nds/gpu/3d/gpu3d.cc
 	nds/gpu/3d/matrix.cc
+	nds/gpu/3d/re.cc
 	nds/gpu/vram.cc
 	nds/ipc.cc
 	nds/math.cc

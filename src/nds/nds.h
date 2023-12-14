@@ -4,7 +4,7 @@
 #include "libtwice/nds/defs.h"
 #include "libtwice/nds/game_db.h"
 
-#include "nds/cartridge.h"
+#include "nds/cart/cart.h"
 #include "nds/dma.h"
 #include "nds/firmware.h"
 #include "nds/gpu/2d/gpu2d.h"
@@ -146,7 +146,6 @@ struct nds_ctx {
 
 	u16 auxspicnt{};
 	u8 auxspidata_r{};
-	u8 auxspidata_w{};
 	u32 romctrl{};
 	u8 cart_command_out[8]{};
 	u32 encryption_seed_l[2]{};

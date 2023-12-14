@@ -2,6 +2,7 @@
 #include "nds/arm/arm.h"
 #include "nds/arm/arm7.h"
 #include "nds/arm/arm9.h"
+#include "nds/cart/key.h"
 #include "nds/mem/bus.h"
 #include "nds/mem/io.h"
 
