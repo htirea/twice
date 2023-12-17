@@ -236,18 +236,29 @@ event_sample_audio(nds_ctx *nds)
 			mix_audio(nds, &left, &right);
 		}
 
-		left >>= 31;
-		right >>= 31;
-		left += nds->soundbias;
-		right += nds->soundbias;
-		left = std::clamp(left, (s64)0, (s64)0x3FF);
-		right = std::clamp(right, (s64)0, (s64)0x3FF);
-		left -= 0x200;
-		right -= 0x200;
-
-		if (amp_enabled) {
+		if (nds->use_16_bit_audio) {
+			left >>= 25;
+			right >>= 25;
+			left += ((s64)nds->soundbias << 10) - 0x80000;
+			right += ((s64)nds->soundbias << 10) - 0x80000;
+			left = std::clamp(left, (s64)-0x8000, (s64)0x7FFF);
+			right = std::clamp(right, (s64)-0x8000, (s64)0x7FFF);
+		} else {
+			left >>= 31;
+			right >>= 31;
+			left += nds->soundbias;
+			right += nds->soundbias;
+			left = std::clamp(left, (s64)0, (s64)0x3FF);
+			right = std::clamp(right, (s64)0, (s64)0x3FF);
+			left -= 0x200;
+			right -= 0x200;
 			left <<= 6;
 			right <<= 6;
+		}
+
+		if (!amp_enabled) {
+			left >>= 6;
+			right >>= 6;
 		}
 
 		send_audio_samples(nds, left, right);

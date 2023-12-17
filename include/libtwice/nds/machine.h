@@ -175,6 +175,14 @@ struct nds_machine {
 	std::pair<double, double> get_cpu_usage();
 
 	/**
+	 * Set the audio mixing bit depth.
+	 *
+	 * \param use_16_bit_audio true to mix audio at 16 bits
+	 *                         false to mix audio at 10 bits
+	 */
+	void set_use_16_bit_audio(bool use_16_bit_audio);
+
+	/**
 	 * Dump the collected profiler data.
 	 */
 	void dump_profiler_report();

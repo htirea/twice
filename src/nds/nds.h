@@ -160,6 +160,7 @@ struct nds_ctx {
 	bool frame_finished{};
 	bool trace{};
 	bool shutdown{};
+	bool use_16_bit_audio{};
 	double arm9_usage{};
 	double arm7_usage{};
 	profiler prof;

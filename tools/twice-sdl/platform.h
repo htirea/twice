@@ -69,6 +69,7 @@ class sdl_platform {
 	bool paused{};
 	bool audio_muted{};
 	bool step_frame{};
+	bool use_16_bit_audio{};
 	int window_w{};
 	int window_h{};
 	int texture_scale{};

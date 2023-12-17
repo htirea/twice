@@ -245,6 +245,12 @@ nds_machine::get_cpu_usage()
 }
 
 void
+nds_machine::set_use_16_bit_audio(bool use_16_bit_audio)
+{
+	nds->use_16_bit_audio = use_16_bit_audio;
+}
+
+void
 nds_machine::dump_profiler_report()
 {
 	if (!nds)

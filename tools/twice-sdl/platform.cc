@@ -411,6 +411,14 @@ sdl_platform::handle_key_event(SDL_Keycode key, bool down)
 			break;
 		case SDLK_d:
 			nds->dump_profiler_report();
+			use_16_bit_audio = !use_16_bit_audio;
+			nds->set_use_16_bit_audio(use_16_bit_audio);
+			break;
+		case SDLK_a:
+			use_16_bit_audio = !use_16_bit_audio;
+			nds->set_use_16_bit_audio(use_16_bit_audio);
+			std::cerr << "use 16 bit audio: " << use_16_bit_audio
+				  << '\n';
 			break;
 		case SDLK_LEFT:
 			rotate_screen(-1);
