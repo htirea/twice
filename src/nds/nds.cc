@@ -63,6 +63,8 @@ nds_direct_boot(nds_ctx *nds)
 	nds->soundbias = 0x200;
 	nds->postflg[0] = 0x1;
 	nds->postflg[1] = 0x1;
+	/* TODO: call write handler instead */
+	nds->pwr.ctrl = 0xD;
 
 	u32 chip_id = nds->cart.chip_id;
 	writearr<u32>(nds->main_ram, 0x3FF800, chip_id);
