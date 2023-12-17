@@ -538,9 +538,9 @@ add_vertex(gpu_3d_engine *gpu)
 	v->pos[1] = result.v[1];
 	v->pos[2] = result.v[2];
 	v->pos[3] = result.v[3];
-	v->attr[0] = ge.vtx_color[0];
-	v->attr[1] = ge.vtx_color[1];
-	v->attr[2] = ge.vtx_color[2];
+	v->attr[0] = (s32)ge.vtx_color[0] << 3;
+	v->attr[1] = (s32)ge.vtx_color[1] << 3;
+	v->attr[2] = (s32)ge.vtx_color[2] << 3;
 
 	if (ge.teximage_param >> 30 == 3) {
 		texcoord_transform_3(gpu, ge.vx, ge.vy, ge.vz);

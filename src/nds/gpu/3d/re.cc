@@ -841,8 +841,8 @@ render_polygon_pixel(gpu_3d_engine *gpu, render_polygon_ctx *ctx,
 	s32 attr_result[5];
 	interpolate_multiple(span, ctx->attr_l, ctx->attr_r, attr_result);
 
-	color4 px_color = get_pixel_color(gpu, ctx->p, attr_result[0],
-			attr_result[1], attr_result[2], ctx->alpha,
+	color4 px_color = get_pixel_color(gpu, ctx->p, attr_result[0] >> 3,
+			attr_result[1] >> 3, attr_result[2] >> 3, ctx->alpha,
 			attr_result[3], attr_result[4]);
 	if (px_color.a <= ctx->alpha_test_ref)
 		return;
