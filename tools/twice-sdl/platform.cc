@@ -218,6 +218,8 @@ sdl_platform::loop()
 	throttle = sdl_config.throttle;
 	frames = 0;
 	frame_limit = sdl_config.frame_limit;
+	use_16_bit_audio = true;
+	nds->set_use_16_bit_audio(true);
 
 	u64 target = freq / NDS_FRAME_RATE;
 	u64 last_elapsed = target;
