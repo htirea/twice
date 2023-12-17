@@ -30,8 +30,10 @@ twice::arg_parser::opt_list twice::arg_parser::options = {
 	{ "4x", '4', 0 },
 	{ "boot", 'b', 1 },
 	{ "filter", '\0', 1 },
+	{ "frame-limit", '\0', 1 },
 	{ "fullscreen", 'f', 0 },
 	{ "help", 'h', 0 },
+	{ "no-throttle", '\0', 0 },
 	{ "save", 's', 1 },
 	{ "verbose", 'v', 0 },
 };
@@ -56,7 +58,9 @@ Other options:
   -1, -2, -3, -4        Scale the viewport by 1x, 2x, 3x, 4x.
   -f, --fullscreen      Start in fullscreen mode.
   --filter <mode>       Set the screen filtering mode. Defaults to linear.
+  --frame-limit <N>     Quit after running <N> frames.
                         (mode = 'nearest' | 'linear' )
+  --no-throttle         Start with throttling disabled.
   -v, --verbose         Use verbose output. Repeat to increase verbosity.
   -h, --help            Print this help.
 )___";
@@ -118,6 +122,23 @@ try {
 	}
 	if (parser.get_option("fullscreen")) {
 		sdl_config.fullscreen = true;
+	}
+
+	if (parser.get_option("no-throttle")) {
+		sdl_config.throttle = false;
+	}
+
+	if (auto opt = parser.get_option("frame-limit")) {
+		twice::u64 frame_limit = 0;
+		auto [ptr, ec] = std::from_chars(opt->arg.data(),
+				opt->arg.data() + opt->arg.size(),
+				frame_limit);
+		if (ec == std::errc()) {
+			sdl_config.frame_limit = frame_limit;
+		} else {
+			print_usage();
+			return 1;
+		}
 	}
 
 	bool direct_boot = true;

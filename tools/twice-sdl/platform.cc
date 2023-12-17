@@ -215,12 +215,15 @@ void
 sdl_platform::loop()
 {
 	running = true;
-	throttle = true;
+	throttle = sdl_config.throttle;
+	frames = 0;
+	frame_limit = sdl_config.frame_limit;
 
 	u64 target = freq / NDS_FRAME_RATE;
 	u64 last_elapsed = target;
 	u64 total_elapsed = 0;
 	u64 lag = 0;
+	u64 emulation_start = SDL_GetPerformanceCounter();
 
 	while (running) {
 		u64 start = SDL_GetPerformanceCounter();
@@ -240,6 +243,10 @@ sdl_platform::loop()
 			nds->run_frame();
 			render(nds->get_framebuffer());
 			step_frame = false;
+			frames++;
+			if (frames == frame_limit) {
+				running = false;
+			}
 		}
 
 		if (!paused && throttle && !audio_muted) {
@@ -278,6 +285,11 @@ sdl_platform::loop()
 		last_elapsed = SDL_GetPerformanceCounter() - start;
 	}
 
+	total_elapsed = SDL_GetPerformanceCounter() - emulation_start;
+	std::cerr << std::format(
+			"emulated {} frames in {} seconds, avg fps: {}\n",
+			frames, (double)total_elapsed / freq,
+			(double)frames * freq / total_elapsed);
 	nds->dump_profiler_report();
 }
 
