@@ -40,9 +40,8 @@ spidata_write(nds_ctx *nds, u8 value)
 		return;
 	}
 
-	schedule_cpu_event_after(nds, 1,
-			event_scheduler::SPI_TRANSFER_COMPLETE,
-			64 << (nds->spicnt & 3));
+	schedule_event_after(nds, 1, scheduler::ARM7_SPI_TRANSFER,
+			64 << (nds->spicnt & 3) << 1);
 	nds->spicnt |= BIT(7);
 }
 
@@ -59,7 +58,7 @@ spicnt_write(nds_ctx *nds, u16 value)
 }
 
 void
-event_spi_transfer_complete(nds_ctx *nds, int, intptr_t)
+event_spi_transfer_complete(nds_ctx *nds, intptr_t data, timestamp late)
 {
 	nds->spicnt &= ~BIT(7);
 	if (nds->spicnt & BIT(14)) {

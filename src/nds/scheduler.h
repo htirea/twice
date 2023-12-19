@@ -7,62 +7,50 @@ namespace twice {
 
 struct nds_ctx;
 
-typedef void (*nds_event_cb)(nds_ctx *);
-typedef void (*cpu_event_cb)(nds_ctx *nds, int cpuid, intptr_t data);
-
-struct event_scheduler {
-	event_scheduler();
+struct scheduler {
+	typedef void (*event_cb)(nds_ctx *nds, intptr_t data, timestamp late);
 
 	enum {
+		/* both cpus */
 		HBLANK_START,
 		HBLANK_END,
-		ROM_ADVANCE_TRANSFER,
-		AUXSPI_TRANSFER_COMPLETE,
 		SAMPLE_AUDIO,
-		NUM_NDS_EVENTS,
+		CART_TRANSFER,
+		AUXSPI_TRANSFER,
+
+		/* arm9 */
+		ARM9_TIMER0_OVERFLOW,
+		ARM9_TIMER1_OVERFLOW,
+		ARM9_TIMER2_OVERFLOW,
+		ARM9_TIMER3_OVERFLOW,
+		ARM9_IMMEDIATE_DMA,
+
+		/* arm 7 */
+		ARM7_TIMER0_OVERFLOW,
+		ARM7_TIMER1_OVERFLOW,
+		ARM7_TIMER2_OVERFLOW,
+		ARM7_TIMER3_OVERFLOW,
+		ARM7_IMMEDIATE_DMA,
+		ARM7_SPI_TRANSFER,
+
+		NUM_EVENTS,
 	};
 
-	enum {
-		START_IMMEDIATE_DMAS,
-		TIMER0_OVERFLOW,
-		TIMER1_OVERFLOW,
-		TIMER2_OVERFLOW,
-		TIMER3_OVERFLOW,
-		SPI_TRANSFER_COMPLETE,
-		NUM_CPU_EVENTS,
-	};
+	scheduler();
 
-	struct nds_event {
-		bool enabled{};
-		timestamp time{};
-		nds_event_cb cb{};
-	};
-
-	struct arm_event {
-		bool enabled{};
-		timestamp time{};
-		cpu_event_cb cb{};
-		intptr_t data{};
-	};
-
-	timestamp current_time{};
-
-	nds_event events[NUM_NDS_EVENTS];
-	arm_event arm_events[2][NUM_CPU_EVENTS];
+	event_cb callbacks[NUM_EVENTS]{};
+	intptr_t data[NUM_EVENTS]{};
+	timestamp expiry[NUM_EVENTS]{};
+	bool enabled[NUM_EVENTS]{};
 };
 
 timestamp get_next_event_time(nds_ctx *nds);
-
-void schedule_nds_event(nds_ctx *nds, int event, timestamp t);
-void schedule_nds_event_after(
-		nds_ctx *nds, int cpuid, int event, timestamp dt);
-void reschedule_nds_event_after(nds_ctx *nds, int event, timestamp dt);
-void schedule_cpu_event_after(
-		nds_ctx *nds, int cpuid, int event, timestamp dt);
-void cancel_cpu_event(nds_ctx *nds, int cpuid, int event);
-
-void run_nds_events(nds_ctx *nds);
+void schedule_event_after(nds_ctx *nds, int id, timestamp dt);
+void schedule_event_after(nds_ctx *nds, int cpuid, int id, timestamp dt);
+void cancel_event(nds_ctx *nds, int id);
 void run_cpu_events(nds_ctx *nds, int cpuid);
+void run_system_events(nds_ctx *nds);
+int get_timer_overflow_event_id(int cpuid, int timer_id);
 
 } // namespace twice
 

@@ -37,7 +37,7 @@ struct cartridge {
 
 void romctrl_write(nds_ctx *nds, int cpuid, u32 value);
 u32 read_cart_bus_data(nds_ctx *nds, int cpuid);
-void event_advance_rom_transfer(nds_ctx *nds);
+void event_advance_rom_transfer(nds_ctx *nds, intptr_t, timestamp late);
 
 } // namespace twice
 

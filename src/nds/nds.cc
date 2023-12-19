@@ -33,10 +33,10 @@ nds_ctx::nds_ctx(u8 *arm7_bios, u8 *arm9_bios, u8 *firmware, u8 *cartridge,
 	wramcnt_write(this, 0x0);
 	powcnt1_write(this, 0x0);
 
-	schedule_nds_event(this, event_scheduler::HBLANK_START, 1536);
-	schedule_nds_event(this, event_scheduler::HBLANK_END, 2130);
+	schedule_event_after(this, scheduler::HBLANK_START, 3072);
+	schedule_event_after(this, scheduler::HBLANK_END, 4260);
 	/* TODO: sample rate is not exact */
-	schedule_nds_event(this, event_scheduler::SAMPLE_AUDIO, 1024);
+	schedule_event_after(this, scheduler::SAMPLE_AUDIO, 2048);
 }
 
 nds_ctx::~nds_ctx() = default;
@@ -171,8 +171,7 @@ nds_run_frame(nds_ctx *nds)
 			}
 		}
 
-		nds->scheduler.current_time = nds->arm_cycles[0];
-		run_nds_events(nds);
+		run_system_events(nds);
 
 		nds->arm9->check_halted();
 		nds->arm7->check_halted();
@@ -192,7 +191,7 @@ nds_run_frame(nds_ctx *nds)
 }
 
 void
-event_hblank_start(nds_ctx *nds)
+event_hblank_start(nds_ctx *nds, intptr_t, timestamp late)
 {
 	nds->dispstat[0] |= BIT(1);
 	nds->dispstat[1] |= BIT(1);
@@ -207,13 +206,13 @@ event_hblank_start(nds_ctx *nds)
 
 	dma_on_hblank_start(nds);
 
-	reschedule_nds_event_after(nds, event_scheduler::HBLANK_START, 2130);
+	schedule_event_after(nds, scheduler::HBLANK_START, 4260 - late);
 }
 
 static void nds_on_vblank(nds_ctx *nds);
 
 void
-event_hblank_end(nds_ctx *nds)
+event_hblank_end(nds_ctx *nds, intptr_t, timestamp late)
 {
 	nds->vcount += 1;
 	if (nds->vcount == 263) {
@@ -252,7 +251,7 @@ event_hblank_end(nds_ctx *nds)
 		nds_on_vblank(nds);
 	}
 
-	reschedule_nds_event_after(nds, event_scheduler::HBLANK_END, 2130);
+	schedule_event_after(nds, scheduler::HBLANK_END, 4260 - late);
 }
 
 static void

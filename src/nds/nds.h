@@ -64,7 +64,7 @@ struct nds_ctx {
 	gpu_2d_engine gpu2d[2];
 	gpu_3d_engine gpu3d;
 
-	event_scheduler scheduler;
+	scheduler sc;
 	timestamp arm_target_cycles[2]{};
 	timestamp arm_cycles[2]{};
 
@@ -169,8 +169,8 @@ struct nds_ctx {
 void nds_firmware_boot(nds_ctx *nds);
 void nds_direct_boot(nds_ctx *nds);
 void nds_run_frame(nds_ctx *nds);
-void event_hblank_start(nds_ctx *nds);
-void event_hblank_end(nds_ctx *nds);
+void event_hblank_start(nds_ctx *nds, intptr_t, timestamp late);
+void event_hblank_end(nds_ctx *nds, intptr_t, timestamp late);
 
 void nds_set_rtc_time(nds_ctx *nds, int year, int month, int day, int weekday,
 		int hour, int minute, int second);

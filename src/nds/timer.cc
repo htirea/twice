@@ -73,8 +73,13 @@ on_timer_overflow(nds_ctx *nds, int cpuid, int timer_id)
 }
 
 void
-event_timer_overflow(nds_ctx *nds, int cpuid, intptr_t timer_id)
+event_timer_overflow(nds_ctx *nds, intptr_t data, timestamp late)
 {
+	int cpuid = data >> 2;
+	int timer_id = data & 3;
+
+	/* TODO: handle if event fired late */
+
 	on_timer_overflow(nds, cpuid, timer_id);
 }
 
@@ -116,8 +121,7 @@ update_cascade_counter(nds_ctx *nds, int cpuid, int timer_id)
 static void
 stop_timer(nds_ctx *nds, int cpuid, int timer_id)
 {
-	cancel_cpu_event(nds, cpuid,
-			event_scheduler::TIMER0_OVERFLOW + timer_id);
+	cancel_event(nds, get_timer_overflow_event_id(cpuid, timer_id));
 }
 
 static void
@@ -135,8 +139,8 @@ schedule_timer_overflow(nds_ctx *nds, int cpuid, int timer_id)
 	timestamp dt = (((u32)0x10000 << 10) - (t.counter & MASK(26))) >>
 	               t.shift;
 
-	schedule_cpu_event_after(nds, cpuid,
-			event_scheduler::TIMER0_OVERFLOW + timer_id, dt);
+	schedule_event_after(nds, cpuid,
+			get_timer_overflow_event_id(cpuid, timer_id), dt << 1);
 }
 
 } // namespace twice

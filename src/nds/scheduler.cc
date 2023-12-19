@@ -7,46 +7,53 @@
 
 namespace twice {
 
-event_scheduler::event_scheduler()
+static void run_events(
+		nds_ctx *nds, u32 start, u32 length, timestamp curr_time);
+
+scheduler::scheduler()
 {
-	events[HBLANK_START].cb = event_hblank_start;
-	events[HBLANK_END].cb = event_hblank_end;
-	events[ROM_ADVANCE_TRANSFER].cb = event_advance_rom_transfer;
-	events[AUXSPI_TRANSFER_COMPLETE].cb = event_auxspi_transfer_complete;
-	events[SAMPLE_AUDIO].cb = event_sample_audio;
-	arm_events[0][START_IMMEDIATE_DMAS].cb = event_start_immediate_dmas;
-	arm_events[1][START_IMMEDIATE_DMAS].cb = event_start_immediate_dmas;
-	for (int i = 0; i < 4; i++) {
-		arm_events[0][TIMER0_OVERFLOW + i].cb = event_timer_overflow;
-		arm_events[0][TIMER0_OVERFLOW + i].data = i;
-		arm_events[1][TIMER0_OVERFLOW + i].cb = event_timer_overflow;
-		arm_events[1][TIMER0_OVERFLOW + i].data = i;
-	}
-	arm_events[1][SPI_TRANSFER_COMPLETE].cb = event_spi_transfer_complete;
+	callbacks[HBLANK_START] = event_hblank_start;
+	callbacks[HBLANK_END] = event_hblank_end;
+	callbacks[SAMPLE_AUDIO] = event_sample_audio;
+	callbacks[CART_TRANSFER] = event_advance_rom_transfer;
+	callbacks[AUXSPI_TRANSFER] = event_auxspi_transfer_complete;
+
+	callbacks[ARM9_TIMER0_OVERFLOW] = event_timer_overflow;
+	callbacks[ARM9_TIMER1_OVERFLOW] = event_timer_overflow;
+	callbacks[ARM9_TIMER2_OVERFLOW] = event_timer_overflow;
+	callbacks[ARM9_TIMER3_OVERFLOW] = event_timer_overflow;
+	callbacks[ARM9_IMMEDIATE_DMA] = event_start_immediate_dmas;
+	data[ARM9_TIMER0_OVERFLOW] = 0;
+	data[ARM9_TIMER1_OVERFLOW] = 1;
+	data[ARM9_TIMER2_OVERFLOW] = 2;
+	data[ARM9_TIMER3_OVERFLOW] = 3;
+	data[ARM9_IMMEDIATE_DMA] = 0;
+
+	callbacks[ARM7_TIMER0_OVERFLOW] = event_timer_overflow;
+	callbacks[ARM7_TIMER1_OVERFLOW] = event_timer_overflow;
+	callbacks[ARM7_TIMER2_OVERFLOW] = event_timer_overflow;
+	callbacks[ARM7_TIMER3_OVERFLOW] = event_timer_overflow;
+	callbacks[ARM7_IMMEDIATE_DMA] = event_start_immediate_dmas;
+	callbacks[ARM7_SPI_TRANSFER] = event_spi_transfer_complete;
+	data[ARM7_TIMER0_OVERFLOW] = 4;
+	data[ARM7_TIMER1_OVERFLOW] = 5;
+	data[ARM7_TIMER2_OVERFLOW] = 6;
+	data[ARM7_TIMER3_OVERFLOW] = 7;
+	data[ARM7_IMMEDIATE_DMA] = 1;
 }
 
 timestamp
 get_next_event_time(nds_ctx *nds)
 {
-	auto& sc = nds->scheduler;
+	auto& sc = nds->sc;
 
-	timestamp curr = sc.current_time;
-	timestamp limit = sc.current_time + 64;
+	timestamp curr = nds->arm_cycles[0];
+	timestamp limit = curr + 64;
 	timestamp target = -1;
 
-	for (int i = 0; i < event_scheduler::NUM_NDS_EVENTS; i++) {
-		if (sc.events[i].enabled) {
-			target = std::min(target, sc.events[i].time);
-		}
-	}
-
-	for (int i = 0; i < event_scheduler::NUM_CPU_EVENTS; i++) {
-		if (sc.arm_events[0][i].enabled) {
-			target = std::min(target, sc.arm_events[0][i].time);
-		}
-		if (sc.arm_events[1][i].enabled) {
-			target = std::min(
-					target, sc.arm_events[1][i].time << 1);
+	for (int i = 0; i < scheduler::NUM_EVENTS; i++) {
+		if (sc.enabled[i]) {
+			target = std::min(target, sc.expiry[i]);
 		}
 	}
 
@@ -64,86 +71,73 @@ get_next_event_time(nds_ctx *nds)
 }
 
 void
-schedule_nds_event(nds_ctx *nds, int event, timestamp t)
+schedule_event_after(nds_ctx *nds, int id, timestamp dt)
 {
-	nds->scheduler.events[event].enabled = true;
-	nds->scheduler.events[event].time = t << 1;
+	auto& sc = nds->sc;
+	sc.expiry[id] += dt;
+	sc.enabled[id] = true;
 }
 
 void
-schedule_nds_event_after(nds_ctx *nds, int cpuid, int event, timestamp dt)
+schedule_event_after(nds_ctx *nds, int cpuid, int id, timestamp dt)
 {
-	if (cpuid == 0) {
-		dt <<= 1;
+	auto& sc = nds->sc;
+	timestamp t = (nds->arm_cycles[cpuid] << cpuid) + dt;
+
+	if (t < nds->arm_target_cycles[cpuid] << cpuid) {
+		nds->arm_target_cycles[cpuid] = t >> cpuid;
 	}
 
-	timestamp event_time = nds->arm_cycles[cpuid] + dt;
-
-	if (event_time < nds->arm_target_cycles[cpuid]) {
-		nds->arm_target_cycles[cpuid] = event_time;
-	}
-
-	nds->scheduler.events[event].enabled = true;
-	nds->scheduler.events[event].time = event_time;
+	sc.enabled[id] = true;
+	sc.expiry[id] = t;
 }
 
 void
-reschedule_nds_event_after(nds_ctx *nds, int event, timestamp dt)
+cancel_event(nds_ctx *nds, int id)
 {
-	nds->scheduler.events[event].enabled = true;
-	nds->scheduler.events[event].time += dt << 1;
+	auto& sc = nds->sc;
+	sc.enabled[id] = false;
 }
 
 void
-schedule_cpu_event_after(nds_ctx *nds, int cpuid, int event, timestamp dt)
+run_system_events(nds_ctx *nds)
 {
-	if (cpuid == 0) {
-		dt <<= 1;
-	}
-
-	timestamp event_time = nds->arm_cycles[cpuid] + dt;
-
-	if (event_time < nds->arm_target_cycles[cpuid]) {
-		nds->arm_target_cycles[cpuid] = event_time;
-	}
-
-	nds->scheduler.arm_events[cpuid][event].enabled = true;
-	nds->scheduler.arm_events[cpuid][event].time = event_time;
-}
-
-void
-cancel_cpu_event(nds_ctx *nds, int cpuid, int event)
-{
-	nds->scheduler.arm_events[cpuid][event].enabled = false;
-}
-
-void
-run_nds_events(nds_ctx *nds)
-{
-	auto& sc = nds->scheduler;
-
-	for (int i = 0; i < event_scheduler::NUM_NDS_EVENTS; i++) {
-		auto& event = sc.events[i];
-		bool expired = sc.current_time >= event.time;
-		if (event.enabled && expired) {
-			event.enabled = false;
-			event.cb(nds);
-		}
-	}
+	run_events(nds, scheduler::HBLANK_START, 5, nds->arm_cycles[0]);
 }
 
 void
 run_cpu_events(nds_ctx *nds, int cpuid)
 {
-	auto& sc = nds->scheduler;
-	timestamp cpu_time = nds->arm_cycles[cpuid];
+	if (cpuid == 0) {
+		run_events(nds, scheduler::ARM9_TIMER0_OVERFLOW, 5,
+				nds->arm_cycles[0]);
+	} else {
+		run_events(nds, scheduler::ARM7_TIMER0_OVERFLOW, 6,
+				nds->arm_cycles[1] << 1);
+	}
+}
 
-	for (int i = 0; i < event_scheduler::NUM_CPU_EVENTS; i++) {
-		auto& event = sc.arm_events[cpuid][i];
-		bool expired = cpu_time >= event.time;
-		if (event.enabled && expired) {
-			event.enabled = false;
-			event.cb(nds, cpuid, event.data);
+int
+get_timer_overflow_event_id(int cpuid, int timer_id)
+{
+	int id = cpuid == 0 ? scheduler::ARM9_TIMER0_OVERFLOW
+	                    : scheduler::ARM7_TIMER0_OVERFLOW;
+	return id + timer_id;
+}
+
+static void
+run_events(nds_ctx *nds, u32 start, u32 length, timestamp curr_time)
+{
+	auto& sc = nds->sc;
+
+	for (u32 i = start; i < start + length; i++) {
+		if (!sc.enabled[i])
+			continue;
+
+		if (curr_time >= sc.expiry[i]) {
+			timestamp late = curr_time - sc.expiry[i];
+			sc.enabled[i] = false;
+			sc.callbacks[i](nds, sc.data[i], late);
 		}
 	}
 }

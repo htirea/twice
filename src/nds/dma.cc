@@ -96,9 +96,8 @@ dma9_dmacnt_h_write(nds_ctx *nds, int channel, u16 value)
 		switch (t.mode) {
 		case 0:
 			dma.requested_imm_dmas |= BIT(channel);
-			schedule_cpu_event_after(nds, 0,
-					event_scheduler::START_IMMEDIATE_DMAS,
-					1);
+			schedule_event_after(nds, 0,
+					scheduler::ARM9_IMMEDIATE_DMA, 2);
 			break;
 		case 1:
 		case 2:
@@ -142,9 +141,8 @@ dma7_dmacnt_h_write(nds_ctx *nds, int channel, u16 value)
 		switch (t.mode) {
 		case 0:
 			dma.requested_imm_dmas |= BIT(channel);
-			schedule_cpu_event_after(nds, 1,
-					event_scheduler::START_IMMEDIATE_DMAS,
-					2);
+			schedule_event_after(nds, 1,
+					scheduler::ARM7_IMMEDIATE_DMA, 4);
 			break;
 		case 1:
 		case 2:
@@ -326,7 +324,7 @@ dma_on_scanline_start(nds_ctx *nds)
 }
 
 void
-event_start_immediate_dmas(nds_ctx *nds, int cpuid, intptr_t)
+event_start_immediate_dmas(nds_ctx *nds, intptr_t cpuid, timestamp late)
 {
 	auto& dma = nds->dma[cpuid];
 

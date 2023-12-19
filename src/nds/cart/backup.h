@@ -28,7 +28,7 @@ void auxspicnt_write_l(nds_ctx *nds, int cpuid, u8 value);
 void auxspicnt_write_h(nds_ctx *nds, int cpuid, u8 value);
 void auxspicnt_write(nds_ctx *nds, int cpuid, u16 value);
 void auxspidata_write(nds_ctx *nds, int cpuid, u8 value);
-void event_auxspi_transfer_complete(nds_ctx *nds);
+void event_auxspi_transfer_complete(nds_ctx *nds, intptr_t, timestamp);
 
 } // namespace twice
 

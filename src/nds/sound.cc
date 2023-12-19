@@ -220,7 +220,7 @@ sound_frame_end(nds_ctx *nds)
 }
 
 void
-event_sample_audio(nds_ctx *nds)
+event_sample_audio(nds_ctx *nds, intptr_t, timestamp late)
 {
 	bool mixer_enabled = nds->soundcnt & BIT(15);
 	bool amp_enabled = nds->pwr.ctrl & BIT(0);
@@ -264,7 +264,7 @@ event_sample_audio(nds_ctx *nds)
 		send_audio_samples(nds, left, right);
 	}
 
-	reschedule_nds_event_after(nds, event_scheduler::SAMPLE_AUDIO, 1024);
+	schedule_event_after(nds, scheduler::SAMPLE_AUDIO, 2048 - late);
 }
 
 static void

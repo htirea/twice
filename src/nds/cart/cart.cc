@@ -58,9 +58,8 @@ read_cart_bus_data(nds_ctx *nds, int cpuid)
 	t.count += 4;
 
 	if (t.count < t.length) {
-		u32 cycles_per_byte = nds->romctrl & BIT(27) ? 8 : 5;
-		schedule_nds_event_after(nds, cpuid,
-				event_scheduler::ROM_ADVANCE_TRANSFER,
+		u32 cycles_per_byte = (nds->romctrl & BIT(27) ? 8 : 5) << 1;
+		schedule_event_after(nds, cpuid, scheduler::CART_TRANSFER,
 				cycles_per_byte * 4);
 		nds->romctrl &= ~BIT(23);
 	} else if (t.count == t.length) {
@@ -73,7 +72,7 @@ read_cart_bus_data(nds_ctx *nds, int cpuid)
 }
 
 void
-event_advance_rom_transfer(nds_ctx *nds)
+event_advance_rom_transfer(nds_ctx *nds, intptr_t, timestamp late)
 {
 	auto& cart = nds->cart;
 	auto& t = nds->cart.transfer;
@@ -200,9 +199,8 @@ start_cartridge_command(nds_ctx *nds, int cpuid)
 		}
 	}
 
-	u32 cycles_per_byte = nds->romctrl & BIT(27) ? 8 : 5;
-	schedule_nds_event_after(nds, cpuid,
-			event_scheduler::ROM_ADVANCE_TRANSFER,
+	u32 cycles_per_byte = (nds->romctrl & BIT(27) ? 8 : 5) << 1;
+	schedule_event_after(nds, cpuid, scheduler::CART_TRANSFER,
 			cycles_per_byte * 8);
 	nds->romctrl |= BIT(31);
 	nds->romctrl &= ~BIT(23);

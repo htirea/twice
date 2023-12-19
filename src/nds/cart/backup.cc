@@ -110,14 +110,13 @@ auxspidata_write(nds_ctx *nds, int cpuid, u8 value)
 	}
 
 	bk.cs_active = keep_active;
-	schedule_nds_event_after(nds, cpuid,
-			event_scheduler::AUXSPI_TRANSFER_COMPLETE,
-			64 << (nds->auxspicnt & 3));
+	schedule_event_after(nds, cpuid, scheduler::AUXSPI_TRANSFER,
+			64 << (nds->auxspicnt & 3) << 1);
 	nds->auxspicnt |= BIT(7);
 }
 
 void
-event_auxspi_transfer_complete(nds_ctx *nds)
+event_auxspi_transfer_complete(nds_ctx *nds, intptr_t, timestamp)
 {
 	nds->auxspicnt &= ~BIT(7);
 }
