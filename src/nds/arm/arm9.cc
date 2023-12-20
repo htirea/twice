@@ -8,8 +8,6 @@
 
 namespace twice {
 
-arm9_cpu::arm9_cpu(nds_ctx *nds) : arm_cpu(nds, 0) {}
-
 void
 arm9_direct_boot(arm9_cpu *cpu, u32 entry_addr)
 {
@@ -49,11 +47,11 @@ void
 arm9_cpu::run()
 {
 	if (halted) {
-		cycles = target_cycles;
+		*cycles = *target_cycles;
 		return;
 	}
 
-	while (cycles < target_cycles) {
+	while (*cycles < *target_cycles) {
 		step();
 	}
 }
@@ -94,7 +92,7 @@ arm9_cpu::step()
 		arm_do_irq(this);
 	}
 
-	cycles += 1;
+	*cycles += 1;
 	cycles_executed += 1;
 }
 

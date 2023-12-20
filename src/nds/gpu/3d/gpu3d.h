@@ -12,8 +12,6 @@ namespace twice {
 struct nds_ctx;
 
 struct gpu_3d_engine {
-	gpu_3d_engine(nds_ctx *nds);
-
 	struct vertex {
 		s32 pos[4];
 

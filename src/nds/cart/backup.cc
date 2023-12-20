@@ -13,24 +13,29 @@ static void flash_transfer_byte(nds_ctx *, u8 value);
 static void infrared_transfer_byte(nds_ctx *, u8 value);
 static void flash_common_transfer_byte(nds_ctx *, u8 value);
 
-cartridge_backup::cartridge_backup(u8 *data, size_t size, int savetype)
-	: data(data), size(size), savetype(savetype)
+void
+cartridge_backup_init(nds_ctx *nds, u8 *data, size_t size, int savetype)
 {
+	auto& bk = nds->cart.backup;
+	bk.data = data;
+	bk.size = size;
+	bk.savetype = savetype;
+
 	switch (savetype) {
 	case SAVETYPE_EEPROM_512B:
-		stat_reg = 0xF0;
+		bk.stat_reg = 0xF0;
 		break;
 	case SAVETYPE_FLASH_256K:
-		jedec_id = 0x204012;
+		bk.jedec_id = 0x204012;
 		break;
 	case SAVETYPE_FLASH_512K:
-		jedec_id = 0x204013;
+		bk.jedec_id = 0x204013;
 		break;
 	case SAVETYPE_FLASH_1M:
-		jedec_id = 0x204014;
+		bk.jedec_id = 0x204014;
 		break;
 	case SAVETYPE_FLASH_8M:
-		jedec_id = 0x204015;
+		bk.jedec_id = 0x204015;
 		break;
 	}
 }

@@ -6,8 +6,6 @@
 namespace twice {
 
 struct arm7_cpu final : arm_cpu {
-	arm7_cpu(nds_ctx *nds);
-
 	u8 *pt[PAGE_TABLE_SIZE]{};
 
 	u64 fetch_hits{};

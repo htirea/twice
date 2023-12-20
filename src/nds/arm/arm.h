@@ -9,7 +9,6 @@ namespace twice {
 struct nds_ctx;
 
 struct arm_cpu {
-	arm_cpu(nds_ctx *nds, int cpuid);
 	virtual ~arm_cpu();
 
 	enum cpu_mode {
@@ -53,8 +52,8 @@ struct arm_cpu {
 	nds_ctx *nds{};
 	int cpuid{};
 
-	timestamp& target_cycles;
-	timestamp& cycles;
+	timestamp *cycles{};
+	timestamp *target_cycles{};
 	u32 cycles_executed{};
 
 	u32& pc() { return gpr[15]; }
@@ -79,6 +78,7 @@ struct arm_cpu {
 	virtual void check_halted() = 0;
 };
 
+void arm_init(nds_ctx *nds, int cpuid);
 void arm_switch_mode(arm_cpu *cpu, u32 new_mode);
 void arm_check_interrupt(arm_cpu *cpu);
 void arm_on_cpsr_write(arm_cpu *cpu);

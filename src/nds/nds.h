@@ -48,9 +48,6 @@ struct arm9_cpu;
 struct arm7_cpu;
 
 struct nds_ctx {
-	nds_ctx(u8 *arm7_bios, u8 *arm9_bios, u8 *firmware, u8 *cartridge,
-			size_t cartridge_size, u8 *savefile,
-			size_t savefile_size, nds_savetype savetype);
 	~nds_ctx();
 
 	/*
@@ -168,6 +165,9 @@ struct nds_ctx {
 	profiler prof;
 };
 
+std::unique_ptr<nds_ctx> create_nds_ctx(u8 *arm7_bios, u8 *arm9_bios,
+		u8 *firmware, u8 *cartridge, size_t cartridge_size,
+		u8 *savefile, size_t savefile_size, int savetype);
 void nds_firmware_boot(nds_ctx *nds);
 void nds_direct_boot(nds_ctx *nds);
 void nds_run_frame(nds_ctx *nds);

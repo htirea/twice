@@ -7,10 +7,12 @@
 
 namespace twice {
 
-dma_controller::dma_controller(nds_ctx *nds, int cpuid)
-	: target_cycles(nds->arm_target_cycles[cpuid]),
-	  cycles(nds->arm_cycles[cpuid])
+void
+dma_controller_init(nds_ctx *nds, int cpuid)
 {
+	auto& dma = nds->dma[cpuid];
+	dma.cycles = &nds->arm_cycles[cpuid];
+	dma.target_cycles = &nds->arm_target_cycles[cpuid];
 }
 
 template <int cpuid>
@@ -23,7 +25,7 @@ run_dma(nds_ctx *nds)
 
 	int width = t.word_width;
 
-	while (t.count < t.word_count && dma.cycles < dma.target_cycles) {
+	while (t.count < t.word_count && *dma.cycles < *dma.target_cycles) {
 		if (width == 4) {
 			u32 value = bus_read<cpuid, u32>(nds, t.sad);
 			bus_write<cpuid, u32>(nds, t.dad, value);
@@ -34,7 +36,7 @@ run_dma(nds_ctx *nds)
 
 		t.sad += t.sad_step;
 		t.dad += t.dad_step;
-		dma.cycles += 2;
+		*dma.cycles += 2;
 
 		t.count += 1;
 	}

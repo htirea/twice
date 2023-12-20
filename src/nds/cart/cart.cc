@@ -13,22 +13,22 @@ static void start_cartridge_command(nds_ctx *, int cpuid);
 static void finish_rom_transfer(nds_ctx *);
 static u32 cartridge_make_chip_id(size_t size);
 
-cartridge::cartridge(u8 *data, size_t size, u8 *save_data, size_t save_size,
-		int savetype, u8 *arm7_bios)
-	: data(data),
-	  size(size),
-	  read_mask(std::bit_ceil(size) - 1),
-	  chip_id(cartridge_make_chip_id(size)),
-	  backup(save_data, save_size, savetype)
+void
+cartridge_init(nds_ctx *nds, u8 *data, size_t size, u8 *save_data,
+		size_t save_size, int savetype, u8 *arm7_bios)
 {
-	gamecode = readarr_checked<u32>(data, 0xC, size, 0);
-	if ((gamecode & 0xFF) == 'I') {
-		infrared = true;
-		LOG("deteced infrared cart\n");
-	}
+	auto& cart = nds->cart;
+	cart.data = data;
+	cart.size = size;
+	cart.read_mask = std::bit_ceil(size) - 1;
+	cart.chip_id = cartridge_make_chip_id(size);
+	cart.gamecode = readarr_checked<u32>(data, 0xC, size, 0);
+	cart.infrared = (cart.gamecode & 0xFF) == 'I';
+
+	cartridge_backup_init(nds, save_data, save_size, savetype);
 
 	for (u32 i = 0; i < 0x412; i++) {
-		keybuf_s[i] = readarr<u32>(arm7_bios, 0x30 + i * 4);
+		cart.keybuf_s[i] = readarr<u32>(arm7_bios, 0x30 + i * 4);
 	}
 }
 

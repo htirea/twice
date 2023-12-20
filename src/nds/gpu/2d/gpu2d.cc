@@ -9,11 +9,6 @@
 
 namespace twice {
 
-gpu_2d_engine::gpu_2d_engine(nds_ctx *nds, int engineid)
-	: nds(nds), engineid(engineid)
-{
-}
-
 static void update_window_y_in_range(gpu_2d_engine *gpu, u16 scanline);
 static void update_mosaic_and_ref_xy(gpu_2d_engine *gpu, u16 y);
 static void update_mosaic_counters(gpu_2d_engine *gpu);

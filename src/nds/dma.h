@@ -23,16 +23,14 @@ struct dma_transfer_state {
 };
 
 struct dma_controller {
-	dma_controller(nds_ctx *nds, int cpuid);
-
 	u32 active{};
 	u32 requested_imm_dmas{};
 	dma_transfer_state transfers[4];
-
-	timestamp& target_cycles;
-	timestamp& cycles;
+	timestamp *target_cycles{};
+	timestamp *cycles{};
 };
 
+void dma_controller_init(nds_ctx *nds, int cpuid);
 void run_dma9(nds_ctx *nds);
 void run_dma7(nds_ctx *nds);
 void dmacnt_h_write(nds_ctx *nds, int cpuid, int channel, u16 value);

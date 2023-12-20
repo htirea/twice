@@ -11,8 +11,6 @@ namespace twice {
 struct nds_ctx;
 
 struct gpu_2d_engine {
-	gpu_2d_engine(nds_ctx *nds, int engineid);
-
 	u32 dispcnt{};
 	u16 bg_cnt[4]{};
 	u16 bg_hofs[4]{};

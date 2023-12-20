@@ -68,10 +68,9 @@ nds_machine::boot(bool direct_boot)
 		throw twice_error("unknown save type");
 	}
 
-	auto ctx = std::make_unique<nds_ctx>(arm7_bios.data(),
-			arm9_bios.data(), firmware.data(), cartridge.data(),
-			cartridge.size(), savefile.data(), savefile.size(),
-			save_info.type);
+	auto ctx = create_nds_ctx(arm7_bios.data(), arm9_bios.data(),
+			firmware.data(), cartridge.data(), cartridge.size(),
+			savefile.data(), savefile.size(), save_info.type);
 	if (direct_boot) {
 		nds_direct_boot(ctx.get());
 	} else {

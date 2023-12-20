@@ -8,19 +8,21 @@
 
 namespace twice {
 
-using enum arm_cpu::cpu_mode;
-
-arm_cpu::arm_cpu(nds_ctx *nds, int cpuid)
-	: nds(nds),
-	  cpuid(cpuid),
-	  target_cycles(nds->arm_target_cycles[cpuid]),
-	  cycles(nds->arm_cycles[cpuid])
-{
-}
+static void swap_registers(arm_cpu *cpu, u32 old_mode, u32 new_mode);
 
 arm_cpu::~arm_cpu() = default;
 
-static void swap_registers(arm_cpu *cpu, u32 old_mode, u32 new_mode);
+using enum arm_cpu::cpu_mode;
+
+void
+arm_init(nds_ctx *nds, int cpuid)
+{
+	arm_cpu *cpu = nds->cpu[cpuid];
+	cpu->nds = nds;
+	cpu->cpuid = cpuid;
+	cpu->cycles = &nds->arm_cycles[cpuid];
+	cpu->target_cycles = &nds->arm_target_cycles[cpuid];
+}
 
 void
 arm_switch_mode(arm_cpu *cpu, u32 new_mode)
@@ -119,7 +121,7 @@ void
 halt_cpu(arm_cpu *cpu, int halt_bits)
 {
 	cpu->halted |= halt_bits;
-	cpu->target_cycles = cpu->cycles;
+	*cpu->target_cycles = *cpu->cycles;
 }
 
 void

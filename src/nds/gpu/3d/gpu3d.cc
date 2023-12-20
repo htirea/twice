@@ -6,8 +6,6 @@
 
 namespace twice {
 
-gpu_3d_engine::gpu_3d_engine(nds_ctx *nds) : nds(nds) {}
-
 static void gxfifo_run_commands(gpu_3d_engine *gpu);
 static void execute_swap_buffers(gpu_3d_engine *gpu);
 
