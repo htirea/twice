@@ -59,6 +59,7 @@ void sound_capture_write_cnt(nds_ctx *nds, int ch_id, u8 value);
 void sound_frame_start(nds_ctx *nds);
 void sound_frame_end(nds_ctx *nds);
 void event_sample_audio(nds_ctx *nds, intptr_t, timestamp late);
+void schedule_sample_audio_event(nds_ctx *nds, timestamp late);
 
 } // namespace twice
 

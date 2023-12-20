@@ -35,8 +35,7 @@ nds_ctx::nds_ctx(u8 *arm7_bios, u8 *arm9_bios, u8 *firmware, u8 *cartridge,
 
 	schedule_event_after(this, scheduler::HBLANK_START, 3072);
 	schedule_event_after(this, scheduler::HBLANK_END, 4260);
-	/* TODO: sample rate is not exact */
-	schedule_event_after(this, scheduler::SAMPLE_AUDIO, 2048);
+	schedule_sample_audio_event(this, 0);
 }
 
 nds_ctx::~nds_ctx() = default;

@@ -213,10 +213,7 @@ sound_frame_start(nds_ctx *nds)
 void
 sound_frame_end(nds_ctx *nds)
 {
-	u32 idx = nds->audio_buf_idx;
-	nds->last_audio_buf_size = idx * sizeof *nds->audio_buf;
-	nds->audio_buf[idx] = nds->audio_buf[idx - 2];
-	nds->audio_buf[idx + 1] = nds->audio_buf[idx - 1];
+	nds->last_audio_buf_size = nds->audio_buf_idx * sizeof *nds->audio_buf;
 }
 
 void
@@ -264,7 +261,19 @@ event_sample_audio(nds_ctx *nds, intptr_t, timestamp late)
 		send_audio_samples(nds, left, right);
 	}
 
-	schedule_event_after(nds, scheduler::SAMPLE_AUDIO, 2048 - late);
+	schedule_sample_audio_event(nds, late);
+}
+
+void
+schedule_sample_audio_event(nds_ctx *nds, timestamp late)
+{
+	u32 numer = NDS_ARM9_CLK_RATE + nds->sound_last_err;
+	u32 denom = NDS_AUDIO_SAMPLE_RATE;
+	nds->sound_last_period = numer / denom;
+	nds->sound_last_err = numer % denom;
+
+	schedule_event_after(nds, scheduler::SAMPLE_AUDIO,
+			nds->sound_last_period - late);
 }
 
 static void
@@ -324,7 +333,7 @@ sample_audio_channels(
 			continue;
 
 		sample_channel(nds, ch_id, &ch_l[ch_id], &ch_r[ch_id]);
-		run_channel(nds, ch_id, 1024 >> 1);
+		run_channel(nds, ch_id, nds->sound_last_period);
 
 		if (ch_id == 1 && !ch1_to_mixer)
 			continue;
@@ -359,7 +368,8 @@ sample_audio_channels(
 			sample = -(-sample >> 18);
 		}
 
-		run_capture_channel(nds, ch_id, 1024 >> 1, sample);
+		run_capture_channel(
+				nds, ch_id, nds->sound_last_period, sample);
 	}
 }
 
@@ -405,7 +415,7 @@ static void
 start_channel(nds_ctx *nds, int ch_id)
 {
 	auto& ch = nds->sound_ch[ch_id];
-	ch.tmr = ch.tmr_reload;
+	ch.tmr = ch.tmr_reload << 2;
 	ch.addr = ch.sad;
 	ch.start = false;
 
@@ -440,10 +450,10 @@ run_channel(nds_ctx *nds, int ch_id, u32 cycles)
 		u32 elapsed = cycles;
 		ch.tmr += cycles;
 
-		if (ch.tmr >= 0x10000) {
-			elapsed -= ch.tmr - 0x10000;
+		if (ch.tmr >= (u32)0x10000 << 2) {
+			elapsed -= ch.tmr - ((u32)0x10000 << 2);
 			step_channel(nds, ch_id);
-			ch.tmr = ch.tmr_reload;
+			ch.tmr = ch.tmr_reload << 2;
 		}
 
 		cycles -= elapsed;
@@ -556,7 +566,7 @@ static void
 start_capture_channel(nds_ctx *nds, int ch_id)
 {
 	auto& ch = nds->sound_cap_ch[ch_id];
-	ch.tmr = ch.tmr_reload;
+	ch.tmr = ch.tmr_reload << 2;
 	ch.addr = ch.dad;
 }
 
@@ -569,10 +579,10 @@ run_capture_channel(nds_ctx *nds, int ch_id, u32 cycles, s16 value)
 		u32 elapsed = cycles;
 		ch.tmr += cycles;
 
-		if (ch.tmr >= 0x10000) {
-			elapsed -= ch.tmr - 0x10000;
+		if (ch.tmr >= (u32)0x10000 << 2) {
+			elapsed -= ch.tmr - ((u32)0x10000 << 2);
 			step_capture_channel(nds, ch_id, value);
-			ch.tmr = ch.tmr_reload;
+			ch.tmr = ch.tmr_reload << 2;
 		}
 
 		cycles -= elapsed;

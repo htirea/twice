@@ -17,6 +17,7 @@ constexpr std::size_t NDS_SCREEN_SZ = NDS_SCREEN_W * NDS_SCREEN_H;
 constexpr long NDS_ARM9_CLK_RATE = 67027964;
 constexpr long NDS_ARM7_CLK_RATE = 33513982;
 constexpr double NDS_FRAME_RATE = NDS_ARM7_CLK_RATE / 560190.0;
+constexpr long NDS_AUDIO_SAMPLE_RATE = 32768;
 
 } // namespace twice
 

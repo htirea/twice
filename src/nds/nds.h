@@ -98,6 +98,8 @@ struct nds_ctx {
 	s16 audio_buf[4096]{};
 	u32 audio_buf_idx{};
 	u32 last_audio_buf_size{};
+	u32 sound_last_period{};
+	u32 sound_last_err{};
 
 	/*
 	 * IO

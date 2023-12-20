@@ -60,7 +60,7 @@ sdl_platform::sdl_platform(nds_machine *nds, const config& sdl_config)
 
 	SDL_AudioSpec want;
 	SDL_memset(&want, 0, sizeof(want));
-	want.freq = 32768;
+	want.freq = NDS_AUDIO_SAMPLE_RATE;
 	want.format = AUDIO_S16SYS;
 	want.channels = 2;
 	want.samples = 1024;
@@ -164,9 +164,8 @@ sdl_platform::queue_audio(s16 *audiobuffer, u32 size, u64 ticks)
 {
 	static u64 delay_count = 0;
 	static u64 timeout = 0;
-
-	double target = 32768.0 * ticks / freq;
-	double actual_target = 32768.0 / NDS_FRAME_RATE;
+	double target = (double)NDS_AUDIO_SAMPLE_RATE * ticks / freq;
+	double actual_target = (double)NDS_AUDIO_SAMPLE_RATE / NDS_FRAME_RATE;
 
 	if (std::abs(target - actual_target) > 200.0) {
 		delay_count++;
@@ -184,17 +183,6 @@ sdl_platform::queue_audio(s16 *audiobuffer, u32 size, u64 ticks)
 	if (timeout) {
 		timeout--;
 		return;
-	}
-
-	static u64 n = 0;
-	static u64 d = 1;
-
-	if (size / 4.0 + (double)n / d < target) {
-		size += 4;
-		n++;
-		d++;
-	} else {
-		d++;
 	}
 
 	SDL_QueueAudio(audio_dev, audiobuffer, size);
