@@ -14,6 +14,7 @@ else()
 endif()
 
 add_library(twice STATIC
+	common/date.cc
 	common/logger.cc
 	common/profiler.cc
 	libtwice/config.cc

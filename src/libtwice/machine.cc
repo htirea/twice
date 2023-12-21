@@ -1,6 +1,7 @@
 #include "libtwice/nds/machine.h"
 #include "libtwice/exception.h"
 
+#include "common/date.h"
 #include "nds/nds.h"
 
 #include <filesystem>
@@ -176,18 +177,6 @@ nds_machine::update_touchscreen_state(int x, int y, bool down)
 	x = std::clamp(x, 0, 255);
 	y = std::clamp(y, 0, 191);
 	nds_set_touchscreen_state(nds.get(), x, y, down);
-}
-
-static bool
-is_leap_year(int year)
-{
-	if (year % 400 == 0)
-		return true;
-
-	if (year % 100 == 0)
-		return false;
-
-	return year % 4 == 0;
 }
 
 void

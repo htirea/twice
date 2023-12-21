@@ -1,5 +1,6 @@
 #include "nds/nds.h"
 
+#include "common/date.h"
 #include "common/logger.h"
 
 namespace twice {
@@ -233,6 +234,42 @@ nds_set_rtc_time(nds_ctx *nds, int year, int month, int day, int weekday,
 	rtc.hour = hour;
 	rtc.minute = minute;
 	rtc.second = second;
+}
+
+void
+event_rtc_tick(nds_ctx *nds, intptr_t, timestamp late)
+{
+	auto& rtc = nds->rtc;
+
+	schedule_event_after(
+			nds, scheduler::RTC_TICK, NDS_ARM9_CLK_RATE - late);
+
+	rtc.second++;
+	if (rtc.second < 60)
+		return;
+
+	rtc.second = 0;
+	rtc.minute++;
+	if (rtc.minute < 60)
+		return;
+
+	rtc.minute = 0;
+	rtc.hour++;
+	if (rtc.hour < 24)
+		return;
+
+	rtc.hour = 0;
+	rtc.day++;
+	rtc.weekday = (rtc.weekday + 1) % 7;
+	if (rtc.day <= get_days_in_month(rtc.month, rtc.year))
+		return;
+
+	rtc.day = 1;
+	rtc.month++;
+	if (rtc.month <= 12)
+		return;
+	rtc.month = 1;
+	rtc.year++;
 }
 
 } // namespace twice

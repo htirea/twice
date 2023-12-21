@@ -21,6 +21,7 @@ static event_state initial_state[scheduler::NUM_EVENTS] = {
 	{ .cb = event_hblank_start },
 	{ .cb = event_hblank_end },
 	{ .cb = event_sample_audio },
+	{ .cb = event_rtc_tick },
 	{ .cb = event_advance_rom_transfer },
 	{ .cb = event_auxspi_transfer_complete },
 
@@ -111,7 +112,7 @@ cancel_event(nds_ctx *nds, int id)
 void
 run_system_events(nds_ctx *nds)
 {
-	run_events(nds, scheduler::HBLANK_START, 5, nds->arm_cycles[0]);
+	run_events(nds, scheduler::HBLANK_START, 6, nds->arm_cycles[0]);
 }
 
 void

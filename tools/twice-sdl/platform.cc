@@ -214,6 +214,8 @@ sdl_platform::loop()
 	u64 lag = 0;
 	u64 emulation_start = SDL_GetPerformanceCounter();
 
+	update_rtc();
+
 	while (running) {
 		u64 start = SDL_GetPerformanceCounter();
 
@@ -222,7 +224,6 @@ sdl_platform::loop()
 			total_elapsed -= freq;
 			arm_set_title(fps_counter.get_average(),
 					nds->get_cpu_usage());
-			update_rtc();
 		}
 		fps_counter.insert(last_elapsed);
 
