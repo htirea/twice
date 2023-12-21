@@ -36,14 +36,13 @@ struct scheduler {
 		NUM_EVENTS,
 	};
 
-	scheduler();
-
 	event_cb callbacks[NUM_EVENTS]{};
 	intptr_t data[NUM_EVENTS]{};
 	timestamp expiry[NUM_EVENTS]{};
 	bool enabled[NUM_EVENTS]{};
 };
 
+void scheduler_init(nds_ctx *nds);
 timestamp get_next_event_time(nds_ctx *nds);
 void schedule_event_after(nds_ctx *nds, int id, timestamp dt);
 void schedule_event_after(nds_ctx *nds, int cpuid, int id, timestamp dt);

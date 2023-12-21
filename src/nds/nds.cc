@@ -40,6 +40,7 @@ create_nds_ctx(u8 *arm7_bios, u8 *arm9_bios, u8 *firmware, u8 *cartridge,
 			savetype, arm7_bios);
 	dma_controller_init(nds, 0);
 	dma_controller_init(nds, 1);
+	scheduler_init(nds);
 
 	/* need these for side effects */
 	wramcnt_write(nds, 0x0);

@@ -7,39 +7,48 @@
 
 namespace twice {
 
+struct event_state {
+	scheduler::event_cb cb{};
+	intptr_t data{};
+	timestamp expiry{};
+	bool enabled{};
+};
+
 static void run_events(
 		nds_ctx *nds, u32 start, u32 length, timestamp curr_time);
 
-scheduler::scheduler()
+static event_state initial_state[scheduler::NUM_EVENTS] = {
+	{ .cb = event_hblank_start },
+	{ .cb = event_hblank_end },
+	{ .cb = event_sample_audio },
+	{ .cb = event_advance_rom_transfer },
+	{ .cb = event_auxspi_transfer_complete },
+
+	{ .cb = event_timer_overflow, .data = 0 },
+	{ .cb = event_timer_overflow, .data = 1 },
+	{ .cb = event_timer_overflow, .data = 2 },
+	{ .cb = event_timer_overflow, .data = 3 },
+	{ .cb = event_start_immediate_dmas, .data = 0 },
+
+	{ .cb = event_timer_overflow, .data = 4 },
+	{ .cb = event_timer_overflow, .data = 5 },
+	{ .cb = event_timer_overflow, .data = 6 },
+	{ .cb = event_timer_overflow, .data = 7 },
+	{ .cb = event_start_immediate_dmas, .data = 1 },
+	{ .cb = event_spi_transfer_complete },
+};
+
+void
+scheduler_init(nds_ctx *nds)
 {
-	callbacks[HBLANK_START] = event_hblank_start;
-	callbacks[HBLANK_END] = event_hblank_end;
-	callbacks[SAMPLE_AUDIO] = event_sample_audio;
-	callbacks[CART_TRANSFER] = event_advance_rom_transfer;
-	callbacks[AUXSPI_TRANSFER] = event_auxspi_transfer_complete;
+	auto& sc = nds->sc;
 
-	callbacks[ARM9_TIMER0_OVERFLOW] = event_timer_overflow;
-	callbacks[ARM9_TIMER1_OVERFLOW] = event_timer_overflow;
-	callbacks[ARM9_TIMER2_OVERFLOW] = event_timer_overflow;
-	callbacks[ARM9_TIMER3_OVERFLOW] = event_timer_overflow;
-	callbacks[ARM9_IMMEDIATE_DMA] = event_start_immediate_dmas;
-	data[ARM9_TIMER0_OVERFLOW] = 0;
-	data[ARM9_TIMER1_OVERFLOW] = 1;
-	data[ARM9_TIMER2_OVERFLOW] = 2;
-	data[ARM9_TIMER3_OVERFLOW] = 3;
-	data[ARM9_IMMEDIATE_DMA] = 0;
-
-	callbacks[ARM7_TIMER0_OVERFLOW] = event_timer_overflow;
-	callbacks[ARM7_TIMER1_OVERFLOW] = event_timer_overflow;
-	callbacks[ARM7_TIMER2_OVERFLOW] = event_timer_overflow;
-	callbacks[ARM7_TIMER3_OVERFLOW] = event_timer_overflow;
-	callbacks[ARM7_IMMEDIATE_DMA] = event_start_immediate_dmas;
-	callbacks[ARM7_SPI_TRANSFER] = event_spi_transfer_complete;
-	data[ARM7_TIMER0_OVERFLOW] = 4;
-	data[ARM7_TIMER1_OVERFLOW] = 5;
-	data[ARM7_TIMER2_OVERFLOW] = 6;
-	data[ARM7_TIMER3_OVERFLOW] = 7;
-	data[ARM7_IMMEDIATE_DMA] = 1;
+	for (u32 i = 0; i < scheduler::NUM_EVENTS; i++) {
+		sc.callbacks[i] = initial_state[i].cb;
+		sc.data[i] = initial_state[i].data;
+		sc.expiry[i] = initial_state[i].expiry;
+		sc.enabled[i] = initial_state[i].enabled;
+	}
 }
 
 timestamp
