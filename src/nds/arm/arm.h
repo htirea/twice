@@ -75,7 +75,7 @@ struct arm_cpu {
 	virtual void store8(u32 addr, u8 value) = 0;
 	virtual u16 ldrh(u32 addr) = 0;
 	virtual s16 ldrsh(u32 addr) = 0;
-	virtual void check_halted() = 0;
+	virtual bool check_halted() = 0;
 };
 
 void arm_init(nds_ctx *nds, int cpuid);

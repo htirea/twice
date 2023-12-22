@@ -166,7 +166,6 @@ nds_run_frame(nds_ctx *nds)
 
 		run_cpu_events(nds, 0);
 
-		/* TODO: handle case when arm9 overflows */
 		timestamp arm7_target = nds->arm_cycles[0] >> 1;
 		while (nds->arm_cycles[1] < arm7_target) {
 			nds->arm_target_cycles[1] = arm7_target;
@@ -177,25 +176,9 @@ nds_run_frame(nds_ctx *nds)
 			}
 
 			run_cpu_events(nds, 1);
-			nds->arm7->check_halted();
-
-			if (nds->arm7->interrupt) {
-				arm_do_irq(nds->cpu[1]);
-			}
 		}
 
 		run_system_events(nds);
-
-		nds->arm9->check_halted();
-		nds->arm7->check_halted();
-
-		if (nds->arm9->interrupt) {
-			arm_do_irq(nds->cpu[0]);
-		}
-
-		if (nds->arm7->interrupt) {
-			arm_do_irq(nds->cpu[1]);
-		}
 	}
 
 	arm9_frame_end(nds->arm9.get());

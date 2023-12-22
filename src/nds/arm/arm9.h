@@ -58,11 +58,13 @@ struct arm9_cpu final : arm_cpu {
 	u16 ldrh(u32 addr) override;
 	s16 ldrsh(u32 addr) override;
 
-	void check_halted() override
+	bool check_halted() override
 	{
 		if ((IE & IF) && (IME & 1)) {
 			halted &= ~CPU_HALT;
 		}
+
+		return halted;
 	}
 };
 

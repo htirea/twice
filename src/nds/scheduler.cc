@@ -72,8 +72,8 @@ get_next_event_time(nds_ctx *nds)
 		target = std::min(target, limit);
 	}
 
-	if (target == curr) {
-		throw twice_error("target timestamp == curr");
+	if (target <= curr) {
+		throw twice_error("target timestamp <= curr");
 	}
 
 	return target;
