@@ -10,6 +10,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED YES)
 set(CMAKE_CXX_EXTENSIONS NO)
 
 include(CheckIncludeFileCXX)
+include(GNUInstallDirs)
 
 add_subdirectory(src)
 add_subdirectory(tools)
+
+install(FILES third-party/nds-db/game-db.json DESTINATION ${CMAKE_INSTALL_DATADIR}/twice)

@@ -1,0 +1,3 @@
+[submodule "third-party/nds-db"]
+	path = third-party/nds-db
+	url = https://github.com/azusazusa11/nds-db.git
