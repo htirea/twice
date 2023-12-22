@@ -20,8 +20,7 @@ static void run_events(
 static event_state initial_state[scheduler::NUM_EVENTS] = {
 	{ .cb = event_hblank_start },
 	{ .cb = event_hblank_end },
-	{ .cb = event_sample_audio },
-	{ .cb = event_rtc_tick },
+	{ .cb = event_32k_timer_tick },
 	{ .cb = event_advance_rom_transfer },
 	{ .cb = event_auxspi_transfer_complete },
 
@@ -112,17 +111,18 @@ cancel_event(nds_ctx *nds, int id)
 void
 run_system_events(nds_ctx *nds)
 {
-	run_events(nds, scheduler::HBLANK_START, 6, nds->arm_cycles[0]);
+	run_events(nds, scheduler::SYSTEM_EVENTS, scheduler::ARM9_EVENTS,
+			nds->arm_cycles[0]);
 }
 
 void
 run_cpu_events(nds_ctx *nds, int cpuid)
 {
 	if (cpuid == 0) {
-		run_events(nds, scheduler::ARM9_TIMER0_OVERFLOW, 5,
+		run_events(nds, scheduler::ARM9_EVENTS, scheduler::ARM7_EVENTS,
 				nds->arm_cycles[0]);
 	} else {
-		run_events(nds, scheduler::ARM7_TIMER0_OVERFLOW, 6,
+		run_events(nds, scheduler::ARM7_EVENTS, scheduler::NUM_EVENTS,
 				nds->arm_cycles[1] << 1);
 	}
 }
@@ -136,11 +136,11 @@ get_timer_overflow_event_id(int cpuid, int timer_id)
 }
 
 static void
-run_events(nds_ctx *nds, u32 start, u32 length, timestamp curr_time)
+run_events(nds_ctx *nds, u32 start, u32 end, timestamp curr_time)
 {
 	auto& sc = nds->sc;
 
-	for (u32 i = start; i < start + length; i++) {
+	for (u32 i = start; i < end; i++) {
 		if (!sc.enabled[i])
 			continue;
 

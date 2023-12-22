@@ -13,7 +13,7 @@ io7_read8(nds_ctx *nds, u32 addr)
 	switch (addr) {
 		IO_READ8_COMMON(1);
 	case 0x4000138:
-		return rtc_read(nds);
+		return rtc_io_read(nds);
 	case 0x40001C2:
 		return spidata_read(nds);
 	case 0x4000240:
@@ -48,7 +48,7 @@ io7_read16(nds_ctx *nds, u32 addr)
 	case 0x4000136:
 		return nds->extkeyin;
 	case 0x4000138:
-		return rtc_read(nds);
+		return rtc_io_read(nds);
 	case 0x40001C0:
 		return nds->spicnt;
 	case 0x40001C2:
@@ -99,7 +99,7 @@ io7_write8(nds_ctx *nds, u32 addr, u8 value)
 	switch (addr) {
 		IO_WRITE8_COMMON(1);
 	case 0x4000138:
-		rtc_write(nds, value);
+		rtc_io_write(nds, value);
 		return;
 	case 0x40001C2:
 		spidata_write(nds, value);
@@ -155,7 +155,7 @@ io7_write16(nds_ctx *nds, u32 addr, u16 value)
 		nds->rcnt = value;
 		return;
 	case 0x4000138:
-		rtc_write(nds, value);
+		rtc_io_write(nds, value);
 		return;
 	case 0x40001C0:
 		spicnt_write(nds, value);
@@ -208,7 +208,7 @@ io7_write32(nds_ctx *nds, u32 addr, u32 value)
 	switch (addr) {
 		IO_WRITE32_COMMON(1);
 	case 0x4000138:
-		rtc_write(nds, value);
+		rtc_io_write(nds, value);
 		return;
 	case 0x4000500:
 		nds->soundcnt = (nds->soundcnt & ~0xBF7F) | (value & 0xBF7F);

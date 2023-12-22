@@ -95,8 +95,9 @@ struct nds_ctx {
 	s16 audio_buf[4096]{};
 	u32 audio_buf_idx{};
 	u32 last_audio_buf_size{};
-	u32 sound_last_period{};
-	u32 sound_last_err{};
+	u32 timer_32k_ticks{};
+	u32 timer_32k_last_period{};
+	u32 timer_32k_last_err{};
 
 	/*
 	 * IO
@@ -173,6 +174,7 @@ void nds_direct_boot(nds_ctx *nds);
 void nds_run_frame(nds_ctx *nds);
 void event_hblank_start(nds_ctx *nds, intptr_t, timestamp late);
 void event_hblank_end(nds_ctx *nds, intptr_t, timestamp late);
+void event_32k_timer_tick(nds_ctx *nds, intptr_t, timestamp late);
 
 void nds_set_rtc_time(nds_ctx *nds, int year, int month, int day, int weekday,
 		int hour, int minute, int second);

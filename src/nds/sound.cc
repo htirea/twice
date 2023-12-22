@@ -260,20 +260,6 @@ event_sample_audio(nds_ctx *nds, intptr_t, timestamp late)
 
 		send_audio_samples(nds, left, right);
 	}
-
-	schedule_sample_audio_event(nds, late);
-}
-
-void
-schedule_sample_audio_event(nds_ctx *nds, timestamp late)
-{
-	u32 numer = NDS_ARM9_CLK_RATE + nds->sound_last_err;
-	u32 denom = NDS_AUDIO_SAMPLE_RATE;
-	nds->sound_last_period = numer / denom;
-	nds->sound_last_err = numer % denom;
-
-	schedule_event_after(nds, scheduler::SAMPLE_AUDIO,
-			nds->sound_last_period - late);
 }
 
 static void
@@ -333,7 +319,7 @@ sample_audio_channels(
 			continue;
 
 		sample_channel(nds, ch_id, &ch_l[ch_id], &ch_r[ch_id]);
-		run_channel(nds, ch_id, nds->sound_last_period);
+		run_channel(nds, ch_id, nds->timer_32k_last_period);
 
 		if (ch_id == 1 && !ch1_to_mixer)
 			continue;
@@ -368,8 +354,8 @@ sample_audio_channels(
 			sample = -(-sample >> 18);
 		}
 
-		run_capture_channel(
-				nds, ch_id, nds->sound_last_period, sample);
+		run_capture_channel(nds, ch_id, nds->timer_32k_last_period,
+				sample);
 	}
 }
 

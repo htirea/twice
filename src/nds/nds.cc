@@ -14,6 +14,8 @@ namespace twice {
 
 nds_ctx::~nds_ctx() = default;
 
+static void schedule_32k_tick_event(nds_ctx *nds, timestamp late);
+
 std::unique_ptr<nds_ctx>
 create_nds_ctx(u8 *arm7_bios, u8 *arm9_bios, u8 *firmware, u8 *cartridge,
 		size_t cartridge_size, u8 *savefile, size_t savefile_size,
@@ -47,8 +49,7 @@ create_nds_ctx(u8 *arm7_bios, u8 *arm9_bios, u8 *firmware, u8 *cartridge,
 	powcnt1_write(nds, 0x0);
 	schedule_event_after(nds, scheduler::HBLANK_START, 3072);
 	schedule_event_after(nds, scheduler::HBLANK_END, 4260);
-	schedule_event_after(nds, scheduler::RTC_TICK, NDS_ARM9_CLK_RATE);
-	schedule_sample_audio_event(nds, 0);
+	schedule_32k_tick_event(nds, 0);
 
 	return ctx;
 }
@@ -284,6 +285,27 @@ nds_on_vblank(nds_ctx *nds)
 	dma_on_vblank(nds);
 
 	nds->frame_finished = true;
+}
+
+void
+event_32k_timer_tick(nds_ctx *nds, intptr_t data, timestamp late)
+{
+	nds->timer_32k_ticks++;
+	rtc_tick_32k(nds, late);
+	event_sample_audio(nds, data, late);
+	schedule_32k_tick_event(nds, late);
+}
+
+static void
+schedule_32k_tick_event(nds_ctx *nds, timestamp late)
+{
+	u32 numer = NDS_ARM9_CLK_RATE + nds->timer_32k_last_err;
+	u32 denom = 32768;
+	nds->timer_32k_last_period = numer / denom;
+	nds->timer_32k_last_err = numer % denom;
+
+	schedule_event_after(nds, scheduler::TICK_32KHZ,
+			nds->timer_32k_last_period - late);
 }
 
 void

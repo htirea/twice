@@ -201,23 +201,8 @@ nds_machine::update_real_time_clock(int year, int month, int day, int weekday,
 	if (!(0 <= second && second <= 59))
 		return;
 
-	switch (month) {
-	case 2:
-		if (is_leap_year(year)) {
-			if (day > 29)
-				return;
-		} else {
-			if (day > 28)
-				return;
-		}
-		break;
-	case 4:
-	case 6:
-	case 9:
-	case 11:
-		if (day > 30)
-			return;
-	}
+	if (day > get_days_in_month(month, year))
+		return;
 
 	nds_set_rtc_time(nds.get(), year, month, day, weekday, hour, minute,
 			second);
