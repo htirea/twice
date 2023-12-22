@@ -38,7 +38,9 @@ lookup_savetype(u32 gamecode)
 
 	auto it = game_db.find(gamecode);
 	if (it == game_db.end()) {
-		LOG("unknown save type: gamecode %08X\n", gamecode);
+		LOG("unknown save type: gamecode %08X %c%c%c%c\n", gamecode,
+				gamecode & 0xFF, gamecode >> 8 & 0xFF,
+				gamecode >> 16 & 0xFF, gamecode >> 24 & 0xFF);
 		return SAVETYPE_UNKNOWN;
 	}
 
