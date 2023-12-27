@@ -13,7 +13,7 @@ target_link_libraries(twice-sdl PRIVATE
 	twice
 	${TWICE_SDL_LIBRARIES}
 	${TWICE_PNG_LIBRARIES}
-	${TWICE_Z_LIBRARIES}
+	ZLIB::ZLIB
 	nlohmann_json::nlohmann_json)
 
 install(TARGETS twice-sdl)
