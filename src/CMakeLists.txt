@@ -18,7 +18,6 @@ add_library(twice STATIC
 	common/logger.cc
 	common/profiler.cc
 	libtwice/config.cc
-	libtwice/filemap_common.cc
 	${FILEMAP_SOURCE}
 	libtwice/game_db.cc
 	libtwice/machine.cc
