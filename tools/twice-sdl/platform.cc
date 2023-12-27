@@ -1,5 +1,6 @@
 #include "platform.h"
 
+#include <algorithm>
 #include <cerrno>
 #include <chrono>
 #include <cstring>
