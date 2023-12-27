@@ -1,5 +1,6 @@
 #include "nds/cart/key.h"
 
+#include "common/bit/byteswap.h"
 #include "common/util.h"
 #include "nds/cart/cart.h"
 

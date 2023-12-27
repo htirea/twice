@@ -1,3 +1,4 @@
+#include "common/bit/byteswap.h"
 #include "nds/mem/vram.h"
 #include "nds/nds.h"
 
