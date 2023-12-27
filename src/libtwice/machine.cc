@@ -48,7 +48,9 @@ nds_machine::load_cartridge(
 	file_map savefile;
 	if (save_info.type != SAVETYPE_NONE) {
 		std::string savepath =
-				fs::path(pathname).replace_extension(".sav");
+				fs::path(pathname)
+						.replace_extension(".sav")
+						.string();
 		savefile = file_map(savepath, save_info.size,
 				file_map::FILEMAP_SHARED);
 	}
