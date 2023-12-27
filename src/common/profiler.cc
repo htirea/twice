@@ -10,7 +10,7 @@ profiler::sample(size_t i)
 	} else {
 		auto diff = now() - last_sample_time;
 		intervals[i - 1] += diff;
-		last_sample_time - now();
+		last_sample_time = now();
 	}
 }
 
