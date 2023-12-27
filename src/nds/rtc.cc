@@ -349,7 +349,7 @@ stat2_write(nds_ctx *nds, u8 value)
 {
 	auto& rtc = nds->rtc;
 	rtc.stat2 = value;
-	bool old_interrupt_mode = rtc.interrupt_mode;
+	int old_interrupt_mode = rtc.interrupt_mode;
 
 	switch (value & 0xF0) {
 	case 0x00:
