@@ -123,7 +123,7 @@ try_read_file(file_map::impl *internal, const char *pathname,
 			internal->buffer = new char[limit]();
 			filesize = limit;
 		} else {
-			LOG("file does not exist");
+			LOG("file does not exist\n");
 			return 1;
 		}
 	} else if ((flags & file_map::FILEMAP_EXACT) && filesize != limit) {
