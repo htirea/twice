@@ -345,25 +345,29 @@ io9_write16(nds_ctx *nds, u32 addr, u16 value)
 		nds->dmafill[0] = value;
 		return;
 	case 0x40000E2:
-		nds->dmafill[0] = value >> 16;
+		nds->dmafill[0] &= 0xFFFF;
+		nds->dmafill[0] |= (u32)value << 16;
 		return;
 	case 0x40000E4:
 		nds->dmafill[1] = value;
 		return;
 	case 0x40000E6:
-		nds->dmafill[1] = value >> 16;
+		nds->dmafill[1] &= 0xFFFF;
+		nds->dmafill[1] |= (u32)value << 16;
 		return;
 	case 0x40000E8:
 		nds->dmafill[2] = value;
 		return;
 	case 0x40000EA:
-		nds->dmafill[2] = value >> 16;
+		nds->dmafill[2] &= 0xFFFF;
+		nds->dmafill[2] |= (u32)value << 16;
 		return;
 	case 0x40000EC:
 		nds->dmafill[3] = value;
 		return;
 	case 0x40000EE:
-		nds->dmafill[3] = value >> 16;
+		nds->dmafill[3] &= 0xFFFF;
+		nds->dmafill[3] |= (u32)value << 16;
 		return;
 	case 0x4000240:
 		vramcnt_a_write(nds, value);
