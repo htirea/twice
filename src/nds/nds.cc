@@ -3,7 +3,6 @@
 #include "nds/arm/arm7.h"
 #include "nds/arm/arm9.h"
 #include "nds/cart/key.h"
-#include "nds/mem/bus.h"
 #include "nds/mem/io.h"
 
 #include "common/util.h"
@@ -12,9 +11,11 @@
 
 namespace twice {
 
-nds_ctx::~nds_ctx() = default;
-
+static void check_lyc(nds_ctx *nds, int cpuid);
+static void nds_on_vblank(nds_ctx *nds);
 static void schedule_32k_tick_event(nds_ctx *nds, timestamp late);
+
+nds_ctx::~nds_ctx() = default;
 
 std::unique_ptr<nds_ctx>
 create_nds_ctx(u8 *arm7_bios, u8 *arm9_bios, u8 *firmware, u8 *cartridge,
@@ -65,8 +66,6 @@ nds_firmware_boot(nds_ctx *nds)
 	nds->arm7->arm_jump(0x0);
 }
 
-static void parse_header(nds_ctx *nds, u32 *entry_addr_ret);
-
 void
 nds_direct_boot(nds_ctx *nds)
 {
@@ -93,7 +92,7 @@ nds_direct_boot(nds_ctx *nds)
 	std::memcpy(nds->main_ram + 0x3FFC80, nds->fw.user_settings, 0x70);
 
 	u32 entry_addr[2];
-	parse_header(nds, entry_addr);
+	parse_cart_header(nds, entry_addr);
 	std::memcpy(nds->main_ram + 0x3FFE00, nds->cart.data,
 			std::min((size_t)0x170, nds->cart.size));
 
@@ -103,58 +102,10 @@ nds_direct_boot(nds_ctx *nds)
 	/* TODO: more stuff for direct booting */
 }
 
-static void
-parse_header(nds_ctx *nds, u32 *entry_addr_ret)
-{
-	auto& cart = nds->cart;
-
-	u32 rom_offset[2]{ readarr<u32>(cart.data, 0x20),
-		readarr<u32>(cart.data, 0x30) };
-	u32 entry_addr[2]{ readarr<u32>(cart.data, 0x24),
-		readarr<u32>(cart.data, 0x34) };
-	u32 ram_addr[2]{ readarr<u32>(cart.data, 0x28),
-		readarr<u32>(cart.data, 0x38) };
-	u32 transfer_size[2]{ readarr<u32>(cart.data, 0x2C),
-		readarr<u32>(cart.data, 0x3C) };
-
-	if (rom_offset[0] >= cart.size) {
-		throw twice_error("arm9 rom offset too large");
-	}
-
-	if (rom_offset[0] + transfer_size[0] > cart.size) {
-		throw twice_error("arm9 transfer size too large");
-	}
-
-	if (rom_offset[1] >= cart.size) {
-		throw twice_error("arm7 rom offset too large");
-	}
-
-	if (rom_offset[1] + transfer_size[1] > cart.size) {
-		throw twice_error("arm7 transfer size too large");
-	}
-
-	for (u32 i = 0; i < transfer_size[0]; i++) {
-		u8 value = readarr<u8>(cart.data, rom_offset[0] + i);
-		bus9_write<u8>(nds, ram_addr[0] + i, value);
-	}
-
-	for (u32 i = 0; i < transfer_size[1]; i++) {
-		u8 value = readarr<u8>(cart.data, rom_offset[1] + i);
-		bus7_write<u8>(nds, ram_addr[1] + i, value);
-	}
-
-	entry_addr_ret[0] = entry_addr[0] & ~3;
-	entry_addr_ret[1] = entry_addr[1] & ~3;
-}
-
 void
 nds_run_frame(nds_ctx *nds)
 {
 	nds->frame_finished = false;
-
-	arm9_frame_start(nds->arm9.get());
-	arm7_frame_start(nds->arm7.get());
-	sound_frame_start(nds);
 
 	while (!nds->frame_finished) {
 		nds->arm_target_cycles[0] = get_next_event_time(nds);
@@ -180,10 +131,12 @@ nds_run_frame(nds_ctx *nds)
 
 		run_system_events(nds);
 	}
+}
 
-	arm9_frame_end(nds->arm9.get());
-	arm7_frame_end(nds->arm7.get());
-	sound_frame_end(nds);
+void
+nds_dump_prof(nds_ctx *nds)
+{
+	nds->prof.report();
 }
 
 void
@@ -205,8 +158,6 @@ event_hblank_start(nds_ctx *nds, intptr_t, timestamp late)
 	schedule_event_after(nds, scheduler::HBLANK_START, 4260 - late);
 }
 
-static void nds_on_vblank(nds_ctx *nds);
-
 void
 event_hblank_end(nds_ctx *nds, intptr_t, timestamp late)
 {
@@ -217,28 +168,8 @@ event_hblank_end(nds_ctx *nds, intptr_t, timestamp late)
 
 	nds->dispstat[0] &= ~BIT(1);
 	nds->dispstat[1] &= ~BIT(1);
-
-	/* the next scanline starts here */
-
-	for (int i = 0; i < 2; i++) {
-		u16 lyc = (nds->dispstat[i] & 0x80) << 1 |
-		          nds->dispstat[i] >> 8;
-		if (nds->vcount == lyc) {
-			nds->dispstat[i] |= BIT(2);
-			if (nds->dispstat[i] & BIT(5)) {
-				request_interrupt(nds->cpu[i], 2);
-			}
-		} else {
-			nds->dispstat[i] &= ~BIT(2);
-		}
-	}
-
-	if (nds->vcount == 262) {
-		/* vblank flag isn't set in last scanline */
-		nds->dispstat[0] &= ~BIT(0);
-		nds->dispstat[1] &= ~BIT(0);
-	}
-
+	check_lyc(nds, 0);
+	check_lyc(nds, 1);
 	gpu3d_on_scanline_start(nds);
 	gpu_on_scanline_start(nds);
 	dma_on_scanline_start(nds);
@@ -247,7 +178,37 @@ event_hblank_end(nds_ctx *nds, intptr_t, timestamp late)
 		nds_on_vblank(nds);
 	}
 
+	if (nds->vcount == 262) {
+		nds->dispstat[0] &= ~BIT(0);
+		nds->dispstat[1] &= ~BIT(0);
+	}
+
 	schedule_event_after(nds, scheduler::HBLANK_END, 4260 - late);
+}
+
+void
+event_32khz_tick(nds_ctx *nds, intptr_t data, timestamp late)
+{
+	nds->timer_32k_ticks++;
+	rtc_tick_32k(nds, late);
+	event_sample_audio(nds, data, late);
+	schedule_32k_tick_event(nds, late);
+}
+
+static void
+check_lyc(nds_ctx *nds, int cpuid)
+{
+	auto& dispstat = nds->dispstat[cpuid];
+	u16 lyc = (dispstat & 0x80) << 1 | dispstat >> 8;
+
+	if (nds->vcount == lyc) {
+		dispstat |= BIT(2);
+		if (dispstat & BIT(5)) {
+			request_interrupt(nds->cpu[cpuid], 2);
+		}
+	} else {
+		dispstat &= ~BIT(2);
+	}
 }
 
 static void
@@ -268,15 +229,11 @@ nds_on_vblank(nds_ctx *nds)
 	dma_on_vblank(nds);
 
 	nds->frame_finished = true;
-}
-
-void
-event_32k_timer_tick(nds_ctx *nds, intptr_t data, timestamp late)
-{
-	nds->timer_32k_ticks++;
-	rtc_tick_32k(nds, late);
-	event_sample_audio(nds, data, late);
-	schedule_32k_tick_event(nds, late);
+	sound_frame_end(nds);
+	nds->arm9_usage = nds->cpu[0]->cycles_executed / 1120380.0;
+	nds->arm7_usage = nds->cpu[1]->cycles_executed / 560190.0;
+	nds->cpu[0]->cycles_executed = 0;
+	nds->cpu[1]->cycles_executed = 0;
 }
 
 static void
@@ -289,22 +246,6 @@ schedule_32k_tick_event(nds_ctx *nds, timestamp late)
 
 	schedule_event_after(nds, scheduler::TICK_32KHZ,
 			nds->timer_32k_last_period - late);
-}
-
-void
-nds_dump_prof(nds_ctx *nds)
-{
-	nds->prof.report();
-	LOG("arm9: fetch: %f, load %f, store %f\n",
-			(double)nds->arm9->fetch_hits / nds->arm9->fetch_total,
-			(double)nds->arm9->load_hits / nds->arm9->load_total,
-			(double)nds->arm9->store_hits /
-					nds->arm9->store_total);
-	LOG("arm7: fetch: %f, load %f, store %f\n",
-			(double)nds->arm7->fetch_hits / nds->arm7->fetch_total,
-			(double)nds->arm7->load_hits / nds->arm7->load_total,
-			(double)nds->arm7->store_hits /
-					nds->arm7->store_total);
 }
 
 } // namespace twice

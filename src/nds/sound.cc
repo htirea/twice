@@ -205,15 +205,10 @@ sound_capture_write_cnt(nds_ctx *nds, int ch_id, u8 value)
 }
 
 void
-sound_frame_start(nds_ctx *nds)
-{
-	nds->audio_buf_idx = 0;
-}
-
-void
 sound_frame_end(nds_ctx *nds)
 {
 	nds->last_audio_buf_size = nds->audio_buf_idx * sizeof *nds->audio_buf;
+	nds->audio_buf_idx = 0;
 }
 
 void

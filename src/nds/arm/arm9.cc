@@ -26,24 +26,6 @@ arm9_direct_boot(arm9_cpu *cpu, u32 entry_addr)
 }
 
 void
-arm9_frame_start(arm9_cpu *cpu)
-{
-	cpu->cycles_executed = 0;
-	cpu->fetch_hits = 0;
-	cpu->fetch_total = 0;
-	cpu->load_hits = 0;
-	cpu->load_total = 0;
-	cpu->store_hits = 0;
-	cpu->store_total = 0;
-}
-
-void
-arm9_frame_end(arm9_cpu *cpu)
-{
-	cpu->nds->arm9_usage = cpu->cycles_executed / 1120380.0;
-}
-
-void
 arm9_cpu::run()
 {
 	if (halted) {
@@ -139,11 +121,8 @@ template <typename T>
 static T
 fetch(arm9_cpu *cpu, u32 addr)
 {
-	cpu->fetch_total++;
-
 	u8 *p = cpu->fetch_pt[addr >> arm_cpu::PAGE_SHIFT];
 	if (p) {
-		cpu->fetch_hits++;
 		return readarr<T>(p, addr & arm_cpu::PAGE_MASK);
 	}
 
@@ -158,11 +137,8 @@ template <typename T>
 static T
 load(arm9_cpu *cpu, u32 addr)
 {
-	cpu->load_total++;
-
 	u8 *p = cpu->load_pt[addr >> arm_cpu::PAGE_SHIFT];
 	if (p) {
-		cpu->load_hits++;
 		return readarr<T>(p, addr & arm_cpu::PAGE_MASK);
 	}
 
@@ -181,11 +157,8 @@ template <typename T>
 static void
 store(arm9_cpu *cpu, u32 addr, T value)
 {
-	cpu->store_total++;
-
 	u8 *p = cpu->store_pt[addr >> arm_cpu::PAGE_SHIFT];
 	if (p) {
-		cpu->store_hits++;
 		writearr<T>(p, addr & arm_cpu::PAGE_MASK, value);
 		return;
 	}

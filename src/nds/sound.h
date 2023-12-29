@@ -56,7 +56,6 @@ void sound_write8(nds_ctx *nds, u8 addr, u8 value);
 void sound_write16(nds_ctx *nds, u8 addr, u16 value);
 void sound_write32(nds_ctx *nds, u8 addr, u32 value);
 void sound_capture_write_cnt(nds_ctx *nds, int ch_id, u8 value);
-void sound_frame_start(nds_ctx *nds);
 void sound_frame_end(nds_ctx *nds);
 void event_sample_audio(nds_ctx *nds, intptr_t, timestamp late);
 

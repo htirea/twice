@@ -2,6 +2,7 @@
 
 #include "nds/arm/arm.h"
 #include "nds/cart/key.h"
+#include "nds/mem/bus.h"
 
 #include "common/logger.h"
 #include "libtwice/exception.h"
@@ -30,6 +31,50 @@ cartridge_init(nds_ctx *nds, u8 *data, size_t size, u8 *save_data,
 	for (u32 i = 0; i < 0x412; i++) {
 		cart.keybuf_s[i] = readarr<u32>(arm7_bios, 0x30 + i * 4);
 	}
+}
+
+void
+parse_cart_header(nds_ctx *nds, u32 *entry_addr_out)
+{
+	auto& cart = nds->cart;
+
+	u32 rom_offset[2]{ readarr<u32>(cart.data, 0x20),
+		readarr<u32>(cart.data, 0x30) };
+	u32 entry_addr[2]{ readarr<u32>(cart.data, 0x24),
+		readarr<u32>(cart.data, 0x34) };
+	u32 ram_addr[2]{ readarr<u32>(cart.data, 0x28),
+		readarr<u32>(cart.data, 0x38) };
+	u32 transfer_size[2]{ readarr<u32>(cart.data, 0x2C),
+		readarr<u32>(cart.data, 0x3C) };
+
+	if (rom_offset[0] >= cart.size) {
+		throw twice_error("arm9 rom offset too large");
+	}
+
+	if (rom_offset[0] + transfer_size[0] > cart.size) {
+		throw twice_error("arm9 transfer size too large");
+	}
+
+	if (rom_offset[1] >= cart.size) {
+		throw twice_error("arm7 rom offset too large");
+	}
+
+	if (rom_offset[1] + transfer_size[1] > cart.size) {
+		throw twice_error("arm7 transfer size too large");
+	}
+
+	for (u32 i = 0; i < transfer_size[0]; i++) {
+		u8 value = readarr<u8>(cart.data, rom_offset[0] + i);
+		bus9_write<u8>(nds, ram_addr[0] + i, value);
+	}
+
+	for (u32 i = 0; i < transfer_size[1]; i++) {
+		u8 value = readarr<u8>(cart.data, rom_offset[1] + i);
+		bus7_write<u8>(nds, ram_addr[1] + i, value);
+	}
+
+	entry_addr_out[0] = entry_addr[0] & ~3;
+	entry_addr_out[1] = entry_addr[1] & ~3;
 }
 
 void

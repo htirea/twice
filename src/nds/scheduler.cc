@@ -20,7 +20,7 @@ static void run_events(
 static event_state initial_state[scheduler::NUM_EVENTS] = {
 	{ .cb = event_hblank_start },
 	{ .cb = event_hblank_end },
-	{ .cb = event_32k_timer_tick },
+	{ .cb = event_32khz_tick },
 	{ .cb = event_advance_rom_transfer },
 	{ .cb = event_auxspi_transfer_complete },
 

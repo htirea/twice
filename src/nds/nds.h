@@ -172,14 +172,14 @@ std::unique_ptr<nds_ctx> create_nds_ctx(u8 *arm7_bios, u8 *arm9_bios,
 void nds_firmware_boot(nds_ctx *nds);
 void nds_direct_boot(nds_ctx *nds);
 void nds_run_frame(nds_ctx *nds);
-void event_hblank_start(nds_ctx *nds, intptr_t, timestamp late);
-void event_hblank_end(nds_ctx *nds, intptr_t, timestamp late);
-void event_32k_timer_tick(nds_ctx *nds, intptr_t, timestamp late);
-
 void nds_set_rtc_time(nds_ctx *nds, int year, int month, int day, int weekday,
 		int hour, int minute, int second);
 void nds_set_touchscreen_state(nds_ctx *nds, int x, int y, bool down);
 void nds_dump_prof(nds_ctx *nds);
+
+void event_hblank_start(nds_ctx *nds, intptr_t, timestamp late);
+void event_hblank_end(nds_ctx *nds, intptr_t, timestamp late);
+void event_32khz_tick(nds_ctx *nds, intptr_t, timestamp late);
 
 } // namespace twice
 
