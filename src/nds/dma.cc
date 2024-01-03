@@ -15,8 +15,7 @@ template <int cpuid>
 static void run_dma(nds_ctx *nds);
 static void dma9_dmacnt_h_write(nds_ctx *nds, int ch, u16 value);
 static void dma7_dmacnt_h_write(nds_ctx *nds, int ch, u16 value);
-static void set_addr_step_and_width(
-		nds_ctx *nds, int cpuid, int ch, u16 dmacnt);
+static void set_addr_step_and_width(nds_ctx *nds, int cpuid, int ch);
 
 void
 dma_controller_init(nds_ctx *nds, int cpuid)
@@ -133,7 +132,9 @@ load_dmacnt_l(nds_ctx *nds, int cpuid, int ch)
 	auto& word_count = nds->dma[cpuid].transfers[ch].word_count;
 
 	if (cpuid == 0) {
-		word_count = nds->dmacnt_l[0][ch] & MASK(21);
+		word_count = ((u32)nds->dmacnt_h[0][ch] << 16 |
+				nds->dmacnt_l[0][ch]);
+		word_count &= MASK(21);
 
 		if (word_count == 0) {
 			word_count = 0x200000;
@@ -221,9 +222,10 @@ dma9_dmacnt_h_write(nds_ctx *nds, int ch, u16 value)
 	auto& t = dma.transfers[ch];
 
 	bool old_enabled = dmacnt & BIT(15);
+	dmacnt = value;
 	t.enabled = value & BIT(15);
 	t.mode = value >> 11 & 0x7;
-	set_addr_step_and_width(nds, 0, ch, value);
+	set_addr_step_and_width(nds, 0, ch);
 
 	if (!old_enabled && t.enabled) {
 		t.sad = nds->dma_sad[0][ch] & MASK(28);
@@ -250,8 +252,6 @@ dma9_dmacnt_h_write(nds_ctx *nds, int ch, u16 value)
 		t.repeat_reload = false;
 		t.count = 0;
 	}
-
-	dmacnt = value;
 }
 
 static void
@@ -262,9 +262,10 @@ dma7_dmacnt_h_write(nds_ctx *nds, int ch, u16 value)
 	auto& t = dma.transfers[ch];
 
 	bool old_enabled = dmacnt & BIT(15);
+	dmacnt = value;
 	t.enabled = value & BIT(15);
 	t.mode = value >> 12 & 0x3;
-	set_addr_step_and_width(nds, 1, ch, value);
+	set_addr_step_and_width(nds, 1, ch);
 
 	if (!old_enabled && t.enabled) {
 		if (ch == 0) {
@@ -292,14 +293,13 @@ dma7_dmacnt_h_write(nds_ctx *nds, int ch, u16 value)
 		t.repeat_reload = false;
 		t.count = 0;
 	}
-
-	dmacnt = value;
 }
 
 static void
-set_addr_step_and_width(nds_ctx *nds, int cpuid, int ch, u16 dmacnt)
+set_addr_step_and_width(nds_ctx *nds, int cpuid, int ch)
 {
 	auto& t = nds->dma[cpuid].transfers[ch];
+	auto& dmacnt = nds->dmacnt_h[cpuid][ch];
 
 	switch (dmacnt >> 5 & 0x3) {
 	case 0:
