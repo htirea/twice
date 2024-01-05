@@ -29,12 +29,12 @@ void
 arm9_cpu::run()
 {
 	if (halted) {
-		if (check_halted()) {
-			*cycles = *target_cycles;
-			return;
-		} else if (interrupt) {
-			arm_do_irq(this);
-		}
+		*cycles = *target_cycles;
+		return;
+	}
+
+	if (interrupt) {
+		arm_do_irq(this);
 	}
 
 	while (*cycles < *target_cycles) {

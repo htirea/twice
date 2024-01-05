@@ -1,6 +1,8 @@
 #include "nds/nds.h"
 
 #include "nds/arm/arm.h"
+#include "nds/arm/arm7.h"
+#include "nds/arm/arm9.h"
 #include "nds/spi.h"
 
 #include "libtwice/exception.h"
@@ -113,6 +115,8 @@ run_system_events(nds_ctx *nds)
 {
 	run_events(nds, scheduler::SYSTEM_EVENTS, scheduler::ARM9_EVENTS,
 			nds->arm_cycles[0]);
+	nds->arm9->check_halted();
+	nds->arm7->check_halted();
 }
 
 void
@@ -124,6 +128,7 @@ run_cpu_events(nds_ctx *nds, int cpuid)
 	} else {
 		run_events(nds, scheduler::ARM7_EVENTS, scheduler::NUM_EVENTS,
 				nds->arm_cycles[1] << 1);
+		nds->arm7->check_halted();
 	}
 }
 
