@@ -6,6 +6,13 @@
 namespace twice {
 
 struct arm7_cpu final : arm_cpu {
+	enum : u32 {
+		PAGE_SHIFT = 14,
+		PAGE_SIZE = (u32)1 << PAGE_SHIFT,
+		PAGE_MASK = PAGE_SIZE - 1,
+		PAGE_TABLE_SIZE = (u32)1 << (32 - PAGE_SHIFT),
+	};
+
 	u8 *pt[PAGE_TABLE_SIZE]{};
 
 	void run() override;

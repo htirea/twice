@@ -27,13 +27,6 @@ struct arm_cpu {
 		CPU_STOP = 0x4,
 	};
 
-	enum : u32 {
-		PAGE_SHIFT = 14,
-		PAGE_SIZE = (u32)1 << PAGE_SHIFT,
-		PAGE_MASK = PAGE_SIZE - 1,
-		PAGE_TABLE_SIZE = (u32)1 << (32 - PAGE_SHIFT),
-	};
-
 	u32 gpr[16]{};
 	u32 bankedr[6][3]{};
 	u32 fiqr[5]{};

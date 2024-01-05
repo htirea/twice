@@ -121,13 +121,9 @@ template <typename T>
 static T
 fetch(arm9_cpu *cpu, u32 addr)
 {
-	u8 *p = cpu->fetch_pt[addr >> arm_cpu::PAGE_SHIFT];
+	u8 *p = cpu->fetch_pt[addr >> arm9_cpu::PAGE_SHIFT];
 	if (p) {
-		return readarr<T>(p, addr & arm_cpu::PAGE_MASK);
-	}
-
-	if (cpu->read_itcm && 0 == (addr & cpu->itcm_addr_mask)) {
-		return readarr<T>(cpu->itcm, addr & cpu->itcm_array_mask);
+		return readarr<T>(p, addr & arm9_cpu::PAGE_MASK);
 	}
 
 	return bus9_read<T>(cpu->nds, addr);
@@ -137,17 +133,9 @@ template <typename T>
 static T
 load(arm9_cpu *cpu, u32 addr)
 {
-	u8 *p = cpu->load_pt[addr >> arm_cpu::PAGE_SHIFT];
+	u8 *p = cpu->load_pt[addr >> arm9_cpu::PAGE_SHIFT];
 	if (p) {
-		return readarr<T>(p, addr & arm_cpu::PAGE_MASK);
-	}
-
-	if (cpu->read_itcm && 0 == (addr & cpu->itcm_addr_mask)) {
-		return readarr<T>(cpu->itcm, addr & cpu->itcm_array_mask);
-	}
-
-	if (cpu->read_dtcm && cpu->dtcm_base == (addr & cpu->dtcm_addr_mask)) {
-		return readarr<T>(cpu->dtcm, addr & cpu->dtcm_array_mask);
+		return readarr<T>(p, addr & arm9_cpu::PAGE_MASK);
 	}
 
 	return bus9_read<T>(cpu->nds, addr);
@@ -157,20 +145,9 @@ template <typename T>
 static void
 store(arm9_cpu *cpu, u32 addr, T value)
 {
-	u8 *p = cpu->store_pt[addr >> arm_cpu::PAGE_SHIFT];
+	u8 *p = cpu->store_pt[addr >> arm9_cpu::PAGE_SHIFT];
 	if (p) {
-		writearr<T>(p, addr & arm_cpu::PAGE_MASK, value);
-		return;
-	}
-
-	if (cpu->write_itcm && 0 == (addr & cpu->itcm_addr_mask)) {
-		writearr<T>(cpu->itcm, addr & cpu->itcm_array_mask, value);
-		return;
-	}
-
-	if (cpu->write_dtcm &&
-			cpu->dtcm_base == (addr & cpu->dtcm_addr_mask)) {
-		writearr<T>(cpu->dtcm, addr & cpu->dtcm_array_mask, value);
+		writearr<T>(p, addr & arm9_cpu::PAGE_MASK, value);
 		return;
 	}
 
@@ -240,8 +217,8 @@ arm9_cpu::ldrsh(u32 addr)
 static void
 reset_page_table_read(nds_ctx *nds, u8 **pt, u64 start, u64 end)
 {
-	for (u64 addr = start; addr < end; addr += arm_cpu::PAGE_SIZE) {
-		u64 page = addr >> arm_cpu::PAGE_SHIFT;
+	for (u64 addr = start; addr < end; addr += arm9_cpu::PAGE_SIZE) {
+		u64 page = addr >> arm9_cpu::PAGE_SHIFT;
 		switch (addr >> 24) {
 		case 0x2:
 			pt[page] = &nds->main_ram[addr & MAIN_RAM_MASK];
@@ -262,8 +239,8 @@ reset_page_table_read(nds_ctx *nds, u8 **pt, u64 start, u64 end)
 static void
 reset_page_table_write(nds_ctx *nds, u8 **pt, u64 start, u64 end)
 {
-	for (u64 addr = start; addr < end; addr += arm_cpu::PAGE_SIZE) {
-		u64 page = addr >> arm_cpu::PAGE_SHIFT;
+	for (u64 addr = start; addr < end; addr += arm9_cpu::PAGE_SIZE) {
+		u64 page = addr >> arm9_cpu::PAGE_SHIFT;
 		switch (addr >> 24) {
 		case 0x2:
 			pt[page] = &nds->main_ram[addr & MAIN_RAM_MASK];
@@ -320,24 +297,18 @@ reset_arm9_page_tables(arm9_cpu *cpu)
 static void
 map_dtcm_pages(arm9_cpu *cpu, u8 **pt, u64 start, u64 end)
 {
-	bool null_page = (end - start) < arm_cpu::PAGE_SIZE;
-
-	for (u64 addr = start; addr < end; addr += arm_cpu::PAGE_SIZE) {
-		u64 page = addr >> arm_cpu::PAGE_SHIFT;
-		pt[page] = null_page ? nullptr
-		                     : &cpu->dtcm[addr & cpu->dtcm_array_mask];
+	for (u64 addr = start; addr < end; addr += arm9_cpu::PAGE_SIZE) {
+		u64 page = addr >> arm9_cpu::PAGE_SHIFT;
+		pt[page] = &cpu->dtcm[addr & cpu->dtcm_array_mask];
 	}
 }
 
 static void
 map_itcm_pages(arm9_cpu *cpu, u8 **pt, u64 end)
 {
-	bool null_page = end < arm_cpu::PAGE_SIZE;
-
-	for (u64 addr = 0; addr < end; addr += arm_cpu::PAGE_SIZE) {
-		u64 page = addr >> arm_cpu::PAGE_SHIFT;
-		pt[page] = null_page ? nullptr
-		                     : &cpu->itcm[addr & cpu->itcm_array_mask];
+	for (u64 addr = 0; addr < end; addr += arm9_cpu::PAGE_SIZE) {
+		u64 page = addr >> arm9_cpu::PAGE_SHIFT;
+		pt[page] = &cpu->itcm[addr & cpu->itcm_array_mask];
 	}
 }
 

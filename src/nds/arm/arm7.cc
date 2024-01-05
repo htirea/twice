@@ -108,9 +108,9 @@ template <typename T>
 static T
 fetch(arm7_cpu *cpu, u32 addr)
 {
-	u8 *p = cpu->pt[addr >> arm_cpu::PAGE_SHIFT];
+	u8 *p = cpu->pt[addr >> arm7_cpu::PAGE_SHIFT];
 	if (p) {
-		return readarr<T>(p, addr & arm_cpu::PAGE_MASK);
+		return readarr<T>(p, addr & arm7_cpu::PAGE_MASK);
 	}
 
 	return bus7_read<T>(cpu->nds, addr);
@@ -120,9 +120,9 @@ template <typename T>
 static T
 load(arm7_cpu *cpu, u32 addr)
 {
-	u8 *p = cpu->pt[addr >> arm_cpu::PAGE_SHIFT];
+	u8 *p = cpu->pt[addr >> arm7_cpu::PAGE_SHIFT];
 	if (p) {
-		return readarr<T>(p, addr & arm_cpu::PAGE_MASK);
+		return readarr<T>(p, addr & arm7_cpu::PAGE_MASK);
 	}
 
 	return bus7_read<T>(cpu->nds, addr);
@@ -132,9 +132,9 @@ template <typename T>
 static void
 store(arm7_cpu *cpu, u32 addr, T value)
 {
-	u8 *p = cpu->pt[addr >> arm_cpu::PAGE_SHIFT];
+	u8 *p = cpu->pt[addr >> arm7_cpu::PAGE_SHIFT];
 	if (p) {
-		writearr<T>(p, addr & arm_cpu::PAGE_MASK, value);
+		writearr<T>(p, addr & arm7_cpu::PAGE_MASK, value);
 		return;
 	}
 
@@ -208,8 +208,8 @@ arm7_cpu::ldrsh(u32 addr)
 static void
 update_arm7_page_table(nds_ctx *nds, u8 **pt, u64 start, u64 end)
 {
-	for (u64 addr = start; addr < end; addr += arm_cpu::PAGE_SIZE) {
-		u64 page = addr >> arm_cpu::PAGE_SHIFT;
+	for (u64 addr = start; addr < end; addr += arm7_cpu::PAGE_SIZE) {
+		u64 page = addr >> arm7_cpu::PAGE_SHIFT;
 		switch (addr >> 23) {
 		case 0x20 >> 3:
 		case 0x28 >> 3:
