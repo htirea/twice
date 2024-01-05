@@ -58,8 +58,8 @@ Other options:
   -1, -2, -3, -4        Scale the viewport by 1x, 2x, 3x, 4x.
   -f, --fullscreen      Start in fullscreen mode.
   --filter <mode>       Set the screen filtering mode. Defaults to linear.
-  --frame-limit <N>     Quit after running <N> frames.
                         (mode = 'nearest' | 'linear' )
+  --frame-limit <N>     Quit after running <N> frames.
   --no-throttle         Start with throttling disabled.
   -v, --verbose         Use verbose output. Repeat to increase verbosity.
   -h, --help            Print this help.
