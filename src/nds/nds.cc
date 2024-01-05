@@ -28,16 +28,13 @@ create_nds_ctx(u8 *arm7_bios, u8 *arm9_bios, u8 *firmware, u8 *cartridge,
 	nds->arm9_bios = arm9_bios;
 	nds->arm7_bios = arm7_bios;
 	nds->gpu3d.nds = nds;
-	nds->gpu2d[0].nds = nds;
-	nds->gpu2d[0].engineid = 0;
-	nds->gpu2d[1].nds = nds;
-	nds->gpu2d[1].engineid = 1;
 	nds->arm9 = std::make_unique<arm9_cpu>();
 	nds->arm7 = std::make_unique<arm7_cpu>();
 	nds->cpu[0] = nds->arm9.get();
 	nds->cpu[1] = nds->arm7.get();
 	arm_init(nds, 0);
 	arm_init(nds, 1);
+	gpu2d_init(nds);
 	firmware_init(nds, firmware);
 	cartridge_init(nds, cartridge, cartridge_size, savefile, savefile_size,
 			savetype, arm7_bios);

@@ -408,11 +408,11 @@ io9_write16(nds_ctx *nds, u32 addr, u16 value)
 		return;
 	case 0x4001000:
 		nds->gpu2d[1].dispcnt &= ~0xFFFF;
-		nds->gpu2d[1].dispcnt |= value;
+		nds->gpu2d[1].dispcnt |= value & 0xFFF7;
 		return;
 	case 0x4001002:
 		nds->gpu2d[1].dispcnt &= 0xFFFF;
-		nds->gpu2d[1].dispcnt |= (u32)value << 16;
+		nds->gpu2d[1].dispcnt |= (u32)(value & 0xC0B1) << 16;
 		return;
 	case 0x400106C:
 		nds->gpu2d[1].master_bright = value & 0xC01F;
@@ -511,7 +511,7 @@ io9_write32(nds_ctx *nds, u32 addr, u32 value)
 		powcnt1_write(nds, value);
 		return;
 	case 0x4001000:
-		nds->gpu2d[1].dispcnt = value;
+		nds->gpu2d[1].dispcnt = value & 0xC0B1FFF7;
 		return;
 	case 0x4001058:
 		return;

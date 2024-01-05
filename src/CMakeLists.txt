@@ -30,9 +30,11 @@ add_library(twice STATIC
 	nds/cart/key.cc
 	nds/dma.cc
 	nds/firmware.cc
-	nds/gpu/2d/bg.cc
 	nds/gpu/2d/gpu2d.cc
-	nds/gpu/2d/obj.cc
+	nds/gpu/2d/render.cc
+	nds/gpu/2d/render_bg.cc
+	nds/gpu/2d/render_gfx.cc
+	nds/gpu/2d/render_obj.cc
 	nds/gpu/3d/ge.cc
 	nds/gpu/3d/gpu3d.cc
 	nds/gpu/3d/matrix.cc

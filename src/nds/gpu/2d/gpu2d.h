@@ -21,8 +21,8 @@ struct gpu_2d_engine {
 	u16 bg_pd[2]{};
 	s32 bg_ref_x[2]{};
 	s32 bg_ref_y[2]{};
-	s32 bg_ref_x_nonmosaic[2]{};
-	s32 bg_ref_y_nonmosaic[2]{};
+	s32 bg_ref_x_nm[2]{};
+	s32 bg_ref_y_nm[2]{};
 	u32 bg_ref_x_latch[2]{};
 	u32 bg_ref_y_latch[2]{};
 	bool bg_ref_x_reload[2]{};
@@ -36,58 +36,54 @@ struct gpu_2d_engine {
 	u16 bldalpha{};
 	u16 bldy{};
 	u16 master_bright{};
-
 	s32 mosaic_countup{};
 	s32 mosaic_countdown{};
-
 	bool display_capture{};
 	u32 dispcapcnt{};
-
-	color4 gfx_line[256]{};
-	color4 output_line[256]{};
-
-	u32 *fb{};
-
-	struct pixel {
-		color_u color;
-
-		u32 priority : 3;
-		u32 effect_top : 1;
-		u32 effect_bottom : 1;
-		u32 force_blend : 1;
-		u32 alpha_oam : 4;
-		u32 from_3d : 1;
-	};
-
-	pixel buffer_top[256]{};
-	pixel buffer_bottom[256]{};
-	pixel obj_buffer[256]{};
-
 	bool window_y_in_range[2]{};
 	bool window_enabled[3]{};
 	bool window_any_enabled{};
+	u8 window_bits[4]{};
+	std::array<u8, 256> active_window{};
+	std::array<u8, 256> window_bits_line{};
+	std::array<color_u, 256> bg_line[4]{};
+	std::array<color_u, 256> obj_line{};
+	std::array<color4, 256> gfx_line{};
+	std::array<color4, 256> output_line{};
 
-	struct {
-		u8 window{};
-	} window_buffer[256];
+	/*
+	 * attributes
+	 * 0		effect top
+	 * 1		force blend
+	 * 2		from 3d
+	 * 8		effect bottom
+	 * 12-15	alpha oam
+	 * 16-22	obj num
+	 * 24-25	bg num
+	 * 26		bg
+	 * 28-29	priority
+	 * 30		backdrop
+	 * 31		transparent
+	 */
 
-	struct {
-		u8 enable_bits;
-	} window[4];
+	std::array<u32, 256> bg_attr[4]{};
+	std::array<u32, 256> obj_attr{};
+	u32 palette_offset{};
 
+	u32 *fb{};
 	bool enabled{};
 	nds_ctx *nds{};
 	int engineid{};
 };
 
-void gpu_on_scanline_start(nds_ctx *nds);
-
+void gpu2d_init(nds_ctx *nds);
 u8 gpu_2d_read8(gpu_2d_engine *gpu, u8 offset);
 u16 gpu_2d_read16(gpu_2d_engine *gpu, u8 offset);
 u32 gpu_2d_read32(gpu_2d_engine *gpu, u8 offset);
 void gpu_2d_write8(gpu_2d_engine *gpu, u8 offset, u8 value);
 void gpu_2d_write16(gpu_2d_engine *gpu, u8 offset, u16 value);
 void gpu_2d_write32(gpu_2d_engine *gpu, u8 offset, u32 value);
+void gpu_on_scanline_start(nds_ctx *nds);
 
 } // namespace twice
 

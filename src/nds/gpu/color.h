@@ -14,8 +14,6 @@ struct color4 {
 	color4() : r(0), g(0), b(0), a(0) {}
 
 	color4(u8 r, u8 g, u8 b, u8 a) : r(r), g(g), b(b), a(a) {}
-
-	color4(u8 r, u8 g, u8 b) : r(r), g(g), b(b), a(0) {}
 };
 
 union color_u {
@@ -74,7 +72,7 @@ unpack_bgr555_2d(u16 color)
 	u8 g = (color >> 5 & 0x1F) << 1;
 	u8 b = (color >> 10 & 0x1F) << 1;
 
-	return { r, g, b };
+	return { r, g, b, 0x1F };
 }
 
 inline u32
@@ -84,7 +82,7 @@ pack_to_bgr888(color4 color)
 	u32 g = (color.g * 259 + 33) >> 6;
 	u32 b = (color.b * 259 + 33) >> 6;
 
-	return b << 16 | g << 8 | r;
+	return 0xFF000000 | b << 16 | g << 8 | r;
 }
 
 } // namespace twice
