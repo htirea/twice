@@ -42,3 +42,4 @@
 # Project
 bin/
 build/
+CMakeLists.txt.user
