@@ -5,6 +5,7 @@
 #include "nds/mem/io.h"
 #include "nds/mem/vram.h"
 #include "nds/nds.h"
+#include "nds/wifi.h"
 
 #include "common/logger.h"
 #include "common/util.h"
@@ -199,7 +200,11 @@ bus7_read(nds_ctx *nds, u32 addr)
 		}
 		break;
 	case 0x48 >> 3:
-		LOGV("wifi read from %08X\n", addr);
+		if (addr < 0x4810000) {
+			value = io_wifi_read<T>(nds, addr & WIFI_REGION_MASK);
+		} else {
+			value = 0;
+		}
 		break;
 	case 0x60 >> 3:
 	case 0x68 >> 3:
@@ -256,7 +261,9 @@ bus7_write(nds_ctx *nds, u32 addr, T value)
 		}
 		break;
 	case 0x48 >> 3:
-		LOGV("wifi write to %08X\n", addr);
+		if (addr < 0x4810000) {
+			io_wifi_write<T>(nds, addr & WIFI_REGION_MASK, value);
+		}
 		break;
 	case 0x60 >> 3:
 	case 0x68 >> 3:

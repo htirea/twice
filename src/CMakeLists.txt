@@ -53,6 +53,7 @@ add_library(twice STATIC
 	nds/spi.cc
 	nds/timer.cc
 	nds/touchscreen.cc
+	nds/wifi.cc
 	"${CMAKE_CURRENT_BINARY_DIR}/arm_lut.cc"
 	"${CMAKE_CURRENT_BINARY_DIR}/thumb_lut.cc"
 )

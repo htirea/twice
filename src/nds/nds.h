@@ -17,6 +17,7 @@
 #include "nds/sound.h"
 #include "nds/timer.h"
 #include "nds/touchscreen.h"
+#include "nds/wifi.h"
 
 #include "common/profiler.h"
 #include "common/types.h"
@@ -40,6 +41,8 @@ enum : u32 {
 	ARM7_WRAM_MASK = 64_KiB - 1,
 	FIRMWARE_SIZE = 256_KiB,
 	FIRMWARE_MASK = 256_KiB - 1,
+	WIFI_REGION_SIZE = 32_KiB,
+	WIFI_REGION_MASK = 32_KiB - 1,
 	MAX_CART_SIZE = 512_MiB,
 };
 
@@ -74,6 +77,7 @@ struct nds_ctx {
 	powerman pwr;
 	sound_channel sound_ch[16];
 	sound_capture_channel sound_cap_ch[2];
+	wifi wf;
 
 	/*
 	 * Memory
