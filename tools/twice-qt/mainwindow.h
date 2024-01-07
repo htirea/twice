@@ -17,6 +17,10 @@ class MainWindow : public QMainWindow {
       public:
 	MainWindow(QSettings *settings, QWidget *parent = nullptr);
 	~MainWindow();
+	void start_emulator_thread();
+
+      private:
+	void set_display_size(int w, int h);
 
       private:
 	Display *display{};

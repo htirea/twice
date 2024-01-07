@@ -1,16 +1,22 @@
 #include "display.h"
 
+#include <iostream>
+
 #include "libtwice/exception.h"
 
 namespace twice {
 
 static const char *vtx_shader_src = R"___(
 #version 330 core
-layout (location = 0) in vec3 aPos;
+layout (location = 0) in vec3 pos;
+layout (location = 1) in vec2 uv_in;
+
+out vec2 uv;
 
 void main()
 {
-	gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);
+	gl_Position = vec4(pos, 1.0);
+	uv = uv_in;
 }
 )___";
 
@@ -18,9 +24,13 @@ static const char *fragment_shader_src = R"___(
 #version 330 core
 out vec4 FragColor;
 
+in vec2 uv;
+
+uniform sampler2D texture1;
+
 void main()
 {
-	FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);
+	FragColor = texture(texture1, uv);
 }
 )___";
 
@@ -49,17 +59,49 @@ Display::initializeGL()
 			fragment_shader_src, GL_FRAGMENT_SHADER);
 	shader_program = link_shaders({ vtx_shader, fragment_shader });
 
-	float vertices[] = { -0.5f, -0.5f, 0.0f, 0.5f, -0.5f, 0.0f, 0.0f, 0.5f,
-		0.0f };
+	float vertices[] = {
+		1.0f, 1.0f, 0.0f, 1.0f, 0.0f,   // top right
+		1.0f, -1.0f, 0.0f, 1.0f, 1.0f,  // bottom right
+		-1.0f, -1.0f, 0.0f, 0.0f, 1.0f, // bottom left
+		-1.0f, 1.0f, 0.0f, 0.0f, 0.0f   // top left
+	};
+
+	unsigned int indices[] = {
+		0, 1, 3, //
+		1, 2, 3, //
+	};
+
 	glGenVertexArrays(1, &vao);
 	glGenBuffers(1, &vbo);
+	glGenBuffers(1, &ebo);
 	glBindVertexArray(vao);
 	glBindBuffer(GL_ARRAY_BUFFER, vbo);
 	glBufferData(GL_ARRAY_BUFFER, sizeof vertices, vertices,
 			GL_STATIC_DRAW);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float),
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof indices, indices,
+			GL_STATIC_DRAW);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float),
 			(void *)0);
 	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float),
+			(void *)(3 * sizeof(float)));
+	glEnableVertexAttribArray(1);
+
+	glGenTextures(1, &texture);
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, texture);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	{
+		std::lock_guard lock(fb_mtx);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, NDS_FB_W, NDS_FB_H, 0,
+				GL_RGBA, GL_UNSIGNED_BYTE, fb.data());
+	}
+	glGenerateMipmap(GL_TEXTURE_2D);
+	glUseProgram(shader_program);
 }
 
 void
@@ -73,11 +115,17 @@ void
 Display::paintGL()
 {
 	glViewport(0, 0, w, h);
-	glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT);
+	glBindTexture(GL_TEXTURE_2D, texture);
+	{
+		std::lock_guard lock(fb_mtx);
+		glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, NDS_FB_W, NDS_FB_H,
+				GL_RGBA, GL_UNSIGNED_BYTE, fb.data());
+	}
 	glUseProgram(shader_program);
 	glBindVertexArray(vao);
-	glDrawArrays(GL_TRIANGLES, 0, 3);
+	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 }
 
 GLuint

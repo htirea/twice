@@ -27,15 +27,17 @@ class Display : public QOpenGLWidget, protected QOpenGLFunctions_3_3_Core {
 	GLuint link_shaders(std::initializer_list<GLuint> shaders);
 
       public:
-	std::array<u32, NDS_FB_SZ> fb;
+	std::array<u32, NDS_FB_SZ> fb{};
 	std::mutex fb_mtx;
 
       private:
 	GLuint vbo{};
 	GLuint vao{};
+	GLuint ebo{};
 	GLuint vtx_shader{};
 	GLuint fragment_shader{};
 	GLuint shader_program{};
+	GLuint texture{};
 	int w{};
 	int h{};
 };
