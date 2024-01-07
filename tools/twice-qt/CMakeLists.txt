@@ -1,19 +1,20 @@
 set(CMAKE_AUTOMOC ON)
 
-find_package(Qt6 REQUIRED COMPONENTS Widgets OpenGLWidgets)
+find_package(Qt6 REQUIRED COMPONENTS Core Widgets OpenGLWidgets)
 
 qt_add_executable(twice-qt
 	MANUAL_FINALIZATION
         main.cc
         mainwindow.h mainwindow.cc
         display.h display.cc
+	emulatorthread.h emulatorthread.cc
 )
 # Define target properties for Android with Qt 6 as:
 #    set_property(TARGET twice-qt APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR
 #                 ${CMAKE_CURRENT_SOURCE_DIR}/android)
 # For more information, see https://doc.qt.io/qt-6/qt-add-executable.html#target-creation
 
-target_link_libraries(twice-qt PRIVATE Qt6::Widgets Qt6::OpenGLWidgets)
+target_link_libraries(twice-qt PRIVATE twice Qt6::Core Qt6::Widgets Qt6::OpenGLWidgets)
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
 # If you are developing for iOS or macOS you should consider setting an
