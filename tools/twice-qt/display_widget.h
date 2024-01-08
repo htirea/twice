@@ -9,6 +9,7 @@
 #include "libtwice/nds/defs.h"
 #include "libtwice/types.h"
 
+#include "util/matrix.h"
 #include "util/threaded_queue.h"
 #include "util/triple_buffer.h"
 
@@ -33,6 +34,7 @@ class DisplayWidget : public QOpenGLWidget,
 	void mouseMoveEvent(QMouseEvent *e) override;
 
       private:
+	void update_projection_mtx();
 	GLuint compile_shader(const char *src, GLenum type);
 	GLuint link_shaders(std::initializer_list<GLuint> shaders);
 
@@ -44,9 +46,11 @@ class DisplayWidget : public QOpenGLWidget,
 	GLuint fragment_shader{};
 	GLuint shader_program{};
 	GLuint texture{};
-	int w{};
-	int h{};
+	float proj_mtx[16]{};
+	double w{};
+	double h{};
 	int orientation{};
+	bool letterboxed{ true };
 	triple_buffer<std::array<u32, NDS_FB_SZ>> *tbuffer;
 	threaded_queue<Event> *event_q{};
 };

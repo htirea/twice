@@ -14,11 +14,13 @@ static const char *vtx_shader_src = R"___(
 layout (location = 0) in vec3 pos;
 layout (location = 1) in vec2 uv_in;
 
+uniform mat4 proj_mtx;
+
 out vec2 uv;
 
 void main()
 {
-	gl_Position = vec4(pos, 1.0);
+	gl_Position = proj_mtx * vec4(pos, 1.0);
 	uv = uv_in;
 }
 )___";
@@ -42,6 +44,7 @@ DisplayWidget::DisplayWidget(
 		threaded_queue<Event> *event_q)
 	: tbuffer(tbuffer), event_q(event_q)
 {
+	mtx_set_identity<float, 4>(proj_mtx);
 }
 
 DisplayWidget::~DisplayWidget()
@@ -107,6 +110,8 @@ DisplayWidget::initializeGL()
 			GL_UNSIGNED_BYTE, tbuffer->get_read_buffer().data());
 	glGenerateMipmap(GL_TEXTURE_2D);
 	glUseProgram(shader_program);
+	GLuint proj_mtx_loc = glGetUniformLocation(shader_program, "proj_mtx");
+	glUniformMatrix4fv(proj_mtx_loc, 1, GL_FALSE, proj_mtx);
 }
 
 void
@@ -120,12 +125,15 @@ void
 DisplayWidget::paintGL()
 {
 	glViewport(0, 0, w, h);
+	update_projection_mtx();
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT);
 	glBindTexture(GL_TEXTURE_2D, texture);
 	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, NDS_FB_W, NDS_FB_H, GL_RGBA,
 			GL_UNSIGNED_BYTE, tbuffer->get_read_buffer().data());
 	glUseProgram(shader_program);
+	GLuint proj_mtx_loc = glGetUniformLocation(shader_program, "proj_mtx");
+	glUniformMatrix4fv(proj_mtx_loc, 1, GL_FALSE, proj_mtx);
 	glBindVertexArray(vao);
 	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 }
@@ -135,7 +143,7 @@ DisplayWidget::mousePressEvent(QMouseEvent *e)
 {
 	auto pos = e->position();
 	if (auto coords = window_coords_to_screen_coords(
-			    w, h, pos.x(), pos.y(), false, 0, 0)) {
+			    w, h, pos.x(), pos.y(), letterboxed, 0, 0)) {
 		event_q->push(TouchEvent{ .x = coords->first,
 				.y = coords->second,
 				.down = true });
@@ -153,12 +161,27 @@ DisplayWidget::mouseMoveEvent(QMouseEvent *e)
 {
 	auto pos = e->position();
 	if (auto coords = window_coords_to_screen_coords(
-			    w, h, pos.x(), pos.y(), false, 0, 0)) {
+			    w, h, pos.x(), pos.y(), letterboxed, 0, 0)) {
 		event_q->push(TouchEvent{ .x = coords->first,
 				.y = coords->second,
 				.down = true });
 	} else {
 		event_q->push(TouchEvent{ .x = 0, .y = 0, .down = false });
+	}
+}
+
+void
+DisplayWidget::update_projection_mtx()
+{
+	mtx_set_identity<float, 4>(proj_mtx);
+
+	if (letterboxed) {
+		double ratio = w / h;
+		if (ratio < NDS_FB_ASPECT_RATIO) {
+			proj_mtx[5] = w / NDS_FB_ASPECT_RATIO / h;
+		} else if (ratio > NDS_FB_ASPECT_RATIO) {
+			proj_mtx[0] = h * NDS_FB_ASPECT_RATIO / w;
+		}
 	}
 }
 
