@@ -1,8 +1,11 @@
-#include "display.h"
+#include "display_widget.h"
 
 #include <iostream>
 
+#include <QMouseEvent>
+
 #include "libtwice/exception.h"
+#include "libtwice/nds/display.h"
 
 namespace twice {
 
@@ -34,12 +37,14 @@ void main()
 }
 )___";
 
-Display::Display(triple_buffer<std::array<u32, NDS_FB_SZ>> *tbuffer)
-	: tbuffer(tbuffer)
+DisplayWidget::DisplayWidget(
+		triple_buffer<std::array<u32, NDS_FB_SZ>> *tbuffer,
+		threaded_queue<Event> *event_q)
+	: tbuffer(tbuffer), event_q(event_q)
 {
 }
 
-Display::~Display()
+DisplayWidget::~DisplayWidget()
 {
 	makeCurrent();
 	glDeleteShader(vtx_shader);
@@ -47,13 +52,13 @@ Display::~Display()
 }
 
 void
-Display::render()
+DisplayWidget::render()
 {
 	update();
 }
 
 void
-Display::initializeGL()
+DisplayWidget::initializeGL()
 {
 	initializeOpenGLFunctions();
 
@@ -105,14 +110,14 @@ Display::initializeGL()
 }
 
 void
-Display::resizeGL(int w, int h)
+DisplayWidget::resizeGL(int w, int h)
 {
 	this->w = w;
 	this->h = h;
 }
 
 void
-Display::paintGL()
+DisplayWidget::paintGL()
 {
 	glViewport(0, 0, w, h);
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -125,8 +130,40 @@ Display::paintGL()
 	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 }
 
+void
+DisplayWidget::mousePressEvent(QMouseEvent *e)
+{
+	auto pos = e->position();
+	if (auto coords = window_coords_to_screen_coords(
+			    w, h, pos.x(), pos.y(), false, 0, 0)) {
+		event_q->push(TouchEvent{ .x = coords->first,
+				.y = coords->second,
+				.down = true });
+	}
+}
+
+void
+DisplayWidget::mouseReleaseEvent(QMouseEvent *)
+{
+	event_q->push(TouchEvent{ .x = 0, .y = 0, .down = false });
+}
+
+void
+DisplayWidget::mouseMoveEvent(QMouseEvent *e)
+{
+	auto pos = e->position();
+	if (auto coords = window_coords_to_screen_coords(
+			    w, h, pos.x(), pos.y(), false, 0, 0)) {
+		event_q->push(TouchEvent{ .x = coords->first,
+				.y = coords->second,
+				.down = true });
+	} else {
+		event_q->push(TouchEvent{ .x = 0, .y = 0, .down = false });
+	}
+}
+
 GLuint
-Display::compile_shader(const char *src, GLenum type)
+DisplayWidget::compile_shader(const char *src, GLenum type)
 {
 	int success = 0;
 	GLuint shader = glCreateShader(type);
@@ -146,7 +183,7 @@ Display::compile_shader(const char *src, GLenum type)
 }
 
 GLuint
-Display::link_shaders(std::initializer_list<GLuint> shaders)
+DisplayWidget::link_shaders(std::initializer_list<GLuint> shaders)
 {
 	int success = 0;
 	GLuint program = glCreateProgram();

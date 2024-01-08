@@ -21,6 +21,7 @@ add_library(twice STATIC
 	${FILEMAP_SOURCE}
 	libtwice/game_db.cc
 	libtwice/machine.cc
+	libtwice/display.cc
 	nds/arm/arm.cc
 	nds/arm/arm7.cc
 	nds/arm/arm9.cc

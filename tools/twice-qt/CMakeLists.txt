@@ -4,10 +4,17 @@ find_package(Qt6 REQUIRED COMPONENTS Core Widgets OpenGLWidgets Multimedia)
 
 qt_add_executable(twice-qt
 	MANUAL_FINALIZATION
-        main.cc
-        mainwindow.h mainwindow.cc
-        display.h display.cc
-	emulatorthread.h emulatorthread.cc
+	display_widget.cc
+	display_widget.h
+	emulator_events.h
+	emulator_thread.cc
+	emulator_thread.h
+	main.cc
+	mainwindow.cc
+	mainwindow.h
+	util/frame_timer.h
+	util/threaded_queue.h
+	util/triple_buffer.h
 )
 # Define target properties for Android with Qt 6 as:
 #    set_property(TARGET twice-qt APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR

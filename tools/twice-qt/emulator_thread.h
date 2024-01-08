@@ -1,5 +1,5 @@
-#ifndef TWICE_EMULATORTHREAD_H
-#define TWICE_EMULATORTHREAD_H
+#ifndef TWICE_QT_EMULATOR_THREAD_H
+#define TWICE_QT_EMULATOR_THREAD_H
 
 #include <array>
 #include <atomic>
@@ -10,8 +10,8 @@
 
 #include "libtwice/nds/machine.h"
 
-#include "display.h"
-#include "events.h"
+#include "display_widget.h"
+#include "emulator_events.h"
 
 #include "util/frame_timer.h"
 #include "util/threaded_queue.h"
@@ -23,9 +23,10 @@ class EmulatorThread : public QThread {
 	Q_OBJECT
 
       public:
-	EmulatorThread(QSettings *settings, Display *display,
+	EmulatorThread(QSettings *settings, DisplayWidget *display,
 			triple_buffer<std::array<u32, NDS_FB_SZ>> *tbuffer,
-			triple_buffer<std::array<s16, 2048>> *abuffer);
+			triple_buffer<std::array<s16, 2048>> *abuffer,
+			threaded_queue<Event> *event_q);
 	void run() override;
 	void wait();
 
@@ -48,9 +49,6 @@ class EmulatorThread : public QThread {
 	void handle_event(const TouchEvent& e);
 	void handle_event(const UpdateRTCEvent& e);
 
-      public:
-	threaded_queue<Event> event_q;
-
       private:
 	bool throttle{};
 
@@ -64,9 +62,10 @@ class EmulatorThread : public QThread {
 
 	std::unique_ptr<nds_machine> nds;
 	QSettings *settings{};
-	Display *display{};
+	DisplayWidget *display{};
 	triple_buffer<std::array<u32, NDS_FB_SZ>> *tbuffer{};
 	triple_buffer<std::array<s16, 2048>> *abuffer{};
+	threaded_queue<Event> *event_q{};
 
       signals:
 	void queue_audio_signal(size_t len);

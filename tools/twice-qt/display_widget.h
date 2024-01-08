@@ -1,5 +1,5 @@
-#ifndef TWICE_DISPLAY_H
-#define TWICE_DISPLAY_H
+#ifndef TWICE_QT_DISPLAY_WIDGET_H
+#define TWICE_QT_DISPLAY_WIDGET_H
 
 #include <mutex>
 
@@ -9,20 +9,28 @@
 #include "libtwice/nds/defs.h"
 #include "libtwice/types.h"
 
+#include "util/threaded_queue.h"
 #include "util/triple_buffer.h"
+
+#include "emulator_events.h"
 
 namespace twice {
 
-class Display : public QOpenGLWidget, protected QOpenGLFunctions_3_3_Core {
+class DisplayWidget : public QOpenGLWidget,
+		      protected QOpenGLFunctions_3_3_Core {
       public:
-	Display(triple_buffer<std::array<u32, NDS_FB_SZ>> *tbuffer);
-	~Display();
+	DisplayWidget(triple_buffer<std::array<u32, NDS_FB_SZ>> *tbuffer,
+			threaded_queue<Event> *event_q);
+	~DisplayWidget();
 	void render();
 
       protected:
 	void initializeGL() override;
 	void resizeGL(int w, int h) override;
 	void paintGL() override;
+	void mousePressEvent(QMouseEvent *e) override;
+	void mouseReleaseEvent(QMouseEvent *e) override;
+	void mouseMoveEvent(QMouseEvent *e) override;
 
       private:
 	GLuint compile_shader(const char *src, GLenum type);
@@ -38,7 +46,9 @@ class Display : public QOpenGLWidget, protected QOpenGLFunctions_3_3_Core {
 	GLuint texture{};
 	int w{};
 	int h{};
+	int orientation{};
 	triple_buffer<std::array<u32, NDS_FB_SZ>> *tbuffer;
+	threaded_queue<Event> *event_q{};
 };
 
 } // namespace twice

@@ -1,14 +1,16 @@
-#include "emulatorthread.h"
+#include "emulator_thread.h"
 
 namespace twice {
 
-EmulatorThread::EmulatorThread(QSettings *settings, Display *display,
+EmulatorThread::EmulatorThread(QSettings *settings, DisplayWidget *display,
 		triple_buffer<std::array<u32, NDS_FB_SZ>> *tbuffer,
-		triple_buffer<std::array<s16, 2048>> *abuffer)
+		triple_buffer<std::array<s16, 2048>> *abuffer,
+		threaded_queue<Event> *event_q)
 	: settings(settings),
 	  display(display),
 	  tbuffer(tbuffer),
-	  abuffer(abuffer)
+	  abuffer(abuffer),
+	  event_q(event_q)
 {
 	nds_config config;
 	/* TODO: fix file path handling */
@@ -63,7 +65,7 @@ EmulatorThread::run()
 void
 EmulatorThread::wait()
 {
-	event_q.push(QuitEvent{});
+	event_q->push(QuitEvent{});
 	QThread::wait();
 }
 
@@ -81,7 +83,7 @@ void
 EmulatorThread::handle_events()
 {
 	Event e;
-	while (event_q.try_pop(e)) {
+	while (event_q->try_pop(e)) {
 		std::visit([this](const auto& e) { return handle_event(e); },
 				e);
 	}
@@ -98,8 +100,8 @@ EmulatorThread::handle_event(const QuitEvent&)
 	if (state == STOPPED) {
 		quit = true;
 	} else {
-		event_q.push(StopEvent{});
-		event_q.push(QuitEvent{});
+		event_q->push(StopEvent{});
+		event_q->push(QuitEvent{});
 	}
 }
 
@@ -161,13 +163,15 @@ EmulatorThread::handle_event(const RotateEvent&)
 }
 
 void
-EmulatorThread::handle_event(const ButtonEvent&)
+EmulatorThread::handle_event(const ButtonEvent& e)
 {
+	nds->button_event(e.which, e.down);
 }
 
 void
-EmulatorThread::handle_event(const TouchEvent&)
+EmulatorThread::handle_event(const TouchEvent& e)
 {
+	nds->update_touchscreen_state(e.x, e.y, e.down);
 }
 
 void

@@ -1,5 +1,5 @@
-#ifndef TWICE_QT_EVENTS_H
-#define TWICE_QT_EVENTS_H
+#ifndef TWICE_QT_EMULATOR_EVENTS_H
+#define TWICE_QT_EMULATOR_EVENTS_H
 
 #include <string>
 #include <variant>
