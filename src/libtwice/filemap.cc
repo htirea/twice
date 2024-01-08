@@ -87,6 +87,12 @@ file_map::sync()
 	return internal ? internal->sync() : 0;
 }
 
+std::string
+file_map::get_pathname() const noexcept
+{
+	return internal ? internal->pathname : "";
+}
+
 file_map::impl::~impl()
 {
 	if (buffer) {

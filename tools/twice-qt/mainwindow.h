@@ -5,10 +5,12 @@
 #include <QMainWindow>
 #include <QSettings>
 #include <QStandardPaths>
+#include <QDragEnterEvent>
+#include <QMimeData>
 
 #include "display.h"
 #include "emulatorthread.h"
-#include "triple_buffer.h"
+#include "util/triple_buffer.h"
 
 namespace twice {
 
@@ -22,6 +24,10 @@ class MainWindow : public QMainWindow {
 
       private:
 	void set_display_size(int w, int h);
+
+      protected:
+	void dragEnterEvent(QDragEnterEvent *) override;
+	void dropEvent(QDropEvent *e) override;
 
       private:
 	Display *display{};

@@ -101,6 +101,13 @@ struct file_map {
 	 */
 	int sync();
 
+	/**
+	 * Get the pathname of the underlying file.
+	 *
+	 * \returns the pathname
+	 */
+	std::string get_pathname() const noexcept;
+
       private:
 	std::unique_ptr<impl> internal;
 };

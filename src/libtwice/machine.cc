@@ -24,40 +24,43 @@ nds_machine::~nds_machine() = default;
 void
 nds_machine::load_cartridge(const std::string& pathname)
 {
-	nds_save_info save_info{ SAVETYPE_UNKNOWN, 0 };
-
-	load_cartridge(pathname, save_info);
-}
-
-void
-nds_machine::load_cartridge(
-		const std::string& pathname, nds_save_info save_info)
-{
-	namespace fs = std::filesystem;
-
 	auto cartridge = file_map(pathname, MAX_CART_SIZE,
 			file_map::FILEMAP_PRIVATE | file_map::FILEMAP_LIMIT);
 	if (cartridge.size() < 0x160) {
 		throw twice_error("cartridge size too small: " + pathname);
 	}
 
-	if (save_info.type == SAVETYPE_UNKNOWN) {
-		save_info = nds_get_save_info(cartridge);
-	}
-
-	file_map savefile;
-	if (save_info.type != SAVETYPE_NONE) {
-		std::string savepath =
-				fs::path(pathname)
-						.replace_extension(".sav")
-						.string();
-		savefile = file_map(savepath, save_info.size,
-				file_map::FILEMAP_SHARED);
-	}
-
 	this->cartridge = std::move(cartridge);
+}
+
+void
+nds_machine::set_savetype(nds_savetype savetype)
+{
+	this->savetype = savetype;
+}
+
+void
+nds_machine::load_savefile(const std::string& pathname)
+{
+	if (savetype == SAVETYPE_NONE)
+		return;
+
+	if (savetype == SAVETYPE_UNKNOWN) {
+		try {
+			auto savefile = file_map(pathname, 0,
+					file_map::FILEMAP_PRIVATE);
+			auto size = savefile.size();
+			savetype = nds_savetype_from_size(size);
+		} catch (const file_map::file_map_error& e) {
+		}
+	}
+
+	if (savetype == SAVETYPE_UNKNOWN)
+		return;
+
+	auto savefile = file_map(pathname, nds_savetype_to_size(savetype),
+			file_map::FILEMAP_SHARED | file_map::FILEMAP_EXACT);
 	this->savefile = std::move(savefile);
-	this->save_info = save_info;
 }
 
 void
@@ -67,13 +70,25 @@ nds_machine::boot(bool direct_boot)
 		throw twice_error("cartridge not loaded");
 	}
 
-	if (cartridge && save_info.type == SAVETYPE_UNKNOWN) {
-		throw twice_error("unknown save type");
+	if (cartridge && savetype == SAVETYPE_UNKNOWN) {
+		savetype = nds_get_save_info(cartridge).type;
+	}
+
+	if (cartridge && !savefile && savetype != SAVETYPE_NONE) {
+		std::string savepath =
+				std::filesystem::path(cartridge.get_pathname())
+						.replace_extension(".sav")
+						.string();
+		load_savefile(savepath);
+	}
+
+	if (cartridge && savetype == SAVETYPE_UNKNOWN) {
+		throw twice_error("unknown savetype");
 	}
 
 	auto ctx = create_nds_ctx(arm7_bios.data(), arm9_bios.data(),
 			firmware.data(), cartridge.data(), cartridge.size(),
-			savefile.data(), savefile.size(), save_info.type);
+			savefile.data(), savefile.size(), savetype);
 	if (direct_boot) {
 		nds_direct_boot(ctx.get());
 	} else {

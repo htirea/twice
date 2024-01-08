@@ -18,6 +18,7 @@ MainWindow::MainWindow(QSettings *settings, QWidget *parent)
 			&MainWindow::frame_ended);
 
 	set_display_size(512, 768);
+	setAcceptDrops(true);
 }
 
 MainWindow::~MainWindow()
@@ -42,6 +43,25 @@ void
 MainWindow::frame_ended()
 {
 	display->render();
+}
+
+void
+MainWindow::dragEnterEvent(QDragEnterEvent *e)
+{
+	if (e->mimeData()->hasUrls()) {
+		e->acceptProposedAction();
+	}
+}
+
+void
+MainWindow::dropEvent(QDropEvent *e)
+{
+	for (const auto& url : e->mimeData()->urls()) {
+		emu_thread->event_q.push(LoadROMEvent{
+				.pathname = url.toLocalFile().toStdString() });
+	}
+
+	emu_thread->event_q.push(BootEvent{ .direct = true });
 }
 
 } // namespace twice

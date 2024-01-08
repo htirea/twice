@@ -169,8 +169,11 @@ try {
 
 	twice::nds_config config{ data_dir };
 	twice::nds_machine nds(config);
+	if (save_info.type != twice::SAVETYPE_UNKNOWN) {
+		nds.set_savetype(save_info.type);
+	}
 	if (!cartridge_pathname.empty()) {
-		nds.load_cartridge(cartridge_pathname, save_info);
+		nds.load_cartridge(cartridge_pathname);
 	}
 	nds.boot(direct_boot);
 

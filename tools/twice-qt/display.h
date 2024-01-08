@@ -9,7 +9,7 @@
 #include "libtwice/nds/defs.h"
 #include "libtwice/types.h"
 
-#include "triple_buffer.h"
+#include "util/triple_buffer.h"
 
 namespace twice {
 
