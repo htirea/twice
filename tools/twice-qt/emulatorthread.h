@@ -12,6 +12,7 @@
 
 #include "display.h"
 #include "triple_buffer.h"
+#include "frame_timer.h"
 
 namespace twice {
 
@@ -25,6 +26,8 @@ class EmulatorThread : public QThread {
 	void wait();
 
       private:
+	bool throttle{};
+
 	std::atomic<bool> quit{};
 	std::unique_ptr<nds_machine> nds;
 	QSettings *settings{};

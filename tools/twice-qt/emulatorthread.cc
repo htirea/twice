@@ -17,11 +17,24 @@ EmulatorThread::EmulatorThread(QSettings *settings, Display *display,
 void
 EmulatorThread::run()
 {
+	throttle = true;
+
+	frame_timer tmr(std::chrono::nanoseconds(
+			(u64)(1000000000 / NDS_FRAME_RATE)));
+
 	while (!quit) {
+		tmr.start_interval();
+
 		nds->run_frame();
 		std::memcpy(tbuffer->get_write_buffer().data(),
 				nds->get_framebuffer(), NDS_FB_SZ_BYTES);
 		tbuffer->swap_write_buffer();
+
+		tmr.end_interval();
+
+		if (throttle) {
+			tmr.throttle();
+		}
 
 		emit end_frame();
 	}
