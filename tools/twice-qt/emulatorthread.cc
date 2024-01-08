@@ -2,8 +2,9 @@
 
 namespace twice {
 
-EmulatorThread::EmulatorThread(QSettings *settings, Display *display)
-	: settings(settings), display(display)
+EmulatorThread::EmulatorThread(QSettings *settings, Display *display,
+		triple_buffer<std::array<u32, NDS_FB_SZ>> *tbuffer)
+	: settings(settings), display(display), tbuffer(tbuffer)
 {
 	nds_config config;
 	/* TODO: fix file path handling */
@@ -18,11 +19,9 @@ EmulatorThread::run()
 {
 	while (!quit) {
 		nds->run_frame();
-		{
-			std::lock_guard lock(display->fb_mtx);
-			std::memcpy(display->fb.data(), nds->get_framebuffer(),
-					NDS_FB_SZ_BYTES);
-		}
+		std::memcpy(tbuffer->get_write_buffer().data(),
+				nds->get_framebuffer(), NDS_FB_SZ_BYTES);
+		tbuffer->swap_write_buffer();
 
 		emit end_frame();
 	}

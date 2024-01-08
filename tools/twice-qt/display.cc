@@ -34,7 +34,10 @@ void main()
 }
 )___";
 
-Display::Display() {}
+Display::Display(triple_buffer<std::array<u32, NDS_FB_SZ>> *tbuffer)
+	: tbuffer(tbuffer)
+{
+}
 
 Display::~Display()
 {
@@ -95,11 +98,8 @@ Display::initializeGL()
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	{
-		std::lock_guard lock(fb_mtx);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, NDS_FB_W, NDS_FB_H, 0,
-				GL_RGBA, GL_UNSIGNED_BYTE, fb.data());
-	}
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, NDS_FB_W, NDS_FB_H, 0, GL_RGBA,
+			GL_UNSIGNED_BYTE, tbuffer->get_read_buffer().data());
 	glGenerateMipmap(GL_TEXTURE_2D);
 	glUseProgram(shader_program);
 }
@@ -118,11 +118,8 @@ Display::paintGL()
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT);
 	glBindTexture(GL_TEXTURE_2D, texture);
-	{
-		std::lock_guard lock(fb_mtx);
-		glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, NDS_FB_W, NDS_FB_H,
-				GL_RGBA, GL_UNSIGNED_BYTE, fb.data());
-	}
+	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, NDS_FB_W, NDS_FB_H, GL_RGBA,
+			GL_UNSIGNED_BYTE, tbuffer->get_read_buffer().data());
 	glUseProgram(shader_program);
 	glBindVertexArray(vao);
 	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);

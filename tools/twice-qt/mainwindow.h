@@ -8,6 +8,7 @@
 
 #include "display.h"
 #include "emulatorthread.h"
+#include "triple_buffer.h"
 
 namespace twice {
 
@@ -26,6 +27,7 @@ class MainWindow : public QMainWindow {
 	Display *display{};
 	QSettings *settings{};
 	EmulatorThread *emu_thread{};
+	triple_buffer<std::array<u32, NDS_FB_SZ>> tbuffer;
 
       public slots:
 	void frame_ended();

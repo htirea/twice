@@ -9,11 +9,13 @@
 #include "libtwice/nds/defs.h"
 #include "libtwice/types.h"
 
+#include "triple_buffer.h"
+
 namespace twice {
 
 class Display : public QOpenGLWidget, protected QOpenGLFunctions_3_3_Core {
       public:
-	Display();
+	Display(triple_buffer<std::array<u32, NDS_FB_SZ>> *tbuffer);
 	~Display();
 	void render();
 
@@ -26,10 +28,6 @@ class Display : public QOpenGLWidget, protected QOpenGLFunctions_3_3_Core {
 	GLuint compile_shader(const char *src, GLenum type);
 	GLuint link_shaders(std::initializer_list<GLuint> shaders);
 
-      public:
-	std::array<u32, NDS_FB_SZ> fb{};
-	std::mutex fb_mtx;
-
       private:
 	GLuint vbo{};
 	GLuint vao{};
@@ -40,6 +38,7 @@ class Display : public QOpenGLWidget, protected QOpenGLFunctions_3_3_Core {
 	GLuint texture{};
 	int w{};
 	int h{};
+	triple_buffer<std::array<u32, NDS_FB_SZ>> *tbuffer;
 };
 
 } // namespace twice

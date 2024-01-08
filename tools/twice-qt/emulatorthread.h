@@ -11,6 +11,7 @@
 #include "libtwice/nds/machine.h"
 
 #include "display.h"
+#include "triple_buffer.h"
 
 namespace twice {
 
@@ -18,7 +19,8 @@ class EmulatorThread : public QThread {
 	Q_OBJECT
 
       public:
-	EmulatorThread(QSettings *settings, Display *display);
+	EmulatorThread(QSettings *settings, Display *display,
+			triple_buffer<std::array<u32, NDS_FB_SZ>> *tbuffer);
 	void run() override;
 	void wait();
 
@@ -27,6 +29,7 @@ class EmulatorThread : public QThread {
 	std::unique_ptr<nds_machine> nds;
 	QSettings *settings{};
 	Display *display{};
+	triple_buffer<std::array<u32, NDS_FB_SZ>> *tbuffer{};
 
       signals:
 	void end_frame();

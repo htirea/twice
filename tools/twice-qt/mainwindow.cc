@@ -3,17 +3,17 @@
 namespace twice {
 
 MainWindow::MainWindow(QSettings *settings, QWidget *parent)
-	: QMainWindow(parent), settings(settings)
+	: QMainWindow(parent), settings(settings), tbuffer{ {} }
 {
 	QSurfaceFormat format;
 	format.setVersion(3, 3);
 	format.setProfile(QSurfaceFormat::CoreProfile);
 	QSurfaceFormat::setDefaultFormat(format);
 
-	display = new Display();
+	display = new Display(&tbuffer);
 	setCentralWidget(display);
 
-	emu_thread = new EmulatorThread(settings, display);
+	emu_thread = new EmulatorThread(settings, display, &tbuffer);
 	connect(emu_thread, &EmulatorThread::end_frame, this,
 			&MainWindow::frame_ended);
 
