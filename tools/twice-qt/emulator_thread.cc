@@ -45,6 +45,8 @@ EmulatorThread::run()
 			tbuffer->swap_write_buffer();
 		}
 
+		emit render_frame();
+
 		if (state == RUNNING && throttle) {
 			queue_audio(nds->get_audio_buffer(),
 					nds->get_audio_buffer_size(),
@@ -76,7 +78,7 @@ EmulatorThread::queue_audio(
 	std::memcpy(abuffer->get_write_buffer().data(), buffer, len);
 	abuffer->swap_write_buffer();
 
-	emit queue_audio_signal(len);
+	emit push_audio(len);
 }
 
 void

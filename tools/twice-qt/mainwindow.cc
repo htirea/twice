@@ -47,8 +47,10 @@ MainWindow::MainWindow(QSettings *settings, QWidget *parent)
 			settings, display, &tbuffer, &abuffer, &event_q);
 	connect(emu_thread, &EmulatorThread::end_frame, this,
 			&MainWindow::frame_ended);
-	connect(emu_thread, &EmulatorThread::queue_audio_signal, this,
-			&MainWindow::audio_queued);
+	connect(emu_thread, &EmulatorThread::render_frame, this,
+			&MainWindow::render_frame);
+	connect(emu_thread, &EmulatorThread::push_audio, this,
+			&MainWindow::push_audio);
 
 	set_display_size(512, 768);
 	setAcceptDrops(true);
@@ -117,11 +119,16 @@ MainWindow::set_nds_button_state(nds_button button, bool down)
 void
 MainWindow::frame_ended()
 {
+}
+
+void
+MainWindow::render_frame()
+{
 	display->render();
 }
 
 void
-MainWindow::audio_queued(size_t len)
+MainWindow::push_audio(size_t len)
 {
 	audio_out_buffer->write(
 			(const char *)abuffer.get_read_buffer().data(), len);

@@ -68,7 +68,8 @@ class EmulatorThread : public QThread {
 	threaded_queue<Event> *event_q{};
 
       signals:
-	void queue_audio_signal(size_t len);
+	void render_frame();
+	void push_audio(size_t len);
 	void end_frame();
 };
 

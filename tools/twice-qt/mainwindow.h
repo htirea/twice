@@ -55,7 +55,8 @@ class MainWindow : public QMainWindow {
 
       public slots:
 	void frame_ended();
-	void audio_queued(size_t len);
+	void render_frame();
+	void push_audio(size_t len);
 };
 
 } // namespace twice
