@@ -12,6 +12,8 @@
 
 #include "display.h"
 #include "events.h"
+
+#include "util/frame_timer.h"
 #include "util/threaded_queue.h"
 #include "util/triple_buffer.h"
 
@@ -22,11 +24,14 @@ class EmulatorThread : public QThread {
 
       public:
 	EmulatorThread(QSettings *settings, Display *display,
-			triple_buffer<std::array<u32, NDS_FB_SZ>> *tbuffer);
+			triple_buffer<std::array<u32, NDS_FB_SZ>> *tbuffer,
+			triple_buffer<std::array<s16, 2048>> *abuffer);
 	void run() override;
 	void wait();
 
       private:
+	void queue_audio(s16 *buffer, size_t len,
+			frame_timer::duration last_period);
 	void handle_events();
 	void handle_event(const DummyEvent& e);
 	void handle_event(const QuitEvent& e);
@@ -61,8 +66,10 @@ class EmulatorThread : public QThread {
 	QSettings *settings{};
 	Display *display{};
 	triple_buffer<std::array<u32, NDS_FB_SZ>> *tbuffer{};
+	triple_buffer<std::array<s16, 2048>> *abuffer{};
 
       signals:
+	void queue_audio_signal(size_t len);
 	void end_frame();
 };
 

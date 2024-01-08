@@ -3,7 +3,7 @@
 namespace twice {
 
 MainWindow::MainWindow(QSettings *settings, QWidget *parent)
-	: QMainWindow(parent), settings(settings), tbuffer{ {} }
+	: QMainWindow(parent), settings(settings), tbuffer{ {} }, abuffer{ {} }
 {
 	QSurfaceFormat format;
 	format.setVersion(3, 3);
@@ -13,9 +13,26 @@ MainWindow::MainWindow(QSettings *settings, QWidget *parent)
 	display = new Display(&tbuffer);
 	setCentralWidget(display);
 
-	emu_thread = new EmulatorThread(settings, display, &tbuffer);
+	QAudioFormat audio_format;
+	audio_format.setSampleRate(32768);
+	audio_format.setChannelCount(2);
+	audio_format.setChannelConfig(QAudioFormat::ChannelConfigStereo);
+	audio_format.setSampleFormat(QAudioFormat::Int16);
+
+	QAudioDevice info(QMediaDevices::defaultAudioOutput());
+	if (!info.isFormatSupported(audio_format)) {
+		throw twice_error("audio format not supported");
+	}
+
+	audio_sink = new QAudioSink(audio_format, this);
+	audio_sink->setBufferSize(4096);
+	audio_out_buffer = audio_sink->start();
+
+	emu_thread = new EmulatorThread(settings, display, &tbuffer, &abuffer);
 	connect(emu_thread, &EmulatorThread::end_frame, this,
 			&MainWindow::frame_ended);
+	connect(emu_thread, &EmulatorThread::queue_audio_signal, this,
+			&MainWindow::audio_queued);
 
 	set_display_size(512, 768);
 	setAcceptDrops(true);
@@ -25,6 +42,7 @@ MainWindow::~MainWindow()
 {
 	emu_thread->wait();
 	delete emu_thread;
+	delete audio_sink;
 }
 
 void
@@ -43,6 +61,13 @@ void
 MainWindow::frame_ended()
 {
 	display->render();
+}
+
+void
+MainWindow::audio_queued(size_t len)
+{
+	audio_out_buffer->write(
+			(const char *)abuffer.get_read_buffer().data(), len);
 }
 
 void

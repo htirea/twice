@@ -8,11 +8,11 @@
 namespace twice {
 
 class frame_timer {
+      public:
 	using clock = std::chrono::steady_clock;
 	using time_point = std::chrono::time_point<clock>;
 	using duration = time_point::duration;
 
-      public:
 	frame_timer(const duration& interval_target)
 		: interval_target(interval_target)
 	{
@@ -55,6 +55,8 @@ class frame_timer {
 		while (now() < target)
 			;
 	}
+
+	duration get_last_period() { return last_period; }
 
 	time_point now() { return clock::now(); }
 

@@ -1,12 +1,14 @@
 #include "emulatorthread.h"
 
-#include "util/frame_timer.h"
-
 namespace twice {
 
 EmulatorThread::EmulatorThread(QSettings *settings, Display *display,
-		triple_buffer<std::array<u32, NDS_FB_SZ>> *tbuffer)
-	: settings(settings), display(display), tbuffer(tbuffer)
+		triple_buffer<std::array<u32, NDS_FB_SZ>> *tbuffer,
+		triple_buffer<std::array<s16, 2048>> *abuffer)
+	: settings(settings),
+	  display(display),
+	  tbuffer(tbuffer),
+	  abuffer(abuffer)
 {
 	nds_config config;
 	/* TODO: fix file path handling */
@@ -41,6 +43,12 @@ EmulatorThread::run()
 			tbuffer->swap_write_buffer();
 		}
 
+		if (state == RUNNING && throttle) {
+			queue_audio(nds->get_audio_buffer(),
+					nds->get_audio_buffer_size(),
+					tmr.get_last_period());
+		}
+
 		tmr.end_interval();
 
 		if (state == STOPPED || state == PAUSED ||
@@ -57,6 +65,16 @@ EmulatorThread::wait()
 {
 	event_q.push(QuitEvent{});
 	QThread::wait();
+}
+
+void
+EmulatorThread::queue_audio(
+		s16 *buffer, size_t len, frame_timer::duration last_period)
+{
+	std::memcpy(abuffer->get_write_buffer().data(), buffer, len);
+	abuffer->swap_write_buffer();
+
+	emit queue_audio_signal(len);
 }
 
 void
