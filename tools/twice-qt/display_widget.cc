@@ -7,6 +7,8 @@
 #include "libtwice/exception.h"
 #include "libtwice/nds/display.h"
 
+#include "util/matrix.h"
+
 namespace twice {
 
 static const char *vtx_shader_src = R"___(
@@ -44,7 +46,7 @@ DisplayWidget::DisplayWidget(
 		threaded_queue<Event> *event_q)
 	: tbuffer(tbuffer), event_q(event_q)
 {
-	mtx_set_identity<float, 4>(proj_mtx);
+	mtx_set_identity<float, 4>(proj_mtx.data());
 }
 
 DisplayWidget::~DisplayWidget()
@@ -112,7 +114,7 @@ DisplayWidget::initializeGL()
 			GL_UNSIGNED_BYTE, tbuffer->get_read_buffer().data());
 	glUseProgram(shader_program);
 	GLuint proj_mtx_loc = glGetUniformLocation(shader_program, "proj_mtx");
-	glUniformMatrix4fv(proj_mtx_loc, 1, GL_FALSE, proj_mtx);
+	glUniformMatrix4fv(proj_mtx_loc, 1, GL_FALSE, proj_mtx.data());
 }
 
 void
@@ -134,7 +136,7 @@ DisplayWidget::paintGL()
 			GL_UNSIGNED_BYTE, tbuffer->get_read_buffer().data());
 	glUseProgram(shader_program);
 	GLuint proj_mtx_loc = glGetUniformLocation(shader_program, "proj_mtx");
-	glUniformMatrix4fv(proj_mtx_loc, 1, GL_FALSE, proj_mtx);
+	glUniformMatrix4fv(proj_mtx_loc, 1, GL_FALSE, proj_mtx.data());
 	glBindVertexArray(vao);
 	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 }
@@ -143,8 +145,8 @@ void
 DisplayWidget::mousePressEvent(QMouseEvent *e)
 {
 	auto pos = e->position();
-	if (auto coords = window_coords_to_screen_coords(
-			    w, h, pos.x(), pos.y(), letterboxed, 0, 0)) {
+	if (auto coords = window_coords_to_screen_coords(w, h, pos.x(),
+			    pos.y(), letterboxed, orientation, 0)) {
 		event_q->push(TouchEvent{ .x = coords->first,
 				.y = coords->second,
 				.down = true });
@@ -161,8 +163,8 @@ void
 DisplayWidget::mouseMoveEvent(QMouseEvent *e)
 {
 	auto pos = e->position();
-	if (auto coords = window_coords_to_screen_coords(
-			    w, h, pos.x(), pos.y(), letterboxed, 0, 0)) {
+	if (auto coords = window_coords_to_screen_coords(w, h, pos.x(),
+			    pos.y(), letterboxed, orientation, 0)) {
 		event_q->push(TouchEvent{ .x = coords->first,
 				.y = coords->second,
 				.down = true });
@@ -174,15 +176,50 @@ DisplayWidget::mouseMoveEvent(QMouseEvent *e)
 void
 DisplayWidget::update_projection_mtx()
 {
-	mtx_set_identity<float, 4>(proj_mtx);
+	float sx = 1.0;
+	float sy = 1.0;
 
 	if (letterboxed) {
 		double ratio = w / h;
-		if (ratio < NDS_FB_ASPECT_RATIO) {
-			proj_mtx[5] = w / NDS_FB_ASPECT_RATIO / h;
-		} else if (ratio > NDS_FB_ASPECT_RATIO) {
-			proj_mtx[0] = h * NDS_FB_ASPECT_RATIO / w;
+		double target_ratio;
+		if (orientation & 1) {
+			target_ratio = NDS_FB_ASPECT_RATIO_RECIP;
+		} else {
+			target_ratio = NDS_FB_ASPECT_RATIO;
 		}
+
+		if (ratio < target_ratio) {
+			sy = w / target_ratio / h;
+		} else if (ratio > target_ratio) {
+			sx = h * target_ratio / w;
+		}
+
+		if (orientation & 1) {
+			std::swap(sx, sy);
+		}
+	}
+
+	proj_mtx.fill(0);
+	proj_mtx[10] = 1.0;
+	proj_mtx[15] = 1.0;
+
+	switch (orientation) {
+	case 0:
+		proj_mtx[0] = sx;
+		proj_mtx[5] = sy;
+		break;
+	case 1:
+		proj_mtx[1] = -sx;
+		proj_mtx[4] = sy;
+		break;
+	case 2:
+		proj_mtx[0] = -sx;
+		proj_mtx[5] = -sy;
+		break;
+	case 3:
+		proj_mtx[1] = sx;
+		proj_mtx[4] = -sy;
+		break;
 	}
 }
 

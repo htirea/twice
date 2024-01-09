@@ -10,6 +10,7 @@ constexpr std::size_t NDS_FB_H = 384;
 constexpr std::size_t NDS_FB_SZ = NDS_FB_W * NDS_FB_H;
 constexpr std::size_t NDS_FB_SZ_BYTES = NDS_FB_SZ * 4;
 constexpr double NDS_FB_ASPECT_RATIO = (double)NDS_FB_W / NDS_FB_H;
+constexpr double NDS_FB_ASPECT_RATIO_RECIP = (double)NDS_FB_H / NDS_FB_W;
 
 constexpr std::size_t NDS_SCREEN_W = 256;
 constexpr std::size_t NDS_SCREEN_H = 192;

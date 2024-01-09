@@ -17,6 +17,8 @@ enum {
 	CMD_BUTTON_Y,
 	CMD_PAUSE,
 	CMD_FAST_FORWARD,
+	CMD_ROTATE_RIGHT,
+	CMD_ROTATE_LEFT,
 };
 
 MainWindow::MainWindow(QSettings *settings, QCommandLineParser *parser,
@@ -114,6 +116,16 @@ MainWindow::initialize_commands()
 		if (arg & 1)
 			fast_forward_act->toggle();
 	});
+
+	cmd_map[CMD_ROTATE_RIGHT] = ([=](intptr_t arg) {
+		if (arg & 1)
+			set_orientation((display->orientation + 1) & 3);
+	});
+
+	cmd_map[CMD_ROTATE_LEFT] = ([=](intptr_t arg) {
+		if (arg & 1)
+			set_orientation((display->orientation - 1) & 3);
+	});
 }
 
 void
@@ -139,6 +151,8 @@ MainWindow::set_default_keybinds()
 	keybinds[QKeyCombination(Qt::NoModifier, Qt::Key_P)] = CMD_PAUSE;
 	keybinds[QKeyCombination(Qt::NoModifier, Qt::Key_0)] =
 			CMD_FAST_FORWARD;
+	keybinds[QKeyCombination(Qt::CTRL, Qt::Key_Right)] = CMD_ROTATE_RIGHT;
+	keybinds[QKeyCombination(Qt::CTRL, Qt::Key_Left)] = CMD_ROTATE_LEFT;
 }
 
 void
@@ -161,6 +175,12 @@ void
 MainWindow::fast_forward_nds(bool fast_forward)
 {
 	event_q.push(SetFastForwardEvent{ .fast_forward = fast_forward });
+}
+
+void
+MainWindow::set_orientation(int orientation)
+{
+	display->orientation = orientation;
 }
 
 void

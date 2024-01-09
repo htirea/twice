@@ -9,7 +9,6 @@
 #include "libtwice/nds/defs.h"
 #include "libtwice/types.h"
 
-#include "util/matrix.h"
 #include "util/threaded_queue.h"
 #include "util/triple_buffer.h"
 
@@ -19,6 +18,8 @@ namespace twice {
 
 class DisplayWidget : public QOpenGLWidget,
 		      protected QOpenGLFunctions_3_3_Core {
+	friend class MainWindow;
+
       public:
 	DisplayWidget(triple_buffer<std::array<u32, NDS_FB_SZ>> *tbuffer,
 			threaded_queue<Event> *event_q);
@@ -46,7 +47,7 @@ class DisplayWidget : public QOpenGLWidget,
 	GLuint fragment_shader{};
 	GLuint shader_program{};
 	GLuint texture{};
-	float proj_mtx[16]{};
+	std::array<float, 16> proj_mtx;
 	double w{};
 	double h{};
 	int orientation{};

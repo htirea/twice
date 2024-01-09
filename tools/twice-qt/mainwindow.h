@@ -46,6 +46,7 @@ class MainWindow : public QMainWindow {
 	void set_nds_button_state(nds_button button, bool down);
 	void pause_nds(bool pause);
 	void fast_forward_nds(bool fast_forward);
+	void set_orientation(int orientation);
 	void create_actions();
 	void create_menus();
 
