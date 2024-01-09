@@ -196,6 +196,25 @@ MainWindow::render_frame()
 void
 MainWindow::push_audio(size_t len)
 {
+	static double acc = 0;
+	double early_threshold = -NDS_AVG_SAMPLES_PER_FRAME;
+	double late_threshold = NDS_AVG_SAMPLES_PER_FRAME;
+
+	auto elapsed = audio_stopwatch.start();
+	double samples = NDS_AVG_SAMPLES_PER_FRAME;
+	double samples_max =
+			NDS_AUDIO_SAMPLE_RATE * to_seconds<double>(elapsed);
+	acc += samples - samples_max;
+
+	if (acc < early_threshold) {
+		acc = early_threshold;
+	}
+
+	if (acc > late_threshold) {
+		acc = 0;
+		return;
+	}
+
 	if (audio_sink->state() == QAudio::IdleState) {
 		audio_out_buffer = audio_sink->start();
 	}

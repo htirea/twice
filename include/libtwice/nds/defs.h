@@ -19,6 +19,8 @@ constexpr long NDS_ARM9_CLK_RATE = 67027964;
 constexpr long NDS_ARM7_CLK_RATE = 33513982;
 constexpr double NDS_FRAME_RATE = NDS_ARM7_CLK_RATE / 560190.0;
 constexpr long NDS_AUDIO_SAMPLE_RATE = 32768;
+constexpr double NDS_AVG_SAMPLES_PER_FRAME =
+		NDS_AUDIO_SAMPLE_RATE / NDS_FRAME_RATE;
 
 } // namespace twice
 

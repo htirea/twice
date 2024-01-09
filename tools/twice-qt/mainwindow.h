@@ -23,6 +23,7 @@
 #include "display_widget.h"
 #include "emulator_events.h"
 #include "emulator_thread.h"
+#include "util/stopwatch.h"
 #include "util/threaded_queue.h"
 #include "util/triple_buffer.h"
 
@@ -58,6 +59,7 @@ class MainWindow : public QMainWindow {
 	triple_buffer<std::array<s16, 2048>> abuffer;
 	QHash<QKeyCombination, int> keybinds{};
 	std::unordered_map<int, std::function<void(intptr_t arg)>> cmd_map;
+	stopwatch audio_stopwatch;
 
 	QSettings *settings{};
 	DisplayWidget *display{};
