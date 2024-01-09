@@ -43,6 +43,7 @@ class EmulatorThread : public QThread {
 	void handle_event(const PauseEvent& e);
 	void handle_event(const ResumeEvent& e);
 	void handle_event(const StopEvent& e);
+	void handle_event(const SetFastForwardEvent& e);
 	void handle_event(const ResetEvent& e);
 	void handle_event(const RotateEvent& e);
 	void handle_event(const ButtonEvent& e);
@@ -71,6 +72,7 @@ class EmulatorThread : public QThread {
 	void render_frame();
 	void push_audio(size_t len);
 	void end_frame();
+	void show_error_msg(QString msg);
 };
 
 } // namespace twice

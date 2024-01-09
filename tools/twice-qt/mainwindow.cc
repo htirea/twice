@@ -18,7 +18,7 @@ enum {
 };
 
 MainWindow::MainWindow(QSettings *settings, QWidget *parent)
-	: QMainWindow(parent), settings(settings), tbuffer{ {} }, abuffer{ {} }
+	: QMainWindow(parent), tbuffer{ {} }, abuffer{ {} }, settings(settings)
 {
 	QSurfaceFormat format;
 	format.setVersion(3, 3);
@@ -51,11 +51,15 @@ MainWindow::MainWindow(QSettings *settings, QWidget *parent)
 			&MainWindow::render_frame);
 	connect(emu_thread, &EmulatorThread::push_audio, this,
 			&MainWindow::push_audio);
+	connect(emu_thread, &EmulatorThread::show_error_msg, this,
+			&MainWindow::show_error_msg);
 
 	set_display_size(512, 768);
 	setAcceptDrops(true);
 
 	initialize_commands();
+	create_actions();
+	create_menus();
 	set_default_keybinds();
 }
 
@@ -117,6 +121,68 @@ MainWindow::set_nds_button_state(nds_button button, bool down)
 }
 
 void
+MainWindow::pause_nds(bool pause)
+{
+	if (pause) {
+		event_q.push(PauseEvent{});
+	} else {
+		event_q.push(ResumeEvent{});
+	}
+}
+
+void
+MainWindow::fast_forward_nds(bool fast_forward)
+{
+	event_q.push(SetFastForwardEvent{ .fast_forward = fast_forward });
+}
+
+void
+MainWindow::create_actions()
+{
+	load_rom_act = std::make_unique<QAction>(tr("Load ROM"), this);
+	load_rom_act->setShortcuts(QKeySequence::Open);
+	load_rom_act->setStatusTip(tr("Load a ROM file"));
+	connect(load_rom_act.get(), &QAction::triggered, this,
+			&MainWindow::load_rom);
+
+	boot_direct_act = std::make_unique<QAction>(tr("Boot ROM"), this);
+	boot_direct_act->setStatusTip(tr("Boot the ROM directly"));
+	connect(boot_direct_act.get(), &QAction::triggered, this,
+			([=]() { boot_nds(true); }));
+
+	boot_firmware_act =
+			std::make_unique<QAction>(tr("Boot firmware"), this);
+	boot_firmware_act->setStatusTip(tr("Boot the firmware"));
+	connect(boot_firmware_act.get(), &QAction::triggered, this,
+			([=]() { boot_nds(false); }));
+
+	pause_act = std::make_unique<QAction>(tr("Pause"), this);
+	pause_act->setStatusTip(tr("Pause emulation"));
+	pause_act->setCheckable(true);
+	connect(pause_act.get(), &QAction::toggled, this,
+			&MainWindow::pause_nds);
+
+	fast_forward_act = std::make_unique<QAction>(tr("Fast forward"), this);
+	fast_forward_act->setStatusTip(tr("Fast forward emulation"));
+	fast_forward_act->setCheckable(true);
+	connect(fast_forward_act.get(), &QAction::toggled, this,
+			&MainWindow::fast_forward_nds);
+}
+
+void
+MainWindow::create_menus()
+{
+	file_menu = menuBar()->addMenu(tr("&File"));
+	file_menu->addAction(load_rom_act.get());
+
+	emu_menu = menuBar()->addMenu(tr("&Emulation"));
+	emu_menu->addAction(boot_direct_act.get());
+	emu_menu->addAction(boot_firmware_act.get());
+	emu_menu->addAction(pause_act.get());
+	emu_menu->addAction(fast_forward_act.get());
+}
+
+void
 MainWindow::frame_ended()
 {
 }
@@ -135,6 +201,31 @@ MainWindow::push_audio(size_t len)
 }
 
 void
+MainWindow::show_error_msg(QString msg)
+{
+	QMessageBox msgbox;
+	msgbox.setText(msg);
+	msgbox.exec();
+}
+
+void
+MainWindow::load_rom()
+{
+	auto pathname = QFileDialog::getOpenFileName(
+			this, tr("Load NDS ROM"), "", tr("ROM Files (*.nds)"));
+	if (!pathname.isEmpty()) {
+		event_q.push(LoadROMEvent{
+				.pathname = pathname.toStdString() });
+	}
+}
+
+void
+MainWindow::boot_nds(bool direct)
+{
+	event_q.push(BootEvent{ .direct = direct });
+}
+
+void
 MainWindow::dragEnterEvent(QDragEnterEvent *e)
 {
 	if (e->mimeData()->hasUrls()) {
@@ -149,8 +240,6 @@ MainWindow::dropEvent(QDropEvent *e)
 		event_q.push(LoadROMEvent{
 				.pathname = url.toLocalFile().toStdString() });
 	}
-
-	event_q.push(BootEvent{ .direct = true });
 }
 
 void

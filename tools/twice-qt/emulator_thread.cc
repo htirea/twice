@@ -115,7 +115,11 @@ EmulatorThread::handle_event(const LoadFileEvent&)
 void
 EmulatorThread::handle_event(const LoadROMEvent& e)
 {
-	nds->load_cartridge(e.pathname);
+	try {
+		nds->load_cartridge(e.pathname);
+	} catch (const twice_exception& err) {
+		emit show_error_msg(tr(err.what()));
+	}
 }
 
 void
@@ -127,8 +131,12 @@ EmulatorThread::handle_event(const SetSavetypeEvent& e)
 void
 EmulatorThread::handle_event(const BootEvent& e)
 {
-	nds->boot(e.direct);
-	state = RUNNING;
+	try {
+		nds->boot(e.direct);
+		state = RUNNING;
+	} catch (const twice_exception& err) {
+		emit show_error_msg(tr(err.what()));
+	}
 }
 
 void
@@ -152,6 +160,12 @@ EmulatorThread::handle_event(const StopEvent&)
 {
 	/* TODO: handle stop */
 	state = STOPPED;
+}
+
+void
+EmulatorThread::handle_event(const SetFastForwardEvent& e)
+{
+	throttle = !e.fast_forward;
 }
 
 void

@@ -40,6 +40,10 @@ struct ResumeEvent {};
 
 struct StopEvent {};
 
+struct SetFastForwardEvent {
+	bool fast_forward;
+};
+
 struct ResetEvent {
 	bool direct;
 };
@@ -71,8 +75,8 @@ struct UpdateRTCEvent {
 
 using Event = std::variant<DummyEvent, QuitEvent, LoadFileEvent, LoadROMEvent,
 		SetSavetypeEvent, BootEvent, PauseEvent, ResumeEvent,
-		StopEvent, ResetEvent, RotateEvent, ButtonEvent, TouchEvent,
-		UpdateRTCEvent>;
+		StopEvent, SetFastForwardEvent, ResetEvent, RotateEvent,
+		ButtonEvent, TouchEvent, UpdateRTCEvent>;
 
 } // namespace twice
 
