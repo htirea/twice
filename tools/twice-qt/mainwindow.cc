@@ -196,6 +196,10 @@ MainWindow::render_frame()
 void
 MainWindow::push_audio(size_t len)
 {
+	if (audio_sink->state() == QAudio::IdleState) {
+		audio_out_buffer = audio_sink->start();
+	}
+
 	audio_out_buffer->write(
 			(const char *)abuffer.get_read_buffer().data(), len);
 }
