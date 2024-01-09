@@ -15,10 +15,17 @@ enum {
 	CMD_BUTTON_L,
 	CMD_BUTTON_X,
 	CMD_BUTTON_Y,
+	CMD_PAUSE,
+	CMD_FAST_FORWARD,
 };
 
-MainWindow::MainWindow(QSettings *settings, QWidget *parent)
-	: QMainWindow(parent), tbuffer{ {} }, abuffer{ {} }, settings(settings)
+MainWindow::MainWindow(QSettings *settings, QCommandLineParser *parser,
+		QWidget *parent)
+	: QMainWindow(parent),
+	  tbuffer{ {} },
+	  abuffer{ {} },
+	  settings(settings),
+	  parser(parser)
 {
 	QSurfaceFormat format;
 	format.setVersion(3, 3);
@@ -74,6 +81,13 @@ void
 MainWindow::start_emulator_thread()
 {
 	emu_thread->start();
+	auto args = parser->positionalArguments();
+
+	if (!args.isEmpty()) {
+		event_q.push(LoadROMEvent{
+				.pathname = args[0].toStdString() });
+		event_q.push(BootEvent{ .direct = true });
+	}
 }
 
 void
@@ -87,9 +101,19 @@ MainWindow::initialize_commands()
 {
 	for (int cmd = CMD_BUTTON_A; cmd <= CMD_BUTTON_Y; cmd++) {
 		cmd_map[cmd] = ([=](intptr_t arg) {
-			set_nds_button_state((nds_button)cmd, arg == 1);
+			set_nds_button_state((nds_button)cmd, arg & 1);
 		});
 	}
+
+	cmd_map[CMD_PAUSE] = ([=](intptr_t arg) {
+		if (arg & 1)
+			pause_act->toggle();
+	});
+
+	cmd_map[CMD_FAST_FORWARD] = ([=](intptr_t arg) {
+		if (arg & 1)
+			fast_forward_act->toggle();
+	});
 }
 
 void
@@ -112,6 +136,9 @@ MainWindow::set_default_keybinds()
 	keybinds[QKeyCombination(Qt::NoModifier, Qt::Key_Q)] = CMD_BUTTON_L;
 	keybinds[QKeyCombination(Qt::NoModifier, Qt::Key_S)] = CMD_BUTTON_X;
 	keybinds[QKeyCombination(Qt::NoModifier, Qt::Key_A)] = CMD_BUTTON_Y;
+	keybinds[QKeyCombination(Qt::NoModifier, Qt::Key_P)] = CMD_PAUSE;
+	keybinds[QKeyCombination(Qt::NoModifier, Qt::Key_0)] =
+			CMD_FAST_FORWARD;
 }
 
 void
@@ -172,10 +199,10 @@ MainWindow::create_actions()
 void
 MainWindow::create_menus()
 {
-	file_menu = menuBar()->addMenu(tr("&File"));
+	file_menu = menuBar()->addMenu(tr("File"));
 	file_menu->addAction(load_rom_act.get());
 
-	emu_menu = menuBar()->addMenu(tr("&Emulation"));
+	emu_menu = menuBar()->addMenu(tr("Emulation"));
 	emu_menu->addAction(boot_direct_act.get());
 	emu_menu->addAction(boot_firmware_act.get());
 	emu_menu->addAction(pause_act.get());

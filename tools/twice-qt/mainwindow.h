@@ -7,6 +7,7 @@
 #include <QAudioFormat>
 #include <QAudioOutput>
 #include <QAudioSink>
+#include <QCommandLineParser>
 #include <QDragEnterEvent>
 #include <QFileDialog>
 #include <QHash>
@@ -33,7 +34,8 @@ class MainWindow : public QMainWindow {
 	Q_OBJECT
 
       public:
-	MainWindow(QSettings *settings, QWidget *parent = nullptr);
+	MainWindow(QSettings *settings, QCommandLineParser *parser,
+			QWidget *parent = nullptr);
 	~MainWindow();
 	void start_emulator_thread();
 
@@ -62,6 +64,7 @@ class MainWindow : public QMainWindow {
 	stopwatch audio_stopwatch;
 
 	QSettings *settings{};
+	QCommandLineParser *parser{};
 	DisplayWidget *display{};
 	QAudioSink *audio_sink{};
 	QIODevice *audio_out_buffer{};
