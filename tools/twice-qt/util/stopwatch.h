@@ -23,6 +23,8 @@ class stopwatch {
 		return time_since_last_start;
 	}
 
+	duration measure() { return now() - start_time; }
+
 	time_point now() { return clock::now(); }
 
       private:

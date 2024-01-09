@@ -210,8 +210,13 @@ MainWindow::create_menus()
 }
 
 void
-MainWindow::frame_ended()
+MainWindow::frame_ended(double frametime)
 {
+	double fps = 1 / frametime;
+	auto title = QString("Twice [%1 fps | %2 ms]")
+	                             .arg(fps, 0, 'f', 2)
+	                             .arg(frametime * 1000, 0, 'f', 2);
+	window()->setWindowTitle(title);
 }
 
 void

@@ -1,4 +1,5 @@
 #include "emulator_thread.h"
+#include "util/stopwatch.h"
 
 namespace twice {
 
@@ -26,9 +27,11 @@ EmulatorThread::run()
 
 	frame_timer tmr(std::chrono::nanoseconds(
 			(u64)(1000000000 / NDS_FRAME_RATE)));
+	stopwatch video_tmr;
 
 	while (!quit) {
 		tmr.start_interval();
+		video_tmr.start();
 
 		handle_events();
 
@@ -60,7 +63,7 @@ EmulatorThread::run()
 			tmr.throttle();
 		}
 
-		emit end_frame();
+		emit end_frame(to_seconds<double>(video_tmr.measure()));
 	}
 }
 

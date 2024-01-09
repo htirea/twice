@@ -71,7 +71,7 @@ class EmulatorThread : public QThread {
       signals:
 	void render_frame();
 	void push_audio(size_t len);
-	void end_frame();
+	void end_frame(double frametime);
 	void show_error_msg(QString msg);
 };
 

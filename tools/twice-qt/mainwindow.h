@@ -78,7 +78,7 @@ class MainWindow : public QMainWindow {
 	std::unique_ptr<QAction> fast_forward_act;
 
       public slots:
-	void frame_ended();
+	void frame_ended(double frametime);
 	void render_frame();
 	void push_audio(size_t len);
 	void show_error_msg(QString msg);
