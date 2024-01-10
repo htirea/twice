@@ -68,6 +68,18 @@ struct file_map {
 	~file_map();
 
 	/**
+	 * Remap the file mapping.
+	 *
+	 * If the file was mapped with `FILEMAP_PRIVATE`, this function unmaps
+	 * and remaps the same file. This can be used to discard any changes
+	 * made to the mapping.
+	 *
+	 * If the file was mapped with `FILEMAP_SHARED`, this function does
+	 * nothing.
+	 */
+	void remap();
+
+	/**
 	 * Conversion to bool.
 	 *
 	 * \returns true if there is an underlying file

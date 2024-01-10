@@ -20,9 +20,11 @@ struct file_map::impl {
 	~impl();
 	int sync();
 
+	int fd{ -1 };
 	char *buffer{};
 	size_t size{};
 	std::string pathname;
+	int flags{};
 };
 
 static int check_filesize(
@@ -57,6 +59,28 @@ file_map::file_map(const std::string& pathname, std::size_t limit, int flags)
 file_map::file_map(file_map&&) = default;
 file_map& file_map::operator=(file_map&&) = default;
 file_map::~file_map() = default;
+
+void
+file_map::remap()
+{
+	if (!(internal && internal->buffer))
+		return;
+
+	if (!(internal->flags & FILEMAP_PRIVATE))
+		return;
+
+	void *addr = mmap(NULL, internal->size, PROT_READ | PROT_WRITE,
+			MAP_PRIVATE, internal->fd, 0);
+	if (addr == MAP_FAILED) {
+		throw file_map_error("remap failed: mmap failed");
+	}
+
+	if (munmap(internal->buffer, internal->size)) {
+		throw file_map_error("remap failed: munmap failed");
+	}
+
+	internal->buffer = (char *)addr;
+}
 
 file_map::operator bool() const noexcept
 {
@@ -98,6 +122,7 @@ file_map::impl::~impl()
 	if (buffer) {
 		sync();
 		munmap(buffer, size);
+		close(fd);
 	}
 }
 
@@ -164,10 +189,11 @@ create_private_mapping(file_map::impl *internal, const char *pathname,
 		return 1;
 	}
 
-	close(fd);
+	internal->fd = fd;
 	internal->buffer = (char *)addr;
 	internal->size = filesize;
 	internal->pathname = pathname;
+	internal->flags = flags;
 	return 0;
 }
 
@@ -216,10 +242,11 @@ create_shared_mapping(file_map::impl *internal, const char *pathname,
 		return 1;
 	}
 
-	close(fd);
+	internal->fd = fd;
 	internal->buffer = (char *)addr;
 	internal->size = filesize;
 	internal->pathname = pathname;
+	internal->flags = flags;
 	return 0;
 }
 

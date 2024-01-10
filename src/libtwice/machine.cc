@@ -86,6 +86,10 @@ nds_machine::boot(bool direct_boot)
 		throw twice_error("unknown savetype");
 	}
 
+	if (cartridge) {
+		cartridge.remap();
+	}
+
 	auto ctx = create_nds_ctx(arm7_bios.data(), arm9_bios.data(),
 			firmware.data(), cartridge.data(), cartridge.size(),
 			savefile.data(), savefile.size(), savetype);
