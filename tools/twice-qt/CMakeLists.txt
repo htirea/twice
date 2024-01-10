@@ -12,9 +12,6 @@ qt_add_executable(twice-qt
 	main.cc
 	mainwindow.cc
 	mainwindow.h
-	util/frame_timer.h
-	util/threaded_queue.h
-	util/triple_buffer.h
 )
 # Define target properties for Android with Qt 6 as:
 #    set_property(TARGET twice-qt APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR

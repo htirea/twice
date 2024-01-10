@@ -1,5 +1,6 @@
 #include "emulator_thread.h"
-#include "util/stopwatch.h"
+
+#include "libtwice/util/stopwatch.h"
 
 namespace twice {
 
@@ -39,7 +40,7 @@ EmulatorThread::run()
 	stopwatch video_tmr;
 
 	while (!quit) {
-		tmr.start_interval();
+		tmr.start_frame();
 		video_tmr.start();
 
 		handle_events();
@@ -59,15 +60,13 @@ EmulatorThread::run()
 					NDS_FB_SZ_BYTES);
 			tbuffer->swap_write_buffer();
 			queue_audio(nds->get_audio_buffer(),
-					nds->get_audio_buffer_size(),
-					tmr.get_last_period());
+					nds->get_audio_buffer_size());
 		}
 
 		emit render_frame();
 
-		tmr.end_interval();
 		if (nds->is_shutdown() || paused || throttle) {
-			tmr.throttle();
+			tmr.wait_until_target();
 		}
 
 		emit end_frame(to_seconds<double>(video_tmr.measure()));
@@ -82,8 +81,7 @@ EmulatorThread::wait()
 }
 
 void
-EmulatorThread::queue_audio(
-		s16 *buffer, size_t len, frame_timer::duration last_period)
+EmulatorThread::queue_audio(s16 *buffer, size_t len)
 {
 	if (!throttle)
 		return;

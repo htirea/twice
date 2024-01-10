@@ -1,6 +1,6 @@
 #include "libtwice/exception.h"
-#include "libtwice/filemap.h"
 #include "libtwice/types.h"
+#include "libtwice/util/filemap.h"
 
 #include "common/logger.h"
 

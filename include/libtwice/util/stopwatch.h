@@ -1,12 +1,11 @@
-#ifndef TWICE_STOPWATCH_H
-#define TWICE_STOPWATCH_H
+#ifndef LIBTWICE_STOPWATCH_H
+#define LIBTWICE_STOPWATCH_H
 
 #include <chrono>
 
 namespace twice {
 
-class stopwatch {
-      public:
+struct stopwatch {
 	using clock = std::chrono::steady_clock;
 	using rep = clock::rep;
 	using period = clock::period;

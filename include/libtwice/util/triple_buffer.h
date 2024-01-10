@@ -1,5 +1,5 @@
-#ifndef TWICE_TRIPLE_BUFFER_H
-#define TWICE_TRIPLE_BUFFER_H
+#ifndef LIBTWICE_TRIPLE_BUFFER_H
+#define LIBTWICE_TRIPLE_BUFFER_H
 
 #include <array>
 #include <atomic>
@@ -8,8 +8,7 @@
 namespace twice {
 
 template <typename T>
-class triple_buffer {
-      public:
+struct triple_buffer {
 	triple_buffer();
 
 	triple_buffer(const T& v) : _buffers{ v, v, v } {}

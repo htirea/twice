@@ -6,9 +6,9 @@
 #include <memory>
 #include <string>
 
-#include "libtwice/filemap.h"
 #include "libtwice/nds/defs.h"
 #include "libtwice/nds/game_db.h"
+#include "libtwice/util/filemap.h"
 
 namespace twice {
 

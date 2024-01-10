@@ -1,5 +1,5 @@
-#ifndef TWICE_MATRIX_H
-#define TWICE_MATRIX_H
+#ifndef LIBTWICE_MATRIX_H
+#define LIBTWICE_MATRIX_H
 
 #include <cstddef>
 #include <cstdint>

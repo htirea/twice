@@ -1,5 +1,5 @@
-#ifndef TWICE_THREADED_QUEUE
-#define TWICE_THREADED_QUEUE
+#ifndef LIBTWICE_THREADED_QUEUE
+#define LIBTWICE_THREADED_QUEUE
 
 #include <mutex>
 #include <queue>
@@ -7,8 +7,7 @@
 namespace twice {
 
 template <typename T>
-class threaded_queue {
-      public:
+struct threaded_queue {
 	int try_pop(T& dst)
 	{
 		std::lock_guard lock(mtx);

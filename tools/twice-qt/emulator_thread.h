@@ -9,13 +9,12 @@
 #include <QThread>
 
 #include "libtwice/nds/machine.h"
+#include "libtwice/util/frame_timer.h"
+#include "libtwice/util/threaded_queue.h"
+#include "libtwice/util/triple_buffer.h"
 
 #include "display_widget.h"
 #include "emulator_events.h"
-
-#include "util/frame_timer.h"
-#include "util/threaded_queue.h"
-#include "util/triple_buffer.h"
 
 namespace twice {
 
@@ -31,8 +30,7 @@ class EmulatorThread : public QThread {
 	void wait();
 
       private:
-	void queue_audio(s16 *buffer, size_t len,
-			frame_timer::duration last_period);
+	void queue_audio(s16 *buffer, size_t len);
 	void handle_events();
 	void handle_event(const DummyEvent& e);
 	void handle_event(const QuitEvent& e);

@@ -6,8 +6,7 @@
 
 #include "libtwice/exception.h"
 #include "libtwice/nds/display.h"
-
-#include "util/matrix.h"
+#include "libtwice/util/matrix.h"
 
 namespace twice {
 

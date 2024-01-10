@@ -1,5 +1,5 @@
 #include "libtwice/nds/game_db.h"
-#include "libtwice/filemap.h"
+#include "libtwice/util/filemap.h"
 
 #include "common/logger.h"
 #include "common/util.h"

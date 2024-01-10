@@ -3,8 +3,8 @@
 
 #include <string>
 
-#include "libtwice/filemap.h"
 #include "libtwice/types.h"
+#include "libtwice/util/filemap.h"
 
 namespace twice {
 

@@ -22,12 +22,13 @@
 #include <QSettings>
 #include <QStandardPaths>
 
+#include "libtwice/util/stopwatch.h"
+#include "libtwice/util/threaded_queue.h"
+#include "libtwice/util/triple_buffer.h"
+
 #include "display_widget.h"
 #include "emulator_events.h"
 #include "emulator_thread.h"
-#include "util/stopwatch.h"
-#include "util/threaded_queue.h"
-#include "util/triple_buffer.h"
 
 namespace twice {
 

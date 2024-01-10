@@ -8,9 +8,8 @@
 
 #include "libtwice/nds/defs.h"
 #include "libtwice/types.h"
-
-#include "util/threaded_queue.h"
-#include "util/triple_buffer.h"
+#include "libtwice/util/threaded_queue.h"
+#include "libtwice/util/triple_buffer.h"
 
 #include "emulator_events.h"
 
