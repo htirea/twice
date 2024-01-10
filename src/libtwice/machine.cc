@@ -8,87 +8,154 @@
 
 namespace twice {
 
-nds_machine::nds_machine(const nds_config& config)
-	: config(config),
-	  arm7_bios(config.data_dir + "bios7.bin", ARM7_BIOS_SIZE,
-			  file_map::FILEMAP_PRIVATE | file_map::FILEMAP_EXACT),
-	  arm9_bios(config.data_dir + "bios9.bin", ARM9_BIOS_SIZE,
-			  file_map::FILEMAP_PRIVATE | file_map::FILEMAP_EXACT),
-	  firmware(config.data_dir + "firmware.bin", FIRMWARE_SIZE,
-			  file_map::FILEMAP_PRIVATE | file_map::FILEMAP_EXACT)
+nds_machine::nds_machine(const nds_config& config) : config(config)
 {
+	try {
+		auto pathname = config.data_dir / "bios9.bin";
+		load_system_file(pathname, nds_system_file::ARM9_BIOS);
+	} catch (const file_map::file_map_error& e) {
+	}
+
+	try {
+		auto pathname = config.data_dir / "bios7.bin";
+		load_system_file(pathname, nds_system_file::ARM7_BIOS);
+	} catch (const file_map::file_map_error& e) {
+	}
+
+	try {
+		auto pathname = config.data_dir / "firmware.bin";
+		load_system_file(pathname, nds_system_file::FIRMWARE);
+	} catch (const file_map::file_map_error& e) {
+	}
 }
 
 nds_machine::~nds_machine() = default;
 
 void
-nds_machine::load_cartridge(const std::string& pathname)
+nds_machine::load_system_file(
+		const std::filesystem::path& pathname, nds_system_file type)
 {
+	int flags = file_map::FILEMAP_PRIVATE | file_map::FILEMAP_EXACT;
+
+	switch (type) {
+	case nds_system_file::ARM9_BIOS:
+		arm9_bios = file_map(pathname, ARM9_BIOS_SIZE, flags);
+		break;
+	case nds_system_file::ARM7_BIOS:
+		arm7_bios = file_map(pathname, ARM7_BIOS_SIZE, flags);
+		break;
+	case nds_system_file::FIRMWARE:
+		firmware = file_map(pathname, FIRMWARE_SIZE, flags);
+		break;
+	}
+}
+
+void
+nds_machine::load_cartridge(const std::filesystem::path& pathname)
+{
+	if (nds) {
+		/* TODO: handle loading cartridge while running */
+		throw twice_error("The cartridge cannot be loaded while the "
+				  "machine is running.");
+	}
+
 	auto cartridge = file_map(pathname, MAX_CART_SIZE,
 			file_map::FILEMAP_PRIVATE | file_map::FILEMAP_LIMIT);
 	if (cartridge.size() < 0x160) {
-		throw twice_error("cartridge size too small: " + pathname);
+		throw twice_error("The cartridge size is too small.");
 	}
 
 	this->cartridge = std::move(cartridge);
+	savetype = SAVETYPE_UNKNOWN;
+}
+
+void
+nds_machine::eject_cartridge()
+{
+	if (nds) {
+		/* TODO: handle ejecting cartridge while running */
+		throw twice_error("The cartridge cannot be ejected while the "
+				  "machine is running.");
+	}
+
+	cartridge = file_map();
+	savetype = SAVETYPE_UNKNOWN;
 }
 
 void
 nds_machine::set_savetype(nds_savetype savetype)
 {
+	if (nds) {
+		/* TODO: handle changing save type while running */
+		throw twice_error("The save type cannot be changed while the "
+				  "machine is running.");
+	}
+
 	this->savetype = savetype;
 }
 
 void
-nds_machine::load_savefile(const std::string& pathname)
+nds_machine::load_savefile(const std::filesystem::path& pathname)
 {
-	if (savetype == SAVETYPE_NONE)
-		return;
+	int flags = file_map::FILEMAP_SHARED | file_map::FILEMAP_MUST_EXIST;
+	auto savefile = file_map(pathname, 0, flags);
 
 	if (savetype == SAVETYPE_UNKNOWN) {
-		try {
-			auto savefile = file_map(pathname, 0,
-					file_map::FILEMAP_PRIVATE);
-			auto size = savefile.size();
-			savetype = nds_savetype_from_size(size);
-		} catch (const file_map::file_map_error& e) {
-		}
+		savetype = nds_savetype_from_size(savefile.size());
 	}
 
-	if (savetype == SAVETYPE_UNKNOWN)
-		return;
-
-	auto savefile = file_map(pathname, nds_savetype_to_size(savetype),
-			file_map::FILEMAP_SHARED | file_map::FILEMAP_EXACT);
 	this->savefile = std::move(savefile);
+}
+
+void
+nds_machine::load_or_create_savefile(const std::filesystem::path& pathname,
+		nds_savetype try_savetype)
+{
+	try {
+		load_savefile(pathname);
+	} catch (const file_map::file_map_error& e) {
+		if (try_savetype == SAVETYPE_UNKNOWN) {
+			throw twice_error("The save type must be set.");
+		}
+
+		savefile = file_map(pathname,
+				nds_savetype_to_size(try_savetype),
+				file_map::FILEMAP_SHARED);
+		savetype = try_savetype;
+	}
 }
 
 void
 nds_machine::boot(bool direct_boot)
 {
+	if (nds)
+		return;
+
+	if (!arm9_bios || !arm7_bios || !firmware) {
+		throw twice_error("The NDS system files must be loaded.");
+	}
+
 	if (direct_boot && !cartridge) {
-		throw twice_error("cartridge not loaded");
-	}
-
-	if (cartridge && savetype == SAVETYPE_UNKNOWN) {
-		savetype = nds_get_save_info(cartridge).type;
-	}
-
-	if (cartridge && !savefile && savetype != SAVETYPE_NONE) {
-		std::string savepath =
-				std::filesystem::path(cartridge.get_pathname())
-						.replace_extension(".sav")
-						.string();
-		load_savefile(savepath);
-	}
-
-	if (cartridge && savetype == SAVETYPE_UNKNOWN) {
-		throw twice_error("unknown savetype");
+		throw twice_error("Cartridge must be loaded for direct "
+				  "boot.");
 	}
 
 	if (cartridge) {
 		cartridge.remap();
 	}
+
+	if (cartridge && savetype != SAVETYPE_NONE && !savefile) {
+		auto pathname = cartridge.get_pathname().replace_extension(
+				".sav");
+		nds_savetype try_savetype = savetype;
+		if (try_savetype == SAVETYPE_UNKNOWN) {
+			try_savetype = nds_get_save_info(cartridge).type;
+		}
+
+		load_or_create_savefile(pathname, try_savetype);
+	}
+
+	/* TODO: revert state if exception occured? */
 
 	auto ctx = create_nds_ctx(arm7_bios.data(), arm9_bios.data(),
 			firmware.data(), cartridge.data(), cartridge.size(),
@@ -98,7 +165,22 @@ nds_machine::boot(bool direct_boot)
 	} else {
 		nds_firmware_boot(ctx.get());
 	}
+
 	nds = std::move(ctx);
+}
+
+void
+nds_machine::shutdown()
+{
+	nds.reset();
+	sync_files();
+}
+
+void
+nds_machine::reboot(bool direct_boot)
+{
+	shutdown();
+	boot(direct_boot);
 }
 
 void
@@ -108,15 +190,15 @@ nds_machine::run_frame()
 		return;
 
 	nds_run_frame(nds.get());
+	if (nds->shutdown) {
+		shutdown();
+	}
 }
 
 bool
 nds_machine::is_shutdown()
 {
-	if (!nds)
-		return true;
-
-	return nds->shutdown;
+	return !nds;
 }
 
 u32 *
@@ -242,6 +324,12 @@ void
 nds_machine::set_use_16_bit_audio(bool use_16_bit_audio)
 {
 	nds->use_16_bit_audio = use_16_bit_audio;
+}
+
+void
+nds_machine::sync_files()
+{
+	savefile.sync();
 }
 
 void

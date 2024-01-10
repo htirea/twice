@@ -44,6 +44,7 @@ class MainWindow : public QMainWindow {
 	void initialize_commands();
 	void set_default_keybinds();
 	void set_nds_button_state(nds_button button, bool down);
+	void shutdown_nds();
 	void pause_nds(bool pause);
 	void fast_forward_nds(bool fast_forward);
 	void set_orientation(int orientation);
@@ -73,8 +74,9 @@ class MainWindow : public QMainWindow {
 	QMenu *file_menu{};
 	QMenu *emu_menu{};
 	std::unique_ptr<QAction> load_rom_act;
-	std::unique_ptr<QAction> boot_direct_act;
-	std::unique_ptr<QAction> boot_firmware_act;
+	std::unique_ptr<QAction> reset_direct;
+	std::unique_ptr<QAction> reset_firmware_act;
+	std::unique_ptr<QAction> shutdown_act;
 	std::unique_ptr<QAction> pause_act;
 	std::unique_ptr<QAction> fast_forward_act;
 
@@ -86,7 +88,7 @@ class MainWindow : public QMainWindow {
 
       private slots:
 	void load_rom();
-	void boot_nds(bool direct);
+	void reboot_nds(bool direct);
 };
 
 } // namespace twice

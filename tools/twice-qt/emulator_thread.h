@@ -39,7 +39,6 @@ class EmulatorThread : public QThread {
 	void handle_event(const LoadFileEvent& e);
 	void handle_event(const LoadROMEvent& e);
 	void handle_event(const SetSavetypeEvent& e);
-	void handle_event(const BootEvent& e);
 	void handle_event(const PauseEvent& e);
 	void handle_event(const ResumeEvent& e);
 	void handle_event(const StopEvent& e);
@@ -52,13 +51,7 @@ class EmulatorThread : public QThread {
 
       private:
 	bool throttle{};
-
-	enum {
-		STOPPED,
-		PAUSED,
-		RUNNING,
-	} state;
-
+	bool paused{};
 	bool quit{};
 
 	std::unique_ptr<nds_machine> nds;

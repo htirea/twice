@@ -30,10 +30,6 @@ struct SetSavetypeEvent {
 	nds_savetype type;
 };
 
-struct BootEvent {
-	bool direct;
-};
-
 struct PauseEvent {};
 
 struct ResumeEvent {};
@@ -74,9 +70,9 @@ struct UpdateRTCEvent {
 };
 
 using Event = std::variant<DummyEvent, QuitEvent, LoadFileEvent, LoadROMEvent,
-		SetSavetypeEvent, BootEvent, PauseEvent, ResumeEvent,
-		StopEvent, SetFastForwardEvent, ResetEvent, RotateEvent,
-		ButtonEvent, TouchEvent, UpdateRTCEvent>;
+		SetSavetypeEvent, PauseEvent, ResumeEvent, StopEvent,
+		SetFastForwardEvent, ResetEvent, RotateEvent, ButtonEvent,
+		TouchEvent, UpdateRTCEvent>;
 
 } // namespace twice
 

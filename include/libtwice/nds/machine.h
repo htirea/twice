@@ -2,6 +2,7 @@
 #define LIBTWICE_NDS_MACHINE_H
 
 #include <cstddef>
+#include <filesystem>
 #include <memory>
 #include <string>
 
@@ -17,7 +18,7 @@ struct nds_ctx;
  * The configuration to use when creating the NDS machine.
  */
 struct nds_config {
-	std::string data_dir;
+	std::filesystem::path data_dir;
 };
 
 /**
@@ -39,6 +40,15 @@ enum class nds_button {
 	NONE,
 };
 
+/*
+ * The system files of the NDS machine.
+ */
+enum class nds_system_file {
+	ARM9_BIOS,
+	ARM7_BIOS,
+	FIRMWARE,
+};
+
 /**
  * Represents an NDS machine.
  */
@@ -46,13 +56,11 @@ struct nds_machine {
 	/**
 	 * Create the machine.
 	 *
-	 * The following files are required for initialization:
+	 * The following files will be searched for in the directory
+	 * specified by `data_dir` in the configuration:
 	 * `bios7.bin`: the arm7 bios
 	 * `bios9.bin`: the arm9 bios
 	 * `firmware.bin`: the NDS firmware
-	 *
-	 * These files should be placed in the directory specified by
-	 * `data_dir` in the configuration.
 	 *
 	 * \param config the configuration to use
 	 */
@@ -60,14 +68,32 @@ struct nds_machine {
 	~nds_machine();
 
 	/**
+	 * Load a system file into the machine.
+	 *
+	 * \param pathname the file to load
+	 * \param type the type of system file
+	 */
+	void load_system_file(const std::filesystem::path& pathname,
+			nds_system_file type);
+
+	/**
 	 * Load a cartridge into the machine.
 	 *
-	 * \param pathname the file to open
+	 * \param pathname the file to load
 	 */
-	void load_cartridge(const std::string& pathname);
+	void load_cartridge(const std::filesystem::path& pathname);
+
+	/**
+	 * Eject the cartridge from the machine.
+	 *
+	 * If there is no cartridge this function does nothing.
+	 */
+	void eject_cartridge();
 
 	/**
 	 * Set the save type of the cartridge.
+	 *
+	 * The save type must be set before booting the machine.
 	 *
 	 * \param savetype the save type for the cartridge
 	 */
@@ -76,16 +102,31 @@ struct nds_machine {
 	/**
 	 * Load a save file.
 	 *
-	 * If the save type is set, it will use that type. Otherwise, if the
-	 * save type is unknown, it will try to guess the save type from the
-	 * size of the file.
+	 * The save file must exist. If the save type is not set, the save type
+	 * will be automatically guessed from the file size.
 	 *
-	 * \param pathname to file to open
+	 * \param pathname the file to load
 	 */
-	void load_savefile(const std::string& pathname);
+	void load_savefile(const std::filesystem::path& pathname);
+
+	/**
+	 * Load or create a save file.
+	 *
+	 * This function first tries to load the save file. If the loading
+	 * fails, it will create the save file using the given `savetype`.
+	 *
+	 * The `savetype` must be set if the save file is created.
+	 *
+	 * \param pathname the file to load
+	 * \param savetype the savetype to use if creating
+	 */
+	void load_or_create_savefile(const std::filesystem::path& pathname,
+			nds_savetype try_savetype);
 
 	/**
 	 * Boot up the machine.
+	 *
+	 * If the machine is already running, this function will do nothing.
 	 *
 	 * If `direct_boot` is true, then a cartridge must already be loaded.
 	 *
@@ -95,14 +136,31 @@ struct nds_machine {
 	void boot(bool direct_boot);
 
 	/**
+	 * Shut down the machine.
+	 *
+	 * If the machine is already shut down, this function will do nothing.
+	 */
+	void shutdown();
+
+	/**
+	 * Reboot the machine.
+	 *
+	 * This function behaves as if `shutdown` and `boot` were called.
+	 *
+	 * \param direct_boot true to boot the cartridge directly,
+	 *                    false to boot the firmware
+	 */
+	void reboot(bool direct_boot);
+
+	/**
 	 * Emulate one frame.
 	 */
 	void run_frame();
 
 	/**
-	 * Check whether the machine is shutdown.
+	 * Check whether the machine is shut down.
 	 *
-	 * \returns true if the machine is shutdown
+	 * \returns true if the machine is shut down
 	 *          false otherwise
 	 */
 	bool is_shutdown();
@@ -193,6 +251,11 @@ struct nds_machine {
 	 *                         false to mix audio at 10 bits
 	 */
 	void set_use_16_bit_audio(bool use_16_bit_audio);
+
+	/**
+	 * Sync files to disk.
+	 */
+	void sync_files();
 
 	/**
 	 * Dump the collected profiler data.

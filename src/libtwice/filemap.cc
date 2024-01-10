@@ -36,7 +36,8 @@ static int create_private_mapping(file_map::impl *internal,
 
 file_map::file_map() = default;
 
-file_map::file_map(const std::string& pathname, std::size_t limit, int flags)
+file_map::file_map(const std::filesystem::path& pathname, std::size_t limit,
+		int flags)
 	: internal(std::make_unique<impl>())
 {
 	int err = 0;
@@ -48,11 +49,11 @@ file_map::file_map(const std::string& pathname, std::size_t limit, int flags)
 		err = create_private_mapping(internal.get(), pathname.c_str(),
 				limit, flags);
 	} else {
-		throw file_map_error("map mode not specified: " + pathname);
+		throw file_map_error("File mapping mode not specified.");
 	}
 
 	if (err) {
-		throw file_map_error("could not create file map: " + pathname);
+		throw file_map_error("Could not create file map.");
 	}
 }
 
@@ -72,11 +73,11 @@ file_map::remap()
 	void *addr = mmap(NULL, internal->size, PROT_READ | PROT_WRITE,
 			MAP_PRIVATE, internal->fd, 0);
 	if (addr == MAP_FAILED) {
-		throw file_map_error("remap failed: mmap failed");
+		throw file_map_error("Remap failed: mmap failed.");
 	}
 
 	if (munmap(internal->buffer, internal->size)) {
-		throw file_map_error("remap failed: munmap failed");
+		throw file_map_error("Remap failed: munmap failed.");
 	}
 
 	internal->buffer = (char *)addr;
@@ -111,7 +112,7 @@ file_map::sync()
 	return internal ? internal->sync() : 0;
 }
 
-std::string
+std::filesystem::path
 file_map::get_pathname() const noexcept
 {
 	return internal ? internal->pathname : "";
@@ -202,18 +203,25 @@ create_shared_mapping(file_map::impl *internal, const char *pathname,
 		std::size_t limit, int flags)
 {
 	bool created = false;
-	int fd = open(pathname, O_RDWR | O_CREAT | O_EXCL, 0644);
-	if (fd >= 0) {
-		created = true;
-		if (ftruncate(fd, limit)) {
-			close(fd);
-			unlink(pathname);
-			LOG("ftruncate failed\n");
-			return 1;
-		}
-	} else if (fd == -1 && errno == EEXIST) {
+
+	int fd;
+	if (flags & file_map::FILEMAP_MUST_EXIST) {
 		fd = open(pathname, O_RDWR);
+	} else {
+		fd = open(pathname, O_RDWR | O_CREAT | O_EXCL, 0644);
+		if (fd >= 0) {
+			created = true;
+			if (ftruncate(fd, limit)) {
+				close(fd);
+				unlink(pathname);
+				LOG("ftruncate failed\n");
+				return 1;
+			}
+		} else if (fd == -1 && errno == EEXIST) {
+			fd = open(pathname, O_RDWR);
+		}
 	}
+
 	if (fd == -1) {
 		close(fd);
 		if (created)

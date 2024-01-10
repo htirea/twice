@@ -114,24 +114,24 @@ nds_savetype
 nds_savetype_from_size(size_t size)
 {
 	switch (size) {
-	case 512:
-		return SAVETYPE_EEPROM_512B;
-	case 8_KiB:
-		return SAVETYPE_EEPROM_8K;
-	case 64_KiB:
-		return SAVETYPE_EEPROM_64K;
-	case 128_KiB:
-		return SAVETYPE_EEPROM_128K;
-	case 256_KiB:
-		return SAVETYPE_FLASH_256K;
-	case 512_KiB:
-		return SAVETYPE_FLASH_512K;
-	case 1_MiB:
-		return SAVETYPE_FLASH_1M;
 	case 8_MiB:
 		return SAVETYPE_FLASH_8M;
+	case 1_MiB:
+		return SAVETYPE_FLASH_1M;
+	case 512_KiB:
+		return SAVETYPE_FLASH_512K;
+	case 256_KiB:
+		return SAVETYPE_FLASH_256K;
+	case 128_KiB:
+		return SAVETYPE_EEPROM_128K;
+	case 64_KiB:
+		return SAVETYPE_EEPROM_64K;
+	case 8_KiB:
+		return SAVETYPE_EEPROM_8K;
+	case 512:
+		return SAVETYPE_EEPROM_512B;
 	default:
-		return SAVETYPE_UNKNOWN;
+		return SAVETYPE_NONE;
 	}
 }
 

@@ -88,7 +88,7 @@ MainWindow::start_emulator_thread()
 	if (!args.isEmpty()) {
 		event_q.push(LoadROMEvent{
 				.pathname = args[0].toStdString() });
-		event_q.push(BootEvent{ .direct = true });
+		event_q.push(ResetEvent{ .direct = true });
 	}
 }
 
@@ -162,6 +162,12 @@ MainWindow::set_nds_button_state(nds_button button, bool down)
 }
 
 void
+MainWindow::shutdown_nds()
+{
+	event_q.push(StopEvent{});
+}
+
+void
 MainWindow::pause_nds(bool pause)
 {
 	if (pause) {
@@ -192,16 +198,21 @@ MainWindow::create_actions()
 	connect(load_rom_act.get(), &QAction::triggered, this,
 			&MainWindow::load_rom);
 
-	boot_direct_act = std::make_unique<QAction>(tr("Boot ROM"), this);
-	boot_direct_act->setStatusTip(tr("Boot the ROM directly"));
-	connect(boot_direct_act.get(), &QAction::triggered, this,
-			([=]() { boot_nds(true); }));
+	reset_direct = std::make_unique<QAction>(tr("Reset to ROM"), this);
+	reset_direct->setStatusTip(tr("Reset to the ROM directly"));
+	connect(reset_direct.get(), &QAction::triggered, this,
+			([=]() { reboot_nds(true); }));
 
-	boot_firmware_act =
-			std::make_unique<QAction>(tr("Boot firmware"), this);
-	boot_firmware_act->setStatusTip(tr("Boot the firmware"));
-	connect(boot_firmware_act.get(), &QAction::triggered, this,
-			([=]() { boot_nds(false); }));
+	reset_firmware_act = std::make_unique<QAction>(
+			tr("Reset to firmware"), this);
+	reset_firmware_act->setStatusTip(tr("Reset to the firmware"));
+	connect(reset_firmware_act.get(), &QAction::triggered, this,
+			([=]() { reboot_nds(false); }));
+
+	shutdown_act = std::make_unique<QAction>(tr("Shut down"), this);
+	shutdown_act->setStatusTip(tr("Shut down the NDS machine"));
+	connect(shutdown_act.get(), &QAction::triggered, this,
+			([=]() { shutdown_nds(); }));
 
 	pause_act = std::make_unique<QAction>(tr("Pause"), this);
 	pause_act->setStatusTip(tr("Pause emulation"));
@@ -223,8 +234,10 @@ MainWindow::create_menus()
 	file_menu->addAction(load_rom_act.get());
 
 	emu_menu = menuBar()->addMenu(tr("Emulation"));
-	emu_menu->addAction(boot_direct_act.get());
-	emu_menu->addAction(boot_firmware_act.get());
+	emu_menu->addAction(reset_direct.get());
+	emu_menu->addAction(reset_firmware_act.get());
+	emu_menu->addAction(shutdown_act.get());
+	emu_menu->addSeparator();
 	emu_menu->addAction(pause_act.get());
 	emu_menu->addAction(fast_forward_act.get());
 }
@@ -295,9 +308,9 @@ MainWindow::load_rom()
 }
 
 void
-MainWindow::boot_nds(bool direct)
+MainWindow::reboot_nds(bool direct)
 {
-	event_q.push(BootEvent{ .direct = direct });
+	event_q.push(ResetEvent{ .direct = direct });
 }
 
 void

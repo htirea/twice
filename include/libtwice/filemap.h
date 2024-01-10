@@ -5,6 +5,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <filesystem>
 #include <memory>
 #include <string>
 
@@ -25,6 +26,7 @@ struct file_map {
 		FILEMAP_SHARED = 0x2,
 		FILEMAP_EXACT = 0x4,
 		FILEMAP_LIMIT = 0x8,
+		FILEMAP_MUST_EXIST = 0x10,
 	};
 
 	/**
@@ -46,13 +48,14 @@ struct file_map {
 	 *                   to the underlying file
 	 * `FILEMAP_EXACT`: the size of the file must match the limit
 	 * `FILEMAP_LIMIT`: the size of the file must not exceed the limit
+	 * `FILEMAP_MUST_EXIST`: the file must exist
+	 * `FILEMAP_MUST_NOT_EXIST`: the file must not exist
 	 *
 	 * If `FILEMAP_PRIVATE` is specified, the underlying file will be
 	 * opened in read-only mode. The file must exist.
 	 *
 	 * If `FILEMAP_SHARED` is specified, the underlying file will be opened
-	 * in read/write mode. If the file doesn't exist, then it will be
-	 * created with the size specified by `limit`.
+	 * in read/write mode. .
 	 *
 	 * The mapped region is read/write-able regardless of permissions on
 	 * the underlying file.
@@ -61,7 +64,8 @@ struct file_map {
 	 * \param limit the maximum size of the mapping
 	 * \param flags the flags to use
 	 */
-	file_map(const std::string& pathname, std::size_t limit, int flags);
+	file_map(const std::filesystem::path& pathname, std::size_t limit,
+			int flags);
 
 	file_map(file_map&&);
 	file_map& operator=(file_map&&);
@@ -118,7 +122,7 @@ struct file_map {
 	 *
 	 * \returns the pathname
 	 */
-	std::string get_pathname() const noexcept;
+	std::filesystem::path get_pathname() const noexcept;
 
       private:
 	std::unique_ptr<impl> internal;

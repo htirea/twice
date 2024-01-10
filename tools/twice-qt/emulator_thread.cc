@@ -35,31 +35,26 @@ EmulatorThread::run()
 
 		handle_events();
 
-		if (state == STOPPED) {
+		if (nds->is_shutdown()) {
 			tbuffer->get_write_buffer().fill(0);
 			tbuffer->swap_write_buffer();
-		} else if (state == PAUSED) {
+		} else if (paused) {
 			;
-		} else if (state == RUNNING) {
+		} else {
 			nds->run_frame();
 			std::memcpy(tbuffer->get_write_buffer().data(),
 					nds->get_framebuffer(),
 					NDS_FB_SZ_BYTES);
 			tbuffer->swap_write_buffer();
-		}
-
-		emit render_frame();
-
-		if (state == RUNNING && throttle) {
 			queue_audio(nds->get_audio_buffer(),
 					nds->get_audio_buffer_size(),
 					tmr.get_last_period());
 		}
 
-		tmr.end_interval();
+		emit render_frame();
 
-		if (state == STOPPED || state == PAUSED ||
-				(state == RUNNING && throttle)) {
+		tmr.end_interval();
+		if (nds->is_shutdown() || paused || throttle) {
 			tmr.throttle();
 		}
 
@@ -78,6 +73,9 @@ void
 EmulatorThread::queue_audio(
 		s16 *buffer, size_t len, frame_timer::duration last_period)
 {
+	if (!throttle)
+		return;
+
 	std::memcpy(abuffer->get_write_buffer().data(), buffer, len);
 	abuffer->swap_write_buffer();
 
@@ -102,7 +100,7 @@ EmulatorThread::handle_event(const DummyEvent&)
 void
 EmulatorThread::handle_event(const QuitEvent&)
 {
-	if (state == STOPPED) {
+	if (nds->is_shutdown()) {
 		quit = true;
 	} else {
 		event_q->push(StopEvent{});
@@ -132,37 +130,21 @@ EmulatorThread::handle_event(const SetSavetypeEvent& e)
 }
 
 void
-EmulatorThread::handle_event(const BootEvent& e)
-{
-	try {
-		nds->boot(e.direct);
-		state = RUNNING;
-	} catch (const twice_exception& err) {
-		emit show_error_msg(tr(err.what()));
-	}
-}
-
-void
 EmulatorThread::handle_event(const PauseEvent&)
 {
-	if (state == RUNNING) {
-		state = PAUSED;
-	}
+	paused = true;
 }
 
 void
 EmulatorThread::handle_event(const ResumeEvent&)
 {
-	if (state == PAUSED) {
-		state = RUNNING;
-	}
+	paused = false;
 }
 
 void
 EmulatorThread::handle_event(const StopEvent&)
 {
-	/* TODO: handle stop */
-	state = STOPPED;
+	nds->shutdown();
 }
 
 void
@@ -172,8 +154,13 @@ EmulatorThread::handle_event(const SetFastForwardEvent& e)
 }
 
 void
-EmulatorThread::handle_event(const ResetEvent&)
+EmulatorThread::handle_event(const ResetEvent& e)
 {
+	try {
+		nds->reboot(e.direct);
+	} catch (const twice_exception& err) {
+		emit show_error_msg(tr(err.what()));
+	}
 }
 
 void
