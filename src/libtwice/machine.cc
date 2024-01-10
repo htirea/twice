@@ -289,14 +289,15 @@ nds_machine::button_event(nds_button button, bool down)
 }
 
 void
-nds_machine::update_touchscreen_state(int x, int y, bool down)
+nds_machine::update_touchscreen_state(
+		int x, int y, bool down, bool quicktap, bool moved)
 {
 	if (!nds)
 		return;
 
 	x = std::clamp(x, 0, 255);
 	y = std::clamp(y, 0, 191);
-	nds_set_touchscreen_state(nds.get(), x, y, down);
+	nds_set_touchscreen_state(nds.get(), x, y, down, quicktap, moved);
 }
 
 void

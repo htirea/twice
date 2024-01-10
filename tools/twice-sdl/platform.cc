@@ -529,8 +529,8 @@ sdl_platform::update_touchscreen_state()
 		touch_y = (touch_y - h / 2) * 192 / (h / 2);
 	}
 
-	nds->update_touchscreen_state(
-			touch_x, touch_y, mouse_buttons & SDL_BUTTON_LEFT);
+	nds->update_touchscreen_state(touch_x, touch_y,
+			mouse_buttons & SDL_BUTTON_LEFT, false, false);
 }
 
 void

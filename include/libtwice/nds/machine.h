@@ -217,10 +217,12 @@ struct nds_machine {
 	 *
 	 * \param x [0..255]
 	 * \param y [0..191]
-	 * \param down true if the touchscreen is pressed,
-	 *             false if the touchscreen is released
+	 * \param down whether the pen is touching the screen
+	 * \param quicktap whether the pen was tapped quickly
+	 * \param moved whether the pen was moved
 	 */
-	void update_touchscreen_state(int x, int y, bool down);
+	void update_touchscreen_state(
+			int x, int y, bool down, bool quicktap, bool moved);
 
 	/**
 	 * Update the current real world date and time used by the RTC.

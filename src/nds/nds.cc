@@ -187,6 +187,7 @@ void
 event_32khz_tick(nds_ctx *nds, intptr_t data, timestamp late)
 {
 	nds->timer_32k_ticks++;
+	touchscreen_tick_32k(nds);
 	rtc_tick_32k(nds, late);
 	event_sample_audio(nds, data, late);
 	schedule_32k_tick_event(nds, late);

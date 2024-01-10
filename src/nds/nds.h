@@ -79,6 +79,10 @@ struct nds_ctx {
 	sound_capture_channel sound_cap_ch[2];
 	wifi wf;
 
+	u32 timer_32k_ticks{};
+	u32 timer_32k_last_period{};
+	u32 timer_32k_last_err{};
+
 	/*
 	 * Memory
 	 */
@@ -99,9 +103,6 @@ struct nds_ctx {
 	s16 audio_buf[4096]{};
 	u32 audio_buf_idx{};
 	u32 last_audio_buf_size{};
-	u32 timer_32k_ticks{};
-	u32 timer_32k_last_period{};
-	u32 timer_32k_last_err{};
 
 	/*
 	 * IO
@@ -178,7 +179,8 @@ void nds_direct_boot(nds_ctx *nds);
 void nds_run_frame(nds_ctx *nds);
 void nds_set_rtc_time(nds_ctx *nds, int year, int month, int day, int weekday,
 		int hour, int minute, int second);
-void nds_set_touchscreen_state(nds_ctx *nds, int x, int y, bool down);
+void nds_set_touchscreen_state(nds_ctx *nds, int x, int y, bool down,
+		bool quicktap, bool moved);
 void nds_dump_prof(nds_ctx *nds);
 
 void event_hblank_start(nds_ctx *nds, intptr_t, timestamp late);

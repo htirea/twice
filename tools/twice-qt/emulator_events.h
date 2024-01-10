@@ -57,6 +57,8 @@ struct TouchEvent {
 	int x;
 	int y;
 	bool down;
+	bool quicktap;
+	bool move;
 };
 
 struct UpdateRTCEvent {

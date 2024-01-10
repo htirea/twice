@@ -143,32 +143,77 @@ DisplayWidget::paintGL()
 void
 DisplayWidget::mousePressEvent(QMouseEvent *e)
 {
+	auto button = e->button();
+	if (button != Qt::LeftButton && button != Qt::RightButton) {
+		e->ignore();
+		return;
+	}
+
+	if (button == Qt::LeftButton) {
+		mouse1_down = true;
+	}
+
+	if (button == Qt::RightButton) {
+		mouse2_down = true;
+	}
+
 	auto pos = e->position();
 	if (auto coords = window_coords_to_screen_coords(w, h, pos.x(),
 			    pos.y(), letterboxed, orientation, 0)) {
 		event_q->push(TouchEvent{ .x = coords->first,
 				.y = coords->second,
-				.down = true });
+				.down = true,
+				.quicktap = button == Qt::RightButton,
+				.move = false });
 	}
 }
 
 void
-DisplayWidget::mouseReleaseEvent(QMouseEvent *)
+DisplayWidget::mouseReleaseEvent(QMouseEvent *e)
 {
-	event_q->push(TouchEvent{ .x = 0, .y = 0, .down = false });
+	if (!mouse1_down && !mouse2_down) {
+		e->ignore();
+		return;
+	}
+
+	auto button = e->button();
+	if (button == Qt::LeftButton) {
+		mouse1_down = false;
+	}
+
+	if (button == Qt::RightButton) {
+		mouse2_down = false;
+	}
+
+	event_q->push(TouchEvent{ .x = 0,
+			.y = 0,
+			.down = false,
+			.quicktap = false,
+			.move = false });
 }
 
 void
 DisplayWidget::mouseMoveEvent(QMouseEvent *e)
 {
+	if (!mouse1_down) {
+		e->ignore();
+		return;
+	}
+
 	auto pos = e->position();
 	if (auto coords = window_coords_to_screen_coords(w, h, pos.x(),
 			    pos.y(), letterboxed, orientation, 0)) {
 		event_q->push(TouchEvent{ .x = coords->first,
 				.y = coords->second,
-				.down = true });
+				.down = true,
+				.quicktap = false,
+				.move = true });
 	} else {
-		event_q->push(TouchEvent{ .x = 0, .y = 0, .down = false });
+		event_q->push(TouchEvent{ .x = 0,
+				.y = 0,
+				.down = false,
+				.quicktap = false,
+				.move = false });
 	}
 }
 

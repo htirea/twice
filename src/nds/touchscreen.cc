@@ -58,10 +58,28 @@ touchscreen_spi_reset(nds_ctx *nds)
 }
 
 void
-nds_set_touchscreen_state(nds_ctx *nds, int x, int y, bool down)
+touchscreen_tick_32k(nds_ctx *nds)
+{
+	auto& ts = nds->ts;
+
+	if (ts.release_countdown > 0) {
+		ts.release_countdown--;
+		if (ts.release_countdown == 0) {
+			nds_set_touchscreen_state(
+					nds, 0, 0, false, false, false);
+		}
+	}
+}
+
+void
+nds_set_touchscreen_state(nds_ctx *nds, int x, int y, bool down, bool quicktap,
+		bool moved)
 {
 	auto& ts = nds->ts;
 	ts.down = down;
+
+	if (moved && !down)
+		return;
 
 	if (down) {
 		ts.raw_x = std::clamp(x << 4, 1 << 4, 255 << 4);
@@ -69,6 +87,10 @@ nds_set_touchscreen_state(nds_ctx *nds, int x, int y, bool down)
 		nds->extkeyin &= ~BIT(6);
 	} else {
 		nds->extkeyin |= BIT(6);
+	}
+
+	if (quicktap) {
+		ts.release_countdown = 512;
 	}
 }
 

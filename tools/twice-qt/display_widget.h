@@ -51,6 +51,8 @@ class DisplayWidget : public QOpenGLWidget,
 	double h{};
 	int orientation{};
 	bool letterboxed{ true };
+	bool mouse1_down{ false };
+	bool mouse2_down{ false };
 	triple_buffer<std::array<u32, NDS_FB_SZ>> *tbuffer;
 	threaded_queue<Event> *event_q{};
 };

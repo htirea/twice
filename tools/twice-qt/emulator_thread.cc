@@ -192,7 +192,7 @@ EmulatorThread::handle_event(const ButtonEvent& e)
 void
 EmulatorThread::handle_event(const TouchEvent& e)
 {
-	nds->update_touchscreen_state(e.x, e.y, e.down);
+	nds->update_touchscreen_state(e.x, e.y, e.down, e.quicktap, e.move);
 }
 
 void
