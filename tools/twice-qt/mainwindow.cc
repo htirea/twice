@@ -71,6 +71,7 @@ MainWindow::MainWindow(QSettings *settings, QCommandLineParser *parser,
 	set_display_size(512, 768);
 	setAcceptDrops(true);
 	orientation_acts[0]->setChecked(true);
+	filter_linear_act->setChecked(true);
 }
 
 MainWindow::~MainWindow()
@@ -235,6 +236,22 @@ MainWindow::create_actions()
 				true);
 		orientation_group->addAction(orientation_acts[i].get());
 	}
+
+	texture_filter_group = std::make_unique<QActionGroup>(this);
+	filter_nearest_act = create_action(tr("Nearest"),
+			tr("Nearest neighbour filtering"), ([=](bool checked) {
+				if (checked)
+					display->linear_filtering = false;
+			}),
+			true);
+	texture_filter_group->addAction(filter_nearest_act.get());
+	filter_linear_act = create_action(tr("Linear"),
+			tr("Bilinear filtering"), ([=](bool checked) {
+				if (checked)
+					display->linear_filtering = true;
+			}),
+			true);
+	texture_filter_group->addAction(filter_linear_act.get());
 }
 
 void
@@ -257,6 +274,9 @@ MainWindow::create_menus()
 	for (int i = 0; i < 4; i++) {
 		orientation_menu->addAction(orientation_acts[i].get());
 	}
+	texture_filter_menu = video_menu->addMenu(tr("Filter mode"));
+	texture_filter_menu->addAction(filter_nearest_act.get());
+	texture_filter_menu->addAction(filter_linear_act.get());
 }
 
 void

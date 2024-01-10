@@ -96,6 +96,7 @@ class MainWindow : public QMainWindow {
 	QMenu *emu_menu{};
 	QMenu *video_menu{};
 	QMenu *orientation_menu{};
+	QMenu *texture_filter_menu{};
 	std::unique_ptr<QAction> load_rom_act;
 	std::unique_ptr<QAction> load_system_files_act;
 	std::unique_ptr<QAction> reset_direct;
@@ -105,6 +106,9 @@ class MainWindow : public QMainWindow {
 	std::unique_ptr<QAction> fast_forward_act;
 	std::unique_ptr<QAction> orientation_acts[4];
 	std::unique_ptr<QActionGroup> orientation_group;
+	std::unique_ptr<QActionGroup> texture_filter_group;
+	std::unique_ptr<QAction> filter_nearest_act;
+	std::unique_ptr<QAction> filter_linear_act;
 
       public slots:
 	void frame_ended(double frametime);

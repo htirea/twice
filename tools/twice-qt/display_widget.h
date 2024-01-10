@@ -46,11 +46,13 @@ class DisplayWidget : public QOpenGLWidget,
 	GLuint fragment_shader{};
 	GLuint shader_program{};
 	GLuint texture{};
+	GLuint sampler{};
 	std::array<float, 16> proj_mtx;
 	double w{};
 	double h{};
 	int orientation{};
 	bool letterboxed{ true };
+	bool linear_filtering{ true };
 	bool mouse1_down{ false };
 	bool mouse2_down{ false };
 	triple_buffer<std::array<u32, NDS_FB_SZ>> *tbuffer;

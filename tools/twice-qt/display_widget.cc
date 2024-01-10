@@ -32,11 +32,11 @@ out vec4 FragColor;
 
 in vec2 uv;
 
-uniform sampler2D texture1;
+uniform sampler2D texture0;
 
 void main()
 {
-	FragColor = texture(texture1, uv);
+	FragColor = texture(texture0, uv);
 }
 )___";
 
@@ -51,8 +51,14 @@ DisplayWidget::DisplayWidget(
 DisplayWidget::~DisplayWidget()
 {
 	makeCurrent();
-	glDeleteShader(vtx_shader);
+	glDeleteSamplers(1, &sampler);
+	glDeleteTextures(1, &texture);
+	glDeleteProgram(shader_program);
 	glDeleteShader(fragment_shader);
+	glDeleteShader(vtx_shader);
+	glDeleteVertexArrays(1, &vao);
+	glDeleteBuffers(1, &vbo);
+	glDeleteBuffers(1, &ebo);
 }
 
 void
@@ -107,13 +113,20 @@ DisplayWidget::initializeGL()
 	glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, NDS_FB_W, NDS_FB_H, 0, GL_RGBA,
 			GL_UNSIGNED_BYTE, tbuffer->get_read_buffer().data());
 	glUseProgram(shader_program);
 	GLuint proj_mtx_loc = glGetUniformLocation(shader_program, "proj_mtx");
 	glUniformMatrix4fv(proj_mtx_loc, 1, GL_FALSE, proj_mtx.data());
+	glUniform1i(glGetUniformLocation(shader_program, "texture0"), 0);
+
+	glGenSamplers(1, &sampler);
+	glSamplerParameteri(sampler, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+	glSamplerParameteri(sampler, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+	glSamplerParameteri(sampler, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glSamplerParameteri(sampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 }
 
 void
@@ -126,13 +139,22 @@ DisplayWidget::resizeGL(int w, int h)
 void
 DisplayWidget::paintGL()
 {
-	glViewport(0, 0, w, h);
 	update_projection_mtx();
+	glViewport(0, 0, w, h);
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT);
+
+	if (linear_filtering) {
+		glBindSampler(0, sampler);
+	} else {
+		glBindSampler(0, 0);
+	}
+
+	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, texture);
 	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, NDS_FB_W, NDS_FB_H, GL_RGBA,
 			GL_UNSIGNED_BYTE, tbuffer->get_read_buffer().data());
+
 	glUseProgram(shader_program);
 	GLuint proj_mtx_loc = glGetUniformLocation(shader_program, "proj_mtx");
 	glUniformMatrix4fv(proj_mtx_loc, 1, GL_FALSE, proj_mtx.data());
