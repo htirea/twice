@@ -4,6 +4,7 @@
 #include <memory>
 
 #include <QAction>
+#include <QActionGroup>
 #include <QAudioFormat>
 #include <QAudioOutput>
 #include <QAudioSink>
@@ -53,6 +54,24 @@ class MainWindow : public QMainWindow {
 	void create_actions();
 	void create_menus();
 
+	template <typename Func2>
+	std::unique_ptr<QAction> create_action(const QString& text,
+			const QString& tip, Func2&& slot,
+			bool checkable = false)
+	{
+		auto action = std::make_unique<QAction>(text, this);
+		action->setStatusTip(tip);
+		action->setCheckable(checkable);
+
+		if (checkable) {
+			connect(action.get(), &QAction::toggled, this, slot);
+		} else {
+			connect(action.get(), &QAction::triggered, this, slot);
+		}
+
+		return action;
+	}
+
       protected:
 	void dragEnterEvent(QDragEnterEvent *) override;
 	void dropEvent(QDropEvent *e) override;
@@ -75,6 +94,8 @@ class MainWindow : public QMainWindow {
 	EmulatorThread *emu_thread{};
 	QMenu *file_menu{};
 	QMenu *emu_menu{};
+	QMenu *video_menu{};
+	QMenu *orientation_menu{};
 	std::unique_ptr<QAction> load_rom_act;
 	std::unique_ptr<QAction> load_system_files_act;
 	std::unique_ptr<QAction> reset_direct;
@@ -82,6 +103,8 @@ class MainWindow : public QMainWindow {
 	std::unique_ptr<QAction> shutdown_act;
 	std::unique_ptr<QAction> pause_act;
 	std::unique_ptr<QAction> fast_forward_act;
+	std::unique_ptr<QAction> orientation_acts[4];
+	std::unique_ptr<QActionGroup> orientation_group;
 
       public slots:
 	void frame_ended(double frametime);

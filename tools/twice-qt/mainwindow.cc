@@ -63,13 +63,14 @@ MainWindow::MainWindow(QSettings *settings, QCommandLineParser *parser,
 	connect(emu_thread, &EmulatorThread::show_error_msg, this,
 			&MainWindow::show_error_msg);
 
-	set_display_size(512, 768);
-	setAcceptDrops(true);
-
 	initialize_commands();
 	create_actions();
 	create_menus();
 	set_default_keybinds();
+
+	set_display_size(512, 768);
+	setAcceptDrops(true);
+	orientation_acts[0]->setChecked(true);
 }
 
 MainWindow::~MainWindow()
@@ -119,12 +120,14 @@ MainWindow::initialize_commands()
 
 	cmd_map[CMD_ROTATE_RIGHT] = ([=](intptr_t arg) {
 		if (arg & 1)
-			set_orientation((display->orientation + 1) & 3);
+			orientation_acts[(display->orientation + 1) & 3]
+					->setChecked(true);
 	});
 
 	cmd_map[CMD_ROTATE_LEFT] = ([=](intptr_t arg) {
 		if (arg & 1)
-			set_orientation((display->orientation - 1) & 3);
+			orientation_acts[(display->orientation - 1) & 3]
+					->setChecked(true);
 	});
 }
 
@@ -192,45 +195,46 @@ MainWindow::set_orientation(int orientation)
 void
 MainWindow::create_actions()
 {
-	load_rom_act = std::make_unique<QAction>(tr("Load ROM"), this);
-	load_rom_act->setShortcuts(QKeySequence::Open);
-	load_rom_act->setStatusTip(tr("Load a ROM file"));
-	connect(load_rom_act.get(), &QAction::triggered, this,
+	load_rom_act = create_action(tr("Load ROM"), tr("Load a ROM file"),
 			&MainWindow::load_rom);
+	load_rom_act->setShortcuts(QKeySequence::Open);
 
-	load_system_files_act = std::make_unique<QAction>(
-			tr("Load system files"), this);
-	load_system_files_act->setStatusTip(tr("Load NDS system files"));
-	connect(load_system_files_act.get(), &QAction::triggered, this,
+	load_system_files_act = create_action(tr("Load system files"),
+			tr("Load NDS system files"),
 			&MainWindow::load_system_files);
 
-	reset_direct = std::make_unique<QAction>(tr("Reset to ROM"), this);
-	reset_direct->setStatusTip(tr("Reset to the ROM directly"));
-	connect(reset_direct.get(), &QAction::triggered, this,
+	reset_direct = create_action(tr("Reset to ROM"),
+			tr("Reset to the ROM directly"),
 			([=]() { reboot_nds(true); }));
 
-	reset_firmware_act = std::make_unique<QAction>(
-			tr("Reset to firmware"), this);
-	reset_firmware_act->setStatusTip(tr("Reset to the firmware"));
-	connect(reset_firmware_act.get(), &QAction::triggered, this,
+	reset_firmware_act = create_action(tr("Reset to firmware"),
+			tr("Reset to the firmware"),
 			([=]() { reboot_nds(false); }));
 
-	shutdown_act = std::make_unique<QAction>(tr("Shut down"), this);
-	shutdown_act->setStatusTip(tr("Shut down the NDS machine"));
-	connect(shutdown_act.get(), &QAction::triggered, this,
+	shutdown_act = create_action(tr("Shut down"),
+			tr("Shut down the NDS machine"),
 			([=]() { shutdown_nds(); }));
 
-	pause_act = std::make_unique<QAction>(tr("Pause"), this);
-	pause_act->setStatusTip(tr("Pause emulation"));
-	pause_act->setCheckable(true);
-	connect(pause_act.get(), &QAction::toggled, this,
-			&MainWindow::pause_nds);
+	pause_act = create_action(tr("Pause"), tr("Pause emulation"),
+			&MainWindow::pause_nds, true);
 
-	fast_forward_act = std::make_unique<QAction>(tr("Fast forward"), this);
-	fast_forward_act->setStatusTip(tr("Fast forward emulation"));
-	fast_forward_act->setCheckable(true);
-	connect(fast_forward_act.get(), &QAction::toggled, this,
-			&MainWindow::fast_forward_nds);
+	fast_forward_act = create_action(tr("Fast forward"),
+			tr("Fast forward emulation"),
+			&MainWindow::fast_forward_nds, true);
+
+	orientation_group = std::make_unique<QActionGroup>(this);
+	for (int i = 0; i < 4; i++) {
+		int degrees = i * 90;
+		orientation_acts[i] = create_action(tr("%1°").arg(degrees),
+				tr("Rotate the screen %1 degrees")
+						.arg(degrees),
+				([=](bool checked) {
+					if (checked)
+						set_orientation(i);
+				}),
+				true);
+		orientation_group->addAction(orientation_acts[i].get());
+	}
 }
 
 void
@@ -247,6 +251,12 @@ MainWindow::create_menus()
 	emu_menu->addSeparator();
 	emu_menu->addAction(pause_act.get());
 	emu_menu->addAction(fast_forward_act.get());
+
+	video_menu = menuBar()->addMenu(tr("Video"));
+	orientation_menu = video_menu->addMenu(tr("Orientation"));
+	for (int i = 0; i < 4; i++) {
+		orientation_menu->addAction(orientation_acts[i].get());
+	}
 }
 
 void
