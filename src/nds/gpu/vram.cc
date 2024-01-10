@@ -877,7 +877,7 @@ setup_fast_texture_palette_array(nds_ctx *nds)
 			continue;
 		}
 
-		u16 mask = vram.texture_bank[i];
+		u16 mask = vram.texture_palette_bank[i];
 		if (mask == 0) {
 			std::fill(dest, dest + 0x4000, 0);
 			continue;
