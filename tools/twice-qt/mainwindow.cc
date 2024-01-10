@@ -198,6 +198,12 @@ MainWindow::create_actions()
 	connect(load_rom_act.get(), &QAction::triggered, this,
 			&MainWindow::load_rom);
 
+	load_system_files_act = std::make_unique<QAction>(
+			tr("Load system files"), this);
+	load_system_files_act->setStatusTip(tr("Load NDS system files"));
+	connect(load_system_files_act.get(), &QAction::triggered, this,
+			&MainWindow::load_system_files);
+
 	reset_direct = std::make_unique<QAction>(tr("Reset to ROM"), this);
 	reset_direct->setStatusTip(tr("Reset to the ROM directly"));
 	connect(reset_direct.get(), &QAction::triggered, this,
@@ -232,6 +238,7 @@ MainWindow::create_menus()
 {
 	file_menu = menuBar()->addMenu(tr("File"));
 	file_menu->addAction(load_rom_act.get());
+	file_menu->addAction(load_system_files_act.get());
 
 	emu_menu = menuBar()->addMenu(tr("Emulation"));
 	emu_menu->addAction(reset_direct.get());
@@ -304,6 +311,42 @@ MainWindow::load_rom()
 	if (!pathname.isEmpty()) {
 		event_q.push(LoadROMEvent{
 				.pathname = pathname.toStdString() });
+	}
+}
+
+void
+MainWindow::load_system_files()
+{
+	auto pathnames = QFileDialog::getOpenFileNames(this,
+			tr("Select NDS system files"), "",
+			tr("Binary files (*.bin);;All files (*)"));
+
+	for (const auto& path : pathnames) {
+		QFileInfo info(path);
+
+		if (info.fileName() == "bios9.bin" || info.size() == 4096) {
+			event_q.push(LoadFileEvent{
+					.type = LoadFileEvent::ARM9_BIOS,
+					.pathname = path.toStdString() });
+			settings->setValue("arm9_bios_path", path);
+		} else if (info.fileName() == "bios7.bin" ||
+				info.size() == 16384) {
+			event_q.push(LoadFileEvent{
+					.type = LoadFileEvent::ARM7_BIOS,
+					.pathname = path.toStdString() });
+			settings->setValue("arm7_bios_path", path);
+		} else if (info.fileName() == "firmware.bin" ||
+				info.size() == 262144) {
+			event_q.push(LoadFileEvent{
+					.type = LoadFileEvent::FIRMWARE,
+					.pathname = path.toStdString() });
+			settings->setValue("firmware_path", path);
+		} else {
+			QMessageBox msgbox;
+			msgbox.setText(tr("Unknown system file type: %1")
+							.arg(path));
+			msgbox.exec();
+		}
 	}
 }
 

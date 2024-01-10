@@ -11,19 +11,28 @@ namespace twice {
 nds_machine::nds_machine(const nds_config& config) : config(config)
 {
 	try {
-		auto pathname = config.data_dir / "bios9.bin";
+		auto pathname = config.arm9_bios_path;
+		if (pathname.empty()) {
+			pathname = config.data_dir / "bios9.bin";
+		}
 		load_system_file(pathname, nds_system_file::ARM9_BIOS);
 	} catch (const file_map::file_map_error& e) {
 	}
 
 	try {
-		auto pathname = config.data_dir / "bios7.bin";
+		auto pathname = config.arm7_bios_path;
+		if (pathname.empty()) {
+			pathname = config.data_dir / "bios7.bin";
+		}
 		load_system_file(pathname, nds_system_file::ARM7_BIOS);
 	} catch (const file_map::file_map_error& e) {
 	}
 
 	try {
-		auto pathname = config.data_dir / "firmware.bin";
+		auto pathname = config.firmware_path;
+		if (pathname.empty()) {
+			pathname = config.data_dir / "firmware.bin";
+		}
 		load_system_file(pathname, nds_system_file::FIRMWARE);
 	} catch (const file_map::file_map_error& e) {
 	}

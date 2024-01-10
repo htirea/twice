@@ -1,7 +1,11 @@
 #include "mainwindow.h"
 
-#include <QApplication>
 #include <iostream>
+
+#include <QApplication>
+#include <QStandardPaths>
+
+static void setup_default_settings(QSettings *settings);
 
 int
 main(int argc, char *argv[])
@@ -19,10 +23,23 @@ main(int argc, char *argv[])
 
 	QSettings::setDefaultFormat(QSettings::IniFormat);
 	QSettings settings;
+	setup_default_settings(&settings);
 
 	twice::MainWindow window(&settings, &parser);
 	window.start_emulator_thread();
 
 	window.show();
 	return app.exec();
+}
+
+static void
+setup_default_settings(QSettings *settings)
+{
+	if (!settings->contains("data_dir")) {
+		auto paths = QStandardPaths::standardLocations(
+				QStandardPaths::AppDataLocation);
+		if (!paths.isEmpty()) {
+			settings->setValue("data_dir", paths[0]);
+		}
+	}
 }

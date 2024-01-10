@@ -1,8 +1,5 @@
 #include "libtwice/filemap.h"
-#include "libtwice/exception.h"
 #include "libtwice/types.h"
-
-#include "common/logger.h"
 
 #include <cstdint>
 #include <iostream>
@@ -29,9 +26,9 @@ struct file_map::impl {
 
 static int check_filesize(
 		int fd, std::size_t limit, int flags, std::size_t *size_out);
-static int create_shared_mapping(file_map::impl *internal,
+static void create_shared_mapping(file_map::impl *internal,
 		const char *pathname, std::size_t limit, int flags);
-static int create_private_mapping(file_map::impl *internal,
+static void create_private_mapping(file_map::impl *internal,
 		const char *pathname, std::size_t limit, int flags);
 
 file_map::file_map() = default;
@@ -43,11 +40,11 @@ file_map::file_map(const std::filesystem::path& pathname, std::size_t limit,
 	int err = 0;
 
 	if (flags & FILEMAP_SHARED) {
-		err = create_shared_mapping(internal.get(), pathname.c_str(),
-				limit, flags);
+		create_shared_mapping(internal.get(), pathname.c_str(), limit,
+				flags);
 	} else if (flags & FILEMAP_PRIVATE) {
-		err = create_private_mapping(internal.get(), pathname.c_str(),
-				limit, flags);
+		create_private_mapping(internal.get(), pathname.c_str(), limit,
+				flags);
 	} else {
 		throw file_map_error("File mapping mode not specified.");
 	}
@@ -141,19 +138,16 @@ check_filesize(int fd, std::size_t limit, int flags, std::size_t *size_out)
 {
 	struct stat s;
 	if (fstat(fd, &s)) {
-		LOG("could not stat file\n");
 		return 1;
 	}
 
 	if ((flags & file_map::FILEMAP_EXACT) &&
 			std::cmp_not_equal(s.st_size, limit)) {
-		LOG("file does not match size\n");
 		return 1;
 	}
 
 	if ((flags & file_map::FILEMAP_LIMIT) &&
 			std::cmp_greater(s.st_size, limit)) {
-		LOG("file exceeds size\n");
 		return 1;
 	}
 
@@ -166,28 +160,26 @@ check_filesize(int fd, std::size_t limit, int flags, std::size_t *size_out)
 	}
 }
 
-static int
+static void
 create_private_mapping(file_map::impl *internal, const char *pathname,
 		std::size_t limit, int flags)
 {
 	int fd = open(pathname, O_RDONLY);
 	if (fd == -1) {
-		LOG("could not open file\n");
-		return 1;
+		throw file_map::file_map_error("Could not open the file.");
 	}
 
 	std::size_t filesize;
 	if (check_filesize(fd, limit, flags, &filesize)) {
 		close(fd);
-		return 1;
+		throw file_map::file_map_error("Invalid file size.");
 	}
 
 	void *addr = mmap(NULL, filesize, PROT_READ | PROT_WRITE, MAP_PRIVATE,
 			fd, 0);
 	if (addr == MAP_FAILED) {
 		close(fd);
-		LOG("mmap failed\n");
-		return 1;
+		throw file_map::file_map_error("mmap failed.");
 	}
 
 	internal->fd = fd;
@@ -195,10 +187,9 @@ create_private_mapping(file_map::impl *internal, const char *pathname,
 	internal->size = filesize;
 	internal->pathname = pathname;
 	internal->flags = flags;
-	return 0;
 }
 
-static int
+static void
 create_shared_mapping(file_map::impl *internal, const char *pathname,
 		std::size_t limit, int flags)
 {
@@ -214,8 +205,8 @@ create_shared_mapping(file_map::impl *internal, const char *pathname,
 			if (ftruncate(fd, limit)) {
 				close(fd);
 				unlink(pathname);
-				LOG("ftruncate failed\n");
-				return 1;
+				throw file_map::file_map_error(
+						"ftruncate failed.");
 			}
 		} else if (fd == -1 && errno == EEXIST) {
 			fd = open(pathname, O_RDWR);
@@ -226,8 +217,7 @@ create_shared_mapping(file_map::impl *internal, const char *pathname,
 		close(fd);
 		if (created)
 			unlink(pathname);
-		LOG("could not open file\n");
-		return 1;
+		throw file_map::file_map_error("Could not open the file.");
 	}
 
 	std::size_t filesize;
@@ -236,7 +226,7 @@ create_shared_mapping(file_map::impl *internal, const char *pathname,
 	} else {
 		if (check_filesize(fd, limit, flags, &filesize)) {
 			close(fd);
-			return 1;
+			throw file_map::file_map_error("Invalid file size.");
 		}
 	}
 
@@ -246,8 +236,7 @@ create_shared_mapping(file_map::impl *internal, const char *pathname,
 		close(fd);
 		if (created)
 			unlink(pathname);
-		LOG("mmap failed\n");
-		return 1;
+		throw file_map::file_map_error("mmap failed.");
 	}
 
 	internal->fd = fd;
@@ -255,7 +244,6 @@ create_shared_mapping(file_map::impl *internal, const char *pathname,
 	internal->size = filesize;
 	internal->pathname = pathname;
 	internal->flags = flags;
-	return 0;
 }
 
 } // namespace twice

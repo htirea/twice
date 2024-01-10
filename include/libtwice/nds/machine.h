@@ -19,6 +19,9 @@ struct nds_ctx;
  */
 struct nds_config {
 	std::filesystem::path data_dir;
+	std::filesystem::path arm9_bios_path;
+	std::filesystem::path arm7_bios_path;
+	std::filesystem::path firmware_path;
 };
 
 /**

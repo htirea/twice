@@ -16,6 +16,15 @@ EmulatorThread::EmulatorThread(QSettings *settings, DisplayWidget *display,
 	nds_config config;
 	/* TODO: fix file path handling */
 	config.data_dir = settings->value("data_dir").toString().toStdString();
+	config.arm9_bios_path = settings->value("arm9_bios_path")
+	                                        .toString()
+	                                        .toStdString();
+	config.arm7_bios_path = settings->value("arm7_bios_path")
+	                                        .toString()
+	                                        .toStdString();
+	config.firmware_path = settings->value("firmware_path")
+	                                       .toString()
+	                                       .toStdString();
 
 	nds = std::make_unique<nds_machine>(config);
 }
@@ -35,13 +44,16 @@ EmulatorThread::run()
 
 		handle_events();
 
+		if (!nds->is_shutdown() && !paused) {
+			nds->run_frame();
+		}
+
 		if (nds->is_shutdown()) {
 			tbuffer->get_write_buffer().fill(0);
 			tbuffer->swap_write_buffer();
 		} else if (paused) {
 			;
 		} else {
-			nds->run_frame();
 			std::memcpy(tbuffer->get_write_buffer().data(),
 					nds->get_framebuffer(),
 					NDS_FB_SZ_BYTES);
@@ -109,8 +121,13 @@ EmulatorThread::handle_event(const QuitEvent&)
 }
 
 void
-EmulatorThread::handle_event(const LoadFileEvent&)
+EmulatorThread::handle_event(const LoadFileEvent& e)
 {
+	try {
+		nds->load_system_file(e.pathname, (nds_system_file)e.type);
+	} catch (const twice_exception& err) {
+		emit show_error_msg(tr(err.what()));
+	}
 }
 
 void

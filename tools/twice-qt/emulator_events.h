@@ -19,11 +19,11 @@ struct LoadFileEvent {
 		FIRMWARE,
 	} type;
 
-	std::string pathname;
+	std::filesystem::path pathname;
 };
 
 struct LoadROMEvent {
-	std::string pathname;
+	std::filesystem::path pathname;
 };
 
 struct SetSavetypeEvent {

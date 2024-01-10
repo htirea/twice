@@ -10,6 +10,7 @@
 #include <QCommandLineParser>
 #include <QDragEnterEvent>
 #include <QFileDialog>
+#include <QFileInfo>
 #include <QHash>
 #include <QLayout>
 #include <QMainWindow>
@@ -74,6 +75,7 @@ class MainWindow : public QMainWindow {
 	QMenu *file_menu{};
 	QMenu *emu_menu{};
 	std::unique_ptr<QAction> load_rom_act;
+	std::unique_ptr<QAction> load_system_files_act;
 	std::unique_ptr<QAction> reset_direct;
 	std::unique_ptr<QAction> reset_firmware_act;
 	std::unique_ptr<QAction> shutdown_act;
@@ -88,6 +90,7 @@ class MainWindow : public QMainWindow {
 
       private slots:
 	void load_rom();
+	void load_system_files();
 	void reboot_nds(bool direct);
 };
 
