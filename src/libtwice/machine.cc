@@ -66,6 +66,7 @@ nds_machine::load_cartridge(const std::filesystem::path& pathname)
 	}
 
 	this->cartridge = std::move(cartridge);
+	savefile = file_map();
 	savetype = SAVETYPE_UNKNOWN;
 }
 
@@ -79,6 +80,7 @@ nds_machine::eject_cartridge()
 	}
 
 	cartridge = file_map();
+	savefile = file_map();
 	savetype = SAVETYPE_UNKNOWN;
 }
 
