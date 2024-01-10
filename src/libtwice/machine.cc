@@ -44,6 +44,12 @@ void
 nds_machine::load_system_file(
 		const std::filesystem::path& pathname, nds_system_file type)
 {
+	if (nds) {
+		/* TODO: handle loading files while running */
+		throw twice_error("The system file cannot be loaded while the "
+				  "machine is running.");
+	}
+
 	int flags = file_map::FILEMAP_PRIVATE | file_map::FILEMAP_EXACT;
 
 	switch (type) {
