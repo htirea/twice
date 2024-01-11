@@ -48,8 +48,8 @@ class DisplayWidget : public QOpenGLWidget,
 	GLuint texture{};
 	GLuint sampler{};
 	std::array<float, 16> proj_mtx;
-	double w{};
-	double h{};
+	int w{};
+	int h{};
 	int orientation{};
 	bool letterboxed{ true };
 	bool linear_filtering{ true };

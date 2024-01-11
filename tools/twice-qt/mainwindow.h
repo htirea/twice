@@ -51,6 +51,8 @@ class MainWindow : public QMainWindow {
 	void pause_nds(bool pause);
 	void fast_forward_nds(bool fast_forward);
 	void set_orientation(int orientation);
+	void set_screen_size(int scale);
+	void auto_resize_window();
 	void create_actions();
 	void create_menus();
 	void update_audio_outputs();
@@ -102,6 +104,7 @@ class MainWindow : public QMainWindow {
 	QMenu *file_menu{};
 	QMenu *emu_menu{};
 	QMenu *video_menu{};
+	QMenu *screen_size_menu{};
 	QMenu *orientation_menu{};
 	QMenu *texture_filter_menu{};
 	QMenu *audio_menu{};
@@ -119,6 +122,10 @@ class MainWindow : public QMainWindow {
 	std::unique_ptr<QAction> filter_nearest_act;
 	std::unique_ptr<QAction> filter_linear_act;
 	std::unique_ptr<QActionGroup> audio_output_group;
+	std::unique_ptr<QActionGroup> screen_size_group;
+	std::unique_ptr<QAction> screen_size_acts[4];
+	std::unique_ptr<QAction> auto_resize_act;
+	std::unique_ptr<QAction> stretched_act;
 
       public slots:
 	void frame_ended(double frametime);

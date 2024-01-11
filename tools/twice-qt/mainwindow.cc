@@ -52,21 +52,22 @@ MainWindow::MainWindow(QSettings *settings, QCommandLineParser *parser,
 			&MainWindow::push_audio);
 	connect(emu_thread, &EmulatorThread::show_error_msg, this,
 			&MainWindow::show_error_msg);
+	connect(&media_devices, &QMediaDevices::audioOutputsChanged, this,
+			&MainWindow::update_audio_outputs);
 
 	initialize_commands();
 	create_actions();
 	create_menus();
 	set_default_keybinds();
+	update_audio_outputs();
+	set_audio_output_device(
+			settings->value("audio_output_device").toString());
 
 	set_display_size(512, 768);
 	setAcceptDrops(true);
 	orientation_acts[0]->setChecked(true);
 	filter_linear_act->setChecked(true);
-	connect(&media_devices, &QMediaDevices::audioOutputsChanged, this,
-			&MainWindow::update_audio_outputs);
-	update_audio_outputs();
-	set_audio_output_device(
-			settings->value("audio_output_device").toString());
+	stretched_act->setChecked(true);
 }
 
 MainWindow::~MainWindow()
@@ -98,7 +99,12 @@ MainWindow::start_emulator_thread()
 void
 MainWindow::set_display_size(int w, int h)
 {
-	resize(w, h);
+	display->setFixedSize(w, h);
+	setFixedSize(sizeHint());
+	display->setMinimumSize(0, 0);
+	display->setMaximumSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
+	setMinimumSize(0, 0);
+	setMaximumSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
 }
 
 void
@@ -195,6 +201,36 @@ MainWindow::set_orientation(int orientation)
 }
 
 void
+MainWindow::set_screen_size(int scale)
+{
+	int w = NDS_FB_W * scale;
+	int h = NDS_FB_H * scale;
+	if (display->orientation & 1) {
+		std::swap(w, h);
+	}
+
+	set_display_size(w, h);
+}
+
+void
+MainWindow::auto_resize_window()
+{
+	double w = display->w;
+	double h = display->h;
+	double ratio = w / h;
+	double target = display->orientation & 1 ? NDS_FB_ASPECT_RATIO_RECIP
+	                                         : NDS_FB_ASPECT_RATIO;
+
+	if (ratio < target) {
+		h = w / target;
+	} else if (ratio > target) {
+		w = h * target;
+	}
+
+	set_display_size(w, h);
+}
+
+void
 MainWindow::create_actions()
 {
 	load_rom_act = create_action(tr("Load ROM"), tr("Load a ROM file"),
@@ -255,6 +291,27 @@ MainWindow::create_actions()
 	texture_filter_group->addAction(filter_linear_act.get());
 
 	audio_output_group = std::make_unique<QActionGroup>(this);
+
+	screen_size_group = std::make_unique<QActionGroup>(this);
+	screen_size_group->setExclusionPolicy(
+			QActionGroup::ExclusionPolicy::ExclusiveOptional);
+	for (int i = 0; i < 4; i++) {
+		int scale = i + 1;
+		screen_size_acts[i] = create_action(tr("%1x").arg(scale),
+				tr("Scale screen by %1x").arg(scale),
+				([=]() { set_screen_size(scale); }));
+		screen_size_group->addAction(screen_size_acts[i].get());
+	}
+
+	auto_resize_act = create_action(tr("Auto resize"),
+			tr("Resize the window to match the screen"),
+			([=]() { auto_resize_window(); }));
+
+	stretched_act = create_action(tr("Lock aspect ratio"),
+			tr("Lock the aspect ratio"), ([=](bool checked) {
+				display->letterboxed = checked;
+			}),
+			true);
 }
 
 void
@@ -273,6 +330,11 @@ MainWindow::create_menus()
 	emu_menu->addAction(fast_forward_act.get());
 
 	video_menu = menuBar()->addMenu(tr("Video"));
+	video_menu->addAction(auto_resize_act.get());
+	screen_size_menu = video_menu->addMenu(tr("Scale"));
+	for (int i = 0; i < 4; i++) {
+		screen_size_menu->addAction(screen_size_acts[i].get());
+	}
 	orientation_menu = video_menu->addMenu(tr("Orientation"));
 	for (int i = 0; i < 4; i++) {
 		orientation_menu->addAction(orientation_acts[i].get());
@@ -280,6 +342,7 @@ MainWindow::create_menus()
 	texture_filter_menu = video_menu->addMenu(tr("Filter mode"));
 	texture_filter_menu->addAction(filter_nearest_act.get());
 	texture_filter_menu->addAction(filter_linear_act.get());
+	video_menu->addAction(stretched_act.get());
 
 	audio_menu = menuBar()->addMenu(tr("Audio"));
 	audio_output_menu = audio_menu->addMenu(tr("Output Device"));

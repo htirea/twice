@@ -140,7 +140,6 @@ void
 DisplayWidget::paintGL()
 {
 	update_projection_mtx();
-	glViewport(0, 0, w, h);
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT);
 
@@ -246,7 +245,7 @@ DisplayWidget::update_projection_mtx()
 	float sy = 1.0;
 
 	if (letterboxed) {
-		double ratio = w / h;
+		double ratio = (double)w / h;
 		double target_ratio;
 		if (orientation & 1) {
 			target_ratio = NDS_FB_ASPECT_RATIO_RECIP;
