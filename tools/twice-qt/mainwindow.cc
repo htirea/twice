@@ -15,7 +15,9 @@ enum {
 	CMD_BUTTON_L,
 	CMD_BUTTON_X,
 	CMD_BUTTON_Y,
+	CMD_TOGGLE_PAUSE,
 	CMD_PAUSE,
+	CMD_RESUME,
 	CMD_FAST_FORWARD,
 	CMD_ROTATE_RIGHT,
 	CMD_ROTATE_LEFT,
@@ -116,9 +118,19 @@ MainWindow::initialize_commands()
 		});
 	}
 
-	cmd_map[CMD_PAUSE] = ([=](intptr_t arg) {
+	cmd_map[CMD_TOGGLE_PAUSE] = ([=](intptr_t arg) {
 		if (arg & 1)
 			pause_act->toggle();
+	});
+
+	cmd_map[CMD_PAUSE] = ([=](intptr_t arg) {
+		if (arg & 1)
+			pause_act->setChecked(true);
+	});
+
+	cmd_map[CMD_RESUME] = ([=](intptr_t arg) {
+		if (arg & 1)
+			pause_act->setChecked(false);
 	});
 
 	cmd_map[CMD_FAST_FORWARD] = ([=](intptr_t arg) {
@@ -159,7 +171,8 @@ MainWindow::set_default_keybinds()
 	keybinds[QKeyCombination(Qt::NoModifier, Qt::Key_Q)] = CMD_BUTTON_L;
 	keybinds[QKeyCombination(Qt::NoModifier, Qt::Key_S)] = CMD_BUTTON_X;
 	keybinds[QKeyCombination(Qt::NoModifier, Qt::Key_A)] = CMD_BUTTON_Y;
-	keybinds[QKeyCombination(Qt::NoModifier, Qt::Key_P)] = CMD_PAUSE;
+	keybinds[QKeyCombination(Qt::CTRL, Qt::Key_S)] = CMD_PAUSE;
+	keybinds[QKeyCombination(Qt::CTRL, Qt::Key_Q)] = CMD_RESUME;
 	keybinds[QKeyCombination(Qt::NoModifier, Qt::Key_0)] =
 			CMD_FAST_FORWARD;
 	keybinds[QKeyCombination(Qt::CTRL, Qt::Key_Right)] = CMD_ROTATE_RIGHT;
