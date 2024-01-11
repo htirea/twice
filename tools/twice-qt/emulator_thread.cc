@@ -28,6 +28,7 @@ EmulatorThread::EmulatorThread(QSettings *settings, DisplayWidget *display,
 	                                       .toStdString();
 
 	nds = std::make_unique<nds_machine>(config);
+	nds->set_use_16_bit_audio(true);
 }
 
 void

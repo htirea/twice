@@ -37,20 +37,10 @@ MainWindow::MainWindow(QSettings *settings, QCommandLineParser *parser,
 	display = new DisplayWidget(&tbuffer, &event_q);
 	setCentralWidget(display);
 
-	QAudioFormat audio_format;
 	audio_format.setSampleRate(32768);
 	audio_format.setChannelCount(2);
 	audio_format.setChannelConfig(QAudioFormat::ChannelConfigStereo);
 	audio_format.setSampleFormat(QAudioFormat::Int16);
-
-	QAudioDevice info(QMediaDevices::defaultAudioOutput());
-	if (!info.isFormatSupported(audio_format)) {
-		throw twice_error("audio format not supported");
-	}
-
-	audio_sink = new QAudioSink(audio_format, this);
-	audio_sink->setBufferSize(4096);
-	audio_out_buffer = audio_sink->start();
 
 	emu_thread = new EmulatorThread(
 			settings, display, &tbuffer, &abuffer, &event_q);
@@ -72,13 +62,24 @@ MainWindow::MainWindow(QSettings *settings, QCommandLineParser *parser,
 	setAcceptDrops(true);
 	orientation_acts[0]->setChecked(true);
 	filter_linear_act->setChecked(true);
+	connect(&media_devices, &QMediaDevices::audioOutputsChanged, this,
+			&MainWindow::update_audio_outputs);
+	update_audio_outputs();
+	set_audio_output_device(
+			settings->value("audio_output_device").toString());
 }
 
 MainWindow::~MainWindow()
 {
+	auto action = audio_output_group->checkedAction();
+	if (action) {
+		settings->setValue("audio_output_device", action->text());
+	}
+
 	emu_thread->wait();
 	delete emu_thread;
-	delete audio_sink;
+	if (audio_sink)
+		delete audio_sink;
 }
 
 void
@@ -252,6 +253,8 @@ MainWindow::create_actions()
 			}),
 			true);
 	texture_filter_group->addAction(filter_linear_act.get());
+
+	audio_output_group = std::make_unique<QActionGroup>(this);
 }
 
 void
@@ -277,6 +280,76 @@ MainWindow::create_menus()
 	texture_filter_menu = video_menu->addMenu(tr("Filter mode"));
 	texture_filter_menu->addAction(filter_nearest_act.get());
 	texture_filter_menu->addAction(filter_linear_act.get());
+
+	audio_menu = menuBar()->addMenu(tr("Audio"));
+	audio_output_menu = audio_menu->addMenu(tr("Output Device"));
+}
+
+void
+MainWindow::update_audio_outputs()
+{
+	audio_devices.clear();
+	auto actions = audio_output_group->actions();
+	for (const auto& action : actions) {
+		audio_output_group->removeAction(action);
+	}
+	audio_output_menu->clear();
+
+	auto devices = QMediaDevices::audioOutputs();
+	for (const auto& device : devices) {
+		if (!device.isFormatSupported(audio_format))
+			continue;
+
+		auto idx = audio_devices.size();
+		audio_devices.push_back(device);
+		auto name = device.description();
+		auto action = audio_output_menu->addAction(name);
+		audio_output_acts.push_back(action);
+		action->setCheckable(true);
+		action->setActionGroup(audio_output_group.get());
+		connect(action, &QAction::toggled, this, ([=](bool checked) {
+			if (checked)
+				set_audio_output_device(idx);
+		}));
+	}
+}
+
+void
+MainWindow::set_audio_output_device(std::size_t idx)
+{
+	if (idx > audio_devices.size()) {
+		return;
+	}
+
+	if (audio_sink) {
+		audio_sink->reset();
+		audio_sink->stop();
+		delete audio_sink;
+		audio_out_buffer = nullptr;
+	}
+
+	audio_sink = new QAudioSink(audio_devices[idx], audio_format, this);
+	audio_sink->setBufferSize(4096);
+	audio_out_buffer = audio_sink->start();
+}
+
+void
+MainWindow::set_audio_output_device(const QString& name)
+{
+	auto len = audio_devices.size();
+	for (std::size_t i = 0; i < len; i++) {
+		if (audio_devices[i].description() == name) {
+			audio_output_acts[i]->setChecked(true);
+			return;
+		}
+	}
+
+	for (std::size_t i = 0; i < len; i++) {
+		if (audio_devices[i].isDefault()) {
+			audio_output_acts[i]->setChecked(true);
+			return;
+		}
+	}
 }
 
 void
@@ -313,7 +386,11 @@ MainWindow::push_audio(size_t len)
 	}
 
 	if (acc > late_threshold) {
-		acc = 0;
+		acc -= late_threshold;
+		return;
+	}
+
+	if (!audio_out_buffer) {
 		return;
 	}
 

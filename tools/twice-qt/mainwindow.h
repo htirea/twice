@@ -53,6 +53,9 @@ class MainWindow : public QMainWindow {
 	void set_orientation(int orientation);
 	void create_actions();
 	void create_menus();
+	void update_audio_outputs();
+	void set_audio_output_device(std::size_t idx);
+	void set_audio_output_device(const QString& name);
 
 	template <typename Func2>
 	std::unique_ptr<QAction> create_action(const QString& text,
@@ -84,8 +87,12 @@ class MainWindow : public QMainWindow {
 	triple_buffer<std::array<s16, 2048>> abuffer;
 	QHash<QKeyCombination, int> keybinds{};
 	std::unordered_map<int, std::function<void(intptr_t arg)>> cmd_map;
+	std::vector<QAudioDevice> audio_devices;
+	std::vector<QAction *> audio_output_acts;
 	stopwatch audio_stopwatch;
 
+	QAudioFormat audio_format;
+	QMediaDevices media_devices;
 	QSettings *settings{};
 	QCommandLineParser *parser{};
 	DisplayWidget *display{};
@@ -97,6 +104,8 @@ class MainWindow : public QMainWindow {
 	QMenu *video_menu{};
 	QMenu *orientation_menu{};
 	QMenu *texture_filter_menu{};
+	QMenu *audio_menu{};
+	QMenu *audio_output_menu{};
 	std::unique_ptr<QAction> load_rom_act;
 	std::unique_ptr<QAction> load_system_files_act;
 	std::unique_ptr<QAction> reset_direct;
@@ -109,6 +118,7 @@ class MainWindow : public QMainWindow {
 	std::unique_ptr<QActionGroup> texture_filter_group;
 	std::unique_ptr<QAction> filter_nearest_act;
 	std::unique_ptr<QAction> filter_linear_act;
+	std::unique_ptr<QActionGroup> audio_output_group;
 
       public slots:
 	void frame_ended(double frametime);

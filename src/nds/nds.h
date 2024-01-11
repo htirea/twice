@@ -3,6 +3,7 @@
 
 #include "libtwice/nds/defs.h"
 #include "libtwice/nds/game_db.h"
+#include "libtwice/nds/machine.h"
 
 #include "nds/cart/cart.h"
 #include "nds/dma.h"
@@ -165,15 +166,16 @@ struct nds_ctx {
 	bool frame_finished{};
 	bool trace{};
 	bool shutdown{};
-	bool use_16_bit_audio{};
 	double arm9_usage{};
 	double arm7_usage{};
 	profiler prof;
+	nds_config *config{};
 };
 
 std::unique_ptr<nds_ctx> create_nds_ctx(u8 *arm7_bios, u8 *arm9_bios,
 		u8 *firmware, u8 *cartridge, size_t cartridge_size,
-		u8 *savefile, size_t savefile_size, int savetype);
+		u8 *savefile, size_t savefile_size, int savetype,
+		nds_config *config);
 void nds_firmware_boot(nds_ctx *nds);
 void nds_direct_boot(nds_ctx *nds);
 void nds_run_frame(nds_ctx *nds);

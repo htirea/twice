@@ -20,10 +20,11 @@ nds_ctx::~nds_ctx() = default;
 std::unique_ptr<nds_ctx>
 create_nds_ctx(u8 *arm7_bios, u8 *arm9_bios, u8 *firmware, u8 *cartridge,
 		size_t cartridge_size, u8 *savefile, size_t savefile_size,
-		int savetype)
+		int savetype, nds_config *config)
 {
 	auto ctx = std::make_unique<nds_ctx>();
 	nds_ctx *nds = ctx.get();
+	nds->config = config;
 
 	nds->arm9_bios = arm9_bios;
 	nds->arm7_bios = arm7_bios;

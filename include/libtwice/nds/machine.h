@@ -22,6 +22,7 @@ struct nds_config {
 	std::filesystem::path arm9_bios_path;
 	std::filesystem::path arm7_bios_path;
 	std::filesystem::path firmware_path;
+	bool use_16_bit_audio{};
 };
 
 /**

@@ -176,7 +176,7 @@ nds_machine::boot(bool direct_boot)
 
 	auto ctx = create_nds_ctx(arm7_bios.data(), arm9_bios.data(),
 			firmware.data(), cartridge.data(), cartridge.size(),
-			savefile.data(), savefile.size(), savetype);
+			savefile.data(), savefile.size(), savetype, &config);
 	if (direct_boot) {
 		nds_direct_boot(ctx.get());
 	} else {
@@ -341,7 +341,7 @@ nds_machine::get_cpu_usage()
 void
 nds_machine::set_use_16_bit_audio(bool use_16_bit_audio)
 {
-	nds->use_16_bit_audio = use_16_bit_audio;
+	config.use_16_bit_audio = use_16_bit_audio;
 }
 
 void

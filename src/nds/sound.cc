@@ -228,7 +228,7 @@ event_sample_audio(nds_ctx *nds, intptr_t, timestamp late)
 			mix_audio(nds, &left, &right);
 		}
 
-		if (nds->use_16_bit_audio) {
+		if (nds->config->use_16_bit_audio) {
 			left >>= 25;
 			right >>= 25;
 			left += ((s64)nds->soundbias << 10) - 0x80000;
