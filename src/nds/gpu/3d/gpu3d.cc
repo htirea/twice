@@ -20,7 +20,9 @@ gpu3d_on_vblank(gpu_3d_engine *gpu)
 	}
 
 	if (gpu->re.manual_sort != (bool)(gpu->ge.swap_bits & 1) ||
-			gpu->re.r != gpu->re.shadow) {
+			gpu->re.r != gpu->re.shadow ||
+			gpu->nds->vram.texture_changed ||
+			gpu->nds->vram.texture_palette_changed) {
 		gpu->render_frame = true;
 	}
 
