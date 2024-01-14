@@ -120,7 +120,7 @@ io9_read16(nds_ctx *nds, u32 addr)
 	case 0x4000000:
 		return nds->gpu2d[0].dispcnt;
 	case 0x4000060:
-		return nds->gpu3d.re.shadow.disp3dcnt;
+		return nds->gpu3d.re.r_s.disp3dcnt;
 	case 0x400006C:
 		return nds->gpu2d[0].master_bright;
 	case 0x40000E0:
@@ -334,9 +334,9 @@ io9_write16(nds_ctx *nds, u32 addr, u16 value)
 		nds->gpu2d[0].dispcnt |= (u32)value << 16;
 		return;
 	case 0x4000060:
-		nds->gpu3d.re.shadow.disp3dcnt &= 0x3000;
-		nds->gpu3d.re.shadow.disp3dcnt |= value & ~0x3000;
-		nds->gpu3d.re.shadow.disp3dcnt &= ~(value & 0x3000);
+		nds->gpu3d.re.r_s.disp3dcnt &= 0x3000;
+		nds->gpu3d.re.r_s.disp3dcnt |= value & ~0x3000;
+		nds->gpu3d.re.r_s.disp3dcnt &= ~(value & 0x3000);
 		return;
 	case 0x400006C:
 		nds->gpu2d[0].master_bright = value & 0xC01F;

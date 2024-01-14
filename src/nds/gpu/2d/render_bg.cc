@@ -239,7 +239,7 @@ render_3d_line(gpu_2d_engine *gpu, u32 y)
 		if (!layer_in_window(gpu, 0, x))
 			continue;
 
-		color4 color = gpu->nds->gpu3d.color_buf[0][y][x];
+		color4 color = gpu->nds->gpu3d.re.color_buf[0][y][x];
 		if (color.a == 0)
 			continue;
 
