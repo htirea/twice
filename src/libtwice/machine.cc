@@ -169,7 +169,9 @@ nds_machine::boot(bool direct_boot)
 			try_savetype = nds_get_save_info(cartridge).type;
 		}
 
-		load_or_create_savefile(pathname, try_savetype);
+		if (try_savetype != SAVETYPE_NONE) {
+			load_or_create_savefile(pathname, try_savetype);
+		}
 	}
 
 	/* TODO: revert state if exception occured? */
