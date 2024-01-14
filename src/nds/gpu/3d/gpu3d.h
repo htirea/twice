@@ -4,7 +4,7 @@
 #include "common/ringbuf.h"
 #include "common/types.h"
 #include "nds/gpu/3d/ge.h"
-#include "nds/gpu/3d/polygon.h"
+#include "nds/gpu/3d/gpu3d_types.h"
 #include "nds/gpu/3d/re.h"
 
 namespace twice {

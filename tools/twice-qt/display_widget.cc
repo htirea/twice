@@ -45,7 +45,7 @@ DisplayWidget::DisplayWidget(
 		threaded_queue<Event> *event_q)
 	: tbuffer(tbuffer), event_q(event_q)
 {
-	mtx_set_identity<float, 4>(proj_mtx.data());
+	mtx_set_identity<float, 4>(proj_mtx);
 }
 
 DisplayWidget::~DisplayWidget()

@@ -1,5 +1,5 @@
-#ifndef TWICE_GPU3D_POLYGON_H
-#define TWICE_GPU3D_POLYGON_H
+#ifndef TWICE_GPU3D_TYPES_H
+#define TWICE_GPU3D_TYPES_H
 
 #include "common/types.h"
 
@@ -23,7 +23,7 @@ struct polygon {
 	u32 tx_param{};
 	u32 pltt_base{};
 	int wshift{};
-	bool wbufferring{};
+	bool wbuffering{};
 	bool translucent{};
 	bool backface{};
 	u32 start_vtx{};

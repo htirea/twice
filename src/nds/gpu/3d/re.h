@@ -2,7 +2,7 @@
 #define TWICE_GPU3D_RE_H
 
 #include "common/types.h"
-#include "nds/gpu/3d/polygon.h"
+#include "nds/gpu/3d/gpu3d_types.h"
 #include "nds/gpu/color.h"
 
 namespace twice {

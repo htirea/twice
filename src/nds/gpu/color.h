@@ -28,7 +28,7 @@ union color_u {
 };
 
 inline void
-unpack_bgr555_3d(u16 color, u8 *color_out)
+unpack_bgr555_3d(u16 color, std::span<u8, 3> color_out)
 {
 	u8 r = color & 0x1F;
 	u8 g = color >> 5 & 0x1F;
