@@ -41,6 +41,7 @@ add_library(twice STATIC
 	nds/gpu/3d/ge_poly.cc
 	nds/gpu/3d/gpu3d.cc
 	nds/gpu/3d/re.cc
+	nds/gpu/3d/re_poly.cc
 	nds/gpu/vram.cc
 	nds/ipc.cc
 	nds/math.cc

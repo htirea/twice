@@ -202,6 +202,7 @@ gpu_3d_write32(gpu_3d_engine *gpu, u16 offset, u32 value)
 		u8 command = offset >> 2 & 0xFF;
 		if (valid_ge_command(command)) {
 			fifo_pipe_push(gpu, command, value);
+			fifo_pipe_process_commands(gpu);
 			return;
 		}
 	}
@@ -240,12 +241,15 @@ gpu3d_on_vblank(gpu_3d_engine *gpu)
 	}
 
 	gpu->re.manual_sort = gpu->ge.swap_bits & 1;
+	gpu->re.r = gpu->re.r_s;
 	fifo_pipe_process_commands(gpu);
 }
 
 void
 gpu3d_on_scanline_start(nds_ctx *nds)
 {
+	fifo_pipe_process_commands(&nds->gpu3d);
+
 	if (nds->vcount == 214) {
 		if (nds->gpu3d.render_frame) {
 			re_render_frame(&nds->gpu3d.re);
@@ -333,6 +337,8 @@ gxfifo_write(gpu_3d_engine *gpu, u32 value)
 		if (gxfifo.params_left == 0) {
 			unpack_gxfifo_to_fifo(gpu);
 		}
+
+		gxfifo.params.clear();
 	} else {
 		gxfifo.params_left--;
 		gxfifo.params.push_back(value);

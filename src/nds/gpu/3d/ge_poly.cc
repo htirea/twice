@@ -4,7 +4,6 @@
 #include "common/util.h"
 #include "nds/gpu/3d/ge_matrix.h"
 #include "nds/gpu/3d/gpu3d.h"
-#include "nds/gpu/3d/interpolator.h"
 
 namespace twice {
 

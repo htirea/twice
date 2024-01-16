@@ -2,6 +2,7 @@
 #define TWICE_GPU3D_RE_H
 
 #include "common/types.h"
+#include "libtwice/nds/defs.h"
 #include "nds/gpu/3d/gpu3d_types.h"
 #include "nds/gpu/color.h"
 
@@ -27,13 +28,30 @@ struct rendering_engine {
 
 	registers r, r_s;
 	bool manual_sort{};
+	bool last_poly_is_shadow_mask{};
+	u32 outside_opaque_id_attr{};
+	s32 outside_depth{};
 
-	color4 color_buf[2][192][256]{};
-	s32 depth_buf[2][192][256]{};
-	bool stencil_buf[2][256]{};
+	std::array<std::array<color4, 256>, 192> color_buf[2]{};
+	std::array<std::array<s32, 256>, 192> depth_buf[2]{};
+	/*
+	 * attributes
+	 * 0		edge
+	 * 1		opaque
+	 * 7		backface
+	 * 8-12		antialising coverage
+	 * 11		translucent set new depth
+	 * 14		depth test equal mode
+	 * 15		fog
+	 * 16-21	translucent poly id
+	 * 24-29	opaque poly id
+	 */
+	std::array<std::array<u32, 256>, 192> attr_buf[2]{};
+	std::array<std::array<u8, 256>, 192> stencil_buf{};
 
 	vertex_ram *vtx_ram{};
 	polygon_ram *poly_ram{};
+	std::array<re_polygon, 2048> polys{};
 	gpu_3d_engine *gpu{};
 };
 

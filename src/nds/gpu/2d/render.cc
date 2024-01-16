@@ -142,6 +142,7 @@ capture_display(gpu_2d_engine *gpu, u32 y)
 	u32 capture_src = gpu->dispcapcnt >> 29 & 3;
 	color4 *src_a = gpu->dispcapcnt & BIT(24)
 	                                ? gpu->nds->gpu3d.re.color_buf[0][y]
+	                                                  .data()
 	                                : gpu->gfx_line.data();
 	u16 src_b[256]{};
 
