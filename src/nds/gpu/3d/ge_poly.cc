@@ -7,11 +7,12 @@
 
 namespace twice {
 
-static std::vector<vertex> clip_polygon_plane(std::vector<vertex>& in,
-		int plane, int positive, bool render_clipped);
-static bool vertex_inside(vertex *v, int plane, int positive);
-static vertex create_clipped_vertex(
-		vertex *v0, vertex *v1, int plane, int positive);
+static void clip_polygon_plane(std::list<vertex>& in, int plane, int positive,
+		bool render_clipped);
+static bool vertex_inside(
+		std::list<vertex>::iterator v, int plane, int positive);
+static vertex create_clipped_vertex(std::list<vertex>::iterator v0,
+		std::list<vertex>::iterator v1, int plane, int positive);
 static s32 clip_lerp(s32 y0, s32 y1, interpolator *i, int positive);
 static void add_polygon(geometry_engine *ge);
 static s64 get_face_direction(vertex *v0, vertex *v1, vertex *v2);
@@ -70,63 +71,100 @@ std::vector<vertex>
 ge_clip_polygon(std::span<vertex *> in, u32 num_vertices,
 		bool render_clipped_far)
 {
-	std::vector<vertex> out;
+	std::list<vertex> out;
 	for (u32 i = 0; i < num_vertices; i++) {
 		out.push_back(*in[i]);
 	}
 
-	out = clip_polygon_plane(out, 2, 1, render_clipped_far);
-	out = clip_polygon_plane(out, 2, 0, true);
-	out = clip_polygon_plane(out, 1, 1, true);
-	out = clip_polygon_plane(out, 1, 0, true);
-	out = clip_polygon_plane(out, 0, 1, true);
-	out = clip_polygon_plane(out, 0, 0, true);
+	clip_polygon_plane(out, 2, 1, render_clipped_far);
+	clip_polygon_plane(out, 2, 0, true);
+	clip_polygon_plane(out, 1, 1, true);
+	clip_polygon_plane(out, 1, 0, true);
+	clip_polygon_plane(out, 0, 1, true);
+	clip_polygon_plane(out, 0, 0, true);
 
-	return out;
+	return { out.begin(), out.end() };
 }
 
-static std::vector<vertex>
-clip_polygon_plane(std::vector<vertex>& in, int plane, int positive,
+static void
+clip_polygon_plane(std::list<vertex>& in, int plane, int positive,
 		bool render_clipped)
 {
-	std::vector<vertex> out;
-	size_t n = in.size();
+	if (in.empty())
+		return;
 
-	for (u32 curr_idx = 0; curr_idx < n; curr_idx++) {
-		u32 next_idx = (curr_idx + 1) % n;
-		vertex *curr = &in[curr_idx];
-		vertex *next = &in[next_idx];
+	in.push_back(in.front());
+	auto end = --in.end();
+
+	for (auto curr = in.begin(); curr != end;) {
+		auto next = std::next(curr);
 		bool curr_inside = vertex_inside(curr, plane, positive);
 		bool next_inside = vertex_inside(next, plane, positive);
 
 		if (!(curr_inside && next_inside) && !render_clipped) {
-			return {};
+			in.clear();
+			return;
 		}
 
 		if (curr_inside && next_inside) {
-			out.push_back(*curr);
+			curr = next;
 		} else if (curr_inside) {
-			out.push_back(*curr);
-			out.push_back(create_clipped_vertex(
-					curr, next, plane, positive));
+			in.insert(next, create_clipped_vertex(curr, next,
+							plane, positive));
+			curr = next;
 		} else if (next_inside) {
-			out.push_back(create_clipped_vertex(
-					curr, next, plane, positive));
+			in.insert(next, create_clipped_vertex(curr, next,
+							plane, positive));
+			in.erase(curr);
+			curr = next;
+		} else {
+			curr = in.erase(curr);
 		}
 	}
 
+	in.erase(end);
+
+	/*
+	std::vector<vertex> out;
+	size_t n = in.size();
+
+	for (u32 curr_idx = 0; curr_idx < n; curr_idx++) {
+	        u32 next_idx = (curr_idx + 1) % n;
+	        vertex *curr = &in[curr_idx];
+	        vertex *next = &in[next_idx];
+	        bool curr_inside = vertex_inside(curr, plane, positive);
+	        bool next_inside = vertex_inside(next, plane, positive);
+
+	        if (!(curr_inside && next_inside) && !render_clipped) {
+	                return {};
+	        }
+
+	        if (curr_inside && next_inside) {
+	                out.push_back(*curr);
+	        } else if (curr_inside) {
+	                out.push_back(*curr);
+	                out.push_back(create_clipped_vertex(
+	                                curr, next, plane, positive));
+	        } else if (next_inside) {
+	                out.push_back(create_clipped_vertex(
+	                                curr, next, plane, positive));
+	        }
+	}
+
 	return out;
+	*/
 }
 
 static bool
-vertex_inside(vertex *v, int plane, int positive)
+vertex_inside(std::list<vertex>::iterator v, int plane, int positive)
 {
 	return positive ? v->pos[plane] <= v->pos[3]
 	                : v->pos[plane] >= -v->pos[3];
 }
 
 static vertex
-create_clipped_vertex(vertex *v0, vertex *v1, int plane, int positive)
+create_clipped_vertex(std::list<vertex>::iterator v0,
+		std::list<vertex>::iterator v1, int plane, int positive)
 {
 	vertex r;
 	interpolator i;

@@ -11,6 +11,7 @@
 #include <cstdio>
 #include <cstring>
 #include <iostream>
+#include <list>
 #include <map>
 #include <memory>
 #include <queue>
