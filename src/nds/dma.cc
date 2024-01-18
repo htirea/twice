@@ -239,11 +239,15 @@ dma9_dmacnt_h_write(nds_ctx *nds, int ch, u16 value)
 			schedule_event_after(nds, 0,
 					scheduler::ARM9_IMMEDIATE_DMA, 2);
 			break;
+		case 7:
+			if (nds->gpu3d.fifo.buffer.size() < 128) {
+				dma.active |= BIT(ch);
+			}
+			break;
 		case 1:
 		case 2:
 		case 3:
 		case 5:
-		case 7:
 			break;
 		default:
 			throw twice_error("arm9 dma mode not implemented");

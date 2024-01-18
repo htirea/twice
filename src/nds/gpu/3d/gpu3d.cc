@@ -248,8 +248,6 @@ gpu3d_on_vblank(gpu_3d_engine *gpu)
 void
 gpu3d_on_scanline_start(nds_ctx *nds)
 {
-	fifo_pipe_process_commands(&nds->gpu3d);
-
 	if (nds->vcount == 214) {
 		if (nds->gpu3d.render_frame) {
 			re_render_frame(&nds->gpu3d.re);
@@ -363,7 +361,6 @@ unpack_gxfifo_to_fifo(gpu_3d_engine *gpu)
 			fifo_pipe_push(gpu, cmd, 0);
 		} else {
 			for (; num_params--; param_idx++) {
-				u32 param = gxfifo.params[param_idx];
 				fifo_pipe_push(gpu, cmd,
 						gxfifo.params[param_idx]);
 			}
