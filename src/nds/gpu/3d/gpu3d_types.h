@@ -35,18 +35,18 @@ struct polygon {
 	std::pair<int, s32> sortkey{};
 };
 
-struct attribute {
-	s32 y{};
-	s32 y_rem{};
-	s32 y0{};
-	s32 y1{};
-	s32 y_len{};
-	s32 y_step{};
-	s32 y_rem_step{};
-	bool positive{};
-};
-
 struct interpolator {
+	struct attribute {
+		s32 y{};
+		s32 y_rem{};
+		s32 y0{};
+		s32 y1{};
+		s32 y_len{};
+		s32 y_step{};
+		s32 y_rem_step{};
+		bool positive{};
+	};
+
 	s32 x0{};
 	s32 x1{};
 	s32 x{};

@@ -1,7 +1,6 @@
 #include "nds/gpu/3d/re.h"
 
 #include "common/macros.h"
-#include "nds/gpu/3d/re_poly.h"
 #include "nds/mem/vram.h"
 #include "nds/nds.h"
 
@@ -35,8 +34,11 @@ struct poly_render_data {
 	s32 cov_x1;
 };
 
+/* setup */
 static void clear_buffers(rendering_engine *re);
-static void render_scanline(rendering_engine *re, s32 y);
+static void setup_polygons(rendering_engine *re);
+static void find_polygon_start_end_sortkey(polygon *p, bool manual_sort);
+static void setup_polygon(rendering_engine *re, re_polygon *p);
 static void setup_polygon_scanline(rendering_engine *re, re_polygon *p, s32 y);
 static void setup_polygon_slope(slope *s, polygon *p, u32 start_idx,
 		u32 end_idx, bool left, s32 y);
@@ -46,6 +48,9 @@ static std::pair<bool, bool> setup_poly_fill_rules(rendering_engine *re,
 		poly_slope_data&, poly_render_data&, s32 y);
 static void get_slope_x_cov(slope *s, s32& x_start, s32& x_end, s32& cov_start,
 		s32& cov_end, s32 y);
+
+/* rendering */
+static void render_scanline(rendering_engine *re, s32 y);
 static void render_polygon_scanline(
 		rendering_engine *re, re_polygon *p, s32 y);
 static void render_shadow_mask_polygon_pixel(rendering_engine *re,
@@ -66,6 +71,8 @@ static void draw_opaque_pixel(rendering_engine *re, poly_render_data& r_data,
 static void draw_translucent_pixel(rendering_engine *re,
 		poly_render_data& r_data, color4 color, u32 x, u32 y, s32 z,
 		bool layer, u32 attr);
+
+/* effects */
 static void apply_effects_scanline(rendering_engine *re, s32 y);
 static void apply_edge_marking(rendering_engine *re, s32 y);
 static void get_surrounding_id_depth(rendering_engine *re, s32 y, s32 x,
@@ -74,6 +81,8 @@ static void apply_fog(rendering_engine *re, s32 y);
 static u8 calculate_fog_density(
 		u8 *fog_table, s32 fog_offset, s32 fog_step, s32 z);
 static void apply_antialiasing(rendering_engine *re, s32 y);
+
+/* interpolation */
 static void interp_setup(interpolator *i, s32 x0, s32 x1, s32 w0, s32 w1,
 		bool edge, bool wbuferring);
 static void interp_init_attr(interpolator *i, u32 k, s32 y0, s32 y1);
@@ -92,7 +101,7 @@ re_render_frame(rendering_engine *re)
 {
 	setup_fast_texture_vram(re->gpu->nds);
 	clear_buffers(re);
-	re_setup_polygons(re);
+	setup_polygons(re);
 
 	for (s32 i = 0; i < 192; i++) {
 		render_scanline(re, i);
@@ -135,17 +144,123 @@ clear_buffers(rendering_engine *re)
 }
 
 static void
-render_scanline(rendering_engine *re, s32 y)
+setup_polygons(rendering_engine *re)
 {
-	u32 num_polys = re->poly_ram->count;
+	polygon_ram *pr = re->poly_ram;
+	u32 num_polys = pr->count;
 
 	for (u32 i = 0; i < num_polys; i++) {
-		re_polygon *p = &re->polys[i];
-		if (y < p->start_y || y >= p->end_y)
-			continue;
-
-		render_polygon_scanline(re, p, y);
+		re->polys[i].p = &pr->polys[i];
+		find_polygon_start_end_sortkey(
+				re->polys[i].p, re->manual_sort);
 	}
+
+	std::stable_sort(re->polys.begin(), re->polys.begin() + num_polys,
+			[](const re_polygon& a, const re_polygon& b) {
+				return a.p->sortkey < b.p->sortkey;
+			});
+
+	for (u32 i = 0; i < num_polys; i++) {
+		setup_polygon(re, &re->polys[i]);
+	}
+}
+
+static void
+find_polygon_start_end_sortkey(polygon *p, bool manual_sort)
+{
+	u32 start_vtx = 0;
+	s32 start_x = p->vtxs[0]->sx;
+	s32 start_y = p->vtxs[0]->sy;
+
+	u32 end_vtx = 0;
+	s32 end_x = p->vtxs[0]->sx;
+	s32 end_y = p->vtxs[0]->sy;
+
+	for (u32 i = 1; i < p->num_vtxs; i++) {
+		vertex *v = p->vtxs[i];
+		if (v->sy < start_y || (v->sy == start_y && v->sx < start_x)) {
+			start_vtx = i;
+			start_x = v->sx;
+			start_y = v->sy;
+		}
+		if (v->sy > end_y || (v->sy == end_y && v->sx >= end_x)) {
+			end_vtx = i;
+			end_x = v->sx;
+			end_y = v->sy;
+		}
+	}
+
+	p->start_vtx = start_vtx;
+	p->end_vtx = end_vtx;
+
+	if (p->translucent) {
+		p->sortkey = { 1, manual_sort ? 0 : start_y };
+	} else {
+		p->sortkey = { 0, start_y };
+	}
+}
+
+static void
+setup_polygon(rendering_engine *, re_polygon *p)
+{
+	polygon *pp = p->p;
+	s32 start_y = pp->vtxs[pp->start_vtx]->sy;
+	s32 end_y = pp->vtxs[pp->end_vtx]->sy;
+
+	if (start_y == end_y) {
+		end_y++;
+
+		u32 left = pp->num_vtxs - 1;
+		s32 left_x = pp->vtxs[left]->sx;
+		u32 right = left;
+		s32 right_x = left_x;
+
+		for (u32 i = 0; i < 2 && i < pp->num_vtxs; i++) {
+			s32 x = pp->vtxs[i]->sx;
+			if (x < left_x) {
+				left_x = x;
+				left = i;
+			}
+			if (x > right_x) {
+				right_x = x;
+				right = i;
+			}
+		}
+
+		p->l = left;
+		p->prev_l = left;
+		p->r = right;
+		p->prev_r = right;
+		p->horizontal_line = true;
+	} else {
+		p->l = pp->start_vtx;
+		p->prev_l = pp->start_vtx;
+		p->r = pp->start_vtx;
+		p->prev_r = pp->start_vtx;
+		p->horizontal_line = false;
+	}
+
+	p->start_y = start_y;
+	p->end_y = end_y;
+
+	s32 top_count = 0;
+	s32 bottom_count = 0;
+	for (u32 i = 0; i < pp->num_vtxs; i++) {
+		vertex *v = pp->vtxs[i];
+
+		if (v->sy == start_y) {
+			top_count++;
+		}
+
+		if (v->sy == end_y) {
+			bottom_count++;
+		}
+	}
+
+	p->top_edge_y = top_count > 1 ? start_y : -1;
+	p->bottom_edge_y = bottom_count > 1 ? end_y - 1 : -1;
+	p->id = pp->attr >> 24 & 0x3F;
+	p->shadow = (pp->attr >> 4 & 3) == 3;
 }
 
 static void
@@ -437,6 +552,20 @@ get_slope_x_cov(slope *s, s32& x_start, s32& x_end, s32& cov_start,
 	x_start >>= 18;
 	x_end >>= 18;
 	x_end++;
+}
+
+static void
+render_scanline(rendering_engine *re, s32 y)
+{
+	u32 num_polys = re->poly_ram->count;
+
+	for (u32 i = 0; i < num_polys; i++) {
+		re_polygon *p = &re->polys[i];
+		if (y < p->start_y || y >= p->end_y)
+			continue;
+
+		render_polygon_scanline(re, p, y);
+	}
 }
 
 static void
