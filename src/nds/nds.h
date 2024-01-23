@@ -25,6 +25,12 @@
 
 namespace twice {
 
+enum class run_mode {
+	RUN_FOR,
+	RUN_UNTIL,
+	RUN_UNTIL_VBLANK,
+};
+
 enum : u32 {
 	MAIN_RAM_SIZE = 4_MiB,
 	MAIN_RAM_MASK = 4_MiB - 1,
@@ -101,9 +107,11 @@ struct nds_ctx {
 	u8 *arm9_bios{};
 
 	u32 fb[NDS_FB_SZ]{};
-	s16 audio_buf[4096]{};
+	std::array<s16, 4096> audio_buf{};
 	u32 audio_buf_idx{};
 	u32 last_audio_buf_size{};
+	std::array<s16, 4096> mic_buf{};
+	u32 mic_buf_idx{};
 
 	/*
 	 * IO
@@ -163,13 +171,17 @@ struct nds_ctx {
 	/*
 	 * MISC
 	 */
-	bool frame_finished{};
+	bool execution_finished{};
 	bool trace{};
 	bool shutdown{};
 	double arm9_usage{};
 	double arm7_usage{};
+	unsigned long term_sigs{};
+	unsigned long raised_sigs{};
+
 	profiler prof;
 	nds_config *config{};
+	nds_exec *exec_out{};
 };
 
 std::unique_ptr<nds_ctx> create_nds_ctx(u8 *arm7_bios, u8 *arm9_bios,
@@ -178,13 +190,14 @@ std::unique_ptr<nds_ctx> create_nds_ctx(u8 *arm7_bios, u8 *arm9_bios,
 		nds_config *config);
 void nds_firmware_boot(nds_ctx *nds);
 void nds_direct_boot(nds_ctx *nds);
-void nds_run_frame(nds_ctx *nds);
+void nds_run(nds_ctx *nds, run_mode mode, const nds_exec *in, nds_exec *out);
 void nds_set_rtc_time(nds_ctx *nds, int year, int month, int day, int weekday,
 		int hour, int minute, int second);
 void nds_set_touchscreen_state(nds_ctx *nds, int x, int y, bool down,
 		bool quicktap, bool moved);
 void nds_dump_prof(nds_ctx *nds);
 
+void event_execution_target_reached(nds_ctx *nds, intptr_t, timestamp late);
 void event_hblank_start(nds_ctx *nds, intptr_t, timestamp late);
 void event_hblank_end(nds_ctx *nds, intptr_t, timestamp late);
 void event_32khz_tick(nds_ctx *nds, intptr_t, timestamp late);

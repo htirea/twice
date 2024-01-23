@@ -25,6 +25,7 @@ static event_state initial_state[scheduler::NUM_EVENTS] = {
 	{ .cb = event_32khz_tick },
 	{ .cb = event_advance_rom_transfer },
 	{ .cb = event_auxspi_transfer_complete },
+	{ .cb = event_execution_target_reached },
 
 	{ .cb = event_timer_overflow, .data = 0 },
 	{ .cb = event_timer_overflow, .data = 1 },
@@ -79,6 +80,14 @@ get_next_event_time(nds_ctx *nds)
 	}
 
 	return target;
+}
+
+void
+schedule_event(nds_ctx *nds, int id, timestamp t)
+{
+	auto& sc = nds->sc;
+	sc.expiry[id] = t;
+	sc.enabled[id] = true;
 }
 
 void

@@ -8,6 +8,7 @@
 #include <QAudioFormat>
 #include <QAudioOutput>
 #include <QAudioSink>
+#include <QAudioSource>
 #include <QCommandLineParser>
 #include <QDragEnterEvent>
 #include <QFileDialog>
@@ -27,6 +28,7 @@
 #include "libtwice/util/threaded_queue.h"
 #include "libtwice/util/triple_buffer.h"
 
+#include "audio_buffer_device.h"
 #include "display_widget.h"
 #include "emulator_events.h"
 #include "emulator_thread.h"
@@ -94,12 +96,15 @@ class MainWindow : public QMainWindow {
 	stopwatch audio_stopwatch;
 
 	QAudioFormat audio_format;
+	QAudioFormat mic_audio_format;
 	QMediaDevices media_devices;
 	QSettings *settings{};
 	QCommandLineParser *parser{};
 	DisplayWidget *display{};
 	QAudioSink *audio_sink{};
 	QIODevice *audio_out_buffer{};
+	QAudioSource *audio_source{};
+	AudioBufferDevice *mic_io_device{};
 	EmulatorThread *emu_thread{};
 	QMenu *file_menu{};
 	QMenu *emu_menu{};

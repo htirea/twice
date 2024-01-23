@@ -59,6 +59,8 @@ powerman_write_reg(nds_ctx *nds, u8 value)
 	case 0:
 		if (value & BIT(6)) {
 			nds->shutdown = true;
+			nds->raised_sigs |= nds_signal::SHUTDOWN;
+			nds->execution_finished = true;
 		}
 		pwr.ctrl |= (value & 0x7F);
 		break;

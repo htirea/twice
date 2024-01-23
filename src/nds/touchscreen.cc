@@ -39,8 +39,26 @@ touchscreen_spi_transfer_byte(nds_ctx *nds, u8 value, bool keep_active)
 			output_12_bit_value(&ts, ts.down ? ts.raw_x : 0);
 			break;
 		case 6: /* TODO: microphone */
-			output_8_bit_value(&ts, 0);
+		{
+			u16 sample = 0;
+			if (nds->mic_buf_idx < nds->mic_buf.size()) {
+				sample = nds->mic_buf[nds->mic_buf_idx];
+				sample ^= 0x8000;
+			}
+
+			if (!nds->pwr.mic_amp_enabled) {
+				sample = 0;
+			} else {
+				sample >>= (3 - nds->pwr.mic_amp_gain);
+			}
+
+			if (value & BIT(3)) {
+				output_8_bit_value(&ts, sample >> 8);
+			} else {
+				output_12_bit_value(&ts, sample >> 4);
+			}
 			break;
+		}
 		case 7: /* temp1 */
 			output_12_bit_value(&ts, 142);
 			break;

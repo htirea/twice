@@ -11,6 +11,9 @@
 
 namespace twice {
 
+static void nds_setup_run(nds_ctx *nds, u64 target, unsigned long term_sigs,
+		s16 *mic_buf, size_t mic_buf_len, nds_exec *out);
+static void run_loop(nds_ctx *nds);
 static void check_lyc(nds_ctx *nds, int cpuid);
 static void nds_on_vblank(nds_ctx *nds);
 static void schedule_32k_tick_event(nds_ctx *nds, timestamp late);
@@ -101,40 +104,48 @@ nds_direct_boot(nds_ctx *nds)
 }
 
 void
-nds_run_frame(nds_ctx *nds)
+nds_run(nds_ctx *nds, run_mode mode, const nds_exec *in, nds_exec *out)
 {
-	nds->frame_finished = false;
+	u64 target = -1;
+	unsigned long term_sigs = 0;
+	s16 *mic_buf = nullptr;
+	size_t mic_buf_len = 0;
 
-	while (!nds->frame_finished) {
-		nds->arm_target_cycles[0] = get_next_event_time(nds);
-		if (nds->dma[0].active) {
-			run_dma9(nds);
-		} else {
-			nds->arm9->run();
+	if (in) {
+		switch (mode) {
+		case run_mode::RUN_FOR:
+			target = nds->arm_cycles[0] + in->cycles;
+			break;
+		case run_mode::RUN_UNTIL:
+			target = in->cycles;
+			break;
+		default:
+			target = -1;
 		}
 
-		run_cpu_events(nds, 0);
-
-		timestamp arm7_target = nds->arm_cycles[0] >> 1;
-		while (nds->arm_cycles[1] < arm7_target) {
-			nds->arm_target_cycles[1] = arm7_target;
-			if (nds->dma[1].active) {
-				run_dma7(nds);
-			} else {
-				nds->arm7->run();
-			}
-
-			run_cpu_events(nds, 1);
-		}
-
-		run_system_events(nds);
+		term_sigs = in->sig_flags;
+		mic_buf = in->audio_buf;
+		mic_buf_len = in->audio_buf_len;
 	}
+
+	if (mode == run_mode::RUN_UNTIL_VBLANK) {
+		term_sigs |= nds_signal::VBLANK;
+	}
+
+	nds_setup_run(nds, target, term_sigs, mic_buf, mic_buf_len, out);
+	run_loop(nds);
 }
 
 void
 nds_dump_prof(nds_ctx *nds)
 {
 	nds->prof.report();
+}
+
+void
+event_execution_target_reached(nds_ctx *nds, intptr_t, timestamp late)
+{
+	nds->execution_finished = true;
 }
 
 void
@@ -191,7 +202,74 @@ event_32khz_tick(nds_ctx *nds, intptr_t data, timestamp late)
 	touchscreen_tick_32k(nds);
 	rtc_tick_32k(nds, late);
 	event_sample_audio(nds, data, late);
+	nds->mic_buf_idx++;
 	schedule_32k_tick_event(nds, late);
+}
+
+static void
+nds_setup_run(nds_ctx *nds, u64 target, unsigned long term_sigs, s16 *mic_buf,
+		size_t mic_buf_len, nds_exec *out)
+{
+	nds->audio_buf.fill(0);
+	nds->audio_buf_idx = 0;
+	nds->mic_buf.fill(0);
+	nds->mic_buf_idx = 0;
+
+	if (mic_buf) {
+		size_t count = std::min(nds->mic_buf.size(), mic_buf_len);
+		std::copy(mic_buf, mic_buf + count, nds->mic_buf.begin());
+	}
+
+	nds->term_sigs = term_sigs;
+	nds->raised_sigs = 0;
+	nds->arm9->cycles_executed = 0;
+	nds->arm7->cycles_executed = 0;
+	nds->exec_out = out;
+	schedule_event(nds, scheduler::EXECUTION_TARGET_REACHED, target);
+}
+
+static void
+run_loop(nds_ctx *nds)
+{
+	u64 start_cycles = nds->arm_cycles[0];
+	nds->execution_finished = nds->shutdown;
+
+	while (!nds->execution_finished) {
+		nds->arm_target_cycles[0] = get_next_event_time(nds);
+		if (nds->dma[0].active) {
+			run_dma9(nds);
+		} else {
+			nds->arm9->run();
+		}
+
+		run_cpu_events(nds, 0);
+
+		timestamp arm7_target = nds->arm_cycles[0] >> 1;
+		while (nds->arm_cycles[1] < arm7_target) {
+			nds->arm_target_cycles[1] = arm7_target;
+			if (nds->dma[1].active) {
+				run_dma7(nds);
+			} else {
+				nds->arm7->run();
+			}
+
+			run_cpu_events(nds, 1);
+		}
+
+		run_system_events(nds);
+	}
+
+	nds->arm9_usage = nds->cpu[0]->cycles_executed / 1120380.0;
+	nds->arm7_usage = nds->cpu[1]->cycles_executed / 560190.0;
+	nds->last_audio_buf_size = nds->audio_buf_idx << 1;
+
+	if (nds->exec_out) {
+		nds->exec_out->cycles = nds->arm_cycles[0] - start_cycles;
+		nds->exec_out->audio_buf = nds->audio_buf.data();
+		nds->exec_out->audio_buf_len = nds->audio_buf_idx >> 1;
+		nds->exec_out->fb = nds->fb;
+		nds->exec_out->sig_flags = nds->raised_sigs;
+	}
 }
 
 static void
@@ -227,12 +305,10 @@ nds_on_vblank(nds_ctx *nds)
 	gpu3d_on_vblank(&nds->gpu3d);
 	dma_on_vblank(nds);
 
-	nds->frame_finished = true;
-	sound_frame_end(nds);
-	nds->arm9_usage = nds->cpu[0]->cycles_executed / 1120380.0;
-	nds->arm7_usage = nds->cpu[1]->cycles_executed / 560190.0;
-	nds->cpu[0]->cycles_executed = 0;
-	nds->cpu[1]->cycles_executed = 0;
+	if (nds->term_sigs & nds_signal::VBLANK) {
+		nds->raised_sigs |= nds_signal::VBLANK;
+		nds->execution_finished = true;
+	}
 }
 
 static void

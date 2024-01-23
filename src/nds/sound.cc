@@ -205,13 +205,6 @@ sound_capture_write_cnt(nds_ctx *nds, int ch_id, u8 value)
 }
 
 void
-sound_frame_end(nds_ctx *nds)
-{
-	nds->last_audio_buf_size = nds->audio_buf_idx * sizeof *nds->audio_buf;
-	nds->audio_buf_idx = 0;
-}
-
-void
 event_sample_audio(nds_ctx *nds, intptr_t, timestamp late)
 {
 	bool mixer_enabled = nds->soundcnt & BIT(15);
@@ -602,6 +595,10 @@ step_capture_channel(nds_ctx *nds, int ch_id, s16 value)
 static void
 send_audio_samples(nds_ctx *nds, s16 left, s16 right)
 {
+	if (nds->audio_buf_idx >= nds->audio_buf.size()) {
+		return;
+	}
+
 	nds->audio_buf[nds->audio_buf_idx++] = left;
 	nds->audio_buf[nds->audio_buf_idx++] = right;
 }

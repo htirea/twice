@@ -7,11 +7,13 @@ namespace twice {
 EmulatorThread::EmulatorThread(QSettings *settings, DisplayWidget *display,
 		triple_buffer<std::array<u32, NDS_FB_SZ>> *tbuffer,
 		triple_buffer<std::array<s16, 2048>> *abuffer,
+		AudioBufferDevice *mic_io_device,
 		threaded_queue<Event> *event_q)
 	: settings(settings),
 	  display(display),
 	  tbuffer(tbuffer),
 	  abuffer(abuffer),
+	  mic_io_device(mic_io_device),
 	  event_q(event_q)
 {
 	nds_config config;
@@ -40,14 +42,21 @@ EmulatorThread::run()
 			(u64)(1000000000 / NDS_FRAME_RATE)));
 	stopwatch video_tmr;
 
+	s16 mic_buffer[548]{};
+	nds_exec exec_in;
+	exec_in.audio_buf = mic_buffer;
+	exec_in.audio_buf_len = 548;
+
 	while (!quit) {
 		tmr.start_frame();
 		video_tmr.start();
 
 		handle_events();
 
+		mic_io_device->read((char *)exec_in.audio_buf, 548 * 2);
+
 		if (!nds->is_shutdown() && !paused) {
-			nds->run_frame();
+			nds->run_until_vblank(&exec_in, nullptr);
 		}
 
 		if (nds->is_shutdown()) {

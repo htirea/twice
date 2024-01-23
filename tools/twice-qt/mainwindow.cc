@@ -44,8 +44,19 @@ MainWindow::MainWindow(QSettings *settings, QCommandLineParser *parser,
 	audio_format.setChannelConfig(QAudioFormat::ChannelConfigStereo);
 	audio_format.setSampleFormat(QAudioFormat::Int16);
 
-	emu_thread = new EmulatorThread(
-			settings, display, &tbuffer, &abuffer, &event_q);
+	mic_audio_format.setSampleRate(32768);
+	mic_audio_format.setChannelCount(1);
+	mic_audio_format.setChannelConfig(QAudioFormat::ChannelConfigMono);
+	mic_audio_format.setSampleFormat(QAudioFormat::Int16);
+
+	mic_io_device = new AudioBufferDevice(this);
+	mic_io_device->start();
+
+	audio_source = new QAudioSource(mic_audio_format);
+	audio_source->start(mic_io_device);
+
+	emu_thread = new EmulatorThread(settings, display, &tbuffer, &abuffer,
+			mic_io_device, &event_q);
 	connect(emu_thread, &EmulatorThread::end_frame, this,
 			&MainWindow::frame_ended);
 	connect(emu_thread, &EmulatorThread::render_frame, this,

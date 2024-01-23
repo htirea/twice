@@ -203,12 +203,28 @@ nds_machine::reboot(bool direct_boot)
 }
 
 void
+nds_machine::run_until_vblank(const nds_exec *in, nds_exec *out)
+{
+	if (!nds) {
+		throw twice_error("The machine is not running.");
+	}
+
+	nds_run(nds.get(), run_mode::RUN_UNTIL_VBLANK, in, out);
+
+	if (nds->shutdown) {
+		shutdown();
+	}
+}
+
+void
 nds_machine::run_frame()
 {
-	if (!nds)
-		return;
+	if (!nds) {
+		throw twice_error("The machine is not running.");
+	}
 
-	nds_run_frame(nds.get());
+	nds_run(nds.get(), run_mode::RUN_UNTIL_VBLANK, nullptr, nullptr);
+
 	if (nds->shutdown) {
 		shutdown();
 	}
@@ -235,7 +251,7 @@ nds_machine::get_audio_buffer()
 	if (!nds)
 		return nullptr;
 
-	return nds->audio_buf;
+	return nds->audio_buf.data();
 }
 
 u32

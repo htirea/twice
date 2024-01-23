@@ -13,6 +13,7 @@
 #include "libtwice/util/threaded_queue.h"
 #include "libtwice/util/triple_buffer.h"
 
+#include "audio_buffer_device.h"
 #include "display_widget.h"
 #include "emulator_events.h"
 
@@ -25,6 +26,7 @@ class EmulatorThread : public QThread {
 	EmulatorThread(QSettings *settings, DisplayWidget *display,
 			triple_buffer<std::array<u32, NDS_FB_SZ>> *tbuffer,
 			triple_buffer<std::array<s16, 2048>> *abuffer,
+			AudioBufferDevice *mic_io_device,
 			threaded_queue<Event> *event_q);
 	void run() override;
 	void wait();
@@ -57,6 +59,7 @@ class EmulatorThread : public QThread {
 	DisplayWidget *display{};
 	triple_buffer<std::array<u32, NDS_FB_SZ>> *tbuffer{};
 	triple_buffer<std::array<s16, 2048>> *abuffer{};
+	AudioBufferDevice *mic_io_device{};
 	threaded_queue<Event> *event_q{};
 
       signals:

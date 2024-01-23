@@ -18,6 +18,7 @@ struct scheduler {
 		TICK_32KHZ,
 		CART_TRANSFER,
 		AUXSPI_TRANSFER,
+		EXECUTION_TARGET_REACHED,
 
 		/* arm9 */
 		ARM9_EVENTS,
@@ -47,6 +48,7 @@ struct scheduler {
 
 void scheduler_init(nds_ctx *nds);
 timestamp get_next_event_time(nds_ctx *nds);
+void schedule_event(nds_ctx *nds, int id, timestamp t);
 void schedule_event_after(nds_ctx *nds, int id, timestamp dt);
 void schedule_event_after(nds_ctx *nds, int cpuid, int id, timestamp dt);
 void cancel_event(nds_ctx *nds, int id);
