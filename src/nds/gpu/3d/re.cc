@@ -115,11 +115,48 @@ re_render_frame(rendering_engine *re)
 static void
 clear_buffers(rendering_engine *re)
 {
+	nds_ctx *nds = re->gpu->nds;
 	s32 default_depth = 0x200 * re->r.clear_depth + 0x1FF;
 	u32 default_attr = (re->r.clear_color & 0x3F008000) | BIT(1);
 
 	if (re->r.disp3dcnt & BIT(14)) {
-		LOG("clear buffer bitmap\n");
+		u8 x_offset = re->r.clrimage_offset;
+		u8 y_offset = re->r.clrimage_offset >> 8;
+		u32 rear_attr = re->r.clear_color & 0x3F000000;
+
+		for (u32 y = 0; y < 192; y++) {
+			for (u32 x = 0; x < 256; x++) {
+				u32 bmp_x = (x_offset + x) & 0xFF;
+				u32 bmp_y = (y_offset + y) & 0xFF;
+				u32 offset = (bmp_y << 9) + (bmp_x << 1);
+				u16 rear_color = vram_read_texture<u16>(
+						nds, 0x40000 + offset);
+				u32 rear_depth = vram_read_texture<u16>(
+						nds, 0x60000 + offset);
+				color4 color = unpack_abgr1555_3d(rear_color);
+				s32 depth = 0x200 * (rear_depth & 0x7FFF) +
+				            0x1FF;
+				u32 attr = rear_attr;
+				if (color.a != 0) {
+					attr |= BIT(1);
+				} else {
+					/* TODO: check how opaque / transparent
+					 * IDs work*/
+					attr |= attr >> 8;
+				}
+				attr |= rear_depth & 0x8000;
+
+				for (u32 l = 0; l < 2; l++) {
+					re->color_buf[l][y][x] = color;
+					re->depth_buf[l][y][x] = depth;
+					re->attr_buf[l][y][x] = attr;
+				}
+			}
+		}
+
+		for (auto& line : re->stencil_buf)
+			line.fill(0);
+
 	} else {
 		color4 color = unpack_bgr555_3d(re->r.clear_color);
 		color.a = re->r.clear_color >> 16 & 0x1F;
