@@ -22,9 +22,9 @@ struct arm_cpu {
 	};
 
 	enum halt_mode {
-		CPU_HALT = 0x1,
-		CPU_GXFIFO_HALT = 0x2,
-		CPU_STOP = 0x4,
+		CPU_HALT = BIT(0),
+		CPU_STOP = BIT(30),
+		CPU_GXFIFO_HALT = BIT(31),
 	};
 
 	u32 gpr[16]{};
@@ -52,6 +52,8 @@ struct arm_cpu {
 	u32& pc() { return gpr[15]; }
 
 	u32& spsr() { return bankedr[0][2]; }
+
+	bool stopped() { return halted & (CPU_STOP | CPU_GXFIFO_HALT); }
 
 	virtual void run() = 0;
 	virtual void step() = 0;

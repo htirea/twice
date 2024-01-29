@@ -236,7 +236,9 @@ run_loop(nds_ctx *nds)
 
 	while (!nds->execution_finished) {
 		nds->arm_target_cycles[0] = get_next_event_time(nds);
-		if (nds->dma[0].active) {
+		if (nds->arm9->stopped()) {
+			nds->arm_cycles[0] = nds->arm_target_cycles[0];
+		} else if (nds->dma[0].active) {
 			run_dma9(nds);
 		} else {
 			nds->arm9->run();
@@ -247,7 +249,9 @@ run_loop(nds_ctx *nds)
 		timestamp arm7_target = nds->arm_cycles[0] >> 1;
 		while (nds->arm_cycles[1] < arm7_target) {
 			nds->arm_target_cycles[1] = arm7_target;
-			if (nds->dma[1].active) {
+			if (nds->arm7->stopped()) {
+				nds->arm_cycles[1] = nds->arm_target_cycles[1];
+			} else if (nds->dma[1].active) {
 				run_dma7(nds);
 			} else {
 				nds->arm7->run();
