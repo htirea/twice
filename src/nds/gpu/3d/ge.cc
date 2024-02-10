@@ -567,12 +567,17 @@ cmd_normal(geometry_engine *ge)
 
 			s64 dif = 0;
 			s64 dif_color = ge->_diffuse_color[j];
-			if (dif_level < 0) {
+			if (dif_level < 0 || dif_color == 0 || l == 0) {
 				dif = 0;
-			} else if (dif_level >= 1024 && dif_color != 0) {
-				dif = (s64)31 << 14;
 			} else {
-				dif = dif_color * l * dif_level;
+				if (dif_level >= 1024) {
+					dif = (512 - (dif_color * l - 512)) *
+					      1024;
+					dif += dif_color * l *
+					       (dif_level - 1024);
+				} else {
+					dif = dif_color * l * dif_level;
+				}
 				dif = std::clamp<s64>(dif, 0, (s64)31 << 14);
 			}
 			color[j] += dif;
