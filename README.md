@@ -5,6 +5,7 @@ A WIP emulator for the NDS.
 * Martin, for [GBATEK](https://problemkaputt.de/gbatek.htm)
 * Arisotura, for various forum posts [1](https://melonds.kuribo64.net/board/thread.php?id=13), [2](https://melonds.kuribo64.net/comments.php?id=85), [3](https://melonds.kuribo64.net/comments.php?id=56)
 * StrikerX3, for research on [slope interpolation](https://github.com/StrikerX3/nds-interp)
+* Jaklyy, for various 3D related tests / research
 
 ## License
 This program is free software: you can redistribute it and/or modify it under
