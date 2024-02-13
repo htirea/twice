@@ -550,12 +550,14 @@ cmd_normal(geometry_engine *ge)
 		dif_level >>= 9;
 
 		/* TODO: specular is probably the same as diffuse? */
-		s64 spe_level = 0;
-		spe_level += -(s64)ge->half_vec[i][0] * normal[0] & ~0x1FF;
-		spe_level += -(s64)ge->half_vec[i][1] * normal[1] & ~0x1FF;
-		spe_level += -(s64)ge->half_vec[i][2] * normal[2] & ~0x1FF;
-		spe_level >>= 9;
-		spe_level = (spe_level * spe_level) >> 9;
+		s64 spe_dot = 0;
+		spe_dot += -(s64)ge->half_vec[i][0] * normal[0] & ~0x1FF;
+		spe_dot += -(s64)ge->half_vec[i][1] * normal[1] & ~0x1FF;
+		spe_dot += -(s64)ge->half_vec[i][2] * normal[2] & ~0x1FF;
+		spe_dot >>= 9;
+
+		s64 spe_level = spe_dot * spe_dot / -(s64)ge->half_vec[i][2];
+		spe_level -= (1 << 9);
 
 		if (ge->shiny_table_enabled) {
 			s64 idx = std::clamp<s64>(spe_level >> 2, 0, 127);
@@ -585,10 +587,9 @@ cmd_normal(geometry_engine *ge)
 			/* TODO: check */
 			s64 spe = 0;
 			s64 spe_color = ge->_specular_color[j];
-			if (spe_level < 0) {
+			if (spe_level < 0 || spe_dot < 0 || spe_color == 0 ||
+					l == 0) {
 				spe = 0;
-			} else if (spe_level >= 1024 && spe_color != 0) {
-				spe = (s64)31 << 14;
 			} else {
 				spe = spe_color * l * spe_level;
 				spe = std::clamp<s64>(spe, 0, (s64)31 << 14);
@@ -724,9 +725,9 @@ cmd_light_vector(geometry_engine *ge)
 	u32 l = param >> 30;
 
 	mtx_mult_vec3(ge->light_vec[l], ge->vector_mtx, lx, ly, lz);
-	ge->half_vec[l][0] = ge->light_vec[l][0] >> 1;
-	ge->half_vec[l][1] = ge->light_vec[l][1] >> 1;
-	ge->half_vec[l][2] = (ge->light_vec[l][2] - (1 << 9)) >> 1;
+	ge->half_vec[l][0] = ge->light_vec[l][0];
+	ge->half_vec[l][1] = ge->light_vec[l][1];
+	ge->half_vec[l][2] = (ge->light_vec[l][2] - (1 << 9));
 }
 
 static void
