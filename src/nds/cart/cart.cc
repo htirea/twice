@@ -15,21 +15,20 @@ static void finish_rom_transfer(nds_ctx *);
 static u32 cartridge_make_chip_id(size_t size);
 
 void
-cartridge_init(nds_ctx *nds, u8 *data, size_t size, u8 *save_data,
-		size_t save_size, int savetype, u8 *arm7_bios)
+cartridge_init(nds_ctx *nds, int savetype)
 {
 	auto& cart = nds->cart;
-	cart.data = data;
-	cart.size = size;
-	cart.read_mask = std::bit_ceil(size) - 1;
-	cart.chip_id = cartridge_make_chip_id(size);
-	cart.gamecode = readarr_checked<u32>(data, 0xC, size, 0);
+	cart.data = nds->cart_v.data();
+	cart.size = nds->cart_v.size();
+	cart.read_mask = std::bit_ceil(cart.size) - 1;
+	cart.chip_id = cartridge_make_chip_id(cart.size);
+	cart.gamecode = readarr_checked<u32>(cart.data, 0xC, cart.size, 0);
 	cart.infrared = (cart.gamecode & 0xFF) == 'I';
 
-	cartridge_backup_init(nds, save_data, save_size, savetype);
+	cartridge_backup_init(nds, savetype);
 
 	for (u32 i = 0; i < 0x412; i++) {
-		cart.keybuf_s[i] = readarr<u32>(arm7_bios, 0x30 + i * 4);
+		cart.keybuf_s[i] = readarr<u32>(nds->arm7_bios, 0x30 + i * 4);
 	}
 }
 

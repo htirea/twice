@@ -6,19 +6,13 @@ add_custom_command(
 	COMMAND generate-lut "${CMAKE_CURRENT_BINARY_DIR}/arm_lut.cc" "${CMAKE_CURRENT_BINARY_DIR}/thumb_lut.cc"
 	DEPENDS generate-lut)
 
-CHECK_INCLUDE_FILE_CXX(sys/mman.h HAVE_POSIX_MMAP)
-if(HAVE_POSIX_MMAP)
-	set(FILEMAP_SOURCE libtwice/filemap.cc)
-else()
-	set(FILEMAP_SOURCE libtwice/filemap_fstream.cc)
-endif()
-
 add_library(twice STATIC
 	common/date.cc
 	common/logger.cc
 	common/profiler.cc
+	file/posix_file.cc
+	file/posix_file_view.cc
 	libtwice/config.cc
-	${FILEMAP_SOURCE}
 	libtwice/game_db.cc
 	libtwice/machine.cc
 	libtwice/display.cc

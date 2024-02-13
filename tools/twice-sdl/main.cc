@@ -103,9 +103,6 @@ try {
 	if (auto opt = parser.get_option("save")) {
 		save_info.type = twice::nds_parse_savetype_string(opt->arg);
 		save_info.size = twice::nds_savetype_to_size(save_info.type);
-		std::cerr << "using save type: "
-			  << twice::nds_savetype_to_str(save_info.type)
-			  << '\n';
 	}
 
 	if (parser.get_option("1x")) {
@@ -169,11 +166,11 @@ try {
 
 	twice::nds_config config{ data_dir };
 	twice::nds_machine nds(config);
-	if (save_info.type != twice::SAVETYPE_UNKNOWN) {
-		nds.set_savetype(save_info.type);
-	}
 	if (!cartridge_pathname.empty()) {
 		nds.load_cartridge(cartridge_pathname);
+	}
+	if (save_info.type != twice::SAVETYPE_UNKNOWN) {
+		nds.set_savetype(save_info.type);
 	}
 	nds.boot(direct_boot);
 

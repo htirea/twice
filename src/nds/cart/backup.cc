@@ -14,11 +14,11 @@ static void infrared_transfer_byte(nds_ctx *, u8 value);
 static void flash_common_transfer_byte(nds_ctx *, u8 value);
 
 void
-cartridge_backup_init(nds_ctx *nds, u8 *data, size_t size, int savetype)
+cartridge_backup_init(nds_ctx *nds, int savetype)
 {
 	auto& bk = nds->cart.backup;
-	bk.data = data;
-	bk.size = size;
+	bk.data = nds->save_v.data();
+	bk.size = nds->save_v.size();
 	bk.savetype = savetype;
 
 	switch (savetype) {

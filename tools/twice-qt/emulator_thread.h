@@ -8,6 +8,7 @@
 #include <QSettings>
 #include <QThread>
 
+#include "libtwice/exception.h"
 #include "libtwice/nds/machine.h"
 #include "libtwice/util/frame_timer.h"
 #include "libtwice/util/threaded_queue.h"

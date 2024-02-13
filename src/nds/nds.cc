@@ -11,6 +11,8 @@
 
 namespace twice {
 
+using namespace twice::fs;
+
 static void nds_setup_run(nds_ctx *nds, u64 target, unsigned long term_sigs,
 		s16 *mic_buf, size_t mic_buf_len, nds_exec *out);
 static void run_loop(nds_ctx *nds);
@@ -21,16 +23,21 @@ static void schedule_32k_tick_event(nds_ctx *nds, timestamp late);
 nds_ctx::~nds_ctx() = default;
 
 std::unique_ptr<nds_ctx>
-create_nds_ctx(u8 *arm7_bios, u8 *arm9_bios, u8 *firmware, u8 *cartridge,
-		size_t cartridge_size, u8 *savefile, size_t savefile_size,
-		int savetype, nds_config *config)
+create_nds_ctx(file_view arm9_bios, file_view arm7_bios, file_view firmware,
+		file_view cart, file_view save, nds_savetype savetype,
+		nds_config *config)
 {
 	auto ctx = std::make_unique<nds_ctx>();
 	nds_ctx *nds = ctx.get();
 	nds->config = config;
+	nds->arm9_bios_v = std::move(arm9_bios);
+	nds->arm7_bios_v = std::move(arm7_bios);
+	nds->firmware_v = std::move(firmware);
+	nds->cart_v = std::move(cart);
+	nds->save_v = std::move(save);
 
-	nds->arm9_bios = arm9_bios;
-	nds->arm7_bios = arm7_bios;
+	nds->arm9_bios = nds->arm9_bios_v.data();
+	nds->arm7_bios = nds->arm7_bios_v.data();
 	nds->arm9 = std::make_unique<arm9_cpu>();
 	nds->arm7 = std::make_unique<arm7_cpu>();
 	nds->cpu[0] = nds->arm9.get();
@@ -39,9 +46,8 @@ create_nds_ctx(u8 *arm7_bios, u8 *arm9_bios, u8 *firmware, u8 *cartridge,
 	arm_init(nds, 1);
 	gpu2d_init(nds);
 	gpu3d_init(nds);
-	firmware_init(nds, firmware);
-	cartridge_init(nds, cartridge, cartridge_size, savefile, savefile_size,
-			savetype, arm7_bios);
+	firmware_init(nds);
+	cartridge_init(nds, savetype);
 	dma_controller_init(nds, 0);
 	dma_controller_init(nds, 1);
 	scheduler_init(nds);
@@ -134,6 +140,12 @@ nds_run(nds_ctx *nds, run_mode mode, const nds_exec *in, nds_exec *out)
 
 	nds_setup_run(nds, target, term_sigs, mic_buf, mic_buf_len, out);
 	run_loop(nds);
+}
+
+void
+nds_sync_files(nds_ctx *nds)
+{
+	nds->save_v.sync();
 }
 
 void

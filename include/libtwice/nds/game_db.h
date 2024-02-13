@@ -3,8 +3,8 @@
 
 #include <string>
 
+#include "libtwice/file/file_view.h"
 #include "libtwice/types.h"
-#include "libtwice/util/filemap.h"
 
 namespace twice {
 
@@ -24,7 +24,7 @@ enum nds_savetype : s32 {
 
 struct nds_save_info {
 	nds_savetype type;
-	size_t size;
+	std::streamoff size;
 };
 
 struct cartridge_db_entry {
@@ -32,10 +32,10 @@ struct cartridge_db_entry {
 };
 
 void add_nds_game_db_entry(u32 gamecode, const cartridge_db_entry& entry);
-nds_save_info nds_get_save_info(const file_map& cartridge);
+nds_save_info nds_get_save_info(u32 gamecode);
 const char *nds_savetype_to_str(nds_savetype type);
-size_t nds_savetype_to_size(nds_savetype type);
-nds_savetype nds_savetype_from_size(size_t size);
+std::streamoff nds_savetype_to_size(nds_savetype type);
+nds_savetype nds_savetype_from_size(std::streamoff size);
 nds_savetype nds_parse_savetype_string(const std::string& s);
 
 } // namespace twice

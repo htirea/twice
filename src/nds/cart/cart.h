@@ -32,8 +32,7 @@ struct cartridge {
 	u8 keycode[16]{};
 };
 
-void cartridge_init(nds_ctx *nds, u8 *data, size_t size, u8 *save_data,
-		size_t save_size, int savetype, u8 *arm7_bios);
+void cartridge_init(nds_ctx *nds, int savetype);
 void parse_cart_header(nds_ctx *nds, u32 *entry_addr_out);
 void romctrl_write(nds_ctx *nds, int cpuid, u32 value);
 u32 read_cart_bus_data(nds_ctx *nds, int cpuid);

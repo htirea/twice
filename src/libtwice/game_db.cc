@@ -1,5 +1,7 @@
 #include "libtwice/nds/game_db.h"
-#include "libtwice/util/filemap.h"
+
+#include "libtwice/exception.h"
+#include "libtwice/file/file_view.h"
 
 #include "common/logger.h"
 #include "common/util.h"
@@ -7,6 +9,8 @@
 #include <set>
 
 namespace twice {
+
+using namespace twice::fs;
 
 static std::map<u32, cartridge_db_entry> game_db;
 
@@ -19,11 +23,10 @@ add_nds_game_db_entry(u32 gamecode, const cartridge_db_entry& entry)
 static nds_savetype lookup_savetype(u32 gamecode);
 
 nds_save_info
-nds_get_save_info(const file_map& cartridge)
+nds_get_save_info(u32 gamecode)
 {
-	u32 gamecode = readarr<u32>(cartridge.data(), 0xC);
 	nds_savetype type = lookup_savetype(gamecode);
-	size_t size = nds_savetype_to_size(type);
+	std::streamoff size = nds_savetype_to_size(type);
 
 	return { type, size };
 }
@@ -32,19 +35,14 @@ static nds_savetype
 lookup_savetype(u32 gamecode)
 {
 	if (gamecode == 0 || gamecode == 0x23232323) {
-		LOG("detected homebrew: assuming save type: none\n");
 		return SAVETYPE_NONE;
 	}
 
 	auto it = game_db.find(gamecode);
 	if (it == game_db.end()) {
-		LOG("unknown save type: gamecode %08X %c%c%c%c\n", gamecode,
-				gamecode & 0xFF, gamecode >> 8 & 0xFF,
-				gamecode >> 16 & 0xFF, gamecode >> 24 & 0xFF);
 		return SAVETYPE_UNKNOWN;
 	}
 
-	LOG("detected save type: %s\n", nds_savetype_to_str(it->second.type));
 	return it->second.type;
 }
 
@@ -79,12 +77,12 @@ nds_savetype_to_str(nds_savetype type)
 	}
 }
 
-size_t
+std::streamoff
 nds_savetype_to_size(nds_savetype type)
 {
 	switch (type) {
 	case SAVETYPE_UNKNOWN:
-		return 0;
+		return -1;
 	case SAVETYPE_NONE:
 		return 0;
 	case SAVETYPE_EEPROM_512B:
@@ -111,7 +109,7 @@ nds_savetype_to_size(nds_savetype type)
 }
 
 nds_savetype
-nds_savetype_from_size(size_t size)
+nds_savetype_from_size(std::streamoff size)
 {
 	switch (size) {
 	case 8_MiB:
@@ -130,8 +128,10 @@ nds_savetype_from_size(size_t size)
 		return SAVETYPE_EEPROM_8K;
 	case 512:
 		return SAVETYPE_EEPROM_512B;
-	default:
+	case 0:
 		return SAVETYPE_NONE;
+	default:
+		return SAVETYPE_UNKNOWN;
 	}
 }
 

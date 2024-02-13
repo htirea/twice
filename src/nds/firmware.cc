@@ -9,17 +9,17 @@ namespace twice {
 static u16 calculate_crc16(u8 *p, size_t length);
 
 void
-firmware_init(nds_ctx *nds, u8 *data)
+firmware_init(nds_ctx *nds)
 {
 	auto& fw = nds->fw;
-	fw.data = data;
+	fw.data = nds->firmware_v.data();
 
-	u32 user_settings_offset = readarr<u16>(data, 0x20) << 3;
+	u32 user_settings_offset = readarr<u16>(fw.data, 0x20) << 3;
 	if (user_settings_offset != 0x3FE00) {
 		throw twice_error("unhandled firmware user settings offset");
 	}
 
-	fw.user_settings = data + user_settings_offset;
+	fw.user_settings = fw.data + user_settings_offset;
 
 	/* overwrite touchscreen calibration data */
 	writearr<u16>(fw.user_settings, 0x58, 0);

@@ -8,7 +8,6 @@
 
 #include "libtwice/nds/defs.h"
 #include "libtwice/nds/game_db.h"
-#include "libtwice/util/filemap.h"
 
 namespace twice {
 
@@ -138,7 +137,7 @@ struct nds_machine {
 	 *
 	 * \param config the configuration to use
 	 */
-	nds_machine(const nds_config& config);
+	nds_machine(const nds_config& cfg);
 	~nds_machine();
 
 	/**
@@ -174,28 +173,47 @@ struct nds_machine {
 	void set_savetype(nds_savetype savetype);
 
 	/**
-	 * Load a save file.
+	 * Load or create a save file.
 	 *
-	 * The save file must exist. If the save type is not set, the save type
-	 * will be automatically guessed from the file size.
+	 * The save file must exist.
 	 *
 	 * \param pathname the file to load
 	 */
 	void load_savefile(const std::filesystem::path& pathname);
 
 	/**
-	 * Load or create a save file.
+	 * Create a save file.
 	 *
-	 * This function first tries to load the save file. If the loading
-	 * fails, it will create the save file using the given `savetype`.
-	 *
-	 * The `savetype` must be set if the save file is created.
-	 *
-	 * \param pathname the file to load
-	 * \param savetype the savetype to use if creating
+	 * \param pathname the file to create
+	 * \param savetype the save type
 	 */
-	void load_or_create_savefile(const std::filesystem::path& pathname,
-			nds_savetype try_savetype);
+	void create_savefile(const std::filesystem::path& pathname,
+			nds_savetype savetype);
+
+	/**
+	 * Automatically load a save file based on the loaded cartridge.
+	 */
+	void autoload_savefile();
+
+	/**
+	 * Automically create a save file based on the loaded cartridge.
+	 */
+	void autocreate_savefile();
+
+	/**
+	 * Check the loaded save file.
+	 *
+	 * Checks whether the loaded save file has a size consistent with
+	 * the save type.
+	 */
+	void check_savefile();
+
+	/**
+	 * Prepare a save file for execution.
+	 *
+	 * If a save file is not loaded, it is automatically loaded or created.
+	 */
+	void prepare_savefile_for_execution();
 
 	/**
 	 * Boot up the machine.
@@ -347,14 +365,8 @@ struct nds_machine {
 	void dump_profiler_report();
 
       private:
-	nds_config config;
-	file_map arm7_bios;
-	file_map arm9_bios;
-	file_map firmware;
-	file_map cartridge;
-	file_map savefile;
-	nds_savetype savetype{ SAVETYPE_UNKNOWN };
-	std::unique_ptr<nds_ctx> nds;
+	struct impl;
+	std::unique_ptr<impl> m;
 };
 
 } // namespace twice

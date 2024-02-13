@@ -1,6 +1,7 @@
 #ifndef TWICE_NDS_H
 #define TWICE_NDS_H
 
+#include "libtwice/file/file.h"
 #include "libtwice/nds/defs.h"
 #include "libtwice/nds/game_db.h"
 #include "libtwice/nds/machine.h"
@@ -50,6 +51,7 @@ enum : u32 {
 	FIRMWARE_MASK = 256_KiB - 1,
 	WIFI_REGION_SIZE = 32_KiB,
 	WIFI_REGION_MASK = 32_KiB - 1,
+	MIN_CART_SIZE = 0x160,
 	MAX_CART_SIZE = 512_MiB,
 };
 
@@ -182,11 +184,16 @@ struct nds_ctx {
 	profiler prof;
 	nds_config *config{};
 	nds_exec *exec_out{};
+	fs::file_view arm9_bios_v;
+	fs::file_view arm7_bios_v;
+	fs::file_view firmware_v;
+	fs::file_view cart_v;
+	fs::file_view save_v;
 };
 
-std::unique_ptr<nds_ctx> create_nds_ctx(u8 *arm7_bios, u8 *arm9_bios,
-		u8 *firmware, u8 *cartridge, size_t cartridge_size,
-		u8 *savefile, size_t savefile_size, int savetype,
+std::unique_ptr<nds_ctx> create_nds_ctx(fs::file_view arm9_bios,
+		fs::file_view arm7_bios, fs::file_view firmware,
+		fs::file_view cart, fs::file_view save, nds_savetype savetype,
 		nds_config *config);
 void nds_firmware_boot(nds_ctx *nds);
 void nds_direct_boot(nds_ctx *nds);
@@ -195,6 +202,7 @@ void nds_set_rtc_time(nds_ctx *nds, int year, int month, int day, int weekday,
 		int hour, int minute, int second);
 void nds_set_touchscreen_state(nds_ctx *nds, int x, int y, bool down,
 		bool quicktap, bool moved);
+void nds_sync_files(nds_ctx *nds);
 void nds_dump_prof(nds_ctx *nds);
 
 void event_execution_target_reached(nds_ctx *nds, intptr_t, timestamp late);
