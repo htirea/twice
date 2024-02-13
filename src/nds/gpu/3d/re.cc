@@ -657,7 +657,7 @@ render_polygon_scanline(rendering_engine *re, re_polygon *p, s32 y)
 
 	if (fill_left) {
 		u32 start = std::max(0, s_data.x_l_start);
-		u32 end = std::min(256, s_data.x_l_end);
+		u32 end = std::min({ 256, s_data.x_l_end, s_data.x_r_end });
 		u32 attr = base_attr | 1;
 
 		if (shadow_mask) {
