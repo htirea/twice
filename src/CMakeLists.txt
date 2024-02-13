@@ -6,12 +6,18 @@ add_custom_command(
 	COMMAND generate-lut "${CMAKE_CURRENT_BINARY_DIR}/arm_lut.cc" "${CMAKE_CURRENT_BINARY_DIR}/thumb_lut.cc"
 	DEPENDS generate-lut)
 
+if(TWICE_LINUX)
+	set(FILE_SOURCES
+		file/posix_file.cc
+		file/posix_file_view.cc
+	)
+endif()
+
 add_library(twice STATIC
+	${FILE_SOURCES}
 	common/date.cc
 	common/logger.cc
 	common/profiler.cc
-	file/posix_file.cc
-	file/posix_file_view.cc
 	libtwice/config.cc
 	libtwice/game_db.cc
 	libtwice/machine.cc
