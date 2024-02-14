@@ -19,6 +19,7 @@ option(TWICE_USE_VENDORED_PNG "Use the vendored libpng" OFF)
 option(TWICE_USE_VENDORED_SDL "Use the vendored SDL" OFF)
 option(TWICE_USE_STATIC_SDL "Link statically to SDL" OFF)
 option(TWICE_USE_VENDORED_JSON "Use the vendored json" ON)
+option(TWICE_BUILD_QT "Build the QT frontend" ON)
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
 	set(TWICE_LINUX TRUE)
