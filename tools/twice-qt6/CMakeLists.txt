@@ -7,6 +7,10 @@ qt_add_executable(twice-qt6
 	main.cc
 	mainwindow.cc
 	mainwindow.h
+	display_widget.cc
+	display_widget.h
+	actions.cc
+	actions.h
 )
 
 target_link_libraries(twice-qt6 PRIVATE
