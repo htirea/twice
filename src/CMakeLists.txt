@@ -8,8 +8,8 @@ add_custom_command(
 
 if(TWICE_LINUX)
 	set(FILE_SOURCES
-		file/posix_file.cc
-		file/posix_file_view.cc
+		libtwice/file/posix_file.cc
+		libtwice/file/posix_file_view.cc
 	)
 endif()
 
@@ -19,9 +19,9 @@ add_library(twice STATIC
 	common/logger.cc
 	common/profiler.cc
 	libtwice/config.cc
-	libtwice/game_db.cc
-	libtwice/machine.cc
-	libtwice/display.cc
+	libtwice/nds//game_db.cc
+	libtwice/nds//machine.cc
+	libtwice/nds//display.cc
 	nds/arm/arm.cc
 	nds/arm/arm7.cc
 	nds/arm/arm9.cc
