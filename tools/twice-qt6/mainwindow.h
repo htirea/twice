@@ -30,14 +30,20 @@ class MainWindow : public QMainWindow {
 	void process_event(const ErrorEvent& ev);
 	void process_event(const RenderEvent& ev);
 	void process_event(const ShutdownEvent& ev);
-	void process_event(const CartChangeEvent& ev);
+	void process_event(const FileEvent& ev);
+	void process_event(const SaveTypeEvent& ev);
 	void process_event(const EndFrameEvent& ev);
+	bool confirm_shutdown();
 
       private slots:
 	void process_main_event(const MainEvent& ev);
 	void open_rom();
 	void open_system_files();
 	void load_save_file();
+	void insert_cart();
+	void eject_cart();
+	void unload_save_file();
+	void set_savetype(int type);
 	void reset_emulation(bool direct);
 	void shutdown_emulation();
 	void toggle_pause(bool checked);
@@ -48,7 +54,7 @@ class MainWindow : public QMainWindow {
 	EmulatorThread *emu_thread{};
 	SharedBuffers bufs;
 	bool shutdown{};
-	bool cart_loaded{};
+	int loaded_files{};
 };
 
 #endif

@@ -83,6 +83,34 @@ nds_machine::load_file(const std::filesystem::path& pathname, nds_file type)
 }
 
 void
+nds_machine::unload_file(nds_file type)
+{
+	if (m->nds) {
+		throw twice_error("The file cannot be unloaded while the "
+				  "machine is running.");
+	}
+
+	switch (type) {
+	case nds_file::CART_ROM:
+		eject_cartridge();
+		break;
+	case nds_file::SAVE:
+		m->save = file();
+		break;
+	case nds_file::ARM9_BIOS:
+		m->arm9_bios = file();
+		break;
+	case nds_file::ARM7_BIOS:
+		m->arm7_bios = file();
+		break;
+	case nds_file::FIRMWARE:
+		m->firmware = file();
+		break;
+	case nds_file::UNKNOWN:;
+	}
+}
+
+void
 nds_machine::load_system_file(
 		const std::filesystem::path& pathname, nds_file type)
 {
@@ -174,6 +202,12 @@ nds_machine::eject_cartridge()
 	m->savetype = SAVETYPE_UNKNOWN;
 }
 
+nds_savetype
+nds_machine::get_savetype()
+{
+	return m->savetype;
+}
+
 void
 nds_machine::set_savetype(nds_savetype savetype)
 {
@@ -189,6 +223,11 @@ nds_machine::set_savetype(nds_savetype savetype)
 void
 nds_machine::load_savefile(const std::filesystem::path& pathname)
 {
+	if (m->nds) {
+		throw twice_error("The save file cannot be loaded while the "
+				  "machine is running.");
+	}
+
 	m->save = file(pathname, file::open_flags::READ_WRITE);
 }
 
@@ -368,7 +407,7 @@ nds_machine::boot(bool direct_boot)
 
 	/* TODO: revert state if exception occured? */
 
-	if (m->savetype == SAVETYPE_UNKNOWN) {
+	if (m->cart && m->savetype == SAVETYPE_UNKNOWN) {
 		throw twice_error("Cannot boot machine: unknown save type.");
 	}
 
@@ -578,9 +617,45 @@ nds_machine::dump_profiler_report()
 }
 
 bool
-nds_machine::cart_loaded()
+nds_machine::file_loaded(nds_file type)
 {
-	return (bool)m->cart;
+	switch (type) {
+	case nds_file::CART_ROM:
+		return (bool)m->cart;
+	case nds_file::SAVE:
+		return (bool)m->save;
+	case nds_file::ARM9_BIOS:
+		return (bool)m->arm9_bios;
+	case nds_file::ARM7_BIOS:
+		return (bool)m->arm7_bios;
+	case nds_file::FIRMWARE:
+		return (bool)m->firmware;
+	case nds_file::UNKNOWN:
+		return false;
+	}
+}
+
+int
+nds_machine::get_loaded_files()
+{
+	int r = 0;
+	if ((bool)m->cart) {
+		r |= (int)nds_file::CART_ROM;
+	}
+	if ((bool)m->save) {
+		r |= (int)nds_file::SAVE;
+	}
+	if ((bool)m->arm9_bios) {
+		r |= (int)nds_file::ARM9_BIOS;
+	}
+	if ((bool)m->arm7_bios) {
+		r |= (int)nds_file::ARM7_BIOS;
+	}
+	if ((bool)m->firmware) {
+		r |= (int)nds_file::FIRMWARE;
+	}
+
+	return r;
 }
 
 } // namespace twice

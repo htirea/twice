@@ -1,6 +1,7 @@
 #include "actions.h"
 
 #include "libtwice/exception.h"
+#include "libtwice/nds/game_db.h"
 
 using namespace twice;
 
@@ -27,9 +28,101 @@ static const std::vector<ActionInfo> action_data = {
 	.tip = "Load the system files",
 },
 {
+	.id = ACTION_INSERT_CART,
+	.text = "Insert cartridge",
+	.tip = "Insert a cartridge",
+},
+{
+	.id = ACTION_EJECT_CART,
+	.text = "Eject cartridge",
+	.tip = "Eject the currently loaded cartridge",
+},
+{
 	.id = ACTION_LOAD_SAVE_FILE,
 	.text = "Load save file",
 	.tip = "Load a save file",
+},
+{
+	.id = ACTION_UNLOAD_SAVE_FILE,
+	.text = "Unload save file",
+	.tip = "Unload the currently loaded save file",
+},
+{
+	.id = ACTION_SAVETYPE_AUTO,
+	.text = "Auto",
+	.tip = "Try to automatically detect the save type",
+	.checkable = true,
+	.val = SAVETYPE_UNKNOWN,
+},
+{
+	.id = ACTION_SAVETYPE_NONE,
+	.text = "None",
+	.tip = "Set the save type to none",
+	.checkable = true,
+	.val = SAVETYPE_NONE,
+},
+{
+	.id = ACTION_SAVETYPE_EEPROM_512B,
+	.text = "EEPROM 512B",
+	.tip = "Set the save type to EEPROM 512B",
+	.checkable = true,
+	.val = SAVETYPE_EEPROM_512B,
+},
+{
+	.id = ACTION_SAVETYPE_EEPROM_8K,
+	.text = "EEPROM 8K",
+	.tip = "Set the save type to EEPROM 8K",
+	.checkable = true,
+	.val = SAVETYPE_EEPROM_8K,
+},
+{
+	.id = ACTION_SAVETYPE_EEPROM_64K,
+	.text = "EEPROM 64K",
+	.tip = "Set the save type to EEPROM 64K",
+	.checkable = true,
+	.val = SAVETYPE_EEPROM_64K,
+},
+{
+	.id = ACTION_SAVETYPE_EEPROM_128K,
+	.text = "EEPROM 128K",
+	.tip = "Set the save type to EEPROM 128K",
+	.checkable = true,
+	.val = SAVETYPE_EEPROM_128K,
+},
+{
+	.id = ACTION_SAVETYPE_FLASH_256K,
+	.text = "Flash 256K",
+	.tip = "Set the save type to Flash 256K",
+	.checkable = true,
+	.val = SAVETYPE_FLASH_256K,
+},
+{
+	.id = ACTION_SAVETYPE_FLASH_512K,
+	.text = "Flash 512K",
+	.tip = "Set the save type to Flash 512K",
+	.checkable = true,
+	.val = SAVETYPE_FLASH_512K,
+},
+{
+	.id = ACTION_SAVETYPE_FLASH_1M,
+	.text = "Flash 1M",
+	.tip = "Set the save type to Flash 1M",
+	.checkable = true,
+	.val = SAVETYPE_FLASH_1M,
+},
+{
+	.id = ACTION_SAVETYPE_FLASH_8M,
+	.text = "Flash 8M",
+	.tip = "Set the save type to Flash 8M",
+	.checkable = true,
+	.val = SAVETYPE_FLASH_8M,
+},
+{
+	.id = ACTION_SAVETYPE_NAND,
+	.text = "NAND",
+	.tip = "Not implemented",
+	.checkable = true,
+	.val = SAVETYPE_NAND,
 },
 {
 	.id = ACTION_RESET_TO_ROM,

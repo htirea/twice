@@ -8,7 +8,7 @@
 
 namespace twice {
 
-enum nds_savetype : s32 {
+enum nds_savetype {
 	SAVETYPE_UNKNOWN = -1,
 	SAVETYPE_NONE = 0,
 	SAVETYPE_EEPROM_512B,
@@ -20,6 +20,8 @@ enum nds_savetype : s32 {
 	SAVETYPE_FLASH_1M,
 	SAVETYPE_FLASH_8M,
 	SAVETYPE_NAND,
+	SAVETYPE_DUMMY,
+	SAVETYPE_TOTAL,
 };
 
 struct nds_save_info {

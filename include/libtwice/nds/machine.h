@@ -47,12 +47,12 @@ enum class nds_button {
  * The file types of the NDS machine.
  */
 enum class nds_file {
-	UNKNOWN,
-	CART_ROM,
-	SAVE,
-	ARM9_BIOS,
-	ARM7_BIOS,
-	FIRMWARE,
+	UNKNOWN = 0x1,
+	CART_ROM = 0x2,
+	SAVE = 0x4,
+	ARM9_BIOS = 0x8,
+	ARM7_BIOS = 0x10,
+	FIRMWARE = 0x20,
 };
 
 /**
@@ -152,6 +152,13 @@ struct nds_machine {
 	void load_file(const std::filesystem::path& pathname, nds_file type);
 
 	/**
+	 * Unload a file from the machine.
+	 *
+	 * \param type the type of file
+	 */
+	void unload_file(nds_file type);
+
+	/**
 	 * Load a system file into the machine.
 	 *
 	 * \param pathname the file to load
@@ -173,6 +180,13 @@ struct nds_machine {
 	 * If there is no cartridge this function does nothing.
 	 */
 	void eject_cartridge();
+
+	/**
+	 * Get the currently set save type.
+	 *
+	 * \returns the current save type
+	 */
+	nds_savetype get_savetype();
 
 	/**
 	 * Set the save type of the cartridge.
@@ -376,9 +390,19 @@ struct nds_machine {
 	void dump_profiler_report();
 
 	/**
-	 * \returns whether a cart is loaded
+	 * Query whether a file is loaded.
+	 *
+	 * \param type the type of file
+	 * \returns whether the file is loaded
 	 */
-	bool cart_loaded();
+	bool file_loaded(nds_file type);
+
+	/**
+	 * Get the currently loaded files.
+	 *
+	 * \returns a mask of nds_file values
+	 */
+	int get_loaded_files();
 
       private:
 	struct impl;

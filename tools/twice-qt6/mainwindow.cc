@@ -43,9 +43,7 @@ MainWindow::closeEvent(QCloseEvent *ev)
 	if (shutdown) {
 		ev->accept();
 	} else {
-		auto result = QMessageBox::question(this, tr("Shutdown"),
-				tr("Do you want to shutdown the virtual machine?"));
-		if (result == QMessageBox::Yes) {
+		if (confirm_shutdown()) {
 			ev->accept();
 		} else {
 			ev->ignore();
@@ -62,8 +60,32 @@ MainWindow::init_menus()
 				ACTION_OPEN_ROM, this, &MainWindow::open_rom));
 		file_menu->addAction(create_action(ACTION_LOAD_SYSTEM_FILES,
 				this, &MainWindow::open_system_files));
+		file_menu->addSeparator();
+		file_menu->addAction(create_action(ACTION_INSERT_CART, this,
+				&MainWindow::insert_cart));
+		file_menu->addAction(create_action(ACTION_EJECT_CART, this,
+				&MainWindow::eject_cart));
+		file_menu->addSeparator();
 		file_menu->addAction(create_action(ACTION_LOAD_SAVE_FILE, this,
 				&MainWindow::load_save_file));
+		file_menu->addAction(create_action(ACTION_UNLOAD_SAVE_FILE,
+				this, &MainWindow::unload_save_file));
+	}
+	{
+		auto menu = file_menu->addMenu(tr("Save type"));
+		auto group = create_action_group(ACTION_GROUP_SAVETYPE, this);
+		for (int i = 0; i < SAVETYPE_TOTAL; i++) {
+			int id = ACTION_SAVETYPE_AUTO + i;
+			menu->addAction(create_action(id, group));
+		}
+
+		/* NAND saves not implemented yet */
+		get_action(ACTION_SAVETYPE_NAND)->setEnabled(false);
+
+		auto set_type = [=, this](QAction *action) {
+			set_savetype(action->data().toInt());
+		};
+		connect(group, &QActionGroup::triggered, this, set_type);
 	}
 
 	auto emu_menu = menuBar()->addMenu(tr("Emulation"));
@@ -81,6 +103,7 @@ MainWindow::init_menus()
 	{
 		emu_menu->addAction(create_action(ACTION_SHUTDOWN, this,
 				&MainWindow::shutdown_emulation));
+		emu_menu->addSeparator();
 		emu_menu->addAction(create_action(ACTION_TOGGLE_PAUSE, this,
 				&MainWindow::toggle_pause));
 		emu_menu->addAction(create_action(ACTION_TOGGLE_FASTFORWARD,
@@ -114,6 +137,7 @@ MainWindow::init_menus()
 		menu->addAction(get_action(ACTION_ORIENTATION_2));
 	}
 	{
+		video_menu->addSeparator();
 		video_menu->addAction(get_action(ACTION_LINEAR_FILTERING));
 		video_menu->addAction(get_action(ACTION_LOCK_ASPECT_RATIO));
 	}
@@ -124,9 +148,10 @@ MainWindow::init_default_values()
 {
 	get_action(ACTION_ORIENTATION_0)->trigger();
 	get_action(ACTION_LOCK_ASPECT_RATIO)->trigger();
+	get_action(ACTION_SAVETYPE_AUTO)->trigger();
 	set_display_size(NDS_FB_W * 2, NDS_FB_H * 2);
-	process_event(ShutdownEvent{ .shutdown = true });
-	process_event(CartChangeEvent{ .cart_loaded = false });
+	emu_thread->push_event(ShutdownEvent());
+	emu_thread->push_event(UnloadFileEvent{ nds_file::CART_ROM });
 }
 
 void
@@ -192,36 +217,61 @@ MainWindow::process_event(const RenderEvent&)
 void
 MainWindow::process_event(const ShutdownEvent& ev)
 {
-	if (ev.shutdown) {
-		get_action(ACTION_SHUTDOWN)->setEnabled(false);
-		get_action(ACTION_TOGGLE_PAUSE)->setEnabled(false);
-		get_action(ACTION_TOGGLE_FASTFORWARD)->setEnabled(false);
-	} else {
-		get_action(ACTION_SHUTDOWN)->setEnabled(true);
-		get_action(ACTION_TOGGLE_PAUSE)->setEnabled(true);
-		get_action(ACTION_TOGGLE_FASTFORWARD)->setEnabled(true);
-	}
-
+	using enum nds_file;
 	shutdown = ev.shutdown;
+
+	bool cart = loaded_files & (int)CART_ROM;
+	bool save = loaded_files & (int)SAVE;
+
+	get_action(ACTION_LOAD_SYSTEM_FILES)->setEnabled(shutdown);
+	get_action(ACTION_INSERT_CART)->setEnabled(shutdown && !cart);
+	get_action(ACTION_EJECT_CART)->setEnabled(shutdown && cart);
+	get_action(ACTION_LOAD_SAVE_FILE)->setEnabled(shutdown);
+	get_action(ACTION_UNLOAD_SAVE_FILE)->setEnabled(shutdown && save);
+	for (int id = ACTION_SAVETYPE_AUTO; id != ACTION_SAVETYPE_NAND; id++) {
+		get_action(id)->setEnabled(shutdown);
+	}
+	get_action(ACTION_SHUTDOWN)->setEnabled(!shutdown);
+	get_action(ACTION_TOGGLE_PAUSE)->setEnabled(!shutdown);
+	get_action(ACTION_TOGGLE_FASTFORWARD)->setEnabled(!shutdown);
 }
 
 void
-MainWindow::process_event(const CartChangeEvent& ev)
+MainWindow::process_event(const FileEvent& ev)
 {
-	if (ev.cart_loaded) {
-		get_action(ACTION_RESET_TO_ROM)->setEnabled(true);
-		get_action(ACTION_RESET_TO_FIRMWARE)->setEnabled(true);
-	} else {
-		get_action(ACTION_RESET_TO_ROM)->setEnabled(false);
-		get_action(ACTION_RESET_TO_FIRMWARE)->setEnabled(false);
-	}
+	using enum nds_file;
+	loaded_files = ev.loaded_files;
 
-	cart_loaded = ev.cart_loaded;
+	int sys_files_mask = (int)ARM9_BIOS | (int)ARM7_BIOS | (int)FIRMWARE;
+	bool sys_files = (loaded_files & sys_files_mask) == sys_files_mask;
+	bool cart = loaded_files & (int)CART_ROM;
+	bool save = loaded_files & (int)SAVE;
+
+	get_action(ACTION_OPEN_ROM)->setEnabled(sys_files);
+	get_action(ACTION_EJECT_CART)->setEnabled(shutdown && cart);
+	get_action(ACTION_RESET_TO_ROM)->setEnabled(sys_files && cart);
+	get_action(ACTION_UNLOAD_SAVE_FILE)->setEnabled(shutdown && save);
+	get_action(ACTION_RESET_TO_FIRMWARE)->setEnabled(sys_files);
+}
+
+void
+MainWindow::process_event(const SaveTypeEvent& ev)
+{
+	auto id = ACTION_SAVETYPE_AUTO + (ev.type + 1);
+	get_action(id)->setChecked(true);
 }
 
 void
 MainWindow::process_event(const EndFrameEvent&)
 {
+}
+
+bool
+MainWindow::confirm_shutdown()
+{
+	auto result = QMessageBox::question(this, tr("Shutdown"),
+			tr("Do you want to shutdown the virtual machine?"));
+	return result == QMessageBox::Yes;
 }
 
 void
@@ -233,11 +283,16 @@ MainWindow::process_main_event(const MainEvent& ev)
 void
 MainWindow::open_rom()
 {
+	if (!(shutdown || confirm_shutdown()))
+		return;
+
 	auto pathname = QFileDialog::getOpenFileName(
 			this, tr("Open ROM"), "", tr("ROM Files (*.nds)"));
 	if (!pathname.isEmpty()) {
-		emu_thread->push_event(LoadFileEvent{ .pathname = pathname,
-				.type = nds_file::CART_ROM });
+		emu_thread->push_event(ShutdownEvent());
+		emu_thread->push_event(
+				LoadFileEvent{ pathname, nds_file::CART_ROM });
+		emu_thread->push_event(ResetEvent{ true });
 	}
 }
 
@@ -263,8 +318,7 @@ MainWindow::open_system_files()
 			type = nds_file::FIRMWARE;
 		}
 
-		emu_thread->push_event(LoadFileEvent{
-				.pathname = pathname, .type = type });
+		emu_thread->push_event(LoadFileEvent{ pathname, type });
 	}
 }
 
@@ -274,31 +328,62 @@ MainWindow::load_save_file()
 	auto pathname = QFileDialog::getOpenFileName(this,
 			tr("Load save file"), "", tr("SAV Files (*.sav)"));
 	if (!pathname.isEmpty()) {
-		emu_thread->push_event(LoadFileEvent{ .pathname = pathname,
-				.type = nds_file::SAVE });
+		emu_thread->push_event(
+				LoadFileEvent{ pathname, nds_file::SAVE });
 	}
+}
+
+void
+MainWindow::insert_cart()
+{
+	auto pathname = QFileDialog::getOpenFileName(this,
+			tr("Insert cartridge"), "", tr("ROM Files (*.nds)"));
+	if (!pathname.isEmpty()) {
+		emu_thread->push_event(
+				LoadFileEvent{ pathname, nds_file::CART_ROM });
+	}
+}
+
+void
+MainWindow::eject_cart()
+{
+	emu_thread->push_event(UnloadFileEvent{ nds_file::CART_ROM });
+}
+
+void
+MainWindow::unload_save_file()
+{
+	emu_thread->push_event(UnloadFileEvent{ nds_file::SAVE });
+}
+
+void
+MainWindow::set_savetype(int type)
+{
+	emu_thread->push_event(SaveTypeEvent{ (nds_savetype)type });
 }
 
 void
 MainWindow::reset_emulation(bool direct)
 {
-	emu_thread->push_event(ResetEvent{ .direct = direct });
+	emu_thread->push_event(ResetEvent{ direct });
 }
 
 void
 MainWindow::shutdown_emulation()
 {
-	emu_thread->push_event(ShutdownEvent());
+	if (confirm_shutdown()) {
+		emu_thread->push_event(ShutdownEvent());
+	}
 }
 
 void
 MainWindow::toggle_pause(bool checked)
 {
-	emu_thread->push_event(PauseEvent{ .paused = checked });
+	emu_thread->push_event(PauseEvent{ checked });
 }
 
 void
 MainWindow::toggle_fastforward(bool checked)
 {
-	emu_thread->push_event(FastForwardEvent{ .fastforward = checked });
+	emu_thread->push_event(FastForwardEvent{ checked });
 }
