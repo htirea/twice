@@ -119,11 +119,13 @@ nds_machine::load_cartridge(const std::filesystem::path& pathname)
 		throw twice_error("Could not read cart gamecode.");
 	}
 
+	if (m->cart) {
+		eject_cartridge();
+	}
+
 	m->cart = std::move(f);
 	m->gamecode = (u32)buf[3] << 24 | (u32)buf[2] << 16 |
 	              (u32)buf[1] << 8 | (u32)buf[0];
-	m->save = file();
-	m->savetype = SAVETYPE_UNKNOWN;
 	LOG("loaded cartridge: %s, (0x%08X %c%c%c%c)\n", pathname.c_str(),
 			m->gamecode, buf[0], buf[1], buf[2], buf[3]);
 }
