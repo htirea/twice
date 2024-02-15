@@ -39,9 +39,8 @@ void main()
 }
 )___";
 
-static u32 default_fb[NDS_FB_SZ]{};
-
-DisplayWidget::DisplayWidget(QWidget *parent) : QOpenGLWidget(parent)
+DisplayWidget::DisplayWidget(SharedBuffers::video_buffer *fb, QWidget *parent)
+	: QOpenGLWidget(parent), fb(fb)
 {
 	mtx_set_identity<float, 4>(proj_mtx);
 
@@ -106,7 +105,7 @@ DisplayWidget::initializeGL()
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, NDS_FB_W, NDS_FB_H, 0, GL_RGBA,
-			GL_UNSIGNED_BYTE, default_fb);
+			GL_UNSIGNED_BYTE, fb->get_read_buffer().data());
 	glUseProgram(shader_program);
 	GLuint proj_mtx_loc = glGetUniformLocation(shader_program, "proj_mtx");
 	glUniformMatrix4fv(proj_mtx_loc, 1, GL_FALSE, proj_mtx.data());
@@ -117,16 +116,6 @@ DisplayWidget::initializeGL()
 	glSamplerParameteri(sampler, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
 	glSamplerParameteri(sampler, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glSamplerParameteri(sampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-	for (u32 j = 0; j < NDS_FB_H; j++) {
-		for (u32 i = 0; i < NDS_FB_W; i++) {
-			u32 r = 0xFF * i / NDS_FB_W;
-			u32 g = 0xFF * j / NDS_FB_H;
-			u32 b = 0;
-			default_fb[j * NDS_FB_W + i] =
-					0xFF000000 | (b << 16) | (g << 8) | r;
-		}
-	}
 
 	if (glGetError() != GL_NO_ERROR) {
 		throw twice_error(
@@ -157,7 +146,7 @@ DisplayWidget::paintGL()
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, texture);
 	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, NDS_FB_W, NDS_FB_H, GL_RGBA,
-			GL_UNSIGNED_BYTE, default_fb);
+			GL_UNSIGNED_BYTE, fb->get_read_buffer().data());
 
 	glUseProgram(shader_program);
 	GLuint proj_mtx_loc = glGetUniformLocation(shader_program, "proj_mtx");

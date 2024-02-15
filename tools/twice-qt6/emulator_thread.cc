@@ -1,13 +1,15 @@
 #include "emulator_thread.h"
 
 #include "libtwice/exception.h"
+#include "libtwice/util/frame_timer.h"
 
 #include <QSettings>
 #include <iostream>
 
 using namespace twice;
 
-EmulatorThread::EmulatorThread(QObject *parent) : QThread(parent)
+EmulatorThread::EmulatorThread(SharedBuffers *bufs, QObject *parent)
+	: QThread(parent), bufs(bufs)
 {
 	QSettings settings;
 	nds_config cfg{
@@ -41,9 +43,46 @@ void
 EmulatorThread::run()
 {
 	running = true;
+	throttle = true;
+	paused = false;
+	shutdown = true;
+
+	frame_timer tmr(std::chrono::nanoseconds(
+			(u64)(1000000000 / NDS_FRAME_RATE)));
+	stopwatch frametime_tmr;
+	nds_exec exec_in;
+	nds_exec exec_out;
 
 	while (running) {
+		tmr.start_frame();
+		frametime_tmr.start();
 		process_events();
+
+		if (!shutdown && !paused) {
+			nds->run_until_vblank(&exec_in, &exec_out);
+			shutdown = exec_out.sig_flags & nds_signal::SHUTDOWN;
+		}
+
+		if (shutdown) {
+			bufs->vb.get_write_buffer().fill(0);
+			bufs->vb.swap_write_buffer();
+		} else if (paused) {
+			;
+		} else {
+			std::memcpy(bufs->vb.get_write_buffer().data(),
+					exec_out.fb, NDS_FB_SZ_BYTES);
+			bufs->vb.swap_write_buffer();
+		}
+
+		send_main_event(RenderEvent());
+
+		if (shutdown || paused || throttle) {
+			tmr.wait_until_target();
+		}
+
+		send_main_event(EndFrameEvent{
+				.frametime = to_seconds<double>(
+						frametime_tmr.measure()) });
 	}
 }
 
@@ -93,6 +132,40 @@ EmulatorThread::process_event(const LoadSystemFileEvent& ev)
 	} catch (const twice_exception& err) {
 		emit send_main_event(ErrorEvent{ .msg = tr(err.what()) });
 	}
+}
+
+void
+EmulatorThread::process_event(const ResetEvent& ev)
+{
+	try {
+		nds->reboot(ev.direct);
+		shutdown = false;
+	} catch (const twice_exception& err) {
+		emit send_main_event(ErrorEvent{ .msg = tr(err.what()) });
+	}
+}
+
+void
+EmulatorThread::process_event(const ShutdownEvent&)
+{
+	try {
+		nds->shutdown();
+		shutdown = true;
+	} catch (const twice_exception& err) {
+		emit send_main_event(ErrorEvent{ .msg = tr(err.what()) });
+	}
+}
+
+void
+EmulatorThread::process_event(const PauseEvent& ev)
+{
+	paused = ev.paused;
+}
+
+void
+EmulatorThread::process_event(const FastForwardEvent& ev)
+{
+	throttle = !ev.fastforward;
 }
 
 void

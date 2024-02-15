@@ -10,12 +10,13 @@
 #include "libtwice/nds/machine.h"
 #include "libtwice/util/threaded_queue.h"
 
+#include "buffers.h"
 #include "events.h"
 
 class EmulatorThread : public QThread {
 	Q_OBJECT
       public:
-	EmulatorThread(QObject *parent);
+	EmulatorThread(SharedBuffers *bufs, QObject *parent);
 	~EmulatorThread();
 	void push_event(const Event& ev);
 
@@ -28,14 +29,22 @@ class EmulatorThread : public QThread {
 	void process_event(const LoadROMEvent& ev);
 	void process_event(const LoadSystemFileEvent& ev);
 	void process_event(const StopThreadEvent& ev);
+	void process_event(const ResetEvent& ev);
+	void process_event(const ShutdownEvent& ev);
+	void process_event(const PauseEvent& ev);
+	void process_event(const FastForwardEvent& ev);
 
       signals:
 	void send_main_event(const MainEvent& ev);
 
       private:
 	bool running{};
-	twice::threaded_queue<Event> event_q;
+	bool paused{};
+	bool throttle{};
+	bool shutdown{};
 	std::unique_ptr<twice::nds_machine> nds;
+	twice::threaded_queue<Event> event_q;
+	SharedBuffers *bufs{};
 };
 
 #endif

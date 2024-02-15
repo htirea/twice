@@ -1,6 +1,7 @@
 #ifndef TWICE_QT_MAINWINDOW_H
 #define TWICE_QT_MAINWINDOW_H
 
+#include "buffers.h"
 #include "events.h"
 
 #include <QMainWindow>
@@ -23,15 +24,22 @@ class MainWindow : public QMainWindow {
 	void auto_resize_display();
 	void process_event(const EmptyEvent& ev);
 	void process_event(const ErrorEvent& ev);
+	void process_event(const RenderEvent& ev);
+	void process_event(const EndFrameEvent& ev);
 
       private slots:
+	void process_main_event(const MainEvent& ev);
 	void open_rom();
 	void open_system_files();
-	void process_main_event(const MainEvent& ev);
+	void reset_emulation(bool direct);
+	void shutdown_emulation();
+	void toggle_pause(bool checked);
+	void toggle_fastforward(bool checked);
 
       private:
 	DisplayWidget *display{};
 	EmulatorThread *emu_thread{};
+	SharedBuffers bufs;
 };
 
 #endif

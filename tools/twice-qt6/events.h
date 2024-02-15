@@ -18,15 +18,37 @@ struct LoadSystemFileEvent {
 	twice::nds_system_file type;
 };
 
+struct ResetEvent {
+	bool direct;
+};
+
+struct ShutdownEvent {};
+
+struct PauseEvent {
+	bool paused;
+};
+
+struct FastForwardEvent {
+	bool fastforward;
+};
+
 struct StopThreadEvent {};
 
 struct ErrorEvent {
 	QString msg;
 };
 
+struct RenderEvent {};
+
+struct EndFrameEvent {
+	double frametime;
+};
+
 using Event = std::variant<EmptyEvent, LoadROMEvent, LoadSystemFileEvent,
+		ResetEvent, ShutdownEvent, PauseEvent, FastForwardEvent,
 		StopThreadEvent>;
 
-using MainEvent = std::variant<EmptyEvent, ErrorEvent>;
+using MainEvent = std::variant<EmptyEvent, ErrorEvent, RenderEvent,
+		EndFrameEvent>;
 
 #endif

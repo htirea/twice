@@ -536,10 +536,11 @@ nds_machine::set_use_16_bit_audio(bool use_16_bit_audio)
 void
 nds_machine::sync_files()
 {
-	if (!m->nds)
-		return;
+	if (m->nds) {
+		nds_sync_files(m->nds.get());
+	}
 
-	nds_sync_files(m->nds.get());
+	/* TODO: sync files */
 }
 
 void

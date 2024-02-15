@@ -6,8 +6,8 @@ using namespace twice;
 
 struct ActionInfo {
 	int id;
-	QString text;
-	QString tip;
+	const char *text;
+	const char *tip;
 	bool checkable{};
 	int val{};
 	QKeySequence::StandardKey std_key{ QKeySequence::UnknownKey };
@@ -25,6 +25,33 @@ static const std::vector<ActionInfo> action_data = {
 	.id = ACTION_LOAD_SYSTEM_FILES,
 	.text = "Load system files",
 	.tip = "Load the system files",
+},
+{
+	.id = ACTION_RESET_TO_ROM,
+	.text = "Reset to ROM",
+	.tip = "Reset emulation to the ROM (direct boot)",
+},
+{
+	.id = ACTION_RESET_TO_FIRMWARE,
+	.text = "Reset to firmware",
+	.tip = "Reset emulation to firmware (firmware boot)",
+},
+{
+	.id = ACTION_SHUTDOWN,
+	.text = "Shutdown",
+	.tip = "Shutdown the virtual machine",
+},
+{
+	.id = ACTION_TOGGLE_PAUSE,
+	.text = "Pause",
+	.tip = "Pause the emulation",
+	.checkable = true,
+},
+{
+	.id = ACTION_TOGGLE_FASTFORWARD,
+	.text = "Fast forward",
+	.tip = "Fast forward the emulation",
+	.checkable = true,
 },
 {
 	.id = ACTION_LINEAR_FILTERING,
@@ -118,8 +145,8 @@ create_action(int id, QObject *parent)
 	}
 
 	QAction *action = new QAction(parent);
-	action->setText(a.text);
-	action->setToolTip(a.tip);
+	action->setText(QObject::tr(a.text));
+	action->setToolTip(QObject::tr(a.tip));
 	action->setCheckable(a.checkable);
 	action->setData(a.val);
 

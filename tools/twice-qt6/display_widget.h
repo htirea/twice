@@ -8,12 +8,14 @@
 
 #include <array>
 
+#include "buffers.h"
+
 class DisplayWidget : public QOpenGLWidget,
 		      protected QOpenGLFunctions_3_3_Core {
 	Q_OBJECT
 
       public:
-	DisplayWidget(QWidget *parent);
+	DisplayWidget(SharedBuffers::video_buffer *fb, QWidget *parent);
 	~DisplayWidget();
 
       protected:
@@ -32,6 +34,7 @@ class DisplayWidget : public QOpenGLWidget,
 	int w{};
 	int h{};
 	std::array<float, 16> proj_mtx{};
+	SharedBuffers::video_buffer *fb{};
 
 	/* OpenGL stuff */
 	GLuint shader_program{};

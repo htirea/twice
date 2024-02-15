@@ -16,10 +16,10 @@ using namespace twice;
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 {
-	display = new DisplayWidget(this);
+	display = new DisplayWidget(&bufs.vb, this);
 	setCentralWidget(display);
 
-	emu_thread = new EmulatorThread(this);
+	emu_thread = new EmulatorThread(&bufs, this);
 	connect(emu_thread, &EmulatorThread::finished, emu_thread,
 			&QObject::deleteLater);
 	connect(emu_thread, &EmulatorThread::send_main_event, this,
@@ -50,6 +50,27 @@ MainWindow::init_menus()
 		auto action = create_action(ACTION_LOAD_SYSTEM_FILES, this,
 				&MainWindow::open_system_files);
 		file_menu->addAction(action);
+	}
+
+	auto emu_menu = menuBar()->addMenu(tr("Emulation"));
+	{
+		auto reset = [=, this]() { reset_emulation(true); };
+		auto action = create_action(ACTION_RESET_TO_ROM, this, reset);
+		emu_menu->addAction(action);
+	}
+	{
+		auto reset = [=, this]() { reset_emulation(false); };
+		auto action = create_action(
+				ACTION_RESET_TO_FIRMWARE, this, reset);
+		emu_menu->addAction(action);
+	}
+	{
+		emu_menu->addAction(create_action(ACTION_SHUTDOWN, this,
+				&MainWindow::shutdown_emulation));
+		emu_menu->addAction(create_action(ACTION_TOGGLE_PAUSE, this,
+				&MainWindow::toggle_pause));
+		emu_menu->addAction(create_action(ACTION_TOGGLE_FASTFORWARD,
+				this, &MainWindow::toggle_fastforward));
 	}
 
 	auto video_menu = menuBar()->addMenu(tr("Video"));
@@ -147,6 +168,23 @@ MainWindow::process_event(const ErrorEvent& e)
 }
 
 void
+MainWindow::process_event(const RenderEvent&)
+{
+	display->update();
+}
+
+void
+MainWindow::process_event(const EndFrameEvent&)
+{
+}
+
+void
+MainWindow::process_main_event(const MainEvent& ev)
+{
+	std::visit([this](const auto& ev) { process_event(ev); }, ev);
+}
+
+void
 MainWindow::open_rom()
 {
 	auto pathname = QFileDialog::getOpenFileName(
@@ -184,7 +222,25 @@ MainWindow::open_system_files()
 }
 
 void
-MainWindow::process_main_event(const MainEvent& ev)
+MainWindow::reset_emulation(bool direct)
 {
-	std::visit([this](const auto& ev) { process_event(ev); }, ev);
+	emu_thread->push_event(ResetEvent{ .direct = direct });
+}
+
+void
+MainWindow::shutdown_emulation()
+{
+	emu_thread->push_event(ShutdownEvent());
+}
+
+void
+MainWindow::toggle_pause(bool checked)
+{
+	emu_thread->push_event(PauseEvent{ .paused = checked });
+}
+
+void
+MainWindow::toggle_fastforward(bool checked)
+{
+	emu_thread->push_event(FastForwardEvent{ .fastforward = checked });
 }

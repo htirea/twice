@@ -20,7 +20,10 @@ static void check_lyc(nds_ctx *nds, int cpuid);
 static void nds_on_vblank(nds_ctx *nds);
 static void schedule_32k_tick_event(nds_ctx *nds, timestamp late);
 
-nds_ctx::~nds_ctx() = default;
+nds_ctx::~nds_ctx()
+{
+	nds_sync_files(this);
+};
 
 std::unique_ptr<nds_ctx>
 create_nds_ctx(file_view arm9_bios, file_view arm7_bios, file_view firmware,
