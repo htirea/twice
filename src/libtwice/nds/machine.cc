@@ -552,4 +552,10 @@ nds_machine::dump_profiler_report()
 	nds_dump_prof(m->nds.get());
 }
 
+bool
+nds_machine::cart_loaded()
+{
+	return (bool)m->cart;
+}
+
 } // namespace twice

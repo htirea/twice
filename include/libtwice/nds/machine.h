@@ -365,6 +365,11 @@ struct nds_machine {
 	 */
 	void dump_profiler_report();
 
+	/**
+	 * \returns whether a cart is loaded
+	 */
+	bool cart_loaded();
+
       private:
 	struct impl;
 	std::unique_ptr<impl> m;

@@ -38,6 +38,22 @@ MainWindow::~MainWindow()
 }
 
 void
+MainWindow::closeEvent(QCloseEvent *ev)
+{
+	if (shutdown) {
+		ev->accept();
+	} else {
+		auto result = QMessageBox::question(this, tr("Shutdown"),
+				tr("Do you want to shutdown the virtual machine?"));
+		if (result == QMessageBox::Yes) {
+			ev->accept();
+		} else {
+			ev->ignore();
+		}
+	}
+}
+
+void
 MainWindow::init_menus()
 {
 	auto file_menu = menuBar()->addMenu(tr("File"));
@@ -111,6 +127,8 @@ MainWindow::init_default_values()
 	get_action(ACTION_ORIENTATION_0)->trigger();
 	get_action(ACTION_LOCK_ASPECT_RATIO)->trigger();
 	set_display_size(NDS_FB_W * 2, NDS_FB_H * 2);
+	process_event(ShutdownEvent{ .shutdown = true });
+	process_event(CartChangeEvent{ .cart_loaded = false });
 }
 
 void
@@ -171,6 +189,36 @@ void
 MainWindow::process_event(const RenderEvent&)
 {
 	display->update();
+}
+
+void
+MainWindow::process_event(const ShutdownEvent& ev)
+{
+	if (ev.shutdown) {
+		get_action(ACTION_SHUTDOWN)->setEnabled(false);
+		get_action(ACTION_TOGGLE_PAUSE)->setEnabled(false);
+		get_action(ACTION_TOGGLE_FASTFORWARD)->setEnabled(false);
+	} else {
+		get_action(ACTION_SHUTDOWN)->setEnabled(true);
+		get_action(ACTION_TOGGLE_PAUSE)->setEnabled(true);
+		get_action(ACTION_TOGGLE_FASTFORWARD)->setEnabled(true);
+	}
+
+	shutdown = ev.shutdown;
+}
+
+void
+MainWindow::process_event(const CartChangeEvent& ev)
+{
+	if (ev.cart_loaded) {
+		get_action(ACTION_RESET_TO_ROM)->setEnabled(true);
+		get_action(ACTION_RESET_TO_FIRMWARE)->setEnabled(true);
+	} else {
+		get_action(ACTION_RESET_TO_ROM)->setEnabled(false);
+		get_action(ACTION_RESET_TO_FIRMWARE)->setEnabled(false);
+	}
+
+	cart_loaded = ev.cart_loaded;
 }
 
 void

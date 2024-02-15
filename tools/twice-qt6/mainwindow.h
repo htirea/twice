@@ -4,6 +4,7 @@
 #include "buffers.h"
 #include "events.h"
 
+#include <QCloseEvent>
 #include <QMainWindow>
 
 class DisplayWidget;
@@ -16,6 +17,9 @@ class MainWindow : public QMainWindow {
 	MainWindow(QWidget *parent = nullptr);
 	~MainWindow();
 
+      protected:
+	void closeEvent(QCloseEvent *ev) override;
+
       private:
 	void init_menus();
 	void init_default_values();
@@ -25,6 +29,8 @@ class MainWindow : public QMainWindow {
 	void process_event(const EmptyEvent& ev);
 	void process_event(const ErrorEvent& ev);
 	void process_event(const RenderEvent& ev);
+	void process_event(const ShutdownEvent& ev);
+	void process_event(const CartChangeEvent& ev);
 	void process_event(const EndFrameEvent& ev);
 
       private slots:
@@ -40,6 +46,8 @@ class MainWindow : public QMainWindow {
 	DisplayWidget *display{};
 	EmulatorThread *emu_thread{};
 	SharedBuffers bufs;
+	bool shutdown{};
+	bool cart_loaded{};
 };
 
 #endif

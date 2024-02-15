@@ -61,6 +61,7 @@ EmulatorThread::run()
 		if (!shutdown && !paused) {
 			nds->run_until_vblank(&exec_in, &exec_out);
 			shutdown = exec_out.sig_flags & nds_signal::SHUTDOWN;
+			send_main_event(ShutdownEvent{ .shutdown = shutdown });
 		}
 
 		if (shutdown) {
@@ -108,6 +109,9 @@ EmulatorThread::process_event(const LoadROMEvent& ev)
 	} catch (const twice_exception& err) {
 		emit send_main_event(ErrorEvent{ .msg = tr(err.what()) });
 	}
+
+	emit send_main_event(
+			CartChangeEvent{ .cart_loaded = nds->cart_loaded() });
 }
 
 void
@@ -143,6 +147,8 @@ EmulatorThread::process_event(const ResetEvent& ev)
 	} catch (const twice_exception& err) {
 		emit send_main_event(ErrorEvent{ .msg = tr(err.what()) });
 	}
+
+	send_main_event(ShutdownEvent{ .shutdown = shutdown });
 }
 
 void
@@ -154,6 +160,8 @@ EmulatorThread::process_event(const ShutdownEvent&)
 	} catch (const twice_exception& err) {
 		emit send_main_event(ErrorEvent{ .msg = tr(err.what()) });
 	}
+
+	send_main_event(ShutdownEvent{ .shutdown = shutdown });
 }
 
 void

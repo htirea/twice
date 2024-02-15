@@ -1,6 +1,7 @@
 #include "mainwindow.h"
 
 #include <QApplication>
+#include <QPalette>
 #include <QSettings>
 #include <QStandardPaths>
 #include <QSurfaceFormat>

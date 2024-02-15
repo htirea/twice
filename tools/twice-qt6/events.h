@@ -22,7 +22,9 @@ struct ResetEvent {
 	bool direct;
 };
 
-struct ShutdownEvent {};
+struct ShutdownEvent {
+	bool shutdown;
+};
 
 struct PauseEvent {
 	bool paused;
@@ -40,6 +42,10 @@ struct ErrorEvent {
 
 struct RenderEvent {};
 
+struct CartChangeEvent {
+	bool cart_loaded;
+};
+
 struct EndFrameEvent {
 	double frametime;
 };
@@ -49,6 +55,6 @@ using Event = std::variant<EmptyEvent, LoadROMEvent, LoadSystemFileEvent,
 		StopThreadEvent>;
 
 using MainEvent = std::variant<EmptyEvent, ErrorEvent, RenderEvent,
-		EndFrameEvent>;
+		ShutdownEvent, CartChangeEvent, EndFrameEvent>;
 
 #endif
