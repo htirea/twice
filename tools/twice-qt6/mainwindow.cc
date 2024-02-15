@@ -10,6 +10,7 @@
 #include <QFileDialog>
 #include <QMenuBar>
 #include <QMessageBox>
+#include <QTimer>
 
 #include <iostream>
 
@@ -27,6 +28,10 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 			&QObject::deleteLater);
 	connect(emu_thread, &EmulatorThread::send_main_event, this,
 			&MainWindow::process_main_event);
+
+	auto timer = new QTimer(this);
+	connect(timer, &QTimer::timeout, this, &MainWindow::update_title);
+	timer->start(1000);
 
 	init_menus();
 	init_default_values();
@@ -271,8 +276,10 @@ MainWindow::process_event(const SaveTypeEvent& ev)
 }
 
 void
-MainWindow::process_event(const EndFrameEvent&)
+MainWindow::process_event(const EndFrameEvent& ev)
 {
+	double a = 0.9;
+	avg_frametime = a * avg_frametime + (1 - a) * ev.frametime;
 }
 
 bool
@@ -395,4 +402,14 @@ void
 MainWindow::toggle_fastforward(bool checked)
 {
 	emu_thread->push_event(FastForwardEvent{ checked });
+}
+
+void
+MainWindow::update_title()
+{
+	double fps = 1 / avg_frametime;
+	auto title = QString("Twice [%1 fps | %2 ms]")
+	                             .arg(fps, 0, 'f', 2)
+	                             .arg(avg_frametime * 1000, 0, 'f', 2);
+	window()->setWindowTitle(title);
 }

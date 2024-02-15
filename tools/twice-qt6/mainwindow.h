@@ -50,11 +50,13 @@ class MainWindow : public QMainWindow {
 	void shutdown_emulation();
 	void toggle_pause(bool checked);
 	void toggle_fastforward(bool checked);
+	void update_title();
 
       private:
 	DisplayWidget *display{};
 	AudioOut *audio_out{};
 	EmulatorThread *emu_thread{};
+	double avg_frametime{ 0.16 };
 	SharedBuffers bufs;
 	bool shutdown{};
 	int loaded_files{};
