@@ -10,10 +10,22 @@ struct ActionInfo {
 	QString tip;
 	bool checkable{};
 	int val{};
+	QKeySequence::StandardKey std_key{ QKeySequence::UnknownKey };
 };
 
 /* clang-format off */
 static const std::vector<ActionInfo> action_data = {
+{
+	.id = ACTION_OPEN_ROM,
+	.text = "Open ROM",
+	.tip = "Open a ROM file and start / restart emulation",
+	.std_key = QKeySequence::Open,
+},
+{
+	.id = ACTION_LOAD_SYSTEM_FILES,
+	.text = "Load system files",
+	.tip = "Load the system files",
+},
 {
 	.id = ACTION_LINEAR_FILTERING,
 	.text = "Linear filtering",
@@ -110,6 +122,10 @@ create_action(int id, QObject *parent)
 	action->setToolTip(a.tip);
 	action->setCheckable(a.checkable);
 	action->setData(a.val);
+
+	if (a.std_key != QKeySequence::UnknownKey) {
+		action->setShortcut(a.std_key);
+	}
 
 	return actions[id] = action;
 }

@@ -72,6 +72,10 @@ nds_machine::load_system_file(
 				  "machine is running.");
 	}
 
+	if (type == nds_system_file::UNKNOWN) {
+		throw twice_error("The system file type is unknown.");
+	}
+
 	auto f = file(pathname, file::open_flags::READ);
 	auto size = f.get_size();
 
@@ -94,6 +98,7 @@ nds_machine::load_system_file(
 		}
 		m->firmware = std::move(f);
 		break;
+	default:;
 	}
 }
 

@@ -47,6 +47,7 @@ enum class nds_button {
  * The system files of the NDS machine.
  */
 enum class nds_system_file {
+	UNKNOWN,
 	ARM9_BIOS,
 	ARM7_BIOS,
 	FIRMWARE,

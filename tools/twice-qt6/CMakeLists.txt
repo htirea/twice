@@ -11,6 +11,8 @@ qt_add_executable(twice-qt6
 	display_widget.h
 	actions.cc
 	actions.h
+	emulator_thread.cc
+	emulator_thread.h
 )
 
 target_link_libraries(twice-qt6 PRIVATE

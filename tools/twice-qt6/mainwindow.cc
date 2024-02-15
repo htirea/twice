@@ -2,10 +2,15 @@
 
 #include "actions.h"
 #include "display_widget.h"
+#include "emulator_thread.h"
 
 #include "libtwice/nds/defs.h"
 
+#include <QFileDialog>
 #include <QMenuBar>
+#include <QMessageBox>
+
+#include <iostream>
 
 using namespace twice;
 
@@ -14,15 +19,39 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 	display = new DisplayWidget(this);
 	setCentralWidget(display);
 
+	emu_thread = new EmulatorThread(this);
+	connect(emu_thread, &EmulatorThread::finished, emu_thread,
+			&QObject::deleteLater);
+	connect(emu_thread, &EmulatorThread::send_main_event, this,
+			&MainWindow::process_main_event);
+
 	init_menus();
 	init_default_values();
+
+	emu_thread->start();
 }
 
-MainWindow::~MainWindow() {}
+MainWindow::~MainWindow()
+{
+	emu_thread->push_event(StopThreadEvent());
+	emu_thread->wait();
+}
 
 void
 MainWindow::init_menus()
 {
+	auto file_menu = menuBar()->addMenu(tr("File"));
+	{
+		auto action = create_action(
+				ACTION_OPEN_ROM, this, &MainWindow::open_rom);
+		file_menu->addAction(action);
+	}
+	{
+		auto action = create_action(ACTION_LOAD_SYSTEM_FILES, this,
+				&MainWindow::open_system_files);
+		file_menu->addAction(action);
+	}
+
 	auto video_menu = menuBar()->addMenu(tr("Video"));
 	{
 		auto action = create_action(ACTION_AUTO_RESIZE, this,
@@ -49,8 +78,10 @@ MainWindow::init_menus()
 		menu->addAction(get_action(ACTION_ORIENTATION_3));
 		menu->addAction(get_action(ACTION_ORIENTATION_2));
 	}
-	video_menu->addAction(get_action(ACTION_LINEAR_FILTERING));
-	video_menu->addAction(get_action(ACTION_LOCK_ASPECT_RATIO));
+	{
+		video_menu->addAction(get_action(ACTION_LINEAR_FILTERING));
+		video_menu->addAction(get_action(ACTION_LOCK_ASPECT_RATIO));
+	}
 }
 
 void
@@ -73,6 +104,19 @@ MainWindow::set_display_size(int w, int h)
 }
 
 void
+MainWindow::set_display_size(int scale)
+{
+	int w = NDS_FB_W * scale;
+	int h = NDS_FB_H * scale;
+
+	if (get_orientation() & 1) {
+		std::swap(w, h);
+	}
+
+	set_display_size(w, h);
+}
+
+void
 MainWindow::auto_resize_display()
 {
 	auto size = display->size();
@@ -92,14 +136,55 @@ MainWindow::auto_resize_display()
 }
 
 void
-MainWindow::set_display_size(int scale)
+MainWindow::process_event(const EmptyEvent&)
 {
-	int w = NDS_FB_W * scale;
-	int h = NDS_FB_H * scale;
+}
 
-	if (get_orientation() & 1) {
-		std::swap(w, h);
+void
+MainWindow::process_event(const ErrorEvent& e)
+{
+	QMessageBox::critical(nullptr, tr("Error"), e.msg);
+}
+
+void
+MainWindow::open_rom()
+{
+	auto pathname = QFileDialog::getOpenFileName(
+			this, tr("Open ROM"), "", tr("ROM Files (*.nds)"));
+	if (!pathname.isEmpty()) {
+		emu_thread->push_event(LoadROMEvent{ .pathname = pathname });
 	}
+}
 
-	set_display_size(w, h);
+void
+MainWindow::open_system_files()
+{
+	auto pathnames = QFileDialog::getOpenFileNames(this,
+			tr("Select NDS system files"), "",
+			tr("Binary files (*.bin);;All files (*)"));
+
+	for (const auto& pathname : pathnames) {
+		QFileInfo info(pathname);
+
+		auto type = nds_system_file::UNKNOWN;
+
+		if (info.fileName() == "bios9.bin" || info.size() == 4096) {
+			type = nds_system_file::ARM9_BIOS;
+		} else if (info.fileName() == "bios7.bin" ||
+				info.size() == 16384) {
+			type = nds_system_file::ARM7_BIOS;
+		} else if (info.fileName() == "firmware.bin" ||
+				info.size() == 262144) {
+			type = nds_system_file::FIRMWARE;
+		}
+
+		emu_thread->push_event(LoadSystemFileEvent{
+				.pathname = pathname, .type = type });
+	}
+}
+
+void
+MainWindow::process_main_event(const MainEvent& ev)
+{
+	std::visit([this](const auto& ev) { process_event(ev); }, ev);
 }

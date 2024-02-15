@@ -1,12 +1,21 @@
 #include "mainwindow.h"
 
 #include <QApplication>
+#include <QSettings>
+#include <QStandardPaths>
 #include <QSurfaceFormat>
+
+static void set_default_settings();
 
 int
 main(int argc, char *argv[])
 {
 	QApplication app(argc, argv);
+	QCoreApplication::setOrganizationName("twice");
+	QCoreApplication::setApplicationName("twice-qt");
+	QSettings::setDefaultFormat(QSettings::IniFormat);
+
+	set_default_settings();
 
 	QSurfaceFormat format;
 	format.setDepthBufferSize(24);
@@ -18,4 +27,18 @@ main(int argc, char *argv[])
 	MainWindow w;
 	w.show();
 	return app.exec();
+}
+
+static void
+set_default_settings()
+{
+	QSettings settings;
+
+	if (!settings.contains("data_dir")) {
+		auto paths = QStandardPaths::standardLocations(
+				QStandardPaths::AppDataLocation);
+		if (!paths.isEmpty()) {
+			settings.setValue("data_dir", paths[0]);
+		}
+	}
 }
