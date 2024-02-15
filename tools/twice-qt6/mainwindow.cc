@@ -1,6 +1,7 @@
 #include "mainwindow.h"
 
 #include "actions.h"
+#include "audio_out.h"
 #include "display_widget.h"
 #include "emulator_thread.h"
 
@@ -18,6 +19,8 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 {
 	display = new DisplayWidget(&bufs.vb, this);
 	setCentralWidget(display);
+
+	audio_out = new AudioOut(&bufs.ab, this);
 
 	emu_thread = new EmulatorThread(&bufs, this);
 	connect(emu_thread, &EmulatorThread::finished, emu_thread,
@@ -212,6 +215,12 @@ void
 MainWindow::process_event(const RenderEvent&)
 {
 	display->update();
+}
+
+void
+MainWindow::process_event(const PushAudioEvent& ev)
+{
+	audio_out->push_audio(ev.len);
 }
 
 void

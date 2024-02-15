@@ -9,6 +9,7 @@
 
 class DisplayWidget;
 class EmulatorThread;
+class AudioOut;
 
 class MainWindow : public QMainWindow {
 	Q_OBJECT
@@ -29,6 +30,7 @@ class MainWindow : public QMainWindow {
 	void process_event(const EmptyEvent& ev);
 	void process_event(const ErrorEvent& ev);
 	void process_event(const RenderEvent& ev);
+	void process_event(const PushAudioEvent& ev);
 	void process_event(const ShutdownEvent& ev);
 	void process_event(const FileEvent& ev);
 	void process_event(const SaveTypeEvent& ev);
@@ -51,6 +53,7 @@ class MainWindow : public QMainWindow {
 
       private:
 	DisplayWidget *display{};
+	AudioOut *audio_out{};
 	EmulatorThread *emu_thread{};
 	SharedBuffers bufs;
 	bool shutdown{};

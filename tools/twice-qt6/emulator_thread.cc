@@ -59,21 +59,41 @@ EmulatorThread::run()
 		frametime_tmr.start();
 		process_events();
 
-		if (!shutdown && !paused) {
+		bool run_frame = !shutdown && !paused;
+
+		if (run_frame) {
 			nds->run_until_vblank(&exec_in, &exec_out);
 			shutdown = exec_out.sig_flags & nds_signal::SHUTDOWN;
 			emit send_main_event(ShutdownEvent{ shutdown });
 		}
 
-		if (shutdown) {
-			bufs->vb.get_write_buffer().fill(0);
-			bufs->vb.swap_write_buffer();
-		} else if (paused) {
-			;
+		size_t audio_buf_size = 0;
+		if (run_frame && throttle) {
+			audio_buf_size = exec_out.audio_buf_len << 2;
+			std::memcpy(bufs->ab.get_write_buffer().data(),
+					exec_out.audio_buf, audio_buf_size);
+			bufs->ab.swap_write_buffer();
+		} else if (run_frame) {
+			audio_buf_size = 0;
 		} else {
+			audio_buf_size = (size_t)(NDS_AUDIO_SAMPLE_RATE /
+							 NDS_FRAME_RATE)
+			                 << 2;
+			bufs->ab.get_write_buffer().fill(0);
+			bufs->ab.swap_write_buffer();
+		}
+
+		emit send_main_event(PushAudioEvent{ audio_buf_size });
+
+		if (run_frame) {
 			std::memcpy(bufs->vb.get_write_buffer().data(),
 					exec_out.fb, NDS_FB_SZ_BYTES);
 			bufs->vb.swap_write_buffer();
+		} else {
+			if (!paused) {
+				bufs->vb.get_write_buffer().fill(0);
+				bufs->vb.swap_write_buffer();
+			}
 		}
 
 		emit send_main_event(RenderEvent());

@@ -47,6 +47,10 @@ struct ErrorEvent {
 
 struct RenderEvent {};
 
+struct PushAudioEvent {
+	size_t len;
+};
+
 struct FileEvent {
 	int loaded_files;
 };
@@ -60,6 +64,7 @@ using Event = std::variant<EmptyEvent, LoadFileEvent, UnloadFileEvent,
 		FastForwardEvent, StopThreadEvent>;
 
 using MainEvent = std::variant<EmptyEvent, ErrorEvent, RenderEvent,
-		ShutdownEvent, FileEvent, SaveTypeEvent, EndFrameEvent>;
+		PushAudioEvent, ShutdownEvent, FileEvent, SaveTypeEvent,
+		EndFrameEvent>;
 
 #endif
