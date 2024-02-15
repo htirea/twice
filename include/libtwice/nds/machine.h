@@ -44,10 +44,12 @@ enum class nds_button {
 };
 
 /**
- * The system files of the NDS machine.
+ * The file types of the NDS machine.
  */
-enum class nds_system_file {
+enum class nds_file {
 	UNKNOWN,
+	CART_ROM,
+	SAVE,
 	ARM9_BIOS,
 	ARM7_BIOS,
 	FIRMWARE,
@@ -142,13 +144,21 @@ struct nds_machine {
 	~nds_machine();
 
 	/**
+	 * Load a file into the machine.
+	 *
+	 * \param pathname the file to load
+	 * \param type the type of file
+	 */
+	void load_file(const std::filesystem::path& pathname, nds_file type);
+
+	/**
 	 * Load a system file into the machine.
 	 *
 	 * \param pathname the file to load
 	 * \param type the type of system file
 	 */
-	void load_system_file(const std::filesystem::path& pathname,
-			nds_system_file type);
+	void load_system_file(
+			const std::filesystem::path& pathname, nds_file type);
 
 	/**
 	 * Load a cartridge into the machine.

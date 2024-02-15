@@ -26,8 +26,7 @@ class EmulatorThread : public QThread {
       private:
 	void process_events();
 	void process_event(const EmptyEvent& ev);
-	void process_event(const LoadROMEvent& ev);
-	void process_event(const LoadSystemFileEvent& ev);
+	void process_event(const LoadFileEvent& ev);
 	void process_event(const StopThreadEvent& ev);
 	void process_event(const ResetEvent& ev);
 	void process_event(const ShutdownEvent& ev);

@@ -132,7 +132,19 @@ void
 EmulatorThread::handle_event(const LoadFileEvent& e)
 {
 	try {
-		nds->load_system_file(e.pathname, (nds_system_file)e.type);
+		auto type = nds_file::UNKNOWN;
+		switch (e.type) {
+		case LoadFileEvent::ARM9_BIOS:
+			type = nds_file::ARM9_BIOS;
+			break;
+		case LoadFileEvent::ARM7_BIOS:
+			type = nds_file::ARM7_BIOS;
+			break;
+		case LoadFileEvent::FIRMWARE:
+			type = nds_file::FIRMWARE;
+			break;
+		}
+		nds->load_file(e.pathname, type);
 	} catch (const twice_exception& err) {
 		emit show_error_msg(tr(err.what()));
 	}

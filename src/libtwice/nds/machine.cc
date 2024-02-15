@@ -37,7 +37,7 @@ nds_machine::nds_machine(const nds_config& config)
 		if (pathname.empty()) {
 			pathname = config.data_dir / "bios9.bin";
 		}
-		load_system_file(pathname, nds_system_file::ARM9_BIOS);
+		load_system_file(pathname, nds_file::ARM9_BIOS);
 	} catch (const file_error& e) {
 	}
 
@@ -46,7 +46,7 @@ nds_machine::nds_machine(const nds_config& config)
 		if (pathname.empty()) {
 			pathname = config.data_dir / "bios7.bin";
 		}
-		load_system_file(pathname, nds_system_file::ARM7_BIOS);
+		load_system_file(pathname, nds_file::ARM7_BIOS);
 	} catch (const file_error& e) {
 	}
 
@@ -55,7 +55,7 @@ nds_machine::nds_machine(const nds_config& config)
 		if (pathname.empty()) {
 			pathname = config.data_dir / "firmware.bin";
 		}
-		load_system_file(pathname, nds_system_file::FIRMWARE);
+		load_system_file(pathname, nds_file::FIRMWARE);
 	} catch (const file_error& e) {
 	}
 }
@@ -63,8 +63,28 @@ nds_machine::nds_machine(const nds_config& config)
 nds_machine::~nds_machine() = default;
 
 void
+nds_machine::load_file(const std::filesystem::path& pathname, nds_file type)
+{
+	switch (type) {
+	case nds_file::CART_ROM:
+		load_cartridge(pathname);
+		break;
+	case nds_file::SAVE:
+		load_savefile(pathname);
+		break;
+	case nds_file::ARM9_BIOS:
+	case nds_file::ARM7_BIOS:
+	case nds_file::FIRMWARE:
+		load_system_file(pathname, type);
+		break;
+	case nds_file::UNKNOWN:
+		throw twice_error("The file type is unknown.");
+	}
+}
+
+void
 nds_machine::load_system_file(
-		const std::filesystem::path& pathname, nds_system_file type)
+		const std::filesystem::path& pathname, nds_file type)
 {
 	if (m->nds) {
 		/* TODO: handle loading files while running */
@@ -72,27 +92,32 @@ nds_machine::load_system_file(
 				  "machine is running.");
 	}
 
-	if (type == nds_system_file::UNKNOWN) {
+	if (type == nds_file::UNKNOWN) {
 		throw twice_error("The system file type is unknown.");
+	}
+
+	if (type != nds_file::ARM9_BIOS && type != nds_file::ARM7_BIOS &&
+			type != nds_file::FIRMWARE) {
+		throw twice_error("The file type is not a system file.");
 	}
 
 	auto f = file(pathname, file::open_flags::READ);
 	auto size = f.get_size();
 
 	switch (type) {
-	case nds_system_file::ARM9_BIOS:
+	case nds_file::ARM9_BIOS:
 		if (size != ARM9_BIOS_SIZE) {
 			throw twice_error("Invalid ARM9 BIOS size.");
 		}
 		m->arm9_bios = std::move(f);
 		break;
-	case nds_system_file::ARM7_BIOS:
+	case nds_file::ARM7_BIOS:
 		if (size != ARM7_BIOS_SIZE) {
 			throw twice_error("Invalid ARM7 BIOS size.");
 		}
 		m->arm7_bios = std::move(f);
 		break;
-	case nds_system_file::FIRMWARE:
+	case nds_file::FIRMWARE:
 		if (size != FIRMWARE_SIZE) {
 			throw twice_error("Invalid NDS firmware size.");
 		}

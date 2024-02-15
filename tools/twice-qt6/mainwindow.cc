@@ -58,14 +58,12 @@ MainWindow::init_menus()
 {
 	auto file_menu = menuBar()->addMenu(tr("File"));
 	{
-		auto action = create_action(
-				ACTION_OPEN_ROM, this, &MainWindow::open_rom);
-		file_menu->addAction(action);
-	}
-	{
-		auto action = create_action(ACTION_LOAD_SYSTEM_FILES, this,
-				&MainWindow::open_system_files);
-		file_menu->addAction(action);
+		file_menu->addAction(create_action(
+				ACTION_OPEN_ROM, this, &MainWindow::open_rom));
+		file_menu->addAction(create_action(ACTION_LOAD_SYSTEM_FILES,
+				this, &MainWindow::open_system_files));
+		file_menu->addAction(create_action(ACTION_LOAD_SAVE_FILE, this,
+				&MainWindow::load_save_file));
 	}
 
 	auto emu_menu = menuBar()->addMenu(tr("Emulation"));
@@ -238,7 +236,8 @@ MainWindow::open_rom()
 	auto pathname = QFileDialog::getOpenFileName(
 			this, tr("Open ROM"), "", tr("ROM Files (*.nds)"));
 	if (!pathname.isEmpty()) {
-		emu_thread->push_event(LoadROMEvent{ .pathname = pathname });
+		emu_thread->push_event(LoadFileEvent{ .pathname = pathname,
+				.type = nds_file::CART_ROM });
 	}
 }
 
@@ -252,20 +251,31 @@ MainWindow::open_system_files()
 	for (const auto& pathname : pathnames) {
 		QFileInfo info(pathname);
 
-		auto type = nds_system_file::UNKNOWN;
+		auto type = nds_file::UNKNOWN;
 
 		if (info.fileName() == "bios9.bin" || info.size() == 4096) {
-			type = nds_system_file::ARM9_BIOS;
+			type = nds_file::ARM9_BIOS;
 		} else if (info.fileName() == "bios7.bin" ||
 				info.size() == 16384) {
-			type = nds_system_file::ARM7_BIOS;
+			type = nds_file::ARM7_BIOS;
 		} else if (info.fileName() == "firmware.bin" ||
 				info.size() == 262144) {
-			type = nds_system_file::FIRMWARE;
+			type = nds_file::FIRMWARE;
 		}
 
-		emu_thread->push_event(LoadSystemFileEvent{
+		emu_thread->push_event(LoadFileEvent{
 				.pathname = pathname, .type = type });
+	}
+}
+
+void
+MainWindow::load_save_file()
+{
+	auto pathname = QFileDialog::getOpenFileName(this,
+			tr("Load save file"), "", tr("SAV Files (*.sav)"));
+	if (!pathname.isEmpty()) {
+		emu_thread->push_event(LoadFileEvent{ .pathname = pathname,
+				.type = nds_file::SAVE });
 	}
 }
 

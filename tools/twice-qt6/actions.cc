@@ -27,6 +27,11 @@ static const std::vector<ActionInfo> action_data = {
 	.tip = "Load the system files",
 },
 {
+	.id = ACTION_LOAD_SAVE_FILE,
+	.text = "Load save file",
+	.tip = "Load a save file",
+},
+{
 	.id = ACTION_RESET_TO_ROM,
 	.text = "Reset to ROM",
 	.tip = "Reset emulation to the ROM (direct boot)",

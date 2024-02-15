@@ -102,39 +102,26 @@ EmulatorThread::process_event(const EmptyEvent&)
 }
 
 void
-EmulatorThread::process_event(const LoadROMEvent& ev)
+EmulatorThread::process_event(const LoadFileEvent& ev)
 {
 	try {
-		nds->load_cartridge(ev.pathname.toStdU16String());
+		nds->load_file(ev.pathname.toStdU16String(), ev.type);
+
+		QSettings settings;
+		if (ev.type == nds_file::ARM9_BIOS) {
+			settings.setValue("arm9_bios_path", ev.pathname);
+		} else if (ev.type == nds_file::ARM7_BIOS) {
+			settings.setValue("arm7_bios_path", ev.pathname);
+		} else if (ev.type == nds_file::FIRMWARE) {
+			settings.setValue("firmware_path", ev.pathname);
+		}
 	} catch (const twice_exception& err) {
 		emit send_main_event(ErrorEvent{ .msg = tr(err.what()) });
 	}
 
-	emit send_main_event(
-			CartChangeEvent{ .cart_loaded = nds->cart_loaded() });
-}
-
-void
-EmulatorThread::process_event(const LoadSystemFileEvent& ev)
-{
-	try {
-		nds->load_system_file(ev.pathname.toStdU16String(), ev.type);
-
-		QSettings settings;
-		switch (ev.type) {
-		case nds_system_file::ARM9_BIOS:
-			settings.setValue("arm9_bios_path", ev.pathname);
-			break;
-		case nds_system_file::ARM7_BIOS:
-			settings.setValue("arm7_bios_path", ev.pathname);
-			break;
-		case nds_system_file::FIRMWARE:
-			settings.setValue("firmware_path", ev.pathname);
-			break;
-		default:;
-		}
-	} catch (const twice_exception& err) {
-		emit send_main_event(ErrorEvent{ .msg = tr(err.what()) });
+	if (ev.type == nds_file::CART_ROM) {
+		emit send_main_event(CartChangeEvent{
+				.cart_loaded = nds->cart_loaded() });
 	}
 }
 

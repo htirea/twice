@@ -9,13 +9,9 @@
 
 struct EmptyEvent {};
 
-struct LoadROMEvent {
+struct LoadFileEvent {
 	QString pathname;
-};
-
-struct LoadSystemFileEvent {
-	QString pathname;
-	twice::nds_system_file type;
+	twice::nds_file type;
 };
 
 struct ResetEvent {
@@ -50,9 +46,8 @@ struct EndFrameEvent {
 	double frametime;
 };
 
-using Event = std::variant<EmptyEvent, LoadROMEvent, LoadSystemFileEvent,
-		ResetEvent, ShutdownEvent, PauseEvent, FastForwardEvent,
-		StopThreadEvent>;
+using Event = std::variant<EmptyEvent, LoadFileEvent, ResetEvent,
+		ShutdownEvent, PauseEvent, FastForwardEvent, StopThreadEvent>;
 
 using MainEvent = std::variant<EmptyEvent, ErrorEvent, RenderEvent,
 		ShutdownEvent, CartChangeEvent, EndFrameEvent>;

@@ -37,6 +37,7 @@ class MainWindow : public QMainWindow {
 	void process_main_event(const MainEvent& ev);
 	void open_rom();
 	void open_system_files();
+	void load_save_file();
 	void reset_emulation(bool direct);
 	void shutdown_emulation();
 	void toggle_pause(bool checked);
