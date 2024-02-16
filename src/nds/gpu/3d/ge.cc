@@ -554,9 +554,13 @@ cmd_normal(geometry_engine *ge)
 		spe_dot += -(s64)ge->half_vec[i][0] * normal[0] & ~0x1FF;
 		spe_dot += -(s64)ge->half_vec[i][1] * normal[1] & ~0x1FF;
 		spe_dot += -(s64)ge->half_vec[i][2] * normal[2] & ~0x1FF;
-		spe_dot >>= 9;
 
-		s64 spe_level = spe_dot * spe_dot / -(s64)ge->half_vec[i][2];
+		if (spe_dot >= 0x80000) {
+			spe_dot = (0x80000 - (spe_dot - 0x80000)) & 0x7FFFF;
+		}
+
+		s64 spe_level = (spe_dot * spe_dot >> 18) /
+		                -(s64)ge->half_vec[i][2];
 		spe_level -= (1 << 9);
 
 		if (ge->shiny_table_enabled) {
