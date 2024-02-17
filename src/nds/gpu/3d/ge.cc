@@ -551,16 +551,18 @@ cmd_normal(geometry_engine *ge)
 
 		/* TODO: specular is probably the same as diffuse? */
 		s64 spe_dot = 0;
-		spe_dot += -(s64)ge->half_vec[i][0] * normal[0] & ~0x1FF;
-		spe_dot += -(s64)ge->half_vec[i][1] * normal[1] & ~0x1FF;
-		spe_dot += -(s64)ge->half_vec[i][2] * normal[2] & ~0x1FF;
+		spe_dot += -(s64)ge->light_vec[i][0] * normal[0] & ~0x1FF;
+		spe_dot += -(s64)ge->light_vec[i][1] * normal[1] & ~0x1FF;
+		spe_dot += -(s64)ge->light_vec[i][2] * normal[2] & ~0x1FF;
+		spe_dot += normal[2] << 9;
+		spe_dot >>= 9;
 
-		if (spe_dot >= 0x80000) {
-			spe_dot = (0x80000 - (spe_dot - 0x80000)) & 0x7FFFF;
+		if (spe_dot >= 0x400) {
+			spe_dot = (0x400 - (spe_dot - 0x400)) & 0x3FF;
 		}
 
-		s64 spe_level = (spe_dot * spe_dot >> 18 & ~0x3FF) /
-		                -(s64)ge->half_vec[i][2];
+		s64 spe_level = (spe_dot * spe_dot & ~0x3FF) /
+		                (-ge->light_vec[i][2] + (1 << 9));
 		spe_level -= (1 << 9);
 
 		spe_level = SEXTL<14>(spe_level);
