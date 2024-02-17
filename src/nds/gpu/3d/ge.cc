@@ -543,11 +543,11 @@ cmd_normal(geometry_engine *ge)
 		if (!(ge->poly_attr & BIT(i)))
 			continue;
 
-		s64 dif_level = 0;
-		dif_level += -(s64)ge->light_vec[i][0] * normal[0] & ~0x1FF;
-		dif_level += -(s64)ge->light_vec[i][1] * normal[1] & ~0x1FF;
-		dif_level += -(s64)ge->light_vec[i][2] * normal[2] & ~0x1FF;
-		dif_level >>= 9;
+		s64 dif_dot = 0;
+		dif_dot += -(s64)ge->light_vec[i][0] * normal[0] & ~0x1FF;
+		dif_dot += -(s64)ge->light_vec[i][1] * normal[1] & ~0x1FF;
+		dif_dot += -(s64)ge->light_vec[i][2] * normal[2] & ~0x1FF;
+		s64 dif_level = dif_dot >> 9;
 
 		/* TODO: specular is probably the same as diffuse? */
 		s64 spe_dot = 0;
@@ -596,8 +596,8 @@ cmd_normal(geometry_engine *ge)
 			/* TODO: check */
 			s64 spe = 0;
 			s64 spe_color = ge->_specular_color[j];
-			if (spe_level < 0 || spe_dot < 0 || spe_color == 0 ||
-					l == 0) {
+			if (dif_dot <= 0 || spe_level < 0 || spe_dot < 0 ||
+					spe_color == 0 || l == 0) {
 				spe = 0;
 			} else {
 				spe = spe_color * l * spe_level;
