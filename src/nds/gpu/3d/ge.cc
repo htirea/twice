@@ -559,9 +559,14 @@ cmd_normal(geometry_engine *ge)
 			spe_dot = (0x80000 - (spe_dot - 0x80000)) & 0x7FFFF;
 		}
 
-		s64 spe_level = (spe_dot * spe_dot >> 18) /
+		s64 spe_level = (spe_dot * spe_dot >> 18 & ~0x3FF) /
 		                -(s64)ge->half_vec[i][2];
 		spe_level -= (1 << 9);
+
+		spe_level = SEXTL<14>(spe_level);
+		if (spe_level >= 512) {
+			spe_level = 511;
+		}
 
 		if (ge->shiny_table_enabled) {
 			s64 idx = std::clamp<s64>(spe_level >> 2, 0, 127);

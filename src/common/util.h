@@ -68,6 +68,15 @@ SEXT(u32 x)
 	return (s32)(x << (32 - n)) >> (32 - n);
 }
 
+template <int n>
+constexpr s64
+SEXTL(u64 x)
+{
+	static_assert(n != 0 && n <= 64);
+
+	return (s64)(x << (64 - n)) >> (64 - n);
+}
+
 inline s32
 ilerp(s32 y0, s32 y1, s32 x0, s32 x1, s32 x)
 {
