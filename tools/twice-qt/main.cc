@@ -1,11 +1,12 @@
 #include "mainwindow.h"
 
-#include <iostream>
-
 #include <QApplication>
+#include <QPalette>
+#include <QSettings>
 #include <QStandardPaths>
+#include <QSurfaceFormat>
 
-static void setup_default_settings(QSettings *settings);
+static void set_default_settings();
 
 int
 main(int argc, char *argv[])
@@ -14,32 +15,38 @@ main(int argc, char *argv[])
 	QCoreApplication::setOrganizationName("twice");
 	QCoreApplication::setApplicationName("twice-qt");
 
-	QCommandLineParser parser;
-	parser.setApplicationDescription("Twice emulator");
-	parser.addHelpOption();
-	parser.addPositionalArgument("FILE",
-			QApplication::translate("main", "NDS ROM file"));
-	parser.process(app);
-
 	QSettings::setDefaultFormat(QSettings::IniFormat);
-	QSettings settings;
-	setup_default_settings(&settings);
+	set_default_settings();
 
-	twice::MainWindow window(&settings, &parser);
-	window.start_emulator_thread();
+	QPalette palette;
+	palette.setColor(QPalette::Disabled, QPalette::WindowText,
+			QColorConstants::Svg::dimgray);
+	palette.setColor(QPalette::Disabled, QPalette::Text,
+			QColorConstants::Svg::dimgray);
+	app.setPalette(palette);
 
-	window.show();
+	QSurfaceFormat format;
+	format.setDepthBufferSize(24);
+	format.setStencilBufferSize(8);
+	format.setVersion(3, 3);
+	format.setProfile(QSurfaceFormat::CoreProfile);
+	QSurfaceFormat::setDefaultFormat(format);
+
+	MainWindow w;
+	w.show();
 	return app.exec();
 }
 
 static void
-setup_default_settings(QSettings *settings)
+set_default_settings()
 {
-	if (!settings->contains("data_dir")) {
+	QSettings settings;
+
+	if (!settings.contains("data_dir")) {
 		auto paths = QStandardPaths::standardLocations(
 				QStandardPaths::AppDataLocation);
 		if (!paths.isEmpty()) {
-			settings->setValue("data_dir", paths[0]);
+			settings.setValue("data_dir", paths[0]);
 		}
 	}
 }

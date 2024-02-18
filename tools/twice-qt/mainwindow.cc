@@ -1,112 +1,254 @@
 #include "mainwindow.h"
 
-namespace twice {
+#include "actions.h"
+#include "audio_io.h"
+#include "display_widget.h"
+#include "emulator_thread.h"
+#include "input_control.h"
+#include "settings_dialog.h"
 
-enum {
-	CMD_BUTTON_A,
-	CMD_BUTTON_B,
-	CMD_BUTTON_SELECT,
-	CMD_BUTTON_START,
-	CMD_BUTTON_RIGHT,
-	CMD_BUTTON_LEFT,
-	CMD_BUTTON_UP,
-	CMD_BUTTON_DOWN,
-	CMD_BUTTON_R,
-	CMD_BUTTON_L,
-	CMD_BUTTON_X,
-	CMD_BUTTON_Y,
-	CMD_TOGGLE_PAUSE,
-	CMD_PAUSE,
-	CMD_RESUME,
-	CMD_FAST_FORWARD,
-	CMD_ROTATE_RIGHT,
-	CMD_ROTATE_LEFT,
-};
+#include "libtwice/nds/defs.h"
+#include "libtwice/nds/display.h"
 
-MainWindow::MainWindow(QSettings *settings, QCommandLineParser *parser,
-		QWidget *parent)
-	: QMainWindow(parent),
-	  tbuffer{ {} },
-	  abuffer{ {} },
-	  settings(settings),
-	  parser(parser)
+#include <QCloseEvent>
+#include <QFileDialog>
+#include <QGuiApplication>
+#include <QMenuBar>
+#include <QMessageBox>
+#include <QTimer>
+
+#include <iostream>
+
+using namespace twice;
+
+MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 {
-	QSurfaceFormat format;
-	format.setVersion(3, 3);
-	format.setProfile(QSurfaceFormat::CoreProfile);
-	QSurfaceFormat::setDefaultFormat(format);
-
-	display = new DisplayWidget(&tbuffer, &event_q);
+	display = new DisplayWidget(&bufs.vb, this);
 	setCentralWidget(display);
 
-	audio_format.setSampleRate(32768);
-	audio_format.setChannelCount(2);
-	audio_format.setChannelConfig(QAudioFormat::ChannelConfigStereo);
-	audio_format.setSampleFormat(QAudioFormat::Int16);
+	audio_out = new AudioIO(&bufs, this);
+	input_ctrl = new InputControl(this);
 
-	mic_audio_format.setSampleRate(32768);
-	mic_audio_format.setChannelCount(1);
-	mic_audio_format.setChannelConfig(QAudioFormat::ChannelConfigMono);
-	mic_audio_format.setSampleFormat(QAudioFormat::Int16);
+	emu_thread = new EmulatorThread(&bufs, this);
+	connect(emu_thread, &EmulatorThread::finished, emu_thread,
+			&QObject::deleteLater);
+	connect(emu_thread, &EmulatorThread::send_main_event, this,
+			&MainWindow::process_main_event);
 
-	mic_io_device = new AudioBufferDevice(this);
-	mic_io_device->start();
+	auto timer = new QTimer(this);
+	connect(timer, &QTimer::timeout, this, &MainWindow::update_title);
+	timer->start(1000);
 
-	audio_source = new QAudioSource(mic_audio_format);
-	audio_source->start(mic_io_device);
+	init_menus();
+	init_default_values();
 
-	emu_thread = new EmulatorThread(settings, display, &tbuffer, &abuffer,
-			mic_io_device, &event_q);
-	connect(emu_thread, &EmulatorThread::end_frame, this,
-			&MainWindow::frame_ended);
-	connect(emu_thread, &EmulatorThread::render_frame, this,
-			&MainWindow::render_frame);
-	connect(emu_thread, &EmulatorThread::push_audio, this,
-			&MainWindow::push_audio);
-	connect(emu_thread, &EmulatorThread::show_error_msg, this,
-			&MainWindow::show_error_msg);
-	connect(&media_devices, &QMediaDevices::audioOutputsChanged, this,
-			&MainWindow::update_audio_outputs);
-
-	initialize_commands();
-	create_actions();
-	create_menus();
-	set_default_keybinds();
-	update_audio_outputs();
-	set_audio_output_device(
-			settings->value("audio_output_device").toString());
-
-	set_display_size(512, 768);
-	setAcceptDrops(true);
-	orientation_acts[0]->setChecked(true);
-	filter_linear_act->setChecked(true);
-	stretched_act->setChecked(true);
+	emu_thread->start();
 }
 
 MainWindow::~MainWindow()
 {
-	auto action = audio_output_group->checkedAction();
-	if (action) {
-		settings->setValue("audio_output_device", action->text());
-	}
-
+	emu_thread->push_event(StopThreadEvent());
 	emu_thread->wait();
-	delete emu_thread;
-	if (audio_sink)
-		delete audio_sink;
 }
 
 void
-MainWindow::start_emulator_thread()
+MainWindow::closeEvent(QCloseEvent *ev)
 {
-	emu_thread->start();
-	auto args = parser->positionalArguments();
-
-	if (!args.isEmpty()) {
-		event_q.push(LoadROMEvent{
-				.pathname = args[0].toStdString() });
-		event_q.push(ResetEvent{ .direct = true });
+	if (shutdown) {
+		ev->accept();
+	} else {
+		if (confirm_shutdown()) {
+			ev->accept();
+		} else {
+			ev->ignore();
+		}
 	}
+}
+
+void
+MainWindow::keyPressEvent(QKeyEvent *ev)
+{
+	if (ev->isAutoRepeat()) {
+		ev->ignore();
+		return;
+	}
+
+	auto button = input_ctrl->get_nds_mapping(ev->key());
+	if (button == nds_button::NONE) {
+		ev->ignore();
+		return;
+	}
+
+	emu_thread->push_event(ButtonEvent{ button, true });
+}
+
+void
+MainWindow::keyReleaseEvent(QKeyEvent *ev)
+{
+	if (ev->isAutoRepeat()) {
+		ev->ignore();
+		return;
+	}
+
+	auto button = input_ctrl->get_nds_mapping(ev->key());
+	if (button == nds_button::NONE) {
+		ev->ignore();
+		return;
+	}
+
+	emu_thread->push_event(ButtonEvent{ button, false });
+}
+
+void
+MainWindow::mousePressEvent(QMouseEvent *ev)
+{
+	auto button = ev->button();
+	if (button != Qt::LeftButton && button != Qt::RightButton) {
+		ev->ignore();
+		return;
+	}
+
+	if (auto coords = get_nds_coords(ev)) {
+		emu_thread->push_event(TouchEvent{ coords->first,
+				coords->second, true,
+				button == Qt::RightButton });
+	}
+}
+
+void
+MainWindow::mouseMoveEvent(QMouseEvent *ev)
+{
+	auto buttons = QGuiApplication::mouseButtons();
+	if (!(buttons & Qt::LeftButton)) {
+		ev->ignore();
+		return;
+	}
+
+	if (auto coords = get_nds_coords(ev)) {
+		emu_thread->push_event(TouchEvent{
+				coords->first, coords->second, true, false });
+	}
+}
+
+void
+MainWindow::mouseReleaseEvent(QMouseEvent *ev)
+{
+	auto button = ev->button();
+	if (button != Qt::LeftButton) {
+		ev->ignore();
+		return;
+	}
+
+	emu_thread->push_event(TouchEvent{ 0, 0, false, false });
+}
+
+void
+MainWindow::init_menus()
+{
+	auto file_menu = menuBar()->addMenu(tr("File"));
+	{
+		file_menu->addAction(create_action(
+				ACTION_OPEN_ROM, this, &MainWindow::open_rom));
+		file_menu->addAction(create_action(ACTION_LOAD_SYSTEM_FILES,
+				this, &MainWindow::open_system_files));
+		file_menu->addSeparator();
+		file_menu->addAction(create_action(ACTION_INSERT_CART, this,
+				&MainWindow::insert_cart));
+		file_menu->addAction(create_action(ACTION_EJECT_CART, this,
+				&MainWindow::eject_cart));
+		file_menu->addSeparator();
+		file_menu->addAction(create_action(ACTION_LOAD_SAVE_FILE, this,
+				&MainWindow::load_save_file));
+		file_menu->addAction(create_action(ACTION_UNLOAD_SAVE_FILE,
+				this, &MainWindow::unload_save_file));
+	}
+	{
+		auto menu = file_menu->addMenu(tr("Save type"));
+		auto group = create_action_group(ACTION_GROUP_SAVETYPE, this);
+		for (int i = 0; i < SAVETYPE_TOTAL; i++) {
+			int id = ACTION_SAVETYPE_AUTO + i;
+			menu->addAction(create_action(id, group));
+		}
+
+		/* NAND saves not implemented yet */
+		get_action(ACTION_SAVETYPE_NAND)->setEnabled(false);
+
+		auto set_type = [=, this](QAction *action) {
+			set_savetype(action->data().toInt());
+		};
+		connect(group, &QActionGroup::triggered, this, set_type);
+	}
+
+	auto emu_menu = menuBar()->addMenu(tr("Emulation"));
+	{
+		auto reset = [=, this]() { reset_emulation(true); };
+		auto action = create_action(ACTION_RESET_TO_ROM, this, reset);
+		emu_menu->addAction(action);
+	}
+	{
+		auto reset = [=, this]() { reset_emulation(false); };
+		auto action = create_action(
+				ACTION_RESET_TO_FIRMWARE, this, reset);
+		emu_menu->addAction(action);
+	}
+	{
+		emu_menu->addAction(create_action(ACTION_SHUTDOWN, this,
+				&MainWindow::shutdown_emulation));
+		emu_menu->addSeparator();
+		emu_menu->addAction(create_action(ACTION_TOGGLE_PAUSE, this,
+				&MainWindow::toggle_pause));
+		emu_menu->addAction(create_action(ACTION_TOGGLE_FASTFORWARD,
+				this, &MainWindow::toggle_fastforward));
+	}
+
+	auto video_menu = menuBar()->addMenu(tr("Video"));
+	{
+		auto action = create_action(ACTION_AUTO_RESIZE, this,
+				&MainWindow::auto_resize_display);
+		video_menu->addAction(action);
+	}
+	{
+		auto menu = video_menu->addMenu(tr("Scale"));
+		auto group = new QActionGroup(this);
+		for (int i = 0; i < 4; i++) {
+			int id = ACTION_SCALE_1X + i;
+			menu->addAction(create_action(id, group));
+		}
+
+		auto set_scale = [=, this](QAction *action) {
+			set_display_size(action->data().toInt());
+		};
+		connect(group, &QActionGroup::triggered, this, set_scale);
+	}
+	{
+		auto menu = video_menu->addMenu(tr("Orientation"));
+		menu->addAction(get_action(ACTION_ORIENTATION_0));
+		menu->addAction(get_action(ACTION_ORIENTATION_1));
+		menu->addAction(get_action(ACTION_ORIENTATION_3));
+		menu->addAction(get_action(ACTION_ORIENTATION_2));
+	}
+	{
+		video_menu->addSeparator();
+		video_menu->addAction(get_action(ACTION_LINEAR_FILTERING));
+		video_menu->addAction(get_action(ACTION_LOCK_ASPECT_RATIO));
+	}
+
+	auto tools_menu = menuBar()->addMenu(tr("Tools"));
+	{
+		tools_menu->addAction(create_action(ACTION_OPEN_SETTINGS, this,
+				&MainWindow::open_settings));
+	}
+}
+
+void
+MainWindow::init_default_values()
+{
+	get_action(ACTION_ORIENTATION_0)->trigger();
+	get_action(ACTION_LOCK_ASPECT_RATIO)->trigger();
+	get_action(ACTION_SAVETYPE_AUTO)->trigger();
+	set_display_size(NDS_FB_W * 2, NDS_FB_H * 2);
+	emu_thread->push_event(ShutdownEvent());
+	emu_thread->push_event(UnloadFileEvent{ nds_file::CART_ROM });
 }
 
 void
@@ -121,115 +263,12 @@ MainWindow::set_display_size(int w, int h)
 }
 
 void
-MainWindow::initialize_commands()
-{
-	for (int cmd = CMD_BUTTON_A; cmd <= CMD_BUTTON_Y; cmd++) {
-		cmd_map[cmd] = ([=](intptr_t arg) {
-			set_nds_button_state((nds_button)cmd, arg & 1);
-		});
-	}
-
-	cmd_map[CMD_TOGGLE_PAUSE] = ([=](intptr_t arg) {
-		if (arg & 1)
-			pause_act->toggle();
-	});
-
-	cmd_map[CMD_PAUSE] = ([=](intptr_t arg) {
-		if (arg & 1)
-			pause_act->setChecked(true);
-	});
-
-	cmd_map[CMD_RESUME] = ([=](intptr_t arg) {
-		if (arg & 1)
-			pause_act->setChecked(false);
-	});
-
-	cmd_map[CMD_FAST_FORWARD] = ([=](intptr_t arg) {
-		if (arg & 1)
-			fast_forward_act->toggle();
-	});
-
-	cmd_map[CMD_ROTATE_RIGHT] = ([=](intptr_t arg) {
-		if (arg & 1)
-			orientation_acts[(display->orientation + 1) & 3]
-					->setChecked(true);
-	});
-
-	cmd_map[CMD_ROTATE_LEFT] = ([=](intptr_t arg) {
-		if (arg & 1)
-			orientation_acts[(display->orientation - 1) & 3]
-					->setChecked(true);
-	});
-}
-
-void
-MainWindow::set_default_keybinds()
-{
-	keybinds[QKeyCombination(Qt::NoModifier, Qt::Key_X)] = CMD_BUTTON_A;
-	keybinds[QKeyCombination(Qt::NoModifier, Qt::Key_Z)] = CMD_BUTTON_B;
-	keybinds[QKeyCombination(Qt::NoModifier, Qt::Key_2)] =
-			CMD_BUTTON_SELECT;
-	keybinds[QKeyCombination(Qt::NoModifier, Qt::Key_1)] =
-			CMD_BUTTON_START;
-	keybinds[QKeyCombination(Qt::NoModifier, Qt::Key_Right)] =
-			CMD_BUTTON_RIGHT;
-	keybinds[QKeyCombination(Qt::NoModifier, Qt::Key_Left)] =
-			CMD_BUTTON_LEFT;
-	keybinds[QKeyCombination(Qt::NoModifier, Qt::Key_Up)] = CMD_BUTTON_UP;
-	keybinds[QKeyCombination(Qt::NoModifier, Qt::Key_Down)] =
-			CMD_BUTTON_DOWN;
-	keybinds[QKeyCombination(Qt::NoModifier, Qt::Key_W)] = CMD_BUTTON_R;
-	keybinds[QKeyCombination(Qt::NoModifier, Qt::Key_Q)] = CMD_BUTTON_L;
-	keybinds[QKeyCombination(Qt::NoModifier, Qt::Key_S)] = CMD_BUTTON_X;
-	keybinds[QKeyCombination(Qt::NoModifier, Qt::Key_A)] = CMD_BUTTON_Y;
-	keybinds[QKeyCombination(Qt::CTRL, Qt::Key_S)] = CMD_PAUSE;
-	keybinds[QKeyCombination(Qt::CTRL, Qt::Key_Q)] = CMD_RESUME;
-	keybinds[QKeyCombination(Qt::NoModifier, Qt::Key_0)] =
-			CMD_FAST_FORWARD;
-	keybinds[QKeyCombination(Qt::CTRL, Qt::Key_Right)] = CMD_ROTATE_RIGHT;
-	keybinds[QKeyCombination(Qt::CTRL, Qt::Key_Left)] = CMD_ROTATE_LEFT;
-}
-
-void
-MainWindow::set_nds_button_state(nds_button button, bool down)
-{
-	event_q.push(ButtonEvent{ .which = button, .down = down });
-}
-
-void
-MainWindow::shutdown_nds()
-{
-	event_q.push(StopEvent{});
-}
-
-void
-MainWindow::pause_nds(bool pause)
-{
-	if (pause) {
-		event_q.push(PauseEvent{});
-	} else {
-		event_q.push(ResumeEvent{});
-	}
-}
-
-void
-MainWindow::fast_forward_nds(bool fast_forward)
-{
-	event_q.push(SetFastForwardEvent{ .fast_forward = fast_forward });
-}
-
-void
-MainWindow::set_orientation(int orientation)
-{
-	display->orientation = orientation;
-}
-
-void
-MainWindow::set_screen_size(int scale)
+MainWindow::set_display_size(int scale)
 {
 	int w = NDS_FB_W * scale;
 	int h = NDS_FB_H * scale;
-	if (display->orientation & 1) {
+
+	if (get_orientation() & 1) {
 		std::swap(w, h);
 	}
 
@@ -237,366 +276,253 @@ MainWindow::set_screen_size(int scale)
 }
 
 void
-MainWindow::auto_resize_window()
+MainWindow::auto_resize_display()
 {
-	double w = display->w;
-	double h = display->h;
-	double ratio = w / h;
-	double target = display->orientation & 1 ? NDS_FB_ASPECT_RATIO_RECIP
-	                                         : NDS_FB_ASPECT_RATIO;
+	auto size = display->size();
+	double w = size.width();
+	double h = size.height();
+	double ratio = (double)w / h;
+	double t = get_orientation() & 1 ? NDS_FB_ASPECT_RATIO_RECIP
+	                                 : NDS_FB_ASPECT_RATIO;
 
-	if (ratio < target) {
-		h = w / target;
-	} else if (ratio > target) {
-		w = h * target;
+	if (ratio < t) {
+		h = w / t;
+	} else if (ratio > t) {
+		w = h * t;
 	}
 
 	set_display_size(w, h);
 }
 
-void
-MainWindow::create_actions()
+std::optional<std::pair<int, int>>
+MainWindow::get_nds_coords(QMouseEvent *ev)
 {
-	load_rom_act = create_action(tr("Load ROM"), tr("Load a ROM file"),
-			&MainWindow::load_rom);
-	load_rom_act->setShortcuts(QKeySequence::Open);
+	auto pos = display->mapFromParent(ev->position());
+	auto size = display->size();
 
-	load_system_files_act = create_action(tr("Load system files"),
-			tr("Load NDS system files"),
-			&MainWindow::load_system_files);
+	double w = size.width();
+	double h = size.height();
+	double x = pos.x();
+	double y = pos.y();
+	bool letterboxed = lock_aspect_ratio();
+	int orientation = get_orientation();
 
-	reset_direct = create_action(tr("Reset to ROM"),
-			tr("Reset to the ROM directly"),
-			([=]() { reboot_nds(true); }));
-
-	reset_firmware_act = create_action(tr("Reset to firmware"),
-			tr("Reset to the firmware"),
-			([=]() { reboot_nds(false); }));
-
-	shutdown_act = create_action(tr("Shut down"),
-			tr("Shut down the NDS machine"),
-			([=]() { shutdown_nds(); }));
-
-	pause_act = create_action(tr("Pause"), tr("Pause emulation"),
-			&MainWindow::pause_nds, true);
-
-	fast_forward_act = create_action(tr("Fast forward"),
-			tr("Fast forward emulation"),
-			&MainWindow::fast_forward_nds, true);
-
-	orientation_group = std::make_unique<QActionGroup>(this);
-	for (int i = 0; i < 4; i++) {
-		int degrees = i * 90;
-		orientation_acts[i] = create_action(tr("%1°").arg(degrees),
-				tr("Rotate the screen %1 degrees")
-						.arg(degrees),
-				([=](bool checked) {
-					if (checked)
-						set_orientation(i);
-				}),
-				true);
-		orientation_group->addAction(orientation_acts[i].get());
-	}
-
-	texture_filter_group = std::make_unique<QActionGroup>(this);
-	filter_nearest_act = create_action(tr("Nearest"),
-			tr("Nearest neighbour filtering"), ([=](bool checked) {
-				if (checked)
-					display->linear_filtering = false;
-			}),
-			true);
-	texture_filter_group->addAction(filter_nearest_act.get());
-	filter_linear_act = create_action(tr("Linear"),
-			tr("Bilinear filtering"), ([=](bool checked) {
-				if (checked)
-					display->linear_filtering = true;
-			}),
-			true);
-	texture_filter_group->addAction(filter_linear_act.get());
-
-	audio_output_group = std::make_unique<QActionGroup>(this);
-
-	screen_size_group = std::make_unique<QActionGroup>(this);
-	screen_size_group->setExclusionPolicy(
-			QActionGroup::ExclusionPolicy::ExclusiveOptional);
-	for (int i = 0; i < 4; i++) {
-		int scale = i + 1;
-		screen_size_acts[i] = create_action(tr("%1x").arg(scale),
-				tr("Scale screen by %1x").arg(scale),
-				([=]() { set_screen_size(scale); }));
-		screen_size_group->addAction(screen_size_acts[i].get());
-	}
-
-	auto_resize_act = create_action(tr("Auto resize"),
-			tr("Resize the window to match the screen"),
-			([=]() { auto_resize_window(); }));
-
-	stretched_act = create_action(tr("Lock aspect ratio"),
-			tr("Lock the aspect ratio"), ([=](bool checked) {
-				display->letterboxed = checked;
-			}),
-			true);
+	return window_coords_to_screen_coords(
+			w, h, x, y, letterboxed, orientation, 0);
 }
 
 void
-MainWindow::create_menus()
+MainWindow::process_event(const EmptyEvent&)
 {
-	file_menu = menuBar()->addMenu(tr("File"));
-	file_menu->addAction(load_rom_act.get());
-	file_menu->addAction(load_system_files_act.get());
-
-	emu_menu = menuBar()->addMenu(tr("Emulation"));
-	emu_menu->addAction(reset_direct.get());
-	emu_menu->addAction(reset_firmware_act.get());
-	emu_menu->addAction(shutdown_act.get());
-	emu_menu->addSeparator();
-	emu_menu->addAction(pause_act.get());
-	emu_menu->addAction(fast_forward_act.get());
-
-	video_menu = menuBar()->addMenu(tr("Video"));
-	video_menu->addAction(auto_resize_act.get());
-	screen_size_menu = video_menu->addMenu(tr("Scale"));
-	for (int i = 0; i < 4; i++) {
-		screen_size_menu->addAction(screen_size_acts[i].get());
-	}
-	orientation_menu = video_menu->addMenu(tr("Orientation"));
-	for (int i = 0; i < 4; i++) {
-		orientation_menu->addAction(orientation_acts[i].get());
-	}
-	texture_filter_menu = video_menu->addMenu(tr("Filter mode"));
-	texture_filter_menu->addAction(filter_nearest_act.get());
-	texture_filter_menu->addAction(filter_linear_act.get());
-	video_menu->addAction(stretched_act.get());
-
-	audio_menu = menuBar()->addMenu(tr("Audio"));
-	audio_output_menu = audio_menu->addMenu(tr("Output Device"));
 }
 
 void
-MainWindow::update_audio_outputs()
+MainWindow::process_event(const ErrorEvent& e)
 {
-	audio_devices.clear();
-	auto actions = audio_output_group->actions();
-	for (const auto& action : actions) {
-		audio_output_group->removeAction(action);
-	}
-	audio_output_menu->clear();
-
-	auto devices = QMediaDevices::audioOutputs();
-	for (const auto& device : devices) {
-		if (!device.isFormatSupported(audio_format))
-			continue;
-
-		auto idx = audio_devices.size();
-		audio_devices.push_back(device);
-		auto name = device.description();
-		auto action = audio_output_menu->addAction(name);
-		audio_output_acts.push_back(action);
-		action->setCheckable(true);
-		action->setActionGroup(audio_output_group.get());
-		connect(action, &QAction::toggled, this, ([=](bool checked) {
-			if (checked)
-				set_audio_output_device(idx);
-		}));
-	}
+	QMessageBox::critical(nullptr, tr("Error"), e.msg);
 }
 
 void
-MainWindow::set_audio_output_device(std::size_t idx)
+MainWindow::process_event(const RenderEvent&)
 {
-	if (idx > audio_devices.size()) {
+	display->update();
+}
+
+void
+MainWindow::process_event(const PushAudioEvent& ev)
+{
+	audio_out->push_audio(ev.len);
+}
+
+void
+MainWindow::process_event(const ShutdownEvent& ev)
+{
+	using enum nds_file;
+	shutdown = ev.shutdown;
+
+	bool cart = loaded_files & (int)CART_ROM;
+	bool save = loaded_files & (int)SAVE;
+
+	get_action(ACTION_LOAD_SYSTEM_FILES)->setEnabled(shutdown);
+	get_action(ACTION_INSERT_CART)->setEnabled(shutdown && !cart);
+	get_action(ACTION_EJECT_CART)->setEnabled(shutdown && cart);
+	get_action(ACTION_LOAD_SAVE_FILE)->setEnabled(shutdown);
+	get_action(ACTION_UNLOAD_SAVE_FILE)->setEnabled(shutdown && save);
+	for (int id = ACTION_SAVETYPE_AUTO; id != ACTION_SAVETYPE_NAND; id++) {
+		get_action(id)->setEnabled(shutdown);
+	}
+	get_action(ACTION_SHUTDOWN)->setEnabled(!shutdown);
+	get_action(ACTION_TOGGLE_PAUSE)->setEnabled(!shutdown);
+	get_action(ACTION_TOGGLE_FASTFORWARD)->setEnabled(!shutdown);
+}
+
+void
+MainWindow::process_event(const FileEvent& ev)
+{
+	using enum nds_file;
+	loaded_files = ev.loaded_files;
+
+	int sys_files_mask = (int)ARM9_BIOS | (int)ARM7_BIOS | (int)FIRMWARE;
+	bool sys_files = (loaded_files & sys_files_mask) == sys_files_mask;
+	bool cart = loaded_files & (int)CART_ROM;
+	bool save = loaded_files & (int)SAVE;
+
+	get_action(ACTION_OPEN_ROM)->setEnabled(sys_files);
+	get_action(ACTION_EJECT_CART)->setEnabled(shutdown && cart);
+	get_action(ACTION_RESET_TO_ROM)->setEnabled(sys_files && cart);
+	get_action(ACTION_UNLOAD_SAVE_FILE)->setEnabled(shutdown && save);
+	get_action(ACTION_RESET_TO_FIRMWARE)->setEnabled(sys_files);
+}
+
+void
+MainWindow::process_event(const SaveTypeEvent& ev)
+{
+	auto id = ACTION_SAVETYPE_AUTO + (ev.type + 1);
+	get_action(id)->setChecked(true);
+}
+
+void
+MainWindow::process_event(const EndFrameEvent& ev)
+{
+	double a = 0.9;
+	avg_frametime = a * avg_frametime + (1 - a) * ev.frametime;
+}
+
+bool
+MainWindow::confirm_shutdown()
+{
+	auto result = QMessageBox::question(this, tr("Shutdown"),
+			tr("Do you want to shutdown the virtual machine?"));
+	return result == QMessageBox::Yes;
+}
+
+void
+MainWindow::process_main_event(const MainEvent& ev)
+{
+	std::visit([this](const auto& ev) { process_event(ev); }, ev);
+}
+
+void
+MainWindow::open_rom()
+{
+	if (!(shutdown || confirm_shutdown()))
 		return;
-	}
 
-	if (audio_sink) {
-		audio_sink->reset();
-		audio_sink->stop();
-		delete audio_sink;
-		audio_out_buffer = nullptr;
-	}
-
-	audio_sink = new QAudioSink(audio_devices[idx], audio_format, this);
-	audio_sink->setBufferSize(4096);
-	audio_out_buffer = audio_sink->start();
-}
-
-void
-MainWindow::set_audio_output_device(const QString& name)
-{
-	auto len = audio_devices.size();
-	for (std::size_t i = 0; i < len; i++) {
-		if (audio_devices[i].description() == name) {
-			audio_output_acts[i]->setChecked(true);
-			return;
-		}
-	}
-
-	for (std::size_t i = 0; i < len; i++) {
-		if (audio_devices[i].isDefault()) {
-			audio_output_acts[i]->setChecked(true);
-			return;
-		}
-	}
-}
-
-void
-MainWindow::frame_ended(double frametime)
-{
-	double fps = 1 / frametime;
-	auto title = QString("Twice [%1 fps | %2 ms]")
-	                             .arg(fps, 0, 'f', 2)
-	                             .arg(frametime * 1000, 0, 'f', 2);
-	window()->setWindowTitle(title);
-}
-
-void
-MainWindow::render_frame()
-{
-	display->render();
-}
-
-void
-MainWindow::push_audio(size_t len)
-{
-	static double acc = 0;
-	double early_threshold = -NDS_AVG_SAMPLES_PER_FRAME;
-	double late_threshold = NDS_AVG_SAMPLES_PER_FRAME;
-
-	auto elapsed = audio_stopwatch.start();
-	double samples = NDS_AVG_SAMPLES_PER_FRAME;
-	double samples_max =
-			NDS_AUDIO_SAMPLE_RATE * to_seconds<double>(elapsed);
-	acc += samples - samples_max;
-
-	if (acc < early_threshold) {
-		acc = early_threshold;
-	}
-
-	if (acc > late_threshold) {
-		acc -= late_threshold;
-		return;
-	}
-
-	if (!audio_out_buffer) {
-		return;
-	}
-
-	if (audio_sink->state() == QAudio::IdleState) {
-		audio_out_buffer = audio_sink->start();
-	}
-
-	audio_out_buffer->write(
-			(const char *)abuffer.get_read_buffer().data(), len);
-}
-
-void
-MainWindow::show_error_msg(QString msg)
-{
-	QMessageBox msgbox;
-	msgbox.setText(msg);
-	msgbox.exec();
-}
-
-void
-MainWindow::load_rom()
-{
 	auto pathname = QFileDialog::getOpenFileName(
-			this, tr("Load NDS ROM"), "", tr("ROM Files (*.nds)"));
+			this, tr("Open ROM"), "", tr("ROM Files (*.nds)"));
 	if (!pathname.isEmpty()) {
-		event_q.push(LoadROMEvent{
-				.pathname = pathname.toStdString() });
+		emu_thread->push_event(ShutdownEvent());
+		emu_thread->push_event(
+				LoadFileEvent{ pathname, nds_file::CART_ROM });
+		emu_thread->push_event(ResetEvent{ true });
 	}
 }
 
 void
-MainWindow::load_system_files()
+MainWindow::open_system_files()
 {
 	auto pathnames = QFileDialog::getOpenFileNames(this,
 			tr("Select NDS system files"), "",
 			tr("Binary files (*.bin);;All files (*)"));
 
-	for (const auto& path : pathnames) {
-		QFileInfo info(path);
+	for (const auto& pathname : pathnames) {
+		QFileInfo info(pathname);
+
+		auto type = nds_file::UNKNOWN;
 
 		if (info.fileName() == "bios9.bin" || info.size() == 4096) {
-			event_q.push(LoadFileEvent{
-					.type = LoadFileEvent::ARM9_BIOS,
-					.pathname = path.toStdString() });
-			settings->setValue("arm9_bios_path", path);
+			type = nds_file::ARM9_BIOS;
 		} else if (info.fileName() == "bios7.bin" ||
 				info.size() == 16384) {
-			event_q.push(LoadFileEvent{
-					.type = LoadFileEvent::ARM7_BIOS,
-					.pathname = path.toStdString() });
-			settings->setValue("arm7_bios_path", path);
+			type = nds_file::ARM7_BIOS;
 		} else if (info.fileName() == "firmware.bin" ||
 				info.size() == 262144) {
-			event_q.push(LoadFileEvent{
-					.type = LoadFileEvent::FIRMWARE,
-					.pathname = path.toStdString() });
-			settings->setValue("firmware_path", path);
-		} else {
-			QMessageBox msgbox;
-			msgbox.setText(tr("Unknown system file type: %1")
-							.arg(path));
-			msgbox.exec();
+			type = nds_file::FIRMWARE;
 		}
+
+		emu_thread->push_event(LoadFileEvent{ pathname, type });
 	}
 }
 
 void
-MainWindow::reboot_nds(bool direct)
+MainWindow::load_save_file()
 {
-	event_q.push(ResetEvent{ .direct = direct });
-}
-
-void
-MainWindow::dragEnterEvent(QDragEnterEvent *e)
-{
-	if (e->mimeData()->hasUrls()) {
-		e->acceptProposedAction();
-	}
-}
-
-void
-MainWindow::dropEvent(QDropEvent *e)
-{
-	for (const auto& url : e->mimeData()->urls()) {
-		event_q.push(LoadROMEvent{
-				.pathname = url.toLocalFile().toStdString() });
+	auto pathname = QFileDialog::getOpenFileName(this,
+			tr("Load save file"), "", tr("SAV Files (*.sav)"));
+	if (!pathname.isEmpty()) {
+		emu_thread->push_event(
+				LoadFileEvent{ pathname, nds_file::SAVE });
 	}
 }
 
 void
-MainWindow::keyPressEvent(QKeyEvent *e)
+MainWindow::insert_cart()
 {
-	if (e->isAutoRepeat()) {
-		e->ignore();
-		return;
-	}
-
-	auto cmd = keybinds.find(e->keyCombination());
-	if (cmd != keybinds.end()) {
-		cmd_map[(int)cmd.value()](1);
-	} else {
-		e->ignore();
+	auto pathname = QFileDialog::getOpenFileName(this,
+			tr("Insert cartridge"), "", tr("ROM Files (*.nds)"));
+	if (!pathname.isEmpty()) {
+		emu_thread->push_event(
+				LoadFileEvent{ pathname, nds_file::CART_ROM });
 	}
 }
 
 void
-MainWindow::keyReleaseEvent(QKeyEvent *e)
+MainWindow::eject_cart()
 {
-	if (e->isAutoRepeat()) {
-		e->ignore();
-		return;
-	}
+	emu_thread->push_event(UnloadFileEvent{ nds_file::CART_ROM });
+}
 
-	auto cmd = keybinds.find(e->keyCombination());
-	if (cmd != keybinds.end()) {
-		cmd_map[cmd.value()](0);
-	} else {
-		e->ignore();
+void
+MainWindow::unload_save_file()
+{
+	emu_thread->push_event(UnloadFileEvent{ nds_file::SAVE });
+}
+
+void
+MainWindow::set_savetype(int type)
+{
+	emu_thread->push_event(SaveTypeEvent{ (nds_savetype)type });
+}
+
+void
+MainWindow::reset_emulation(bool direct)
+{
+	emu_thread->push_event(ResetEvent{ direct });
+}
+
+void
+MainWindow::shutdown_emulation()
+{
+	if (confirm_shutdown()) {
+		emu_thread->push_event(ShutdownEvent());
 	}
 }
 
-} // namespace twice
+void
+MainWindow::toggle_pause(bool checked)
+{
+	emu_thread->push_event(PauseEvent{ checked });
+}
+
+void
+MainWindow::toggle_fastforward(bool checked)
+{
+	emu_thread->push_event(FastForwardEvent{ checked });
+}
+
+void
+MainWindow::update_title()
+{
+	double fps = 1 / avg_frametime;
+	auto title = QString("Twice [%1 fps | %2 ms]")
+	                             .arg(fps, 0, 'f', 2)
+	                             .arg(avg_frametime * 1000, 0, 'f', 2);
+	window()->setWindowTitle(title);
+}
+
+void
+MainWindow::open_settings()
+{
+	auto settings = SettingsDialog(this);
+	settings.exec();
+}

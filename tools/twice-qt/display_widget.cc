@@ -1,14 +1,13 @@
 #include "display_widget.h"
 
-#include <iostream>
-
-#include <QMouseEvent>
+#include "actions.h"
 
 #include "libtwice/exception.h"
-#include "libtwice/nds/display.h"
+#include "libtwice/nds/defs.h"
+#include "libtwice/types.h"
 #include "libtwice/util/matrix.h"
 
-namespace twice {
+using namespace twice;
 
 static const char *vtx_shader_src = R"___(
 #version 330 core
@@ -40,31 +39,24 @@ void main()
 }
 )___";
 
-DisplayWidget::DisplayWidget(
-		triple_buffer<std::array<u32, NDS_FB_SZ>> *tbuffer,
-		threaded_queue<Event> *event_q)
-	: tbuffer(tbuffer), event_q(event_q)
+DisplayWidget::DisplayWidget(SharedBuffers::video_buffer *fb, QWidget *parent)
+	: QOpenGLWidget(parent), fb(fb)
 {
 	mtx_set_identity<float, 4>(proj_mtx);
+
+	init_actions();
 }
 
 DisplayWidget::~DisplayWidget()
 {
 	makeCurrent();
+
 	glDeleteSamplers(1, &sampler);
 	glDeleteTextures(1, &texture);
-	glDeleteProgram(shader_program);
-	glDeleteShader(fragment_shader);
-	glDeleteShader(vtx_shader);
-	glDeleteVertexArrays(1, &vao);
-	glDeleteBuffers(1, &vbo);
 	glDeleteBuffers(1, &ebo);
-}
-
-void
-DisplayWidget::render()
-{
-	update();
+	glDeleteBuffers(1, &vbo);
+	glDeleteVertexArrays(1, &vao);
+	glDeleteProgram(shader_program);
 }
 
 void
@@ -72,10 +64,7 @@ DisplayWidget::initializeGL()
 {
 	initializeOpenGLFunctions();
 
-	vtx_shader = compile_shader(vtx_shader_src, GL_VERTEX_SHADER);
-	fragment_shader = compile_shader(
-			fragment_shader_src, GL_FRAGMENT_SHADER);
-	shader_program = link_shaders({ vtx_shader, fragment_shader });
+	shader_program = make_program(vtx_shader_src, fragment_shader_src);
 
 	float vertices[] = {
 		1.0f, 1.0f, 0.0f, 1.0f, 0.0f,   // top right
@@ -85,8 +74,8 @@ DisplayWidget::initializeGL()
 	};
 
 	unsigned int indices[] = {
-		0, 1, 3, //
-		1, 2, 3, //
+		0, 1, 3, // top right, bottom right, top left
+		1, 2, 3, // bottom right, bottom left, top left
 	};
 
 	glGenVertexArrays(1, &vao);
@@ -116,7 +105,7 @@ DisplayWidget::initializeGL()
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, NDS_FB_W, NDS_FB_H, 0, GL_RGBA,
-			GL_UNSIGNED_BYTE, tbuffer->get_read_buffer().data());
+			GL_UNSIGNED_BYTE, fb->get_read_buffer().data());
 	glUseProgram(shader_program);
 	GLuint proj_mtx_loc = glGetUniformLocation(shader_program, "proj_mtx");
 	glUniformMatrix4fv(proj_mtx_loc, 1, GL_FALSE, proj_mtx.data());
@@ -127,13 +116,18 @@ DisplayWidget::initializeGL()
 	glSamplerParameteri(sampler, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
 	glSamplerParameteri(sampler, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glSamplerParameteri(sampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+	if (glGetError() != GL_NO_ERROR) {
+		throw twice_error(
+				"An error occurred while initializing OpenGL.");
+	}
 }
 
 void
-DisplayWidget::resizeGL(int w, int h)
+DisplayWidget::resizeGL(int new_w, int new_h)
 {
-	this->w = w;
-	this->h = h;
+	w = new_w;
+	h = new_h;
 }
 
 void
@@ -143,7 +137,7 @@ DisplayWidget::paintGL()
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT);
 
-	if (linear_filtering) {
+	if (linear_filtering_enabled()) {
 		glBindSampler(0, sampler);
 	} else {
 		glBindSampler(0, 0);
@@ -152,7 +146,7 @@ DisplayWidget::paintGL()
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, texture);
 	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, NDS_FB_W, NDS_FB_H, GL_RGBA,
-			GL_UNSIGNED_BYTE, tbuffer->get_read_buffer().data());
+			GL_UNSIGNED_BYTE, fb->get_read_buffer().data());
 
 	glUseProgram(shader_program);
 	GLuint proj_mtx_loc = glGetUniformLocation(shader_program, "proj_mtx");
@@ -162,89 +156,14 @@ DisplayWidget::paintGL()
 }
 
 void
-DisplayWidget::mousePressEvent(QMouseEvent *e)
-{
-	auto button = e->button();
-	if (button != Qt::LeftButton && button != Qt::RightButton) {
-		e->ignore();
-		return;
-	}
-
-	if (button == Qt::LeftButton) {
-		mouse1_down = true;
-	}
-
-	if (button == Qt::RightButton) {
-		mouse2_down = true;
-	}
-
-	auto pos = e->position();
-	if (auto coords = window_coords_to_screen_coords(w, h, pos.x(),
-			    pos.y(), letterboxed, orientation, 0)) {
-		event_q->push(TouchEvent{ .x = coords->first,
-				.y = coords->second,
-				.down = true,
-				.quicktap = button == Qt::RightButton,
-				.move = false });
-	}
-}
-
-void
-DisplayWidget::mouseReleaseEvent(QMouseEvent *e)
-{
-	if (!mouse1_down && !mouse2_down) {
-		e->ignore();
-		return;
-	}
-
-	auto button = e->button();
-	if (button == Qt::LeftButton) {
-		mouse1_down = false;
-	}
-
-	if (button == Qt::RightButton) {
-		mouse2_down = false;
-	}
-
-	event_q->push(TouchEvent{ .x = 0,
-			.y = 0,
-			.down = false,
-			.quicktap = false,
-			.move = false });
-}
-
-void
-DisplayWidget::mouseMoveEvent(QMouseEvent *e)
-{
-	if (!mouse1_down) {
-		e->ignore();
-		return;
-	}
-
-	auto pos = e->position();
-	if (auto coords = window_coords_to_screen_coords(w, h, pos.x(),
-			    pos.y(), letterboxed, orientation, 0)) {
-		event_q->push(TouchEvent{ .x = coords->first,
-				.y = coords->second,
-				.down = true,
-				.quicktap = false,
-				.move = true });
-	} else {
-		event_q->push(TouchEvent{ .x = 0,
-				.y = 0,
-				.down = false,
-				.quicktap = false,
-				.move = false });
-	}
-}
-
-void
 DisplayWidget::update_projection_mtx()
 {
 	float sx = 1.0;
 	float sy = 1.0;
 
-	if (letterboxed) {
+	int orientation = get_orientation();
+
+	if (lock_aspect_ratio()) {
 		double ratio = (double)w / h;
 		double target_ratio;
 		if (orientation & 1) {
@@ -288,12 +207,29 @@ DisplayWidget::update_projection_mtx()
 	}
 }
 
+void
+DisplayWidget::init_actions()
+{
+	auto call_update = [this]() { this->update(); };
+
+	create_action(ACTION_LINEAR_FILTERING, this, call_update);
+	create_action(ACTION_LOCK_ASPECT_RATIO, this, call_update);
+	{
+		auto group = create_action_group(
+				ACTION_GROUP_ORIENTATION, this);
+		for (int i = 0; i < 4; i++) {
+			int id = ACTION_ORIENTATION_0 + i;
+			create_action(id, group, this, call_update);
+		}
+	}
+}
+
 GLuint
 DisplayWidget::compile_shader(const char *src, GLenum type)
 {
-	int success = 0;
-	GLuint shader = glCreateShader(type);
+	GLint success = 0;
 
+	GLuint shader = glCreateShader(type);
 	glShaderSource(shader, 1, &src, NULL);
 	glCompileShader(shader);
 	glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
@@ -301,8 +237,9 @@ DisplayWidget::compile_shader(const char *src, GLenum type)
 	if (!success) {
 		char msg[512]{};
 		glGetShaderInfoLog(shader, sizeof msg, NULL, msg);
+		glDeleteShader(shader);
 		throw twice_error(std::format(
-				"failed to compile shader: {}, {}", src, msg));
+				"Error while compiling shader: {}", msg));
 	}
 
 	return shader;
@@ -311,10 +248,10 @@ DisplayWidget::compile_shader(const char *src, GLenum type)
 GLuint
 DisplayWidget::link_shaders(std::initializer_list<GLuint> shaders)
 {
-	int success = 0;
+	GLint success = 0;
 	GLuint program = glCreateProgram();
 
-	for (GLuint shader : shaders) {
+	for (auto shader : shaders) {
 		glAttachShader(program, shader);
 	}
 
@@ -324,11 +261,24 @@ DisplayWidget::link_shaders(std::initializer_list<GLuint> shaders)
 	if (!success) {
 		char msg[512]{};
 		glGetProgramInfoLog(program, sizeof msg, NULL, msg);
+		glDeleteProgram(program);
 		throw twice_error(std::format(
-				"failed to link shaders: {}", msg));
+				"Error while linking shader program: {}",
+				msg));
 	}
 
 	return program;
 }
 
-} // namespace twice
+GLuint
+DisplayWidget::make_program(const char *vtx_src, const char *frag_src)
+{
+	auto vtx_shader = compile_shader(vtx_src, GL_VERTEX_SHADER);
+	auto fragment_shader = compile_shader(frag_src, GL_FRAGMENT_SHADER);
+	auto program = link_shaders({ vtx_shader, fragment_shader });
+
+	glDeleteShader(vtx_shader);
+	glDeleteShader(fragment_shader);
+
+	return program;
+}

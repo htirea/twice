@@ -1,64 +1,48 @@
 #ifndef TWICE_QT_DISPLAY_WIDGET_H
 #define TWICE_QT_DISPLAY_WIDGET_H
 
-#include <mutex>
-
+#include <QAction>
+#include <QActionGroup>
 #include <QOpenGLFunctions_3_3_Core>
 #include <QOpenGLWidget>
 
-#include "libtwice/nds/defs.h"
-#include "libtwice/types.h"
-#include "libtwice/util/threaded_queue.h"
-#include "libtwice/util/triple_buffer.h"
+#include <array>
 
-#include "emulator_events.h"
-
-namespace twice {
+#include "buffers.h"
 
 class DisplayWidget : public QOpenGLWidget,
 		      protected QOpenGLFunctions_3_3_Core {
-	friend class MainWindow;
+	Q_OBJECT
 
       public:
-	DisplayWidget(triple_buffer<std::array<u32, NDS_FB_SZ>> *tbuffer,
-			threaded_queue<Event> *event_q);
+	DisplayWidget(SharedBuffers::video_buffer *fb, QWidget *parent);
 	~DisplayWidget();
-	void render();
 
       protected:
 	void initializeGL() override;
 	void resizeGL(int w, int h) override;
 	void paintGL() override;
-	void mousePressEvent(QMouseEvent *e) override;
-	void mouseReleaseEvent(QMouseEvent *e) override;
-	void mouseMoveEvent(QMouseEvent *e) override;
 
       private:
 	void update_projection_mtx();
+	void init_actions();
 	GLuint compile_shader(const char *src, GLenum type);
 	GLuint link_shaders(std::initializer_list<GLuint> shaders);
+	GLuint make_program(const char *vtx_src, const char *frag_src);
 
       private:
-	GLuint vbo{};
-	GLuint vao{};
-	GLuint ebo{};
-	GLuint vtx_shader{};
-	GLuint fragment_shader{};
-	GLuint shader_program{};
-	GLuint texture{};
-	GLuint sampler{};
-	std::array<float, 16> proj_mtx;
 	int w{};
 	int h{};
-	int orientation{};
-	bool letterboxed{ true };
-	bool linear_filtering{ true };
-	bool mouse1_down{ false };
-	bool mouse2_down{ false };
-	triple_buffer<std::array<u32, NDS_FB_SZ>> *tbuffer;
-	threaded_queue<Event> *event_q{};
+	std::array<float, 16> proj_mtx{};
+	SharedBuffers::video_buffer *fb{};
+
+	/* OpenGL stuff */
+	GLuint shader_program{};
+	GLuint vao{};
+	GLuint vbo{};
+	GLuint ebo{};
+	GLuint texture{};
+	GLuint sampler{};
 };
 
-} // namespace twice
-
-#endif // TWICE_DISPLAY_H
+#endif

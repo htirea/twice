@@ -1,75 +1,53 @@
 #ifndef TWICE_QT_EMULATOR_THREAD_H
 #define TWICE_QT_EMULATOR_THREAD_H
 
-#include <array>
-#include <atomic>
-#include <mutex>
-
-#include <QSettings>
 #include <QThread>
 
-#include "libtwice/exception.h"
+#include <filesystem>
+#include <memory>
+#include <variant>
+
 #include "libtwice/nds/machine.h"
-#include "libtwice/util/frame_timer.h"
 #include "libtwice/util/threaded_queue.h"
-#include "libtwice/util/triple_buffer.h"
 
-#include "audio_buffer_device.h"
-#include "display_widget.h"
-#include "emulator_events.h"
-
-namespace twice {
+#include "buffers.h"
+#include "events.h"
 
 class EmulatorThread : public QThread {
 	Q_OBJECT
-
       public:
-	EmulatorThread(QSettings *settings, DisplayWidget *display,
-			triple_buffer<std::array<u32, NDS_FB_SZ>> *tbuffer,
-			triple_buffer<std::array<s16, 2048>> *abuffer,
-			AudioBufferDevice *mic_io_device,
-			threaded_queue<Event> *event_q);
+	EmulatorThread(SharedBuffers *bufs, QObject *parent);
+	~EmulatorThread();
+	void push_event(const Event& ev);
+
+      protected:
 	void run() override;
-	void wait();
 
       private:
-	void queue_audio(s16 *buffer, size_t len);
-	void handle_events();
-	void handle_event(const DummyEvent& e);
-	void handle_event(const QuitEvent& e);
-	void handle_event(const LoadFileEvent& e);
-	void handle_event(const LoadROMEvent& e);
-	void handle_event(const SetSavetypeEvent& e);
-	void handle_event(const PauseEvent& e);
-	void handle_event(const ResumeEvent& e);
-	void handle_event(const StopEvent& e);
-	void handle_event(const SetFastForwardEvent& e);
-	void handle_event(const ResetEvent& e);
-	void handle_event(const RotateEvent& e);
-	void handle_event(const ButtonEvent& e);
-	void handle_event(const TouchEvent& e);
-	void handle_event(const UpdateRTCEvent& e);
-
-      private:
-	bool throttle{};
-	bool paused{};
-	bool quit{};
-
-	std::unique_ptr<nds_machine> nds;
-	QSettings *settings{};
-	DisplayWidget *display{};
-	triple_buffer<std::array<u32, NDS_FB_SZ>> *tbuffer{};
-	triple_buffer<std::array<s16, 2048>> *abuffer{};
-	AudioBufferDevice *mic_io_device{};
-	threaded_queue<Event> *event_q{};
+	void process_events();
+	void process_event(const EmptyEvent& ev);
+	void process_event(const LoadFileEvent& ev);
+	void process_event(const UnloadFileEvent& ev);
+	void process_event(const SaveTypeEvent& ev);
+	void process_event(const StopThreadEvent& ev);
+	void process_event(const ResetEvent& ev);
+	void process_event(const ShutdownEvent& ev);
+	void process_event(const PauseEvent& ev);
+	void process_event(const FastForwardEvent& ev);
+	void process_event(const ButtonEvent& ev);
+	void process_event(const TouchEvent& ev);
 
       signals:
-	void render_frame();
-	void push_audio(size_t len);
-	void end_frame(double frametime);
-	void show_error_msg(QString msg);
+	void send_main_event(const MainEvent& ev);
+
+      private:
+	bool running{};
+	bool paused{};
+	bool throttle{};
+	bool shutdown{};
+	std::unique_ptr<twice::nds_machine> nds;
+	twice::threaded_queue<Event> event_q;
+	SharedBuffers *bufs{};
 };
 
-} // namespace twice
-
-#endif // TWICE_EMULATORTHREAD_H
+#endif
