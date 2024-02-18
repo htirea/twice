@@ -218,7 +218,7 @@ void
 EmulatorThread::process_event(const ButtonEvent& ev)
 {
 	try {
-		nds->button_event(ev.button, ev.down);
+		nds->update_button_state(ev.button, ev.down);
 	} catch (const twice_exception& err) {
 		emit send_main_event(ErrorEvent{ tr(err.what()) });
 	}

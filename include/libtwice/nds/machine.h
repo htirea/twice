@@ -170,6 +170,8 @@ struct nds_machine {
 	/**
 	 * Load a cartridge into the machine.
 	 *
+	 * If a cartridge is already loaded, it is ejected.
+	 *
 	 * \param pathname the file to load
 	 */
 	void load_cartridge(const std::filesystem::path& pathname);
@@ -178,8 +180,67 @@ struct nds_machine {
 	 * Eject the cartridge from the machine.
 	 *
 	 * If there is no cartridge this function does nothing.
+	 * The currently loaded save file and set save type (if any) will
+	 * be unloaded / reset.
 	 */
 	void eject_cartridge();
+
+	/**
+	 * Load an existing save file.
+	 *
+	 * \param pathname the file to load
+	 */
+	void load_savefile(const std::filesystem::path& pathname);
+
+	/**
+	 * Create a save file.
+	 *
+	 * If a save file already exists this function will fail.
+	 *
+	 * \param pathname the file to create
+	 * \param savetype the save type
+	 */
+	void create_savefile(const std::filesystem::path& pathname,
+			nds_savetype savetype);
+
+	/**
+	 * Automatically load a save file (based on the loaded cartridge).
+	 *
+	 * The pathname of the save file is determined from the pathname
+	 * of the loaded cartridge, which is then used as if `load_savefile`
+	 * was called.
+	 */
+	void autoload_savefile();
+
+	/**
+	 * Automatically create a save file (based on the loaded cartridge).
+	 *
+	 * The pathname is determined from the pathname of the loaded
+	 * cartridge. If a save type is set, it is used to create the save
+	 * file, otherwise, the save type is guessed from the cartridge.
+	 *
+	 */
+	void autocreate_savefile();
+
+	/**
+	 * Query whether a file is loaded.
+	 *
+	 * \param type the type of file
+	 * \returns whether the file is loaded
+	 */
+	bool file_loaded(nds_file type);
+
+	/**
+	 * Get the currently loaded files.
+	 *
+	 * \returns a mask of nds_file values
+	 */
+	int get_loaded_files();
+
+	/**
+	 * Sync files to disk.
+	 */
+	void sync_files();
 
 	/**
 	 * Get the currently set save type.
@@ -191,45 +252,15 @@ struct nds_machine {
 	/**
 	 * Set the save type of the cartridge.
 	 *
-	 * The save type must be set before booting the machine.
-	 *
 	 * \param savetype the save type for the cartridge
 	 */
 	void set_savetype(nds_savetype savetype);
 
 	/**
-	 * Load or create a save file.
-	 *
-	 * The save file must exist.
-	 *
-	 * \param pathname the file to load
-	 */
-	void load_savefile(const std::filesystem::path& pathname);
-
-	/**
-	 * Create a save file.
-	 *
-	 * \param pathname the file to create
-	 * \param savetype the save type
-	 */
-	void create_savefile(const std::filesystem::path& pathname,
-			nds_savetype savetype);
-
-	/**
-	 * Automatically load a save file based on the loaded cartridge.
-	 */
-	void autoload_savefile();
-
-	/**
-	 * Automically create a save file based on the loaded cartridge.
-	 */
-	void autocreate_savefile();
-
-	/**
 	 * Check the loaded save file.
 	 *
 	 * Checks whether the loaded save file has a size consistent with
-	 * the save type.
+	 * the save type to be used.
 	 */
 	void check_savefile();
 
@@ -324,13 +355,22 @@ struct nds_machine {
 	u32 get_audio_buffer_size();
 
 	/**
+	 * Get the CPU usage.
+	 *
+	 * The CPU usage is a value in the range [0..1].
+	 *
+	 * \returns a pair containing the arm9 and arm7 cpu usage
+	 */
+	std::pair<double, double> get_cpu_usage();
+
+	/**
 	 * Update the state of a button.
 	 *
 	 * \param button the button to update the state for
 	 * \param down true if the button is pressed,
 	 *             false if the button is released
 	 */
-	void button_event(nds_button button, bool down);
+	void update_button_state(nds_button button, bool down);
 
 	/**
 	 * Update the current touchscreen state.
@@ -363,15 +403,6 @@ struct nds_machine {
 			int hour, int minute, int second);
 
 	/**
-	 * Get the CPU usage.
-	 *
-	 * The CPU usage is a value in the range [0..1].
-	 *
-	 * \returns a pair containing the arm9 and arm7 cpu usage
-	 */
-	std::pair<double, double> get_cpu_usage();
-
-	/**
 	 * Set the audio mixing bit depth.
 	 *
 	 * \param use_16_bit_audio true to mix audio at 16 bits
@@ -380,29 +411,9 @@ struct nds_machine {
 	void set_use_16_bit_audio(bool use_16_bit_audio);
 
 	/**
-	 * Sync files to disk.
-	 */
-	void sync_files();
-
-	/**
 	 * Dump the collected profiler data.
 	 */
 	void dump_profiler_report();
-
-	/**
-	 * Query whether a file is loaded.
-	 *
-	 * \param type the type of file
-	 * \returns whether the file is loaded
-	 */
-	bool file_loaded(nds_file type);
-
-	/**
-	 * Get the currently loaded files.
-	 *
-	 * \returns a mask of nds_file values
-	 */
-	int get_loaded_files();
 
       private:
 	struct impl;

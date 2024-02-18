@@ -372,7 +372,7 @@ sdl_platform::handle_key_event(SDL_Keycode key, bool down)
 {
 	auto it = key_map.find(key);
 	if (!ctrl_down && it != key_map.end()) {
-		nds->button_event(it->second, down);
+		nds->update_button_state(it->second, down);
 		return;
 	}
 
@@ -456,7 +456,7 @@ sdl_platform::handle_controller_button_event(int button, bool down)
 {
 	auto it = button_map.find(button);
 	if (it != button_map.end()) {
-		nds->button_event(it->second, down);
+		nds->update_button_state(it->second, down);
 	}
 }
 

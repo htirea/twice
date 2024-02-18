@@ -202,24 +202,6 @@ nds_machine::eject_cartridge()
 	m->savetype = SAVETYPE_UNKNOWN;
 }
 
-nds_savetype
-nds_machine::get_savetype()
-{
-	return m->savetype;
-}
-
-void
-nds_machine::set_savetype(nds_savetype savetype)
-{
-	if (m->nds) {
-		/* TODO: handle changing save type while running */
-		throw twice_error("The save type cannot be changed while the "
-				  "machine is running.");
-	}
-
-	m->savetype = savetype;
-}
-
 void
 nds_machine::load_savefile(const std::filesystem::path& pathname)
 {
@@ -246,6 +228,8 @@ nds_machine::create_savefile(
 
 	m->save = std::move(f);
 	m->savetype = savetype;
+
+	LOG("created save file: %s\n", pathname.c_str());
 }
 
 void
@@ -289,8 +273,7 @@ nds_machine::autocreate_savefile()
 		from |= 2;
 	}
 
-	LOG("Created save file: using save type: %s",
-			nds_savetype_to_str(type_to_use));
+	LOG("using save type: %s", nds_savetype_to_str(type_to_use));
 	if (from & 1) {
 		LOG(" (from db)");
 	}
@@ -298,6 +281,76 @@ nds_machine::autocreate_savefile()
 		LOG(" (explicitly set)");
 	}
 	LOG("\n");
+}
+
+bool
+nds_machine::file_loaded(nds_file type)
+{
+	switch (type) {
+	case nds_file::CART_ROM:
+		return (bool)m->cart;
+	case nds_file::SAVE:
+		return (bool)m->save;
+	case nds_file::ARM9_BIOS:
+		return (bool)m->arm9_bios;
+	case nds_file::ARM7_BIOS:
+		return (bool)m->arm7_bios;
+	case nds_file::FIRMWARE:
+		return (bool)m->firmware;
+	default:
+		return false;
+	}
+}
+
+int
+nds_machine::get_loaded_files()
+{
+	int r = 0;
+	if ((bool)m->cart) {
+		r |= (int)nds_file::CART_ROM;
+	}
+	if ((bool)m->save) {
+		r |= (int)nds_file::SAVE;
+	}
+	if ((bool)m->arm9_bios) {
+		r |= (int)nds_file::ARM9_BIOS;
+	}
+	if ((bool)m->arm7_bios) {
+		r |= (int)nds_file::ARM7_BIOS;
+	}
+	if ((bool)m->firmware) {
+		r |= (int)nds_file::FIRMWARE;
+	}
+
+	return r;
+}
+
+void
+nds_machine::sync_files()
+{
+	if (m->nds) {
+		nds_sync_files(m->nds.get());
+	}
+
+	/* TODO: sync files */
+}
+
+nds_savetype
+nds_machine::get_savetype()
+{
+	return m->savetype;
+}
+
+void
+nds_machine::set_savetype(nds_savetype savetype)
+{
+	if (m->nds) {
+		/* TODO: handle changing save type while running */
+		throw twice_error("The save type cannot be changed while the "
+				  "machine is running.");
+	}
+
+	m->savetype = savetype;
 }
 
 void
@@ -498,8 +551,17 @@ nds_machine::get_audio_buffer_size()
 	return m->nds->last_audio_buf_size;
 }
 
+std::pair<double, double>
+nds_machine::get_cpu_usage()
+{
+	if (!m->nds)
+		return { 0, 0 };
+
+	return { m->nds->arm9_usage, m->nds->arm7_usage };
+}
+
 void
-nds_machine::button_event(nds_button button, bool down)
+nds_machine::update_button_state(nds_button button, bool down)
 {
 	if (!m->nds)
 		return;
@@ -582,29 +644,10 @@ nds_machine::update_real_time_clock(int year, int month, int day, int weekday,
 			second);
 }
 
-std::pair<double, double>
-nds_machine::get_cpu_usage()
-{
-	if (!m->nds)
-		return { 0, 0 };
-
-	return { m->nds->arm9_usage, m->nds->arm7_usage };
-}
-
 void
 nds_machine::set_use_16_bit_audio(bool use_16_bit_audio)
 {
 	m->cfg.use_16_bit_audio = use_16_bit_audio;
-}
-
-void
-nds_machine::sync_files()
-{
-	if (m->nds) {
-		nds_sync_files(m->nds.get());
-	}
-
-	/* TODO: sync files */
 }
 
 void
@@ -614,48 +657,6 @@ nds_machine::dump_profiler_report()
 		return;
 
 	nds_dump_prof(m->nds.get());
-}
-
-bool
-nds_machine::file_loaded(nds_file type)
-{
-	switch (type) {
-	case nds_file::CART_ROM:
-		return (bool)m->cart;
-	case nds_file::SAVE:
-		return (bool)m->save;
-	case nds_file::ARM9_BIOS:
-		return (bool)m->arm9_bios;
-	case nds_file::ARM7_BIOS:
-		return (bool)m->arm7_bios;
-	case nds_file::FIRMWARE:
-		return (bool)m->firmware;
-	case nds_file::UNKNOWN:
-		return false;
-	}
-}
-
-int
-nds_machine::get_loaded_files()
-{
-	int r = 0;
-	if ((bool)m->cart) {
-		r |= (int)nds_file::CART_ROM;
-	}
-	if ((bool)m->save) {
-		r |= (int)nds_file::SAVE;
-	}
-	if ((bool)m->arm9_bios) {
-		r |= (int)nds_file::ARM9_BIOS;
-	}
-	if ((bool)m->arm7_bios) {
-		r |= (int)nds_file::ARM7_BIOS;
-	}
-	if ((bool)m->firmware) {
-		r |= (int)nds_file::FIRMWARE;
-	}
-
-	return r;
 }
 
 } // namespace twice
