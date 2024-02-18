@@ -35,6 +35,7 @@ class EmulatorThread : public QThread {
 	void process_event(const PauseEvent& ev);
 	void process_event(const FastForwardEvent& ev);
 	void process_event(const ButtonEvent& ev);
+	void process_event(const TouchEvent& ev);
 
       signals:
 	void send_main_event(const MainEvent& ev);

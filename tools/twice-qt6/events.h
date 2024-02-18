@@ -44,6 +44,13 @@ struct ButtonEvent {
 	bool down;
 };
 
+struct TouchEvent {
+	int x;
+	int y;
+	bool down;
+	bool quicktap;
+};
+
 struct StopThreadEvent {};
 
 struct ErrorEvent {
@@ -66,7 +73,7 @@ struct EndFrameEvent {
 
 using Event = std::variant<EmptyEvent, LoadFileEvent, UnloadFileEvent,
 		SaveTypeEvent, ResetEvent, ShutdownEvent, PauseEvent,
-		FastForwardEvent, ButtonEvent, StopThreadEvent>;
+		FastForwardEvent, ButtonEvent, TouchEvent, StopThreadEvent>;
 
 using MainEvent = std::variant<EmptyEvent, ErrorEvent, RenderEvent,
 		PushAudioEvent, ShutdownEvent, FileEvent, SaveTypeEvent,

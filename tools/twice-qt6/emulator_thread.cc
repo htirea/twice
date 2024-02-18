@@ -227,6 +227,17 @@ EmulatorThread::process_event(const ButtonEvent& ev)
 }
 
 void
+EmulatorThread::process_event(const TouchEvent& ev)
+{
+	try {
+		nds->update_touchscreen_state(
+				ev.x, ev.y, ev.down, ev.quicktap, false);
+	} catch (const twice_exception& err) {
+		emit send_main_event(ErrorEvent{ tr(err.what()) });
+	}
+}
+
+void
 EmulatorThread::process_event(const StopThreadEvent&)
 {
 	running = false;

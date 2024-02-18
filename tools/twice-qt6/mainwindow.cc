@@ -8,9 +8,11 @@
 #include "settings_dialog.h"
 
 #include "libtwice/nds/defs.h"
+#include "libtwice/nds/display.h"
 
 #include <QCloseEvent>
 #include <QFileDialog>
+#include <QGuiApplication>
 #include <QMenuBar>
 #include <QMessageBox>
 #include <QTimer>
@@ -95,6 +97,49 @@ MainWindow::keyReleaseEvent(QKeyEvent *ev)
 	}
 
 	emu_thread->push_event(ButtonEvent{ button, false });
+}
+
+void
+MainWindow::mousePressEvent(QMouseEvent *ev)
+{
+	auto button = ev->button();
+	if (button != Qt::LeftButton && button != Qt::RightButton) {
+		ev->ignore();
+		return;
+	}
+
+	if (auto coords = get_nds_coords(ev)) {
+		emu_thread->push_event(TouchEvent{ coords->first,
+				coords->second, true,
+				button == Qt::RightButton });
+	}
+}
+
+void
+MainWindow::mouseMoveEvent(QMouseEvent *ev)
+{
+	auto buttons = QGuiApplication::mouseButtons();
+	if (!(buttons & Qt::LeftButton)) {
+		ev->ignore();
+		return;
+	}
+
+	if (auto coords = get_nds_coords(ev)) {
+		emu_thread->push_event(TouchEvent{
+				coords->first, coords->second, true, false });
+	}
+}
+
+void
+MainWindow::mouseReleaseEvent(QMouseEvent *ev)
+{
+	auto button = ev->button();
+	if (button != Qt::LeftButton) {
+		ev->ignore();
+		return;
+	}
+
+	emu_thread->push_event(TouchEvent{ 0, 0, false, false });
 }
 
 void
@@ -247,6 +292,23 @@ MainWindow::auto_resize_display()
 	}
 
 	set_display_size(w, h);
+}
+
+std::optional<std::pair<int, int>>
+MainWindow::get_nds_coords(QMouseEvent *ev)
+{
+	auto pos = display->mapFromParent(ev->position());
+	auto size = display->size();
+
+	double w = size.width();
+	double h = size.height();
+	double x = pos.x();
+	double y = pos.y();
+	bool letterboxed = lock_aspect_ratio();
+	int orientation = get_orientation();
+
+	return window_coords_to_screen_coords(
+			w, h, x, y, letterboxed, orientation, 0);
 }
 
 void

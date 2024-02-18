@@ -12,6 +12,7 @@ class AudioOut;
 class InputControl;
 class QCloseEvent;
 class QKeyEvent;
+class QMouseEvent;
 
 class MainWindow : public QMainWindow {
 	Q_OBJECT
@@ -24,6 +25,9 @@ class MainWindow : public QMainWindow {
 	void closeEvent(QCloseEvent *ev) override;
 	void keyPressEvent(QKeyEvent *ev) override;
 	void keyReleaseEvent(QKeyEvent *ev) override;
+	void mousePressEvent(QMouseEvent *ev) override;
+	void mouseMoveEvent(QMouseEvent *ev) override;
+	void mouseReleaseEvent(QMouseEvent *ev) override;
 
       private:
 	void init_menus();
@@ -31,6 +35,7 @@ class MainWindow : public QMainWindow {
 	void set_display_size(int w, int h);
 	void set_display_size(int scale);
 	void auto_resize_display();
+	std::optional<std::pair<int, int>> get_nds_coords(QMouseEvent *ev);
 	void process_event(const EmptyEvent& ev);
 	void process_event(const ErrorEvent& ev);
 	void process_event(const RenderEvent& ev);
