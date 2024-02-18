@@ -73,17 +73,11 @@ EmulatorThread::run()
 			std::memcpy(bufs->ab.get_write_buffer().data(),
 					exec_out.audio_buf, audio_buf_size);
 			bufs->ab.swap_write_buffer();
-		} else if (run_frame) {
-			audio_buf_size = 0;
 		} else {
-			audio_buf_size = (size_t)(NDS_AUDIO_SAMPLE_RATE /
-							 NDS_FRAME_RATE)
-			                 << 2;
+			audio_buf_size = 0;
 			bufs->ab.get_write_buffer().fill(0);
 			bufs->ab.swap_write_buffer();
 		}
-
-		emit send_main_event(PushAudioEvent{ audio_buf_size });
 
 		if (run_frame) {
 			std::memcpy(bufs->vb.get_write_buffer().data(),
@@ -96,12 +90,12 @@ EmulatorThread::run()
 			}
 		}
 
-		emit send_main_event(RenderEvent());
-
 		if (shutdown || paused || throttle) {
 			tmr.wait_until_target();
 		}
 
+		emit send_main_event(PushAudioEvent{ audio_buf_size });
+		emit send_main_event(RenderEvent());
 		emit send_main_event(EndFrameEvent{
 				to_seconds<double>(frametime_tmr.measure()) });
 	}
