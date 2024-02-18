@@ -19,6 +19,8 @@ qt_add_executable(twice-qt
 	settings_dialog.h
 	input_control.cc
 	input_control.h
+	settings/input_settings.cc
+	settings/input_settings.h
 )
 
 target_include_directories(twice-qt PRIVATE

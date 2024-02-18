@@ -5,6 +5,7 @@
 #include "display_widget.h"
 #include "emulator_thread.h"
 #include "input_control.h"
+#include "settings/input_settings.h"
 #include "settings_dialog.h"
 
 #include "libtwice/nds/defs.h"
@@ -28,6 +29,10 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 
 	audio_out = new AudioIO(&bufs, this);
 	input_ctrl = new InputControl(this);
+
+	settings_dialog = new SettingsDialog(this);
+	auto input_settings = new InputSettings(input_ctrl, nullptr);
+	settings_dialog->add_page(tr("Input"), input_settings);
 
 	emu_thread = new EmulatorThread(&bufs, this);
 	connect(emu_thread, &EmulatorThread::finished, emu_thread,
@@ -523,6 +528,5 @@ MainWindow::update_title()
 void
 MainWindow::open_settings()
 {
-	auto settings = SettingsDialog(this);
-	settings.exec();
+	settings_dialog->exec();
 }

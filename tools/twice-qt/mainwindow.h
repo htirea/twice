@@ -10,6 +10,7 @@ class DisplayWidget;
 class EmulatorThread;
 class AudioIO;
 class InputControl;
+class SettingsDialog;
 class QCloseEvent;
 class QKeyEvent;
 class QMouseEvent;
@@ -67,6 +68,7 @@ class MainWindow : public QMainWindow {
 	AudioIO *audio_out{};
 	EmulatorThread *emu_thread{};
 	InputControl *input_ctrl{};
+	SettingsDialog *settings_dialog{};
 	double avg_frametime{ 0.16 };
 	SharedBuffers bufs;
 	bool shutdown{};
