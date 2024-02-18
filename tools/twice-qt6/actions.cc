@@ -220,6 +220,11 @@ static const std::vector<ActionInfo> action_data = {
 	.text = "Auto resize",
 	.tip = "Resize the window to match the emulated aspect ratio",
 },
+{
+	.id = ACTION_OPEN_SETTINGS,
+	.text = "Settings",
+	.tip = "Open the settings window",
+},
 };
 
 static std::array<QAction *, ACTION_TOTAL> actions{};

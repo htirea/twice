@@ -51,6 +51,7 @@ class MainWindow : public QMainWindow {
 	void toggle_pause(bool checked);
 	void toggle_fastforward(bool checked);
 	void update_title();
+	void open_settings();
 
       private:
 	DisplayWidget *display{};

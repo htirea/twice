@@ -4,6 +4,7 @@
 #include "audio_out.h"
 #include "display_widget.h"
 #include "emulator_thread.h"
+#include "settings_dialog.h"
 
 #include "libtwice/nds/defs.h"
 
@@ -148,6 +149,12 @@ MainWindow::init_menus()
 		video_menu->addSeparator();
 		video_menu->addAction(get_action(ACTION_LINEAR_FILTERING));
 		video_menu->addAction(get_action(ACTION_LOCK_ASPECT_RATIO));
+	}
+
+	auto tools_menu = menuBar()->addMenu(tr("Tools"));
+	{
+		tools_menu->addAction(create_action(ACTION_OPEN_SETTINGS, this,
+				&MainWindow::open_settings));
 	}
 }
 
@@ -412,4 +419,11 @@ MainWindow::update_title()
 	                             .arg(fps, 0, 'f', 2)
 	                             .arg(avg_frametime * 1000, 0, 'f', 2);
 	window()->setWindowTitle(title);
+}
+
+void
+MainWindow::open_settings()
+{
+	auto settings = SettingsDialog(this);
+	settings.exec();
 }

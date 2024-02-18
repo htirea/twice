@@ -15,6 +15,8 @@ qt_add_executable(twice-qt6
 	emulator_thread.h
 	audio_out.cc
 	audio_out.h
+	settings_dialog.cc
+	settings_dialog.h
 )
 
 target_include_directories(twice-qt6 PRIVATE
