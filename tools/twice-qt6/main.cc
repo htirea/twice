@@ -14,9 +14,16 @@ main(int argc, char *argv[])
 	QApplication app(argc, argv);
 	QCoreApplication::setOrganizationName("twice");
 	QCoreApplication::setApplicationName("twice-qt");
-	QSettings::setDefaultFormat(QSettings::IniFormat);
 
+	QSettings::setDefaultFormat(QSettings::IniFormat);
 	set_default_settings();
+
+	QPalette palette;
+	palette.setColor(QPalette::Disabled, QPalette::WindowText,
+			QColorConstants::Svg::dimgray);
+	palette.setColor(QPalette::Disabled, QPalette::Text,
+			QColorConstants::Svg::dimgray);
+	app.setPalette(palette);
 
 	QSurfaceFormat format;
 	format.setDepthBufferSize(24);
