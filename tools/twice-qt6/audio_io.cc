@@ -1,4 +1,4 @@
-#include "audio_out.h"
+#include "audio_io.h"
 
 #include "libtwice/exception.h"
 
@@ -6,17 +6,26 @@
 
 using namespace twice;
 
-struct AudioOut::impl {
-	impl(SharedBuffers::audio_buffer *ab) : ab(ab) {}
+void
+audio_in_cb(void *userdata, Uint8 *stream, int len)
+{
+	auto mb = (SharedBuffers::mic_buffer *)userdata;
+	mb->write_locked((const char *)stream, len);
+}
 
-	SharedBuffers::audio_buffer *ab;
+struct AudioIO::impl {
+	impl(SharedBuffers *bufs) : bufs(bufs) {}
+
+	SharedBuffers *bufs{};
 	stopwatch tmr;
 	SDL_AudioDeviceID dev;
 	SDL_AudioSpec spec;
+	SDL_AudioDeviceID mic_dev;
+	SDL_AudioSpec mic_spec;
 };
 
-AudioOut::AudioOut(SharedBuffers::audio_buffer *ab, QObject *parent)
-	: QObject(parent), m(std::make_unique<impl>(ab))
+AudioIO::AudioIO(SharedBuffers *bufs, QObject *parent)
+	: QObject(parent), m(std::make_unique<impl>(bufs))
 {
 	if (SDL_InitSubSystem(SDL_INIT_AUDIO)) {
 		throw twice_error("SDL: failed to initialize audio.");
@@ -34,19 +43,37 @@ AudioOut::AudioOut(SharedBuffers::audio_buffer *ab, QObject *parent)
 		throw twice_error("SDL: failed to create audio device.");
 	}
 	SDL_PauseAudioDevice(m->dev, 0);
+
+	SDL_AudioSpec want_mic;
+	SDL_memset(&want_mic, 0, sizeof(want_mic));
+	want_mic.freq = NDS_AUDIO_SAMPLE_RATE;
+	want_mic.format = AUDIO_S16SYS;
+	want_mic.channels = 1;
+	want_mic.samples = 1024;
+	want_mic.callback = audio_in_cb;
+	want_mic.userdata = &bufs->mb;
+	m->mic_dev = SDL_OpenAudioDevice(NULL, 1, &want_mic, &m->mic_spec, 0);
+	if (m->mic_dev) {
+		SDL_PauseAudioDevice(m->mic_dev, 0);
+	}
 }
 
-AudioOut::~AudioOut()
+AudioIO::~AudioIO()
 {
 	if (m->dev) {
 		SDL_CloseAudioDevice(m->dev);
 	}
+
+	if (m->mic_dev) {
+		SDL_CloseAudioDevice(m->mic_dev);
+	}
+
 	SDL_QuitSubSystem(SDL_INIT_AUDIO);
 	SDL_Quit();
 }
 
 void
-AudioOut::push_audio(size_t len)
+AudioIO::push_audio(size_t len)
 {
 	static double acc = 0;
 	double early_threshold = -NDS_AVG_SAMPLES_PER_FRAME;
@@ -72,5 +99,5 @@ AudioOut::push_audio(size_t len)
 		return;
 	}
 
-	SDL_QueueAudio(m->dev, m->ab->get_read_buffer().data(), len);
+	SDL_QueueAudio(m->dev, m->bufs->ab.get_read_buffer().data(), len);
 }

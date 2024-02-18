@@ -7,12 +7,12 @@
 
 #include "buffers.h"
 
-class AudioOut : QObject {
+class AudioIO : QObject {
 	Q_OBJECT
 
       public:
-	AudioOut(SharedBuffers::audio_buffer *ab, QObject *parent);
-	~AudioOut();
+	AudioIO(SharedBuffers *bufs, QObject *parent);
+	~AudioIO();
 	void push_audio(size_t len);
 
       private:

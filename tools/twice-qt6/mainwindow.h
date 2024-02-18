@@ -8,7 +8,7 @@
 
 class DisplayWidget;
 class EmulatorThread;
-class AudioOut;
+class AudioIO;
 class InputControl;
 class QCloseEvent;
 class QKeyEvent;
@@ -64,7 +64,7 @@ class MainWindow : public QMainWindow {
 
       private:
 	DisplayWidget *display{};
-	AudioOut *audio_out{};
+	AudioIO *audio_out{};
 	EmulatorThread *emu_thread{};
 	InputControl *input_ctrl{};
 	double avg_frametime{ 0.16 };

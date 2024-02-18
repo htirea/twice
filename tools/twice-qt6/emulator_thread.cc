@@ -4,7 +4,6 @@
 #include "libtwice/util/frame_timer.h"
 
 #include <QSettings>
-#include <iostream>
 
 using namespace twice;
 
@@ -51,7 +50,10 @@ EmulatorThread::run()
 	frame_timer tmr(std::chrono::nanoseconds(
 			(u64)(1000000000 / NDS_FRAME_RATE)));
 	stopwatch frametime_tmr;
+	s16 mic_buffer[548]{};
 	nds_exec exec_in;
+	exec_in.audio_buf = mic_buffer;
+	exec_in.audio_buf_len = 548;
 	nds_exec exec_out;
 
 	while (running) {
@@ -60,6 +62,8 @@ EmulatorThread::run()
 		process_events();
 
 		bool run_frame = !shutdown && !paused;
+
+		bufs->mb.read_fill_zero_locked((char *)mic_buffer, 548 * 2);
 
 		if (run_frame) {
 			nds->run_until_vblank(&exec_in, &exec_out);

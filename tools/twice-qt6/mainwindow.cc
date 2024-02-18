@@ -1,7 +1,7 @@
 #include "mainwindow.h"
 
 #include "actions.h"
-#include "audio_out.h"
+#include "audio_io.h"
 #include "display_widget.h"
 #include "emulator_thread.h"
 #include "input_control.h"
@@ -26,7 +26,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 	display = new DisplayWidget(&bufs.vb, this);
 	setCentralWidget(display);
 
-	audio_out = new AudioOut(&bufs.ab, this);
+	audio_out = new AudioIO(&bufs, this);
 	input_ctrl = new InputControl(this);
 
 	emu_thread = new EmulatorThread(&bufs, this);

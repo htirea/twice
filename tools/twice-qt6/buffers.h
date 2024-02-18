@@ -3,6 +3,7 @@
 
 #include "libtwice/nds/defs.h"
 #include "libtwice/types.h"
+#include "libtwice/util/ring_buffer.h"
 #include "libtwice/util/triple_buffer.h"
 
 struct SharedBuffers {
@@ -12,8 +13,11 @@ struct SharedBuffers {
 	using audio_buffer =
 			twice::triple_buffer<std::array<twice::s16, 2048>>;
 
+	using mic_buffer = twice::ring_buffer<16384>;
+
 	video_buffer vb{ {} };
 	audio_buffer ab{ {} };
+	mic_buffer mb{};
 };
 
 #endif

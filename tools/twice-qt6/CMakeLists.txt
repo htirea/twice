@@ -13,8 +13,8 @@ qt_add_executable(twice-qt6
 	actions.h
 	emulator_thread.cc
 	emulator_thread.h
-	audio_out.cc
-	audio_out.h
+	audio_io.cc
+	audio_io.h
 	settings_dialog.cc
 	settings_dialog.h
 	input_control.cc
