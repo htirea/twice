@@ -465,7 +465,9 @@ nds_machine::boot(bool direct_boot)
 	}
 
 	auto ctx = create_nds_ctx(m->arm9_bios.pmap(), m->arm7_bios.pmap(),
-			m->firmware.pmap(), m->cart.pmap(), m->save.smap(),
+			m->firmware.pmap(), m->cart.pmap(),
+			m->savetype != SAVETYPE_NONE ? m->save.smap()
+						     : file_view(),
 			m->savetype, &m->cfg);
 	if (direct_boot) {
 		nds_direct_boot(ctx.get());
