@@ -17,6 +17,8 @@ qt_add_executable(twice-qt6
 	audio_out.h
 	settings_dialog.cc
 	settings_dialog.h
+	input_control.cc
+	input_control.h
 )
 
 target_include_directories(twice-qt6 PRIVATE

@@ -4,12 +4,14 @@
 #include "buffers.h"
 #include "events.h"
 
-#include <QCloseEvent>
 #include <QMainWindow>
 
 class DisplayWidget;
 class EmulatorThread;
 class AudioOut;
+class InputControl;
+class QCloseEvent;
+class QKeyEvent;
 
 class MainWindow : public QMainWindow {
 	Q_OBJECT
@@ -20,6 +22,8 @@ class MainWindow : public QMainWindow {
 
       protected:
 	void closeEvent(QCloseEvent *ev) override;
+	void keyPressEvent(QKeyEvent *ev) override;
+	void keyReleaseEvent(QKeyEvent *ev) override;
 
       private:
 	void init_menus();
@@ -57,6 +61,7 @@ class MainWindow : public QMainWindow {
 	DisplayWidget *display{};
 	AudioOut *audio_out{};
 	EmulatorThread *emu_thread{};
+	InputControl *input_ctrl{};
 	double avg_frametime{ 0.16 };
 	SharedBuffers bufs;
 	bool shutdown{};

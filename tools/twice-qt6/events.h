@@ -39,6 +39,11 @@ struct FastForwardEvent {
 	bool fastforward;
 };
 
+struct ButtonEvent {
+	twice::nds_button button;
+	bool down;
+};
+
 struct StopThreadEvent {};
 
 struct ErrorEvent {
@@ -61,7 +66,7 @@ struct EndFrameEvent {
 
 using Event = std::variant<EmptyEvent, LoadFileEvent, UnloadFileEvent,
 		SaveTypeEvent, ResetEvent, ShutdownEvent, PauseEvent,
-		FastForwardEvent, StopThreadEvent>;
+		FastForwardEvent, ButtonEvent, StopThreadEvent>;
 
 using MainEvent = std::variant<EmptyEvent, ErrorEvent, RenderEvent,
 		PushAudioEvent, ShutdownEvent, FileEvent, SaveTypeEvent,

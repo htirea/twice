@@ -4,10 +4,12 @@
 #include "audio_out.h"
 #include "display_widget.h"
 #include "emulator_thread.h"
+#include "input_control.h"
 #include "settings_dialog.h"
 
 #include "libtwice/nds/defs.h"
 
+#include <QCloseEvent>
 #include <QFileDialog>
 #include <QMenuBar>
 #include <QMessageBox>
@@ -23,6 +25,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 	setCentralWidget(display);
 
 	audio_out = new AudioOut(&bufs.ab, this);
+	input_ctrl = new InputControl(this);
 
 	emu_thread = new EmulatorThread(&bufs, this);
 	connect(emu_thread, &EmulatorThread::finished, emu_thread,
@@ -58,6 +61,40 @@ MainWindow::closeEvent(QCloseEvent *ev)
 			ev->ignore();
 		}
 	}
+}
+
+void
+MainWindow::keyPressEvent(QKeyEvent *ev)
+{
+	if (ev->isAutoRepeat()) {
+		ev->ignore();
+		return;
+	}
+
+	auto button = input_ctrl->get_nds_mapping(ev->key());
+	if (button == nds_button::NONE) {
+		ev->ignore();
+		return;
+	}
+
+	emu_thread->push_event(ButtonEvent{ button, true });
+}
+
+void
+MainWindow::keyReleaseEvent(QKeyEvent *ev)
+{
+	if (ev->isAutoRepeat()) {
+		ev->ignore();
+		return;
+	}
+
+	auto button = input_ctrl->get_nds_mapping(ev->key());
+	if (button == nds_button::NONE) {
+		ev->ignore();
+		return;
+	}
+
+	emu_thread->push_event(ButtonEvent{ button, false });
 }
 
 void
