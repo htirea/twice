@@ -7,18 +7,20 @@ qt_add_executable(twice-qt
 	main.cc
 	mainwindow.cc
 	mainwindow.h
+	mainwindow_actions.cc
+	mainwindow_actions.h
 	display_widget.cc
 	display_widget.h
-	actions.cc
-	actions.h
 	emulator_thread.cc
 	emulator_thread.h
 	audio_io.cc
 	audio_io.h
 	settings_dialog.cc
 	settings_dialog.h
-	input_control.cc
-	input_control.h
+	config_manager.cc
+	config_manager.h
+	input_manager.cc
+	input_manager.h
 	settings/input_settings.cc
 	settings/input_settings.h
 )

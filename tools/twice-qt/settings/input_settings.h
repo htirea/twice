@@ -3,17 +3,17 @@
 
 #include <QWidget>
 
-class InputControl;
+class ConfigManager;
 
 class InputSettings : public QWidget {
 	Q_OBJECT
 
       public:
-	InputSettings(InputControl *input_ctrl, QWidget *parent);
+	InputSettings(ConfigManager *cfg, QWidget *parent);
 	~InputSettings();
 
       private:
-	InputControl *input_ctrl{};
+	ConfigManager *cfg{};
 };
 
 #endif

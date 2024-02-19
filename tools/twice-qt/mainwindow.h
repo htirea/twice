@@ -3,13 +3,15 @@
 
 #include "buffers.h"
 #include "events.h"
+#include "mainwindow_actions.h"
 
 #include <QMainWindow>
 
+class ConfigManager;
 class DisplayWidget;
 class EmulatorThread;
 class AudioIO;
-class InputControl;
+class InputManager;
 class SettingsDialog;
 class QCloseEvent;
 class QKeyEvent;
@@ -31,10 +33,10 @@ class MainWindow : public QMainWindow {
 	void mouseReleaseEvent(QMouseEvent *ev) override;
 
       private:
+	void init_actions();
 	void init_menus();
 	void init_default_values();
 	void set_display_size(int w, int h);
-	void set_display_size(int scale);
 	void auto_resize_display();
 	std::optional<std::pair<int, int>> get_nds_coords(QMouseEvent *ev);
 	void process_event(const EmptyEvent& ev);
@@ -56,19 +58,31 @@ class MainWindow : public QMainWindow {
 	void eject_cart();
 	void unload_save_file();
 	void set_savetype(int type);
+	void set_scale(int scale);
+	void set_orientation(int orientation);
+	void reset_to_rom();
+	void reset_to_firmware();
 	void reset_emulation(bool direct);
 	void shutdown_emulation();
 	void toggle_pause(bool checked);
 	void toggle_fastforward(bool checked);
+	void toggle_linear_filtering(bool checked);
+	void toggle_lock_aspect_ratio(bool checked);
 	void update_title();
 	void open_settings();
+	void config_var_set(int key, const QVariant& v);
 
       private:
+	ConfigManager *cfg{};
 	DisplayWidget *display{};
 	AudioIO *audio_out{};
 	EmulatorThread *emu_thread{};
-	InputControl *input_ctrl{};
+	InputManager *input{};
 	SettingsDialog *settings_dialog{};
+	std::vector<QAction *> actions;
+	std::vector<QActionGroup *> action_groups;
+	std::vector<QMenu *> menus;
+
 	double avg_frametime{ 0.16 };
 	SharedBuffers bufs;
 	bool shutdown{};

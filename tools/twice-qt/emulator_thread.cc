@@ -1,33 +1,35 @@
 #include "emulator_thread.h"
 
+#include "config_manager.h"
+
 #include "libtwice/exception.h"
 #include "libtwice/util/frame_timer.h"
 
-#include <QSettings>
+#include <QVariant>
 
 using namespace twice;
 
-EmulatorThread::EmulatorThread(SharedBuffers *bufs, QObject *parent)
+EmulatorThread::EmulatorThread(
+		SharedBuffers *bufs, ConfigManager *cfg, QObject *parent)
 	: QThread(parent), bufs(bufs)
 {
-	QSettings settings;
-	nds_config cfg{
-		.data_dir = settings.value("data_dir")
-		                            .toString()
-		                            .toStdU16String(),
-		.arm9_bios_path = settings.value("arm9_bios_path")
+	using namespace ConfigVariable;
+
+	nds_config nds_cfg{
+		.data_dir = cfg->get(DATA_DIR).toString().toStdU16String(),
+		.arm9_bios_path = cfg->get(ARM9_BIOS_PATH)
 		                                  .toString()
 		                                  .toStdU16String(),
-		.arm7_bios_path = settings.value("arm7_bios_path")
+		.arm7_bios_path = cfg->get(ARM7_BIOS_PATH)
 		                                  .toString()
 		                                  .toStdU16String(),
-		.firmware_path = settings.value("firmware_path")
+		.firmware_path = cfg->get(FIRMWARE_PATH)
 		                                 .toString()
 		                                 .toStdU16String(),
-		.use_16_bit_audio = true,
+		.use_16_bit_audio = cfg->get(USE_16_BIT_AUDIO).toBool(),
 	};
 
-	nds = std::make_unique<nds_machine>(cfg);
+	nds = std::make_unique<nds_machine>(nds_cfg);
 	emit send_main_event(FileEvent{ nds->get_loaded_files() });
 }
 
@@ -124,15 +126,6 @@ EmulatorThread::process_event(const LoadFileEvent& ev)
 {
 	try {
 		nds->load_file(ev.pathname.toStdU16String(), ev.type);
-
-		QSettings settings;
-		if (ev.type == nds_file::ARM9_BIOS) {
-			settings.setValue("arm9_bios_path", ev.pathname);
-		} else if (ev.type == nds_file::ARM7_BIOS) {
-			settings.setValue("arm7_bios_path", ev.pathname);
-		} else if (ev.type == nds_file::FIRMWARE) {
-			settings.setValue("firmware_path", ev.pathname);
-		}
 	} catch (const twice_exception& err) {
 		emit send_main_event(ErrorEvent{ tr(err.what()) });
 	}

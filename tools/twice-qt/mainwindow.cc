@@ -1,10 +1,10 @@
 #include "mainwindow.h"
 
-#include "actions.h"
 #include "audio_io.h"
+#include "config_manager.h"
 #include "display_widget.h"
 #include "emulator_thread.h"
-#include "input_control.h"
+#include "input_manager.h"
 #include "settings/input_settings.h"
 #include "settings_dialog.h"
 
@@ -16,25 +16,31 @@
 #include <QGuiApplication>
 #include <QMenuBar>
 #include <QMessageBox>
+#include <QSettings>
 #include <QTimer>
 
 #include <iostream>
 
 using namespace twice;
+using namespace MainWindowAction;
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 {
-	display = new DisplayWidget(&bufs.vb, this);
+	cfg = new ConfigManager(this);
+	connect(cfg, &ConfigManager::key_set, this,
+			&MainWindow::config_var_set);
+
+	display = new DisplayWidget(&bufs.vb, cfg, this);
 	setCentralWidget(display);
 
 	audio_out = new AudioIO(&bufs, this);
-	input_ctrl = new InputControl(this);
+	input = new InputManager(cfg, this);
 
 	settings_dialog = new SettingsDialog(this);
-	auto input_settings = new InputSettings(input_ctrl, nullptr);
+	auto input_settings = new InputSettings(cfg, nullptr);
 	settings_dialog->add_page(tr("Input"), input_settings);
 
-	emu_thread = new EmulatorThread(&bufs, this);
+	emu_thread = new EmulatorThread(&bufs, cfg, this);
 	connect(emu_thread, &EmulatorThread::finished, emu_thread,
 			&QObject::deleteLater);
 	connect(emu_thread, &EmulatorThread::send_main_event, this,
@@ -44,8 +50,10 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 	connect(timer, &QTimer::timeout, this, &MainWindow::update_title);
 	timer->start(1000);
 
+	init_actions();
 	init_menus();
 	init_default_values();
+	cfg->emit_all_signals();
 
 	emu_thread->start();
 }
@@ -54,6 +62,11 @@ MainWindow::~MainWindow()
 {
 	emu_thread->push_event(StopThreadEvent());
 	emu_thread->wait();
+
+	QSettings settings;
+	auto window_size = size();
+	settings.setValue("window_width", window_size.width());
+	settings.setValue("window_height", window_size.height());
 }
 
 void
@@ -78,7 +91,7 @@ MainWindow::keyPressEvent(QKeyEvent *ev)
 		return;
 	}
 
-	auto button = input_ctrl->get_nds_mapping(ev->key());
+	auto button = input->get_nds_button(ev->key());
 	if (button == nds_button::NONE) {
 		ev->ignore();
 		return;
@@ -95,7 +108,7 @@ MainWindow::keyReleaseEvent(QKeyEvent *ev)
 		return;
 	}
 
-	auto button = input_ctrl->get_nds_mapping(ev->key());
+	auto button = input->get_nds_button(ev->key());
 	if (button == nds_button::NONE) {
 		ev->ignore();
 		return;
@@ -148,110 +161,19 @@ MainWindow::mouseReleaseEvent(QMouseEvent *ev)
 }
 
 void
-MainWindow::init_menus()
-{
-	auto file_menu = menuBar()->addMenu(tr("File"));
-	{
-		file_menu->addAction(create_action(
-				ACTION_OPEN_ROM, this, &MainWindow::open_rom));
-		file_menu->addAction(create_action(ACTION_LOAD_SYSTEM_FILES,
-				this, &MainWindow::open_system_files));
-		file_menu->addSeparator();
-		file_menu->addAction(create_action(ACTION_INSERT_CART, this,
-				&MainWindow::insert_cart));
-		file_menu->addAction(create_action(ACTION_EJECT_CART, this,
-				&MainWindow::eject_cart));
-		file_menu->addSeparator();
-		file_menu->addAction(create_action(ACTION_LOAD_SAVE_FILE, this,
-				&MainWindow::load_save_file));
-		file_menu->addAction(create_action(ACTION_UNLOAD_SAVE_FILE,
-				this, &MainWindow::unload_save_file));
-	}
-	{
-		auto menu = file_menu->addMenu(tr("Save type"));
-		auto group = create_action_group(ACTION_GROUP_SAVETYPE, this);
-		for (int i = 0; i < SAVETYPE_TOTAL; i++) {
-			int id = ACTION_SAVETYPE_AUTO + i;
-			menu->addAction(create_action(id, group));
-		}
-
-		/* NAND saves not implemented yet */
-		get_action(ACTION_SAVETYPE_NAND)->setEnabled(false);
-
-		auto set_type = [=, this](QAction *action) {
-			set_savetype(action->data().toInt());
-		};
-		connect(group, &QActionGroup::triggered, this, set_type);
-	}
-
-	auto emu_menu = menuBar()->addMenu(tr("Emulation"));
-	{
-		auto reset = [=, this]() { reset_emulation(true); };
-		auto action = create_action(ACTION_RESET_TO_ROM, this, reset);
-		emu_menu->addAction(action);
-	}
-	{
-		auto reset = [=, this]() { reset_emulation(false); };
-		auto action = create_action(
-				ACTION_RESET_TO_FIRMWARE, this, reset);
-		emu_menu->addAction(action);
-	}
-	{
-		emu_menu->addAction(create_action(ACTION_SHUTDOWN, this,
-				&MainWindow::shutdown_emulation));
-		emu_menu->addSeparator();
-		emu_menu->addAction(create_action(ACTION_TOGGLE_PAUSE, this,
-				&MainWindow::toggle_pause));
-		emu_menu->addAction(create_action(ACTION_TOGGLE_FASTFORWARD,
-				this, &MainWindow::toggle_fastforward));
-	}
-
-	auto video_menu = menuBar()->addMenu(tr("Video"));
-	{
-		auto action = create_action(ACTION_AUTO_RESIZE, this,
-				&MainWindow::auto_resize_display);
-		video_menu->addAction(action);
-	}
-	{
-		auto menu = video_menu->addMenu(tr("Scale"));
-		auto group = new QActionGroup(this);
-		for (int i = 0; i < 4; i++) {
-			int id = ACTION_SCALE_1X + i;
-			menu->addAction(create_action(id, group));
-		}
-
-		auto set_scale = [=, this](QAction *action) {
-			set_display_size(action->data().toInt());
-		};
-		connect(group, &QActionGroup::triggered, this, set_scale);
-	}
-	{
-		auto menu = video_menu->addMenu(tr("Orientation"));
-		menu->addAction(get_action(ACTION_ORIENTATION_0));
-		menu->addAction(get_action(ACTION_ORIENTATION_1));
-		menu->addAction(get_action(ACTION_ORIENTATION_3));
-		menu->addAction(get_action(ACTION_ORIENTATION_2));
-	}
-	{
-		video_menu->addSeparator();
-		video_menu->addAction(get_action(ACTION_LINEAR_FILTERING));
-		video_menu->addAction(get_action(ACTION_LOCK_ASPECT_RATIO));
-	}
-
-	auto tools_menu = menuBar()->addMenu(tr("Tools"));
-	{
-		tools_menu->addAction(create_action(ACTION_OPEN_SETTINGS, this,
-				&MainWindow::open_settings));
-	}
-}
-
-void
 MainWindow::init_default_values()
 {
-	get_action(ACTION_ORIENTATION_0)->trigger();
-	get_action(ACTION_LOCK_ASPECT_RATIO)->trigger();
-	get_action(ACTION_SAVETYPE_AUTO)->trigger();
-	set_display_size(NDS_FB_W * 2, NDS_FB_H * 2);
+	actions[SET_SAVETYPE_AUTO]->trigger();
+
+	QSettings settings;
+	int window_width = settings.value("window_width").toInt();
+	int window_height = settings.value("window_height").toInt();
+	if (window_width < NDS_FB_W || window_height < NDS_FB_W) {
+		set_display_size(NDS_FB_W, NDS_FB_H);
+	} else {
+		resize(window_width, window_height);
+	}
+
 	emu_thread->push_event(ShutdownEvent());
 	emu_thread->push_event(UnloadFileEvent{ nds_file::CART_ROM });
 }
@@ -268,27 +190,14 @@ MainWindow::set_display_size(int w, int h)
 }
 
 void
-MainWindow::set_display_size(int scale)
-{
-	int w = NDS_FB_W * scale;
-	int h = NDS_FB_H * scale;
-
-	if (get_orientation() & 1) {
-		std::swap(w, h);
-	}
-
-	set_display_size(w, h);
-}
-
-void
 MainWindow::auto_resize_display()
 {
 	auto size = display->size();
 	double w = size.width();
 	double h = size.height();
 	double ratio = (double)w / h;
-	double t = get_orientation() & 1 ? NDS_FB_ASPECT_RATIO_RECIP
-	                                 : NDS_FB_ASPECT_RATIO;
+	double t = display->orientation & 1 ? NDS_FB_ASPECT_RATIO_RECIP
+	                                    : NDS_FB_ASPECT_RATIO;
 
 	if (ratio < t) {
 		h = w / t;
@@ -309,11 +218,8 @@ MainWindow::get_nds_coords(QMouseEvent *ev)
 	double h = size.height();
 	double x = pos.x();
 	double y = pos.y();
-	bool letterboxed = lock_aspect_ratio();
-	int orientation = get_orientation();
-
-	return window_coords_to_screen_coords(
-			w, h, x, y, letterboxed, orientation, 0);
+	return window_coords_to_screen_coords(w, h, x, y,
+			display->lock_aspect_ratio, display->orientation, 0);
 }
 
 void
@@ -348,17 +254,17 @@ MainWindow::process_event(const ShutdownEvent& ev)
 	bool cart = loaded_files & (int)CART_ROM;
 	bool save = loaded_files & (int)SAVE;
 
-	get_action(ACTION_LOAD_SYSTEM_FILES)->setEnabled(shutdown);
-	get_action(ACTION_INSERT_CART)->setEnabled(shutdown && !cart);
-	get_action(ACTION_EJECT_CART)->setEnabled(shutdown && cart);
-	get_action(ACTION_LOAD_SAVE_FILE)->setEnabled(shutdown);
-	get_action(ACTION_UNLOAD_SAVE_FILE)->setEnabled(shutdown && save);
-	for (int id = ACTION_SAVETYPE_AUTO; id != ACTION_SAVETYPE_NAND; id++) {
-		get_action(id)->setEnabled(shutdown);
+	actions[LOAD_SYSTEM_FILES]->setEnabled(shutdown);
+	actions[INSERT_CART]->setEnabled(shutdown && !cart);
+	actions[EJECT_CART]->setEnabled(shutdown && cart);
+	actions[LOAD_SAVE_FILE]->setEnabled(shutdown);
+	actions[UNLOAD_SAVE_FILE]->setEnabled(shutdown && save);
+	for (int id = SET_SAVETYPE_AUTO; id != SET_SAVETYPE_NAND; id++) {
+		actions[id]->setEnabled(shutdown);
 	}
-	get_action(ACTION_SHUTDOWN)->setEnabled(!shutdown);
-	get_action(ACTION_TOGGLE_PAUSE)->setEnabled(!shutdown);
-	get_action(ACTION_TOGGLE_FASTFORWARD)->setEnabled(!shutdown);
+	actions[SHUTDOWN]->setEnabled(!shutdown);
+	actions[TOGGLE_PAUSE]->setEnabled(!shutdown);
+	actions[TOGGLE_FASTFORWARD]->setEnabled(!shutdown);
 }
 
 void
@@ -367,23 +273,25 @@ MainWindow::process_event(const FileEvent& ev)
 	using enum nds_file;
 	loaded_files = ev.loaded_files;
 
-	int sys_files_mask = (int)ARM9_BIOS | (int)ARM7_BIOS | (int)FIRMWARE;
-	bool sys_files = (loaded_files & sys_files_mask) == sys_files_mask;
+	bool arm9_bios = loaded_files & (int)ARM9_BIOS;
+	bool arm7_bios = loaded_files & (int)ARM7_BIOS;
+	bool firmware = loaded_files & (int)FIRMWARE;
+	bool sys_files = arm9_bios && arm7_bios && firmware;
 	bool cart = loaded_files & (int)CART_ROM;
 	bool save = loaded_files & (int)SAVE;
 
-	get_action(ACTION_OPEN_ROM)->setEnabled(sys_files);
-	get_action(ACTION_EJECT_CART)->setEnabled(shutdown && cart);
-	get_action(ACTION_RESET_TO_ROM)->setEnabled(sys_files && cart);
-	get_action(ACTION_UNLOAD_SAVE_FILE)->setEnabled(shutdown && save);
-	get_action(ACTION_RESET_TO_FIRMWARE)->setEnabled(sys_files);
+	actions[OPEN_ROM]->setEnabled(sys_files);
+	actions[EJECT_CART]->setEnabled(shutdown && cart);
+	actions[RESET_TO_ROM]->setEnabled(sys_files && cart);
+	actions[UNLOAD_SAVE_FILE]->setEnabled(shutdown && save);
+	actions[RESET_TO_FIRMWARE]->setEnabled(sys_files);
 }
 
 void
 MainWindow::process_event(const SaveTypeEvent& ev)
 {
-	auto id = ACTION_SAVETYPE_AUTO + (ev.type + 1);
-	get_action(id)->setChecked(true);
+	auto id = SET_SAVETYPE_AUTO + (ev.type + 1);
+	actions[id]->setChecked(true);
 }
 
 void
@@ -437,12 +345,15 @@ MainWindow::open_system_files()
 
 		if (info.fileName() == "bios9.bin" || info.size() == 4096) {
 			type = nds_file::ARM9_BIOS;
+			cfg->set(ConfigVariable::ARM9_BIOS_PATH, pathname);
 		} else if (info.fileName() == "bios7.bin" ||
 				info.size() == 16384) {
 			type = nds_file::ARM7_BIOS;
+			cfg->set(ConfigVariable::ARM7_BIOS_PATH, pathname);
 		} else if (info.fileName() == "firmware.bin" ||
 				info.size() == 262144) {
 			type = nds_file::FIRMWARE;
+			cfg->set(ConfigVariable::FIRMWARE_PATH, pathname);
 		}
 
 		emu_thread->push_event(LoadFileEvent{ pathname, type });
@@ -490,6 +401,41 @@ MainWindow::set_savetype(int type)
 }
 
 void
+MainWindow::set_scale(int scale)
+{
+	int w = NDS_FB_W * scale;
+	int h = NDS_FB_H * scale;
+
+	if (display->orientation & 1) {
+		std::swap(w, h);
+	}
+
+	set_display_size(w, h);
+}
+
+void
+MainWindow::set_orientation(int orientation)
+{
+	if (orientation < 0) {
+		orientation = display->orientation + orientation & 3;
+	}
+
+	cfg->set(ConfigVariable::ORIENTATION, orientation);
+}
+
+void
+MainWindow::reset_to_rom()
+{
+	reset_emulation(true);
+}
+
+void
+MainWindow::reset_to_firmware()
+{
+	reset_emulation(false);
+}
+
+void
 MainWindow::reset_emulation(bool direct)
 {
 	emu_thread->push_event(ResetEvent{ direct });
@@ -516,6 +462,18 @@ MainWindow::toggle_fastforward(bool checked)
 }
 
 void
+MainWindow::toggle_linear_filtering(bool checked)
+{
+	cfg->set(ConfigVariable::LINEAR_FILTERING, checked);
+}
+
+void
+MainWindow::toggle_lock_aspect_ratio(bool checked)
+{
+	cfg->set(ConfigVariable::LOCK_ASPECT_RATIO, checked);
+}
+
+void
 MainWindow::update_title()
 {
 	double fps = 1 / avg_frametime;
@@ -529,4 +487,23 @@ void
 MainWindow::open_settings()
 {
 	settings_dialog->exec();
+}
+
+void
+MainWindow::config_var_set(int key, const QVariant& v)
+{
+	if (!v.isValid())
+		return;
+
+	switch (key) {
+	case ConfigVariable::ORIENTATION:
+		actions[ORIENTATION_0 + v.toInt()]->setChecked(true);
+		break;
+	case ConfigVariable::LOCK_ASPECT_RATIO:
+		actions[LOCK_ASPECT_RATIO]->setChecked(v.toBool());
+		break;
+	case ConfigVariable::LINEAR_FILTERING:
+		actions[LINEAR_FILTERING]->setChecked(v.toBool());
+		break;
+	}
 }

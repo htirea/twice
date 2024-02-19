@@ -13,10 +13,13 @@
 #include "buffers.h"
 #include "events.h"
 
+class ConfigManager;
+
 class EmulatorThread : public QThread {
 	Q_OBJECT
       public:
-	EmulatorThread(SharedBuffers *bufs, QObject *parent);
+	EmulatorThread(SharedBuffers *bufs, ConfigManager *cfg,
+			QObject *parent);
 	~EmulatorThread();
 	void push_event(const Event& ev);
 

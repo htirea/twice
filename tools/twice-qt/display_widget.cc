@@ -1,6 +1,6 @@
 #include "display_widget.h"
 
-#include "actions.h"
+#include "config_manager.h"
 
 #include "libtwice/exception.h"
 #include "libtwice/nds/defs.h"
@@ -39,12 +39,13 @@ void main()
 }
 )___";
 
-DisplayWidget::DisplayWidget(SharedBuffers::video_buffer *fb, QWidget *parent)
+DisplayWidget::DisplayWidget(SharedBuffers::video_buffer *fb,
+		ConfigManager *cfg, QWidget *parent)
 	: QOpenGLWidget(parent), fb(fb)
 {
+	connect(cfg, &ConfigManager::display_key_set, this,
+			&DisplayWidget::display_var_set);
 	mtx_set_identity<float, 4>(proj_mtx);
-
-	init_actions();
 }
 
 DisplayWidget::~DisplayWidget()
@@ -137,7 +138,7 @@ DisplayWidget::paintGL()
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT);
 
-	if (linear_filtering_enabled()) {
+	if (linear_filtering) {
 		glBindSampler(0, sampler);
 	} else {
 		glBindSampler(0, 0);
@@ -161,9 +162,7 @@ DisplayWidget::update_projection_mtx()
 	float sx = 1.0;
 	float sy = 1.0;
 
-	int orientation = get_orientation();
-
-	if (lock_aspect_ratio()) {
+	if (lock_aspect_ratio) {
 		double ratio = (double)w / h;
 		double target_ratio;
 		if (orientation & 1) {
@@ -204,23 +203,6 @@ DisplayWidget::update_projection_mtx()
 		proj_mtx[1] = sx;
 		proj_mtx[4] = -sy;
 		break;
-	}
-}
-
-void
-DisplayWidget::init_actions()
-{
-	auto call_update = [this]() { this->update(); };
-
-	create_action(ACTION_LINEAR_FILTERING, this, call_update);
-	create_action(ACTION_LOCK_ASPECT_RATIO, this, call_update);
-	{
-		auto group = create_action_group(
-				ACTION_GROUP_ORIENTATION, this);
-		for (int i = 0; i < 4; i++) {
-			int id = ACTION_ORIENTATION_0 + i;
-			create_action(id, group, this, call_update);
-		}
 	}
 }
 
@@ -281,4 +263,25 @@ DisplayWidget::make_program(const char *vtx_src, const char *frag_src)
 	glDeleteShader(fragment_shader);
 
 	return program;
+}
+
+void
+DisplayWidget::display_var_set(int key, const QVariant& v)
+{
+	if (!v.isValid())
+		return;
+
+	using namespace ConfigVariable;
+
+	switch (key) {
+	case ORIENTATION:
+		orientation = v.toInt();
+		break;
+	case LOCK_ASPECT_RATIO:
+		lock_aspect_ratio = v.toBool();
+		break;
+	case LINEAR_FILTERING:
+		linear_filtering = v.toBool();
+		break;
+	}
 }
