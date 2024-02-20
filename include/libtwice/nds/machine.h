@@ -66,6 +66,82 @@ enum : unsigned long {
 }
 
 /**
+ * Information related to the real time clock of the NDS machine.
+ *
+ * Internally, the RTC uses registers which have only a limited number of bits.
+ * Thus, any invalid values will first be masked to the correct number of bits,
+ * and the set to a default value.
+ */
+struct nds_rtc_state {
+	/**
+	 * The year as a number from [0..99].
+	 *
+	 * \bits 8
+	 * \default 0
+	 */
+	int year{};
+
+	/**
+	 * The month as a number from [1..12].
+	 *
+	 * \bits 8
+	 * \default 1
+	 */
+	int month{};
+
+	/**
+	 * The day as a number from [1..31].
+	 *
+	 * If the day does not exist, the date is set to the first day of the
+	 * next month.
+	 *
+	 * \bits 8
+	 * \default 1
+	 */
+	int day{};
+
+	/**
+	 * The weekday as a number from [0..6].
+	 *
+	 * \bits 3
+	 * \default 0
+	 */
+	int weekday{};
+
+	/**
+	 * The hour as a number from [0..23] or [0..11].
+	 *
+	 * The valid range of the hour depends on the whether the RTC is
+	 * configured to use 12 or 24-hour clock.
+	 *
+	 * \bits 8
+	 * \default 0
+	 */
+	int hour{};
+
+	/**
+	 * The minute as a number from [0..59].
+	 *
+	 * \bits 8
+	 * \default 0
+	 */
+	int minute{};
+
+	/**
+	 * The second as a number from [0..59].
+	 *
+	 * \bits 8
+	 * \default 0
+	 */
+	int second{};
+
+	/**
+	 * Whether to use the 24-hour clock.
+	 */
+	bool use_24_hour_clock{};
+};
+
+/**
  * Information related to the execution of the NDS machine.
  *
  * The meaning of the fields change depending on whether it is used to
@@ -75,38 +151,40 @@ struct nds_exec {
 	/**
 	 * The number of ARM9 cycles.
 	 *
-	 * \in the number of cycles to run for / target cycles to run until
-	 * \out the number of cycles executed
+	 * \in the number of cycles to run for / target cycles to run
+	 * until \out the number of cycles executed
 	 */
 	u64 cycles{};
 
 	/**
 	 * A pointer to the audio buffer.
 	 *
-	 * The audio buffer is stored as an array of signed 16 bit samples,
-	 * at a sample rate of 32768 Hz.
+	 * The audio buffer is stored as an array of signed 16 bit
+	 * samples, at a sample rate of 32768 Hz.
 	 *
 	 * \in contains the microphone input (mono)
-	 * \out contains the speaker output (stereo: interleaved left, right)
+	 * \out contains the speaker output (stereo: interleaved left,
+	 * right)
 	 */
 	s16 *audio_buf{};
 
 	/**
 	 * The length of the audio buffer in audio frames.
 	 *
-	 * An audio frame contains `n` samples, where `n` is the channel count.
+	 * An audio frame contains `n` samples, where `n` is the
+	 * channel count.
 	 */
 	size_t audio_buf_len{};
 
 	/**
 	 * The framebuffer.
 	 *
-	 * The framebuffer is stored as an array of 32 bit pixels in ABGR32
-	 * format.
+	 * The framebuffer is stored as an array of 32 bit pixels in
+	 * ABGR32 format.
 	 *
-	 * The framebuffer has a width of 256 pixels, and a height of 384
-	 * pixels. The first half of the framebuffer contains the top screen,
-	 * and the second half contains the bottom screen.
+	 * The framebuffer has a width of 256 pixels, and a height of
+	 * 384 pixels. The first half of the framebuffer contains the
+	 * top screen, and the second half contains the bottom screen.
 	 *
 	 * \in ignored
 	 * \out a pointer to the framebuffer
@@ -116,11 +194,12 @@ struct nds_exec {
 	/**
 	 * The signal flags.
 	 *
-	 * The `SHUTDOWN` signal always suspends execution, regardless of
-	 * whether it is specified.
+	 * The `SHUTDOWN` signal always suspends execution, regardless
+	 * of whether it is specified.
 	 *
 	 * \in the signals to suspend execution on, if raised
-	 * \out the signals that were raised, and thus suspended execution
+	 * \out the signals that were raised, and thus suspended
+	 * execution
 	 */
 	unsigned long sig_flags{};
 };
@@ -180,8 +259,8 @@ struct nds_machine {
 	 * Eject the cartridge from the machine.
 	 *
 	 * If there is no cartridge this function does nothing.
-	 * The currently loaded save file and set save type (if any) will
-	 * be unloaded / reset.
+	 * The currently loaded save file and set save type (if any)
+	 * will be unloaded / reset.
 	 */
 	void eject_cartridge();
 
@@ -204,20 +283,23 @@ struct nds_machine {
 			nds_savetype savetype);
 
 	/**
-	 * Automatically load a save file (based on the loaded cartridge).
+	 * Automatically load a save file (based on the loaded
+	 * cartridge).
 	 *
-	 * The pathname of the save file is determined from the pathname
-	 * of the loaded cartridge, which is then used as if `load_savefile`
-	 * was called.
+	 * The pathname of the save file is determined from the
+	 * pathname of the loaded cartridge, which is then used as if
+	 * `load_savefile` was called.
 	 */
 	void autoload_savefile();
 
 	/**
-	 * Automatically create a save file (based on the loaded cartridge).
+	 * Automatically create a save file (based on the loaded
+	 * cartridge).
 	 *
 	 * The pathname is determined from the pathname of the loaded
-	 * cartridge. If a save type is set, it is used to create the save
-	 * file, otherwise, the save type is guessed from the cartridge.
+	 * cartridge. If a save type is set, it is used to create the
+	 * save file, otherwise, the save type is guessed from the
+	 * cartridge.
 	 *
 	 */
 	void autocreate_savefile();
@@ -259,24 +341,30 @@ struct nds_machine {
 	/**
 	 * Check the loaded save file.
 	 *
-	 * Checks whether the loaded save file has a size consistent with
-	 * the save type to be used.
+	 * Checks whether the loaded save file has a size consistent
+	 * with the save type to be used.
 	 */
 	void check_savefile();
 
 	/**
 	 * Prepare a save file for execution.
 	 *
-	 * If a save file is not loaded, it is automatically loaded or created.
+	 * If a save file is not loaded, it is automatically loaded or
+	 * created.
 	 */
 	void prepare_savefile_for_execution();
 
 	/**
 	 * Boot up the machine.
 	 *
-	 * If the machine is already running, this function will do nothing.
+	 * If the machine is already running, this function will do
+	 * nothing.
 	 *
-	 * If `direct_boot` is true, then a cartridge must already be loaded.
+	 * If the RTC state has not been set, the current time will
+	 * automatically be used instead.
+	 *
+	 * If `direct_boot` is true, then a cartridge must already be
+	 * loaded.
 	 *
 	 * \param direct_boot true to boot the cartridge directly,
 	 *                    false to boot the firmware
@@ -286,14 +374,16 @@ struct nds_machine {
 	/**
 	 * Shut down the machine.
 	 *
-	 * If the machine is already shut down, this function will do nothing.
+	 * If the machine is already shut down, this function will do
+	 * nothing.
 	 */
 	void shutdown();
 
 	/**
 	 * Reboot the machine.
 	 *
-	 * This function behaves as if `shutdown` and `boot` were called.
+	 * This function behaves as if `shutdown` and `boot` were
+	 * called.
 	 *
 	 * \param direct_boot true to boot the cartridge directly,
 	 *                    false to boot the firmware
@@ -324,12 +414,12 @@ struct nds_machine {
 	/**
 	 * Get the rendered framebuffer.
 	 *
-	 * The framebuffer is stored as an array of 32 bit pixels in BGR888
-	 * format, with the most significant 8 bits left unused.
+	 * The framebuffer is stored as an array of 32 bit pixels in
+	 * BGR888 format, with the most significant 8 bits left unused.
 	 *
-	 * The framebuffer has a width of 256 pixels, and a height of 384
-	 * pixels. The first half of the framebuffer contains the top screen,
-	 * and the second half contains the bottom screen.
+	 * The framebuffer has a width of 256 pixels, and a height of
+	 * 384 pixels. The first half of the framebuffer contains the
+	 * top screen, and the second half contains the bottom screen.
 	 *
 	 * \returns a pointer to the framebuffer
 	 */
@@ -338,8 +428,9 @@ struct nds_machine {
 	/**
 	 * Get the audio buffer for the emulated frame.
 	 *
-	 * The audio buffer is stored as an array of signed 16 bit samples,
-	 * with 2 channels, interleaved, at a sample rate of 32768 Hz.
+	 * The audio buffer is stored as an array of signed 16 bit
+	 * samples, with 2 channels, interleaved, at a sample rate of
+	 * 32768 Hz.
 	 *
 	 * \returns a pointer to the audio buffer
 	 */
@@ -375,7 +466,8 @@ struct nds_machine {
 	/**
 	 * Update the current touchscreen state.
 	 *
-	 * If `down` is false, then the x and y coordinates are ignored.
+	 * If `down` is false, then the x and y coordinates are
+	 * ignored.
 	 *
 	 * \param x [0..255]
 	 * \param y [0..191]
@@ -387,23 +479,28 @@ struct nds_machine {
 			int x, int y, bool down, bool quicktap, bool moved);
 
 	/**
-	 * Update the current real world date and time used by the RTC.
+	 * Set the RTC state.
 	 *
-	 * The date and time provided must be valid.
+	 * If the machine is running, the state will be updated immediately.
+	 * Otherwise, the state will be updated the next time the machine
+	 * boots up.
 	 *
-	 * \param year [2000..2099]
-	 * \param month [1..12]
-	 * \param day [1..31]
-	 * \param weekday [1..7], where Monday is 1
-	 * \param hour [0..23]
-	 * \param minute [0..59]
-	 * \param second [0..59]
+	 * \param state the state
 	 */
-	void update_real_time_clock(int year, int month, int day, int weekday,
-			int hour, int minute, int second);
+	void set_rtc_state(const nds_rtc_state& state);
 
 	/**
-	 * Set the audio mixing bit depth.
+	 * Set the RTC state to the current time.
+	 */
+	void set_rtc_state();
+
+	/**
+	 * Unset the RTC state.
+	 */
+	void unset_rtc_state();
+
+	/**
+	 * Set the audio mixing bit depth
 	 *
 	 * \param use_16_bit_audio true to mix audio at 16 bits
 	 *                         false to mix audio at 10 bits

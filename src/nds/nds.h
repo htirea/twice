@@ -198,8 +198,7 @@ std::unique_ptr<nds_ctx> create_nds_ctx(fs::file_view arm9_bios,
 void nds_firmware_boot(nds_ctx *nds);
 void nds_direct_boot(nds_ctx *nds);
 void nds_run(nds_ctx *nds, run_mode mode, const nds_exec *in, nds_exec *out);
-void nds_set_rtc_time(nds_ctx *nds, int year, int month, int day, int weekday,
-		int hour, int minute, int second);
+void nds_set_rtc_state(nds_ctx *nds, const nds_rtc_state& s);
 void nds_set_touchscreen_state(nds_ctx *nds, int x, int y, bool down,
 		bool quicktap, bool moved);
 void nds_sync_files(nds_ctx *nds);

@@ -119,27 +119,63 @@ rtc_tick_32k(nds_ctx *nds, timestamp late)
 }
 
 void
-nds_set_rtc_time(nds_ctx *nds, int year, int month, int day, int weekday,
-		int hour, int minute, int second)
+nds_set_rtc_state(nds_ctx *nds, const nds_rtc_state& s)
 {
 	auto& rtc = nds->rtc;
+	bool use_24_hour = s.use_24_hour_clock;
 
-	rtc.year = to_bcd(year % 100);
-	rtc.month = to_bcd(month);
-	rtc.day = to_bcd(day);
-	rtc.weekday = to_bcd(weekday - 1);
-
-	if (rtc.stat1 & BIT(6)) {
-		rtc.hour = to_bcd(hour);
-	} else {
-		rtc.hour = to_bcd(hour % 12);
-		if (hour >= 12) {
-			rtc.hour |= BIT(6);
-		}
+	int year = s.year & 0xFF;
+	if (year > 99) {
+		year = 0;
 	}
 
+	int month = s.month & 0xFF;
+	if (!(1 <= month && month <= 12)) {
+		month = 1;
+	}
+
+	int day = s.day & 0xFF;
+	if (!(1 <= day && day <= 31)) {
+		day = 1;
+	}
+	int days_in_month = get_days_in_month(month, year);
+	if (day > days_in_month) {
+		day = 1;
+		month++;
+	}
+
+	int weekday = s.weekday & 7;
+	if (weekday > 6) {
+		weekday = 0;
+	}
+
+	int hour = s.hour & 0xFF;
+	if ((use_24_hour && hour > 23) || (!use_24_hour && hour > 11)) {
+		hour = 0;
+	}
+
+	int minute = s.minute & 0xFF;
+	if (minute > 59) {
+		minute = 0;
+	}
+
+	int second = s.second & 0xFF;
+	if (second > 59) {
+		second = 0;
+	}
+
+	rtc.year = to_bcd(year);
+	rtc.month = to_bcd(month);
+	rtc.day = to_bcd(day);
+	rtc.weekday = to_bcd(weekday);
+	rtc.hour = to_bcd(hour);
 	rtc.minute = to_bcd(minute);
 	rtc.second = to_bcd(second);
+	if (use_24_hour) {
+		rtc.stat1 |= BIT(6);
+	} else {
+		rtc.stat1 &= ~BIT(6);
+	}
 }
 
 static bool

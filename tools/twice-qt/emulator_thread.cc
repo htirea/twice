@@ -44,19 +44,19 @@ EmulatorThread::push_event(const Event::Event& ev)
 void
 EmulatorThread::run()
 {
-	running = true;
-	throttle = true;
-	paused = false;
-	shutdown = true;
-
 	frame_timer tmr(std::chrono::nanoseconds(
 			(u64)(1000000000 / NDS_FRAME_RATE)));
 	stopwatch frametime_tmr;
 	s16 mic_buffer[548]{};
 	nds_exec exec_in;
+	nds_exec exec_out;
+
+	running = true;
+	throttle = true;
+	paused = false;
+	shutdown = true;
 	exec_in.audio_buf = mic_buffer;
 	exec_in.audio_buf_len = 548;
-	nds_exec exec_out;
 
 	while (running) {
 		tmr.start_frame();

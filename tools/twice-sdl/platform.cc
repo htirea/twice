@@ -215,8 +215,6 @@ sdl_platform::loop()
 	u64 lag = 0;
 	u64 emulation_start = SDL_GetPerformanceCounter();
 
-	update_rtc();
-
 	while (running) {
 		u64 start = SDL_GetPerformanceCounter();
 
@@ -531,24 +529,6 @@ sdl_platform::update_touchscreen_state()
 
 	nds->update_touchscreen_state(touch_x, touch_y,
 			mouse_buttons & SDL_BUTTON_LEFT, false, false);
-}
-
-void
-sdl_platform::update_rtc()
-{
-	using namespace std::chrono;
-
-	auto tp = zoned_time{ current_zone(), system_clock::now() }
-	                          .get_local_time();
-	auto dp = floor<days>(tp);
-	year_month_day date{ dp };
-	hh_mm_ss time{ tp - dp };
-	weekday wday{ dp };
-
-	nds->update_real_time_clock((int)date.year(), (unsigned)date.month(),
-			(unsigned)date.day(), wday.iso_encoding(),
-			time.hours().count(), time.minutes().count(),
-			time.seconds().count());
 }
 
 void

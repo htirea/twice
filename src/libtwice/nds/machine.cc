@@ -2,7 +2,6 @@
 #include "libtwice/exception.h"
 #include "libtwice/file/file.h"
 
-#include "common/date.h"
 #include "nds/nds.h"
 
 #include <filesystem>
@@ -24,6 +23,7 @@ struct nds_machine::impl {
 	file save;
 	nds_savetype savetype{ SAVETYPE_UNKNOWN };
 	u32 gamecode{};
+	std::optional<nds_rtc_state> rtc_state;
 	std::unique_ptr<nds_ctx> nds;
 };
 
@@ -475,6 +475,12 @@ nds_machine::boot(bool direct_boot)
 		nds_firmware_boot(ctx.get());
 	}
 
+	if (!m->rtc_state) {
+		set_rtc_state();
+	}
+	nds_set_rtc_state(ctx.get(), *m->rtc_state);
+	unset_rtc_state();
+
 	m->nds = std::move(ctx);
 }
 
@@ -618,32 +624,45 @@ nds_machine::update_touchscreen_state(
 }
 
 void
-nds_machine::update_real_time_clock(int year, int month, int day, int weekday,
-		int hour, int minute, int second)
+nds_machine::set_rtc_state(const nds_rtc_state& s)
 {
-	if (!m->nds)
-		return;
+	if (m->nds) {
+		nds_set_rtc_state(m->nds.get(), s);
+	} else {
+		m->rtc_state = s;
+	}
+}
 
-	if (!(2000 <= year && year <= 2099))
-		return;
-	if (!(1 <= month && month <= 12))
-		return;
-	if (!(1 <= day && day <= 31))
-		return;
-	if (!(1 <= weekday && weekday <= 7))
-		return;
-	if (!(0 <= hour && hour <= 23))
-		return;
-	if (!(0 <= minute && minute <= 59))
-		return;
-	if (!(0 <= second && second <= 59))
-		return;
+void
+nds_machine::set_rtc_state()
+{
+	using namespace std::chrono;
 
-	if (day > get_days_in_month(month, year))
-		return;
+	auto tp = zoned_time{ current_zone(), system_clock::now() }
+	                          .get_local_time();
+	auto dp = floor<days>(tp);
+	year_month_day date{ dp };
+	hh_mm_ss time{ tp - dp };
+	weekday wday{ dp };
 
-	nds_set_rtc_time(m->nds.get(), year, month, day, weekday, hour, minute,
-			second);
+	nds_rtc_state s{
+		(int)date.year() % 100,
+		(int)(unsigned)date.month(),
+		(int)(unsigned)date.day(),
+		(int)wday.iso_encoding() - 1,
+		(int)time.hours().count(),
+		(int)time.minutes().count(),
+		(int)time.seconds().count(),
+		true,
+	};
+
+	set_rtc_state(s);
+}
+
+void
+nds_machine::unset_rtc_state()
+{
+	m->rtc_state.reset();
 }
 
 void
