@@ -302,9 +302,6 @@ MainWindow::process_main_event(const Event::MainEvent& ev)
 void
 MainWindow::open_rom()
 {
-	if (!(shutdown || confirm_shutdown()))
-		return;
-
 	auto pathname = QFileDialog::getOpenFileName(
 			this, tr("Open ROM"), "", tr("ROM Files (*.nds)"));
 	if (!pathname.isEmpty()) {
