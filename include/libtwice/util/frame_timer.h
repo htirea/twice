@@ -31,7 +31,7 @@ struct frame_timer {
 
 	void wait_until_target()
 	{
-		std::this_thread::sleep_until(target_point - sleep_threshold);
+		std::this_thread::sleep_until(target_point);
 
 		while (now() < target_point)
 			;
@@ -49,7 +49,7 @@ struct frame_timer {
       private:
 	stopwatch tmr;
 	duration target_duration;
-	std::chrono::milliseconds sleep_threshold{ 2 };
+	std::chrono::milliseconds sleep_threshold{ 0 };
 	time_point start_point{};
 	time_point target_point{};
 };
