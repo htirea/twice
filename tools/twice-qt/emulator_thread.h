@@ -21,27 +21,27 @@ class EmulatorThread : public QThread {
 	EmulatorThread(SharedBuffers *bufs, ConfigManager *cfg,
 			QObject *parent);
 	~EmulatorThread();
-	void push_event(const Event& ev);
+	void push_event(const Event::Event& ev);
 
       protected:
 	void run() override;
 
       private:
 	void process_events();
-	void process_event(const EmptyEvent& ev);
-	void process_event(const LoadFileEvent& ev);
-	void process_event(const UnloadFileEvent& ev);
-	void process_event(const SaveTypeEvent& ev);
-	void process_event(const StopThreadEvent& ev);
-	void process_event(const ResetEvent& ev);
-	void process_event(const ShutdownEvent& ev);
-	void process_event(const PauseEvent& ev);
-	void process_event(const FastForwardEvent& ev);
-	void process_event(const ButtonEvent& ev);
-	void process_event(const TouchEvent& ev);
+	void process_event(const Event::EmptyEvent& ev);
+	void process_event(const Event::LoadFileEvent& ev);
+	void process_event(const Event::UnloadFileEvent& ev);
+	void process_event(const Event::SaveTypeEvent& ev);
+	void process_event(const Event::StopThreadEvent& ev);
+	void process_event(const Event::ResetEvent& ev);
+	void process_event(const Event::ShutdownEvent& ev);
+	void process_event(const Event::PauseEvent& ev);
+	void process_event(const Event::FastForwardEvent& ev);
+	void process_event(const Event::ButtonEvent& ev);
+	void process_event(const Event::TouchEvent& ev);
 
       signals:
-	void send_main_event(const MainEvent& ev);
+	void send_main_event(const Event::MainEvent& ev);
 
       private:
 	bool running{};
@@ -49,7 +49,7 @@ class EmulatorThread : public QThread {
 	bool throttle{};
 	bool shutdown{};
 	std::unique_ptr<twice::nds_machine> nds;
-	twice::threaded_queue<Event> event_q;
+	twice::threaded_queue<Event::Event> event_q;
 	SharedBuffers *bufs{};
 };
 

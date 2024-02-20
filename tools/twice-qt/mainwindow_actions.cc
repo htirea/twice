@@ -541,7 +541,9 @@ MainWindow::init_menus()
 		connect(actions.at(id), &QAction::triggered, this, f);
 	}
 
-	for (const auto& [id, f] : funcs_int) {
+	for (const auto& p : funcs_int) {
+		auto id = p.first;
+		auto f = p.second;
 		connect(action_groups.at(id), &QActionGroup::triggered, this,
 				[=, this](QAction *action) {
 					(this->*f)(action->data().toInt());

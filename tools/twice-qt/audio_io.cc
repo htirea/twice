@@ -4,6 +4,8 @@
 
 #include <SDL.h>
 
+#define SDL_MAIN_HANDLED
+
 using namespace twice;
 
 void

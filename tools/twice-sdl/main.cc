@@ -20,6 +20,13 @@
 
 twice::arg_parser twice::parser;
 
+std::u8string char_to_u8_string(const std::string& s)
+{
+	const char *p = s.data();
+	std::u8string r{ (const char8_t *)p, s.size() };
+	return r;
+}
+
 static std::string cartridge_pathname;
 static std::string data_dir;
 
@@ -85,7 +92,7 @@ try {
 	}
 
 	if (parser.num_args() > 0) {
-		cartridge_pathname = parser.get_arg(0);
+		cartridge_pathname = parser.get_arg(0).data();
 	}
 	if (auto opt = parser.get_option("verbose")) {
 		twice::set_logger_verbose_level(opt->count);
@@ -164,10 +171,10 @@ try {
 		std::cerr << "could not load game database\n";
 	}
 
-	twice::nds_config config{ data_dir };
+	twice::nds_config config{ char_to_u8_string(data_dir) };
 	twice::nds_machine nds(config);
 	if (!cartridge_pathname.empty()) {
-		nds.load_cartridge(cartridge_pathname);
+		nds.load_cartridge( char_to_u8_string(cartridge_pathname));
 	}
 	if (save_info.type != twice::SAVETYPE_UNKNOWN) {
 		nds.set_savetype(save_info.type);

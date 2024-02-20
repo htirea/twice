@@ -29,7 +29,7 @@ main(int argc, char *argv[])
 	format.setProfile(QSurfaceFormat::CoreProfile);
 	QSurfaceFormat::setDefaultFormat(format);
 
-	MainWindow w;
-	w.show();
+	auto w = std::make_unique<MainWindow>();
+	w->show();
 	return app.exec();
 }

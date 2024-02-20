@@ -37,7 +37,6 @@ arm_switch_mode(arm_cpu *cpu, u32 new_mode)
 static void
 swap_registers(arm_cpu *cpu, u32 old_mode, u32 new_mode)
 {
-	static_assert((MODE_SYS & 7) == (MODE_USR & 7));
 	old_mode &= 7;
 	new_mode &= 7;
 

@@ -43,3 +43,4 @@
 bin/
 build/
 CMakeLists.txt.user
+CMakeSettings.json

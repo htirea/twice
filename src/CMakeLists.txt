@@ -11,6 +11,11 @@ if(TWICE_LINUX)
 		libtwice/file/posix_file.cc
 		libtwice/file/posix_file_view.cc
 	)
+elseif(TWICE_WINDOWS)
+	set(FILE_SOURCES
+		libtwice/file/windows_file.cc
+		libtwice/file/windows_file_view.cc
+	)
 endif()
 
 add_library(twice STATIC

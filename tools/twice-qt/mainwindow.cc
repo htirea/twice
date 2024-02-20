@@ -60,7 +60,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 
 MainWindow::~MainWindow()
 {
-	emu_thread->push_event(StopThreadEvent());
+	emu_thread->push_event(Event::StopThreadEvent());
 	emu_thread->wait();
 
 	QSettings settings;
@@ -97,7 +97,7 @@ MainWindow::keyPressEvent(QKeyEvent *ev)
 		return;
 	}
 
-	emu_thread->push_event(ButtonEvent{ button, true });
+	emu_thread->push_event(Event::ButtonEvent{ button, true });
 }
 
 void
@@ -114,7 +114,7 @@ MainWindow::keyReleaseEvent(QKeyEvent *ev)
 		return;
 	}
 
-	emu_thread->push_event(ButtonEvent{ button, false });
+	emu_thread->push_event(Event::ButtonEvent{ button, false });
 }
 
 void
@@ -127,7 +127,7 @@ MainWindow::mousePressEvent(QMouseEvent *ev)
 	}
 
 	if (auto coords = get_nds_coords(ev)) {
-		emu_thread->push_event(TouchEvent{ coords->first,
+		emu_thread->push_event(Event::TouchEvent{ coords->first,
 				coords->second, true,
 				button == Qt::RightButton });
 	}
@@ -143,7 +143,7 @@ MainWindow::mouseMoveEvent(QMouseEvent *ev)
 	}
 
 	if (auto coords = get_nds_coords(ev)) {
-		emu_thread->push_event(TouchEvent{
+		emu_thread->push_event(Event::TouchEvent{
 				coords->first, coords->second, true, false });
 	}
 }
@@ -157,7 +157,7 @@ MainWindow::mouseReleaseEvent(QMouseEvent *ev)
 		return;
 	}
 
-	emu_thread->push_event(TouchEvent{ 0, 0, false, false });
+	emu_thread->push_event(Event::TouchEvent{ 0, 0, false, false });
 }
 
 void
@@ -174,8 +174,8 @@ MainWindow::init_default_values()
 		resize(window_width, window_height);
 	}
 
-	emu_thread->push_event(ShutdownEvent());
-	emu_thread->push_event(UnloadFileEvent{ nds_file::CART_ROM });
+	emu_thread->push_event(Event::ShutdownEvent());
+	emu_thread->push_event(Event::UnloadFileEvent{ nds_file::CART_ROM });
 }
 
 void
@@ -223,18 +223,18 @@ MainWindow::get_nds_coords(QMouseEvent *ev)
 }
 
 void
-MainWindow::process_event(const EmptyEvent&)
+MainWindow::process_event(const Event::EmptyEvent&)
 {
 }
 
 void
-MainWindow::process_event(const ErrorEvent& e)
+MainWindow::process_event(const Event::ErrorEvent& e)
 {
 	QMessageBox::critical(nullptr, tr("Error"), e.msg);
 }
 
 void
-MainWindow::process_event(const ShutdownEvent& ev)
+MainWindow::process_event(const Event::ShutdownEvent& ev)
 {
 	using enum nds_file;
 	shutdown = ev.shutdown;
@@ -256,7 +256,7 @@ MainWindow::process_event(const ShutdownEvent& ev)
 }
 
 void
-MainWindow::process_event(const FileEvent& ev)
+MainWindow::process_event(const Event::FileEvent& ev)
 {
 	using enum nds_file;
 	loaded_files = ev.loaded_files;
@@ -276,14 +276,14 @@ MainWindow::process_event(const FileEvent& ev)
 }
 
 void
-MainWindow::process_event(const SaveTypeEvent& ev)
+MainWindow::process_event(const Event::SaveTypeEvent& ev)
 {
 	auto id = SET_SAVETYPE_AUTO + (ev.type + 1);
 	actions[id]->setChecked(true);
 }
 
 void
-MainWindow::process_event(const EndFrameEvent& ev)
+MainWindow::process_event(const Event::EndFrameEvent& ev)
 {
 	display->update();
 	double a = 0.9;
@@ -299,7 +299,7 @@ MainWindow::confirm_shutdown()
 }
 
 void
-MainWindow::process_main_event(const MainEvent& ev)
+MainWindow::process_main_event(const Event::MainEvent& ev)
 {
 	std::visit([this](const auto& ev) { process_event(ev); }, ev);
 }
@@ -313,10 +313,10 @@ MainWindow::open_rom()
 	auto pathname = QFileDialog::getOpenFileName(
 			this, tr("Open ROM"), "", tr("ROM Files (*.nds)"));
 	if (!pathname.isEmpty()) {
-		emu_thread->push_event(ShutdownEvent());
-		emu_thread->push_event(
-				LoadFileEvent{ pathname, nds_file::CART_ROM });
-		emu_thread->push_event(ResetEvent{ true });
+		emu_thread->push_event(Event::ShutdownEvent());
+		emu_thread->push_event(Event::LoadFileEvent{
+				pathname, nds_file::CART_ROM });
+		emu_thread->push_event(Event::ResetEvent{ true });
 	}
 }
 
@@ -345,7 +345,7 @@ MainWindow::open_system_files()
 			cfg->set(ConfigVariable::FIRMWARE_PATH, pathname);
 		}
 
-		emu_thread->push_event(LoadFileEvent{ pathname, type });
+		emu_thread->push_event(Event::LoadFileEvent{ pathname, type });
 	}
 }
 
@@ -355,8 +355,8 @@ MainWindow::load_save_file()
 	auto pathname = QFileDialog::getOpenFileName(this,
 			tr("Load save file"), "", tr("SAV Files (*.sav)"));
 	if (!pathname.isEmpty()) {
-		emu_thread->push_event(
-				LoadFileEvent{ pathname, nds_file::SAVE });
+		emu_thread->push_event(Event::LoadFileEvent{
+				pathname, nds_file::SAVE });
 	}
 }
 
@@ -366,27 +366,27 @@ MainWindow::insert_cart()
 	auto pathname = QFileDialog::getOpenFileName(this,
 			tr("Insert cartridge"), "", tr("ROM Files (*.nds)"));
 	if (!pathname.isEmpty()) {
-		emu_thread->push_event(
-				LoadFileEvent{ pathname, nds_file::CART_ROM });
+		emu_thread->push_event(Event::LoadFileEvent{
+				pathname, nds_file::CART_ROM });
 	}
 }
 
 void
 MainWindow::eject_cart()
 {
-	emu_thread->push_event(UnloadFileEvent{ nds_file::CART_ROM });
+	emu_thread->push_event(Event::UnloadFileEvent{ nds_file::CART_ROM });
 }
 
 void
 MainWindow::unload_save_file()
 {
-	emu_thread->push_event(UnloadFileEvent{ nds_file::SAVE });
+	emu_thread->push_event(Event::UnloadFileEvent{ nds_file::SAVE });
 }
 
 void
 MainWindow::set_savetype(int type)
 {
-	emu_thread->push_event(SaveTypeEvent{ (nds_savetype)type });
+	emu_thread->push_event(Event::SaveTypeEvent{ (nds_savetype)type });
 }
 
 void
@@ -427,27 +427,27 @@ MainWindow::reset_to_firmware()
 void
 MainWindow::reset_emulation(bool direct)
 {
-	emu_thread->push_event(ResetEvent{ direct });
+	emu_thread->push_event(Event::ResetEvent{ direct });
 }
 
 void
 MainWindow::shutdown_emulation()
 {
 	if (confirm_shutdown()) {
-		emu_thread->push_event(ShutdownEvent());
+		emu_thread->push_event(Event::ShutdownEvent());
 	}
 }
 
 void
 MainWindow::toggle_pause(bool checked)
 {
-	emu_thread->push_event(PauseEvent{ checked });
+	emu_thread->push_event(Event::PauseEvent{ checked });
 }
 
 void
 MainWindow::toggle_fastforward(bool checked)
 {
-	emu_thread->push_event(FastForwardEvent{ checked });
+	emu_thread->push_event(Event::FastForwardEvent{ checked });
 }
 
 void

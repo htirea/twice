@@ -30,13 +30,13 @@ EmulatorThread::EmulatorThread(
 	};
 
 	nds = std::make_unique<nds_machine>(nds_cfg);
-	emit send_main_event(FileEvent{ nds->get_loaded_files() });
+	emit send_main_event(Event::FileEvent{ nds->get_loaded_files() });
 }
 
 EmulatorThread::~EmulatorThread(){};
 
 void
-EmulatorThread::push_event(const Event& ev)
+EmulatorThread::push_event(const Event::Event& ev)
 {
 	event_q.push(ev);
 }
@@ -70,7 +70,7 @@ EmulatorThread::run()
 		if (run_frame) {
 			nds->run_until_vblank(&exec_in, &exec_out);
 			shutdown = exec_out.sig_flags & nds_signal::SHUTDOWN;
-			emit send_main_event(ShutdownEvent{ shutdown });
+			emit send_main_event(Event::ShutdownEvent{ shutdown });
 		}
 
 		size_t audio_buf_size = 0;
@@ -98,7 +98,7 @@ EmulatorThread::run()
 			tmr.wait_until_target();
 		}
 
-		emit send_main_event(EndFrameEvent{
+		emit send_main_event(Event::EndFrameEvent{
 				to_seconds<double>(frametime_tmr.measure()) });
 	}
 }
@@ -106,126 +106,128 @@ EmulatorThread::run()
 void
 EmulatorThread::process_events()
 {
-	Event ev;
+	Event::Event ev;
 	while (event_q.try_pop(ev)) {
 		std::visit([this](const auto& ev) { process_event(ev); }, ev);
 	}
 }
 
 void
-EmulatorThread::process_event(const EmptyEvent&)
+EmulatorThread::process_event(const Event::EmptyEvent&)
 {
 }
 
 void
-EmulatorThread::process_event(const LoadFileEvent& ev)
+EmulatorThread::process_event(const Event::LoadFileEvent& ev)
 {
 	try {
 		nds->load_file(ev.pathname.toStdU16String(), ev.type);
 	} catch (const twice_exception& err) {
-		emit send_main_event(ErrorEvent{ tr(err.what()) });
+		emit send_main_event(Event::ErrorEvent{ tr(err.what()) });
 	}
 
 	int loaded_files = nds->get_loaded_files();
-	emit send_main_event(FileEvent{ loaded_files });
+	emit send_main_event(Event::FileEvent{ loaded_files });
 
 	if (ev.type == nds_file::CART_ROM) {
-		emit send_main_event(SaveTypeEvent{ nds->get_savetype() });
+		emit send_main_event(
+				Event::SaveTypeEvent{ nds->get_savetype() });
 	}
 }
 
 void
-EmulatorThread::process_event(const UnloadFileEvent& ev)
+EmulatorThread::process_event(const Event::UnloadFileEvent& ev)
 {
 	try {
 		nds->unload_file(ev.type);
 	} catch (const twice_exception& err) {
-		emit send_main_event(ErrorEvent{ tr(err.what()) });
+		emit send_main_event(Event::ErrorEvent{ tr(err.what()) });
 	}
 
 	int loaded_files = nds->get_loaded_files();
-	emit send_main_event(FileEvent{ loaded_files });
+	emit send_main_event(Event::FileEvent{ loaded_files });
 
 	if (ev.type == nds_file::CART_ROM) {
-		emit send_main_event(SaveTypeEvent{ nds->get_savetype() });
+		emit send_main_event(
+				Event::SaveTypeEvent{ nds->get_savetype() });
 	}
 }
 
 void
-EmulatorThread::process_event(const SaveTypeEvent& ev)
+EmulatorThread::process_event(const Event::SaveTypeEvent& ev)
 {
 	try {
 		nds->set_savetype(ev.type);
 	} catch (const twice_exception& err) {
-		emit send_main_event(ErrorEvent{ tr(err.what()) });
+		emit send_main_event(Event::ErrorEvent{ tr(err.what()) });
 	}
 
-	emit send_main_event(SaveTypeEvent{ nds->get_savetype() });
+	emit send_main_event(Event::SaveTypeEvent{ nds->get_savetype() });
 }
 
 void
-EmulatorThread::process_event(const ResetEvent& ev)
+EmulatorThread::process_event(const Event::ResetEvent& ev)
 {
 	try {
 		nds->reboot(ev.direct);
 	} catch (const twice_exception& err) {
-		emit send_main_event(ErrorEvent{ tr(err.what()) });
+		emit send_main_event(Event::ErrorEvent{ tr(err.what()) });
 	}
 
 	shutdown = nds->is_shutdown();
-	emit send_main_event(ShutdownEvent{ shutdown });
-	emit send_main_event(FileEvent{ nds->get_loaded_files() });
-	emit send_main_event(SaveTypeEvent{ nds->get_savetype() });
+	emit send_main_event(Event::ShutdownEvent{ shutdown });
+	emit send_main_event(Event::FileEvent{ nds->get_loaded_files() });
+	emit send_main_event(Event::SaveTypeEvent{ nds->get_savetype() });
 }
 
 void
-EmulatorThread::process_event(const ShutdownEvent&)
+EmulatorThread::process_event(const Event::ShutdownEvent&)
 {
 	try {
 		nds->shutdown();
 	} catch (const twice_exception& err) {
-		emit send_main_event(ErrorEvent{ tr(err.what()) });
+		emit send_main_event(Event::ErrorEvent{ tr(err.what()) });
 	}
 
 	shutdown = nds->is_shutdown();
-	emit send_main_event(ShutdownEvent{ shutdown });
+	emit send_main_event(Event::ShutdownEvent{ shutdown });
 }
 
 void
-EmulatorThread::process_event(const PauseEvent& ev)
+EmulatorThread::process_event(const Event::PauseEvent& ev)
 {
 	paused = ev.paused;
 }
 
 void
-EmulatorThread::process_event(const FastForwardEvent& ev)
+EmulatorThread::process_event(const Event::FastForwardEvent& ev)
 {
 	throttle = !ev.fastforward;
 }
 
 void
-EmulatorThread::process_event(const ButtonEvent& ev)
+EmulatorThread::process_event(const Event::ButtonEvent& ev)
 {
 	try {
 		nds->update_button_state(ev.button, ev.down);
 	} catch (const twice_exception& err) {
-		emit send_main_event(ErrorEvent{ tr(err.what()) });
+		emit send_main_event(Event::ErrorEvent{ tr(err.what()) });
 	}
 }
 
 void
-EmulatorThread::process_event(const TouchEvent& ev)
+EmulatorThread::process_event(const Event::TouchEvent& ev)
 {
 	try {
 		nds->update_touchscreen_state(
 				ev.x, ev.y, ev.down, ev.quicktap, false);
 	} catch (const twice_exception& err) {
-		emit send_main_event(ErrorEvent{ tr(err.what()) });
+		emit send_main_event(Event::ErrorEvent{ tr(err.what()) });
 	}
 }
 
 void
-EmulatorThread::process_event(const StopThreadEvent&)
+EmulatorThread::process_event(const Event::StopThreadEvent&)
 {
 	running = false;
 }

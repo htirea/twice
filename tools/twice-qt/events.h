@@ -8,6 +8,8 @@
 
 #include <filesystem>
 
+namespace Event {
+
 struct EmptyEvent {};
 
 struct LoadFileEvent {
@@ -71,5 +73,7 @@ using Event = std::variant<EmptyEvent, LoadFileEvent, UnloadFileEvent,
 
 using MainEvent = std::variant<EmptyEvent, ErrorEvent, ShutdownEvent,
 		FileEvent, SaveTypeEvent, EndFrameEvent>;
+
+} // namespace EmulatorEvent
 
 #endif
