@@ -7,9 +7,6 @@
 [submodule "third-party/SDL"]
 	path = third-party/SDL
 	url = https://github.com/libsdl-org/SDL.git
-[submodule "third-party/json"]
-	path = third-party/json
-	url = https://github.com/nlohmann/json.git
 [submodule "third-party/zlib"]
 	path = third-party/zlib
 	url = https://github.com/htirea/zlib.git

@@ -21,7 +21,7 @@ struct arm_cpu {
 		MODE_USR = 8
 	};
 
-	enum halt_mode {
+	enum halt_mode : u32 {
 		CPU_HALT = BIT(0),
 		CPU_STOP = BIT(30),
 		CPU_GXFIFO_HALT = BIT(31),
@@ -78,8 +78,8 @@ void arm_switch_mode(arm_cpu *cpu, u32 new_mode);
 void arm_check_interrupt(arm_cpu *cpu);
 void arm_on_cpsr_write(arm_cpu *cpu);
 void arm_do_irq(arm_cpu *cpu);
-void halt_cpu(arm_cpu *cpu, int halt_bits);
-void unhalt_cpu(arm_cpu *cpu, int halt_bits);
+void halt_cpu(arm_cpu *cpu, u32 halt_bits);
+void unhalt_cpu(arm_cpu *cpu, u32 halt_bits);
 void request_interrupt(arm_cpu *cpu, int bit);
 
 extern const u16 arm_cond_table[16];

@@ -25,8 +25,8 @@ struct ActionInfo {
 	const char *text;
 	const char *tip;
 	bool checkable{};
-	std::optional<int> val;
-	std::optional<QKeySequence::StandardKey> std_key;
+	std::optional<int> val{};
+	std::optional<QKeySequence::StandardKey> std_key{};
 };
 
 struct MenuInfo {

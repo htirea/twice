@@ -15,7 +15,6 @@
 #include "libtwice/nds/machine.h"
 
 #include "args.h"
-#include "database.h"
 #include "platform.h"
 
 twice::arg_parser twice::parser;
@@ -161,14 +160,6 @@ try {
 	if (data_dir.empty()) {
 		data_dir = twice::get_data_dir();
 		std::cerr << "data dir: " << data_dir << '\n';
-	}
-
-	try {
-		twice::initialize_nds_game_db_from_json(
-				data_dir + "game-db.json");
-	} catch (const twice::twice_exception& e) {
-		std::cerr << e.what() << '\n';
-		std::cerr << "could not load game database\n";
 	}
 
 	twice::nds_config config{ char_to_u8_string(data_dir) };

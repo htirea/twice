@@ -10,70 +10,66 @@
 
 namespace Event {
 
-struct EmptyEvent {};
-
-struct LoadFileEvent {
+struct LoadFile {
 	QString pathname;
 	twice::nds_file type;
 };
 
-struct UnloadFileEvent {
+struct UnloadFile {
 	twice::nds_file type;
 };
 
-struct SaveTypeEvent {
+struct SaveType {
 	twice::nds_savetype type;
 };
 
-struct ResetEvent {
+struct Reset {
 	bool direct;
 };
 
-struct ShutdownEvent {
+struct Shutdown {
 	bool shutdown;
 };
 
-struct PauseEvent {
+struct Pause {
 	bool paused;
 };
 
-struct FastForwardEvent {
+struct FastForward {
 	bool fastforward;
 };
 
-struct ButtonEvent {
+struct Button {
 	twice::nds_button button;
 	bool down;
 };
 
-struct TouchEvent {
+struct Touch {
 	int x;
 	int y;
 	bool down;
 	bool quicktap;
 };
 
-struct StopThreadEvent {};
+struct StopThread {};
 
-struct ErrorEvent {
+struct Error {
 	QString msg;
 };
 
-struct FileEvent {
+struct File {
 	int loaded_files;
 };
 
-struct EndFrameEvent {
+struct EndFrame {
 	double frametime;
 };
 
-using Event = std::variant<EmptyEvent, LoadFileEvent, UnloadFileEvent,
-		SaveTypeEvent, ResetEvent, ShutdownEvent, PauseEvent,
-		FastForwardEvent, ButtonEvent, TouchEvent, StopThreadEvent>;
+using Event = std::variant<LoadFile, UnloadFile, SaveType, Reset, Shutdown,
+		Pause, FastForward, Button, Touch, StopThread>;
 
-using MainEvent = std::variant<EmptyEvent, ErrorEvent, ShutdownEvent,
-		FileEvent, SaveTypeEvent, EndFrameEvent>;
+using MainEvent = std::variant<Error, Shutdown, File, SaveType, EndFrame>;
 
-} // namespace EmulatorEvent
+} // namespace Event
 
 #endif

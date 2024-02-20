@@ -14,6 +14,10 @@ firmware_init(nds_ctx *nds)
 	auto& fw = nds->fw;
 	fw.data = nds->firmware_v.data();
 
+	if (!fw.data) {
+		throw twice_error("firmware data not initialized");
+	}
+
 	u32 user_settings_offset = readarr<u16>(fw.data, 0x20) << 3;
 	if (user_settings_offset != 0x3FE00) {
 		throw twice_error("unhandled firmware user settings offset");

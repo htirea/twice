@@ -6,8 +6,6 @@ set(TOOLCHAIN_FILE_INCLUDED true)
 set(CMAKE_CXX_FLAGS_INIT " \
 -Wall -Wextra -pedantic \
 -Wcast-align \
--Wsuggest-final-types \
--Wsuggest-final-methods \
 -Wnon-virtual-dtor \
 -Wduplicated-branches \
 -Wduplicated-cond \

@@ -40,10 +40,7 @@ window_coords_to_screen_coords(double w, double h, double x, double y,
 		double target_ratio = 256.0 / 384.0;
 		double given_ratio = w / h;
 
-		if (given_ratio == target_ratio) {
-			x = x * 256.0 / w;
-			y = (y - h / 2) * 192 / (h / 2);
-		} else if (given_ratio <= target_ratio) {
+		if (given_ratio <= target_ratio) {
 			double new_h = w / target_ratio;
 			x = x * 256.0 / w;
 			y = (y - h / 2) * 192 / (new_h / 2);

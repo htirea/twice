@@ -1,6 +1,5 @@
 add_executable(twice-sdl
 	args.cc
-	database.cc
 	platform.cc
 	main.cc
 	screenshot.cc)
@@ -13,7 +12,6 @@ target_link_libraries(twice-sdl PRIVATE
 	twice
 	${TWICE_SDL_LIBRARIES}
 	${TWICE_PNG_LIBRARIES}
-	ZLIB::ZLIB
-	nlohmann_json::nlohmann_json)
+	ZLIB::ZLIB)
 
 install(TARGETS twice-sdl)

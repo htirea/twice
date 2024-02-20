@@ -117,14 +117,14 @@ arm_do_irq(arm_cpu *cpu)
 }
 
 void
-halt_cpu(arm_cpu *cpu, int halt_bits)
+halt_cpu(arm_cpu *cpu, u32 halt_bits)
 {
 	cpu->halted |= halt_bits;
 	*cpu->target_cycles = *cpu->cycles;
 }
 
 void
-unhalt_cpu(arm_cpu *cpu, int halt_bits)
+unhalt_cpu(arm_cpu *cpu, u32 halt_bits)
 {
 	cpu->halted &= ~halt_bits;
 }

@@ -21,7 +21,6 @@ option(TWICE_USE_LTO "Use link time optimisation" ON)
 option(TWICE_USE_VENDORED_PNG "Use the vendored libpng" OFF)
 option(TWICE_USE_VENDORED_SDL "Use the vendored SDL" OFF)
 option(TWICE_USE_STATIC_SDL "Link statically to SDL" OFF)
-option(TWICE_USE_VENDORED_JSON "Use the vendored json" ON)
 option(TWICE_BUILD_QT "Build the QT frontend" ON)
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
@@ -67,13 +66,6 @@ else()
 	endif()
 
 	set(TWICE_SDL_LIBRARIES ${TWICE_SDL_LIBRARIES} SDL2::SDL2)
-endif()
-
-if(TWICE_USE_VENDORED_JSON)
-	set(JSON_BuildTests OFF CACHE INTERNAL "")
-	add_subdirectory(third-party/json)
-else()
-	find_package(nlohmann_json REQUIRED)
 endif()
 
 if(TWICE_USE_LTO)

@@ -28,17 +28,16 @@ class EmulatorThread : public QThread {
 
       private:
 	void process_events();
-	void process_event(const Event::EmptyEvent& ev);
-	void process_event(const Event::LoadFileEvent& ev);
-	void process_event(const Event::UnloadFileEvent& ev);
-	void process_event(const Event::SaveTypeEvent& ev);
-	void process_event(const Event::StopThreadEvent& ev);
-	void process_event(const Event::ResetEvent& ev);
-	void process_event(const Event::ShutdownEvent& ev);
-	void process_event(const Event::PauseEvent& ev);
-	void process_event(const Event::FastForwardEvent& ev);
-	void process_event(const Event::ButtonEvent& ev);
-	void process_event(const Event::TouchEvent& ev);
+	void process_event(const Event::LoadFile& ev);
+	void process_event(const Event::UnloadFile& ev);
+	void process_event(const Event::SaveType& ev);
+	void process_event(const Event::StopThread& ev);
+	void process_event(const Event::Reset& ev);
+	void process_event(const Event::Shutdown& ev);
+	void process_event(const Event::Pause& ev);
+	void process_event(const Event::FastForward& ev);
+	void process_event(const Event::Button& ev);
+	void process_event(const Event::Touch& ev);
 
       signals:
 	void send_main_event(const Event::MainEvent& ev);

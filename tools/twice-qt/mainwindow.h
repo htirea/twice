@@ -39,12 +39,11 @@ class MainWindow : public QMainWindow {
 	void set_display_size(int w, int h);
 	void auto_resize_display();
 	std::optional<std::pair<int, int>> get_nds_coords(QMouseEvent *ev);
-	void process_event(const Event::EmptyEvent& ev);
-	void process_event(const Event::ErrorEvent& ev);
-	void process_event(const Event::ShutdownEvent& ev);
-	void process_event(const Event::FileEvent& ev);
-	void process_event(const Event::SaveTypeEvent& ev);
-	void process_event(const Event::EndFrameEvent& ev);
+	void process_event(const Event::Error& ev);
+	void process_event(const Event::Shutdown& ev);
+	void process_event(const Event::File& ev);
+	void process_event(const Event::SaveType& ev);
+	void process_event(const Event::EndFrame& ev);
 	bool confirm_shutdown();
 
       private slots:

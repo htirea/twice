@@ -35,7 +35,7 @@ file_view::map(const file& fh, int flags)
 		flprotect = PAGE_READWRITE;
 		map_access = FILE_MAP_ALL_ACCESS;
 	} else {
-		return -1;
+		return -2;
 	}
 
 	auto map_size = fh.get_size();

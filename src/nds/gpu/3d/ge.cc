@@ -218,7 +218,7 @@ cmd_mtx_mode(geometry_engine *ge)
 static void
 cmd_mtx_push(geometry_engine *ge)
 {
-	bool err;
+	bool err = false;
 
 	switch (ge->mtx_mode) {
 	case 0:
@@ -247,7 +247,7 @@ cmd_mtx_push(geometry_engine *ge)
 static void
 cmd_mtx_pop(geometry_engine *ge)
 {
-	bool err;
+	bool err = false;
 
 	switch (ge->mtx_mode) {
 	case 0:

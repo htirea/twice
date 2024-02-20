@@ -46,7 +46,7 @@ file::open(const std::filesystem::path& pathname, int flags)
 			NULL, creation_disposition, FILE_ATTRIBUTE_NORMAL,
 			NULL);
 	if (fh == INVALID_HANDLE_VALUE) {
-		return 1;
+		return -1;
 	}
 
 	internal = std::make_unique<impl>();
@@ -67,7 +67,7 @@ file::truncate(std::streamoff length)
 	distance.QuadPart = length;
 
 	if (!SetFilePointerEx(internal->fh, distance, NULL, FILE_BEGIN)) {
-		return 1;
+		return -1;
 	}
 
 	return !SetEndOfFile(internal->fh);
