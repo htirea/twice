@@ -10,13 +10,12 @@ struct SharedBuffers {
 	using video_buffer = twice::triple_buffer<
 			std::array<twice::u32, twice::NDS_FB_SZ>>;
 
-	using audio_buffer =
-			twice::triple_buffer<std::array<twice::s16, 2048>>;
+	using audio_buffer = twice::ring_buffer<16384>;
 
 	using mic_buffer = twice::ring_buffer<16384>;
 
 	video_buffer vb{ {} };
-	audio_buffer ab{ {} };
+	audio_buffer ab;
 	mic_buffer mb{};
 };
 

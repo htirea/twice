@@ -41,8 +41,6 @@ class MainWindow : public QMainWindow {
 	std::optional<std::pair<int, int>> get_nds_coords(QMouseEvent *ev);
 	void process_event(const EmptyEvent& ev);
 	void process_event(const ErrorEvent& ev);
-	void process_event(const RenderEvent& ev);
-	void process_event(const PushAudioEvent& ev);
 	void process_event(const ShutdownEvent& ev);
 	void process_event(const FileEvent& ev);
 	void process_event(const SaveTypeEvent& ev);

@@ -234,18 +234,6 @@ MainWindow::process_event(const ErrorEvent& e)
 }
 
 void
-MainWindow::process_event(const RenderEvent&)
-{
-	display->update();
-}
-
-void
-MainWindow::process_event(const PushAudioEvent& ev)
-{
-	audio_out->push_audio(ev.len);
-}
-
-void
 MainWindow::process_event(const ShutdownEvent& ev)
 {
 	using enum nds_file;
@@ -297,6 +285,7 @@ MainWindow::process_event(const SaveTypeEvent& ev)
 void
 MainWindow::process_event(const EndFrameEvent& ev)
 {
+	display->update();
 	double a = 0.9;
 	avg_frametime = a * avg_frametime + (1 - a) * ev.frametime;
 }

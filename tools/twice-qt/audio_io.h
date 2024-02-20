@@ -13,7 +13,6 @@ class AudioIO : QObject {
       public:
 	AudioIO(SharedBuffers *bufs, QObject *parent);
 	~AudioIO();
-	void push_audio(size_t len);
 
       private:
 	struct impl;

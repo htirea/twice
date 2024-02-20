@@ -76,13 +76,11 @@ EmulatorThread::run()
 		size_t audio_buf_size = 0;
 		if (run_frame && throttle) {
 			audio_buf_size = exec_out.audio_buf_len << 2;
-			std::memcpy(bufs->ab.get_write_buffer().data(),
-					exec_out.audio_buf, audio_buf_size);
-			bufs->ab.swap_write_buffer();
+			bufs->ab.write_locked((char *)exec_out.audio_buf,
+					audio_buf_size);
 		} else {
 			audio_buf_size = 0;
-			bufs->ab.get_write_buffer().fill(0);
-			bufs->ab.swap_write_buffer();
+			bufs->ab.fill_locked(0);
 		}
 
 		if (run_frame) {
@@ -100,8 +98,6 @@ EmulatorThread::run()
 			tmr.wait_until_target();
 		}
 
-		emit send_main_event(PushAudioEvent{ audio_buf_size });
-		emit send_main_event(RenderEvent());
 		emit send_main_event(EndFrameEvent{
 				to_seconds<double>(frametime_tmr.measure()) });
 	}

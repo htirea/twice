@@ -57,12 +57,6 @@ struct ErrorEvent {
 	QString msg;
 };
 
-struct RenderEvent {};
-
-struct PushAudioEvent {
-	size_t len;
-};
-
 struct FileEvent {
 	int loaded_files;
 };
@@ -75,8 +69,7 @@ using Event = std::variant<EmptyEvent, LoadFileEvent, UnloadFileEvent,
 		SaveTypeEvent, ResetEvent, ShutdownEvent, PauseEvent,
 		FastForwardEvent, ButtonEvent, TouchEvent, StopThreadEvent>;
 
-using MainEvent = std::variant<EmptyEvent, ErrorEvent, RenderEvent,
-		PushAudioEvent, ShutdownEvent, FileEvent, SaveTypeEvent,
-		EndFrameEvent>;
+using MainEvent = std::variant<EmptyEvent, ErrorEvent, ShutdownEvent,
+		FileEvent, SaveTypeEvent, EndFrameEvent>;
 
 #endif
