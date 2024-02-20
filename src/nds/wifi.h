@@ -18,8 +18,8 @@ enum : u32 {
 struct wifi {
 	u8 bb_write{};
 	u8 bb_read{};
-	u8 bb_mode{};
-	u8 bb_power{};
+	u16 bb_mode{};
+	u16 bb_power{};
 	u8 bb_regs[0x100]{};
 	u8 wifi_regs[WIFI_IO_REG_SIZE]{};
 	u16 powerstate{ BIT(9) };
