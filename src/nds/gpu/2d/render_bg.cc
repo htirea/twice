@@ -45,6 +45,11 @@ FORCE_INLINE static void setup_default_bg_base_addr(
 template <bool ext>
 FORCE_INLINE static void render_text_bg_256(gpu_2d_engine *, background&);
 FORCE_INLINE static void render_text_bg_16(gpu_2d_engine *, background&);
+template <bool ext>
+FORCE_INLINE static void render_text_bg_256_mosaic(
+		gpu_2d_engine *, background&);
+FORCE_INLINE static void render_text_bg_16_mosaic(
+		gpu_2d_engine *, background&);
 FORCE_INLINE static void render_text_bg_loop_step(background&);
 template <typename T>
 FORCE_INLINE static std::pair<T, u32> fetch_text_bg_tile(
@@ -102,11 +107,11 @@ render_text_bg_line(gpu_2d_engine *gpu, int bg_id, u32 y)
 	} else {
 		/* TODO: horizontal mosaic */
 		if (bg.color_256 && bg.ext_palettes)
-			render_text_bg_256<true>(gpu, bg);
+			render_text_bg_256_mosaic<true>(gpu, bg);
 		else if (bg.color_256)
-			render_text_bg_256<false>(gpu, bg);
+			render_text_bg_256_mosaic<false>(gpu, bg);
 		else
-			render_text_bg_16(gpu, bg);
+			render_text_bg_16_mosaic(gpu, bg);
 	}
 }
 
@@ -339,6 +344,93 @@ render_text_bg_16(gpu_2d_engine *gpu, background& bg)
 
 		render_text_bg_loop_step(bg);
 		px = 0;
+	}
+}
+
+template <bool ext>
+static void
+render_text_bg_256_mosaic(gpu_2d_engine *gpu, background& bg)
+{
+	u32 mosaic_w = bg.mosaic_h + 1;
+	auto [char_row, palette_num] = fetch_text_bg_tile<u64>(gpu, bg);
+
+	for (u32 x = 0, px = 0, k = bg.x & 7; x < 256;) {
+		u32 num_tiles = ((px + k) >> 3) - (px >> 3);
+		px = (px + k) & 7;
+
+		for (u32 i = num_tiles; i--;) {
+			render_text_bg_loop_step(bg);
+		}
+
+		if (num_tiles != 0) {
+			std::tie(char_row, palette_num) =
+					fetch_text_bg_tile<u64>(gpu, bg);
+			char_row >>= px << 3;
+		} else {
+			char_row >>= k << 3;
+		}
+
+		u32 color_num = char_row & 0xFF;
+		if (color_num == 0) {
+			x += mosaic_w;
+			k = mosaic_w;
+			continue;
+		}
+
+		u16 color;
+		if (ext) {
+			color = bg_get_color_256_ext(
+					gpu, bg.slot, palette_num, color_num);
+		} else {
+			color = bg_get_color(gpu, color_num);
+		}
+
+		for (k = 0; k < mosaic_w && x < 256; k++, x++) {
+			if (!layer_in_window(gpu, bg.id, x))
+				continue;
+
+			write_pixel(gpu, bg.id, x, color, bg.attr);
+		}
+	}
+}
+
+static void
+render_text_bg_16_mosaic(gpu_2d_engine *gpu, background& bg)
+{
+	u32 mosaic_w = bg.mosaic_h + 1;
+	auto [char_row, palette_num] = fetch_text_bg_tile<u32>(gpu, bg);
+
+	for (u32 x = 0, px = 0, k = bg.x & 7; x < 256;) {
+		u32 num_tiles = ((px + k) >> 3) - (px >> 3);
+		px = (px + k) & 7;
+
+		for (u32 i = num_tiles; i--;) {
+			render_text_bg_loop_step(bg);
+		}
+
+		if (num_tiles != 0) {
+			std::tie(char_row, palette_num) =
+					fetch_text_bg_tile<u32>(gpu, bg);
+			char_row >>= px << 2;
+		} else {
+			char_row >>= k << 2;
+		}
+
+		u32 color_num = char_row & 0xF;
+		if (color_num == 0) {
+			x += mosaic_w;
+			k = mosaic_w;
+			continue;
+		}
+
+		u16 color = bg_get_color_16(gpu, palette_num, color_num);
+
+		for (k = 0; k < mosaic_w && x < 256; k++, x++) {
+			if (!layer_in_window(gpu, bg.id, x))
+				continue;
+
+			write_pixel(gpu, bg.id, x, color, bg.attr);
+		}
 	}
 }
 
