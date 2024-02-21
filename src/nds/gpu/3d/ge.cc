@@ -561,8 +561,9 @@ cmd_normal(geometry_engine *ge)
 			spe_dot = (0x400 - (spe_dot - 0x400)) & 0x3FF;
 		}
 
-		s64 spe_level = (spe_dot * spe_dot & ~0x3FF) /
+		s64 spe_recip = ((s64)1 << 18) /
 		                (-ge->light_vec[i][2] + (1 << 9));
+		s64 spe_level = (spe_dot * spe_dot >> 10) * spe_recip >> 8;
 		spe_level -= (1 << 9);
 
 		spe_level = SEXTL<14>(spe_level);
