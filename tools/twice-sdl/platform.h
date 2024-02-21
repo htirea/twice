@@ -80,6 +80,7 @@ class sdl_platform {
 	int orientation{};
 	moving_average<std::uint64_t> fps_counter;
 	nds_machine *nds{};
+	nds_exec exec_out;
 };
 
 std::string get_data_dir();

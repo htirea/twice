@@ -229,8 +229,8 @@ sdl_platform::loop()
 		handle_events();
 
 		if (!paused || step_frame) {
-			nds->run_frame();
-			render(nds->get_framebuffer());
+			nds->run_until_vblank(nullptr, &exec_out);
+			render(exec_out.fb);
 			step_frame = false;
 			frames++;
 			if (frames == frame_limit) {
@@ -239,8 +239,8 @@ sdl_platform::loop()
 		}
 
 		if (!paused && throttle && !audio_muted) {
-			queue_audio(nds->get_audio_buffer(),
-					nds->get_audio_buffer_size(),
+			queue_audio(exec_out.audio_buf,
+					exec_out.audio_buf_len << 2,
 					last_elapsed);
 		}
 
@@ -408,7 +408,7 @@ sdl_platform::handle_key_event(SDL_Keycode key, bool down)
 			adjust_window_size(-1);
 			break;
 		case SDLK_s:
-			take_screenshot(nds->get_framebuffer());
+			take_screenshot(exec_out.fb);
 			break;
 		case SDLK_d:
 			nds->dump_profiler_report();
@@ -534,6 +534,9 @@ sdl_platform::update_touchscreen_state()
 void
 sdl_platform::take_screenshot(void *fb)
 {
+	if (!fb)
+		return;
+
 	using namespace std::chrono;
 
 	auto const tp = zoned_time{ current_zone(), system_clock::now() }

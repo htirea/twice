@@ -399,51 +399,12 @@ struct nds_machine {
 	void run_until_vblank(const nds_exec *in, nds_exec *out);
 
 	/**
-	 * Emulate one frame.
-	 */
-	void run_frame();
-
-	/**
 	 * Check whether the machine is shut down.
 	 *
 	 * \returns true if the machine is shut down
 	 *          false otherwise
 	 */
 	bool is_shutdown();
-
-	/**
-	 * Get the rendered framebuffer.
-	 *
-	 * The framebuffer is stored as an array of 32 bit pixels in
-	 * BGR888 format, with the most significant 8 bits left unused.
-	 *
-	 * The framebuffer has a width of 256 pixels, and a height of
-	 * 384 pixels. The first half of the framebuffer contains the
-	 * top screen, and the second half contains the bottom screen.
-	 *
-	 * \returns a pointer to the framebuffer
-	 */
-	u32 *get_framebuffer();
-
-	/**
-	 * Get the audio buffer for the emulated frame.
-	 *
-	 * The audio buffer is stored as an array of signed 16 bit
-	 * samples, with 2 channels, interleaved, at a sample rate of
-	 * 32768 Hz.
-	 *
-	 * \returns a pointer to the audio buffer
-	 */
-	s16 *get_audio_buffer();
-
-	/**
-	 * Get the audio buffer size for the emulated frame.
-	 *
-	 * The size of the audio buffer is given in bytes.
-	 *
-	 * \returns the buffer size in bytes
-	 */
-	u32 get_audio_buffer_size();
 
 	/**
 	 * Get the CPU usage.

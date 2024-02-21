@@ -25,6 +25,7 @@ struct nds_machine::impl {
 	u32 gamecode{};
 	std::optional<nds_rtc_state> rtc_state;
 	std::unique_ptr<nds_ctx> nds;
+	std::unique_ptr<nds_ctx> last_nds_ctx;
 };
 
 nds_machine::impl::impl(const nds_config& cfg) : cfg(cfg) {}
@@ -487,8 +488,10 @@ nds_machine::boot(bool direct_boot)
 void
 nds_machine::shutdown()
 {
-	m->nds.reset();
 	sync_files();
+	if (m->nds) {
+		m->last_nds_ctx = std::move(m->nds);
+	}
 }
 
 void
@@ -512,51 +515,10 @@ nds_machine::run_until_vblank(const nds_exec *in, nds_exec *out)
 	}
 }
 
-void
-nds_machine::run_frame()
-{
-	if (!m->nds) {
-		throw twice_error("The machine is not running.");
-	}
-
-	nds_run(m->nds.get(), run_mode::RUN_UNTIL_VBLANK, nullptr, nullptr);
-
-	if (m->nds->shutdown) {
-		shutdown();
-	}
-}
-
 bool
 nds_machine::is_shutdown()
 {
-	return !m->nds;
-}
-
-u32 *
-nds_machine::get_framebuffer()
-{
-	if (!m->nds)
-		return nullptr;
-
-	return m->nds->fb;
-}
-
-s16 *
-nds_machine::get_audio_buffer()
-{
-	if (!m->nds)
-		return nullptr;
-
-	return m->nds->audio_buf.data();
-}
-
-u32
-nds_machine::get_audio_buffer_size()
-{
-	if (!m->nds)
-		return 0;
-
-	return m->nds->last_audio_buf_size;
+	return !m->nds || m->nds->shutdown;
 }
 
 std::pair<double, double>
