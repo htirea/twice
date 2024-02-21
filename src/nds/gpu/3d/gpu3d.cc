@@ -93,6 +93,12 @@ gpu_3d_read16(gpu_3d_engine *gpu, u16 offset)
 		return gpu->ge.poly_ram->count;
 	case 0x606:
 		return gpu->ge.vtx_ram->count;
+	case 0x630:
+		return gpu->ge.vec_test_result[0];
+	case 0x632:
+		return gpu->ge.vec_test_result[1];
+	case 0x634:
+		return gpu->ge.vec_test_result[2];
 	}
 
 	LOG("3d engine read 16 at offset %03X\n", offset);
@@ -115,6 +121,14 @@ gpu_3d_read32(gpu_3d_engine *gpu, u16 offset)
 	switch (offset) {
 	case 0x600:
 		return gxstat_read(gpu);
+	case 0x620:
+		return gpu->ge.pos_test_result[0];
+	case 0x624:
+		return gpu->ge.pos_test_result[1];
+	case 0x628:
+		return gpu->ge.pos_test_result[2];
+	case 0x62C:
+		return gpu->ge.pos_test_result[3];
 	case 0x4A4:
 		return 0;
 	}

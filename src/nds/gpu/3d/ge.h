@@ -58,6 +58,9 @@ struct geometry_engine {
 	u16 viewport_w{};
 	u16 viewport_h{};
 
+	std::array<s32, 4> pos_test_result{};
+	std::array<s32, 3> vec_test_result{};
+
 	vertex_ram *vtx_ram{};
 	polygon_ram *poly_ram{};
 	gpu_3d_engine *gpu{};

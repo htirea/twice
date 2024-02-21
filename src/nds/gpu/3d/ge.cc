@@ -833,15 +833,31 @@ cmd_box_test(geometry_engine *ge)
 }
 
 static void
-cmd_pos_test(geometry_engine *)
+cmd_pos_test(geometry_engine *ge)
 {
-	throw twice_error("pos test");
+	s32 pos[4]{};
+	pos[0] = ge->vx = (s32)(ge->cmd_params[0] << 16) >> 16;
+	pos[1] = ge->vy = (s32)(ge->cmd_params[0]) >> 16;
+	pos[2] = ge->vz = (s32)(ge->cmd_params[1] << 16) >> 16;
+	pos[3] = 1 << 12;
+
+	mtx_mult_vec(ge->pos_test_result, ge->clip_mtx, pos);
 }
 
 static void
-cmd_vec_test(geometry_engine *)
+cmd_vec_test(geometry_engine *ge)
 {
-	throw twice_error("vec test");
+	u32 param = ge->cmd_params[0];
+	s32 x = (s16)(param << 6) >> 6;
+	s32 y = (s16)(param >> 4) >> 6;
+	s32 z = (s16)(param >> 14) >> 6;
+
+	s32 result[3]{};
+	mtx_mult_vec3(result, ge->vector_mtx, x << 3, y << 3, z << 3);
+
+	ge->vec_test_result[0] = (s16)(result[0] << 3) >> 3;
+	ge->vec_test_result[1] = (s16)(result[1] << 3) >> 3;
+	ge->vec_test_result[2] = (s16)(result[2] << 3) >> 3;
 }
 
 static void
