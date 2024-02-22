@@ -43,7 +43,8 @@ class sdl_platform {
 	void handle_events();
 	void handle_key_event(SDL_Keycode key, bool down);
 	void handle_controller_button_event(int button, bool down);
-	void arm_set_title(u64 ticks, std::pair<double, double> cpu_usage);
+	void arm_set_title(
+			u64 ticks, const std::pair<double, double>& cpu_usage);
 	void add_controller(int joystick_index);
 	void remove_controller(SDL_JoystickID id);
 	void update_touchscreen_state();

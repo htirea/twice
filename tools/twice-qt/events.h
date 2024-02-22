@@ -63,6 +63,8 @@ struct File {
 
 struct EndFrame {
 	double frametime;
+	std::pair<double, double> cpu_usage;
+	std::pair<double, double> dma_usage;
 };
 
 using Event = std::variant<LoadFile, UnloadFile, SaveType, Reset, Shutdown,

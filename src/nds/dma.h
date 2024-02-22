@@ -26,6 +26,7 @@ struct dma_controller {
 	dma_transfer_state transfers[4];
 	timestamp *target_cycles{};
 	timestamp *cycles{};
+	u64 cycles_executed{};
 };
 
 void dma_controller_init(nds_ctx *nds, int cpuid);

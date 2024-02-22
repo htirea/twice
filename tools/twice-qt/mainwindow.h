@@ -81,6 +81,7 @@ class MainWindow : public QMainWindow {
 	std::vector<QMenu *> menus;
 
 	double avg_frametime{ 0.16 };
+	double avg_usage[4]{};
 	SharedBuffers bufs;
 	bool shutdown{};
 	int loaded_files{};

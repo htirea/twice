@@ -193,6 +193,7 @@ run_dma(nds_ctx *nds)
 		t.sad += t.sad_step;
 		t.dad += t.dad_step;
 		*dma.cycles += 2;
+		dma.cycles_executed += 2;
 	}
 
 	if (t.count == t.word_count) {

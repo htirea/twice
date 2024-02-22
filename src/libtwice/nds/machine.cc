@@ -521,15 +521,6 @@ nds_machine::is_shutdown()
 	return !m->nds || m->nds->shutdown;
 }
 
-std::pair<double, double>
-nds_machine::get_cpu_usage()
-{
-	if (!m->nds)
-		return { 0, 0 };
-
-	return { m->nds->arm9_usage, m->nds->arm7_usage };
-}
-
 void
 nds_machine::update_button_state(nds_button button, bool down)
 {

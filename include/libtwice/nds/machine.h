@@ -151,8 +151,8 @@ struct nds_exec {
 	/**
 	 * The number of ARM9 cycles.
 	 *
-	 * \in the number of cycles to run for / target cycles to run
-	 * until \out the number of cycles executed
+	 * \in the number of cycles to run for / target cycles to run until
+	 * \out the number of cycles elapsed
 	 */
 	u64 cycles{};
 
@@ -163,8 +163,7 @@ struct nds_exec {
 	 * samples, at a sample rate of 32768 Hz.
 	 *
 	 * \in contains the microphone input (mono)
-	 * \out contains the speaker output (stereo: interleaved left,
-	 * right)
+	 * \out contains the speaker output (stereo: interleaved left, right)
 	 */
 	s16 *audio_buf{};
 
@@ -198,10 +197,19 @@ struct nds_exec {
 	 * of whether it is specified.
 	 *
 	 * \in the signals to suspend execution on, if raised
-	 * \out the signals that were raised, and thus suspended
-	 * execution
+	 * \out the signals that were raised, and thus suspended execution
 	 */
 	unsigned long sig_flags{};
+
+	/**
+	 * The emulated ARM9 / ARM7 CPU usage as a fraction from [0..1].
+	 */
+	std::pair<double, double> cpu_usage{};
+
+	/**
+	 * The emulated ARM9 / ARM7 DMA usage as a fraction from [0..1].
+	 */
+	std::pair<double, double> dma_usage{};
 };
 
 /**
@@ -405,15 +413,6 @@ struct nds_machine {
 	 *          false otherwise
 	 */
 	bool is_shutdown();
-
-	/**
-	 * Get the CPU usage.
-	 *
-	 * The CPU usage is a value in the range [0..1].
-	 *
-	 * \returns a pair containing the arm9 and arm7 cpu usage
-	 */
-	std::pair<double, double> get_cpu_usage();
 
 	/**
 	 * Update the state of a button.

@@ -283,6 +283,10 @@ MainWindow::process_event(const Event::EndFrame& ev)
 	display->update();
 	double a = 0.9;
 	avg_frametime = a * avg_frametime + (1 - a) * ev.frametime;
+	avg_usage[0] = a * avg_usage[0] + (1 - a) * ev.cpu_usage.first;
+	avg_usage[1] = a * avg_usage[1] + (1 - a) * ev.cpu_usage.second;
+	avg_usage[2] = a * avg_usage[2] + (1 - a) * ev.dma_usage.first;
+	avg_usage[3] = a * avg_usage[3] + (1 - a) * ev.dma_usage.second;
 }
 
 bool
@@ -458,9 +462,11 @@ void
 MainWindow::update_title()
 {
 	double fps = 1 / avg_frametime;
-	auto title = QString("Twice [%1 fps | %2 ms]")
+	auto title = QString("Twice [%1 fps | %2 ms | %3 | %4]")
 	                             .arg(fps, 0, 'f', 2)
-	                             .arg(avg_frametime * 1000, 0, 'f', 2);
+	                             .arg(avg_frametime * 1000, 0, 'f', 2)
+	                             .arg(avg_usage[0], 0, 'f', 2)
+	                             .arg(avg_usage[1], 0, 'f', 2);
 	window()->setWindowTitle(title);
 }
 

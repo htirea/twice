@@ -189,7 +189,8 @@ sdl_platform::queue_audio(s16 *audiobuffer, u32 size, u64 ticks)
 }
 
 void
-sdl_platform::arm_set_title(u64 ticks, std::pair<double, double> cpu_usage)
+sdl_platform::arm_set_title(
+		u64 ticks, const std::pair<double, double>& cpu_usage)
 {
 	double fps = (double)freq / ticks;
 	double frametime = 1000.0 * ticks / freq;
@@ -222,7 +223,7 @@ sdl_platform::loop()
 		if (total_elapsed >= freq) {
 			total_elapsed -= freq;
 			arm_set_title(fps_counter.get_average(),
-					nds->get_cpu_usage());
+					exec_out.cpu_usage);
 		}
 		fps_counter.insert(last_elapsed);
 

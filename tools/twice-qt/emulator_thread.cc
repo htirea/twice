@@ -99,7 +99,8 @@ EmulatorThread::run()
 		}
 
 		emit send_main_event(Event::EndFrame{
-				to_seconds<double>(frametime_tmr.measure()) });
+				to_seconds<double>(frametime_tmr.measure()),
+				exec_out.cpu_usage, exec_out.dma_usage });
 	}
 }
 

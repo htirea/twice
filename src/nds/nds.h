@@ -111,7 +111,6 @@ struct nds_ctx {
 	u32 fb[NDS_FB_SZ]{};
 	std::array<s16, 4096> audio_buf{};
 	u32 audio_buf_idx{};
-	u32 last_audio_buf_size{};
 	std::array<s16, 4096> mic_buf{};
 	u32 mic_buf_idx{};
 
@@ -178,6 +177,8 @@ struct nds_ctx {
 	bool shutdown{};
 	double arm9_usage{};
 	double arm7_usage{};
+	double dma9_usage{};
+	double dma7_usage{};
 	unsigned long term_sigs{};
 	unsigned long raised_sigs{};
 

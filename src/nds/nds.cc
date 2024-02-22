@@ -239,6 +239,8 @@ nds_setup_run(nds_ctx *nds, u64 target, unsigned long term_sigs, s16 *mic_buf,
 	nds->raised_sigs = 0;
 	nds->arm9->cycles_executed = 0;
 	nds->arm7->cycles_executed = 0;
+	nds->dma[0].cycles_executed = 0;
+	nds->dma[1].cycles_executed = 0;
 	nds->exec_out = out;
 	schedule_event(nds, scheduler::EXECUTION_TARGET_REACHED, target);
 }
@@ -278,16 +280,20 @@ run_loop(nds_ctx *nds)
 		run_system_events(nds);
 	}
 
-	nds->arm9_usage = nds->cpu[0]->cycles_executed / 1120380.0;
-	nds->arm7_usage = nds->cpu[1]->cycles_executed / 560190.0;
-	nds->last_audio_buf_size = nds->audio_buf_idx << 1;
-
 	if (nds->exec_out) {
 		nds->exec_out->cycles = nds->arm_cycles[0] - start_cycles;
 		nds->exec_out->audio_buf = nds->audio_buf.data();
 		nds->exec_out->audio_buf_len = nds->audio_buf_idx >> 1;
 		nds->exec_out->fb = nds->fb;
 		nds->exec_out->sig_flags = nds->raised_sigs;
+		nds->exec_out->cpu_usage = {
+			nds->cpu[0]->cycles_executed / 1120380.0,
+			nds->cpu[1]->cycles_executed / 560190.0,
+		};
+		nds->exec_out->dma_usage = {
+			nds->dma[0].cycles_executed / 1120380.0,
+			nds->dma[1].cycles_executed / 560190.0,
+		};
 	}
 }
 
