@@ -105,7 +105,6 @@ render_text_bg_line(gpu_2d_engine *gpu, int bg_id, u32 y)
 		else
 			render_text_bg_16(gpu, bg);
 	} else {
-		/* TODO: horizontal mosaic */
 		if (bg.color_256 && bg.ext_palettes)
 			render_text_bg_256_mosaic<true>(gpu, bg);
 		else if (bg.color_256)

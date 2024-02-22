@@ -86,6 +86,7 @@ FORCE_INLINE static u16 obj_get_color_16(
 FORCE_INLINE static void write_obj_window(gpu_2d_engine *gpu, u32 x);
 FORCE_INLINE static void write_obj_pixel(
 		gpu_2d_engine *, u32 x, u16 color, u32 attr);
+FORCE_INLINE static void write_mosaic_attr(gpu_2d_engine *, u32 x, u32 attr);
 
 void
 render_obj_line(gpu_2d_engine *gpu, u32 y)
@@ -122,10 +123,31 @@ render_obj_line(gpu_2d_engine *gpu, u32 y)
 }
 
 static void
-apply_obj_mosaic(gpu_2d_engine *)
+apply_obj_mosaic(gpu_2d_engine *gpu)
 {
-	/* TODO: need to check which attributes actually get written */
-	return;
+	u32 mosaic_w = (gpu->mosaic >> 8 & 0xF) + 1;
+	if (mosaic_w == 1)
+		return;
+
+	color_u last_mosaic_color = 0;
+	u32 last_mosaic_attr = 0;
+
+	for (u32 x = 0, k = 0; x < 256; x++) {
+		bool last_is_mosaic = last_mosaic_attr & BIT(3);
+		bool mosaic = gpu->obj_attr[x] & BIT(3);
+
+		if (k == 0 || !mosaic || !last_is_mosaic) {
+			last_mosaic_color = gpu->obj_line[x];
+			last_mosaic_attr = gpu->obj_attr[x];
+		} else {
+			gpu->obj_line[x] = last_mosaic_color;
+			gpu->obj_attr[x] = last_mosaic_attr;
+		}
+
+		if (++k == mosaic_w) {
+			k = 0;
+		}
+	}
 }
 
 static void
@@ -273,8 +295,12 @@ render_normal_sprite_256(gpu_2d_engine *gpu, sprite& obj, u32 px)
 
 		for (; px < 8 && x != end; px++, x++, char_row >>= 8) {
 			u32 color_num = char_row & 0xFF;
-			if (color_num == 0)
+			if (color_num == 0) {
+				if (obj.mode != 2) {
+					write_mosaic_attr(gpu, x, obj.attr);
+				}
 				continue;
+			}
 
 			u16 color;
 			if (ext) {
@@ -305,8 +331,12 @@ render_normal_sprite_16(gpu_2d_engine *gpu, sprite& obj, u32 px)
 
 		for (; px < 8 && x != end; px++, x++, char_row >>= 4) {
 			u32 color_num = char_row & 0xF;
-			if (color_num == 0)
+			if (color_num == 0) {
+				if (obj.mode != 2) {
+					write_mosaic_attr(gpu, x, obj.attr);
+				}
 				continue;
+			}
 
 			u16 color = obj_get_color_16(
 					gpu, obj.palette_num, color_num);
@@ -379,6 +409,8 @@ render_bitmap_sprite(gpu_2d_engine *gpu, sprite& obj, u32 y)
 		u16 color = read_obj_data<u16>(gpu, offset);
 		if (color & BIT(15)) {
 			write_obj_pixel(gpu, x, color, obj.attr);
+		} else {
+			write_mosaic_attr(gpu, x, obj.attr);
 		}
 
 		offset += obj.hflip ? -2 : 2;
@@ -436,8 +468,12 @@ render_affine_sprite_256_inner(gpu_2d_engine *gpu, sprite& obj, u32 x)
 	}
 
 	u32 color_num = read_obj_data<u8>(gpu, obj.tile_offset);
-	if (color_num == 0)
+	if (color_num == 0) {
+		if (obj.mode != 2) {
+			write_mosaic_attr(gpu, x, obj.attr);
+		}
 		return;
+	}
 
 	u16 color;
 	if (ext) {
@@ -474,8 +510,12 @@ render_affine_sprite_16_inner(gpu_2d_engine *gpu, sprite& obj, u32 x)
 
 	u32 color_num = read_obj_data<u8>(gpu, obj.tile_offset);
 	color_num = px & 1 ? color_num >> 4 : color_num & 0xF;
-	if (color_num == 0)
+	if (color_num == 0) {
+		if (obj.mode != 2) {
+			write_mosaic_attr(gpu, x, obj.attr);
+		}
 		return;
+	}
 
 	u16 color = obj_get_color_16(gpu, obj.palette_num, color_num);
 
@@ -524,6 +564,8 @@ render_affine_bitmap_sprite(gpu_2d_engine *gpu, sprite& obj, u32 y)
 		u16 color = read_obj_data<u16>(gpu, offset);
 		if (color & BIT(15)) {
 			write_obj_pixel(gpu, x, color, obj.attr);
+		} else {
+			write_mosaic_attr(gpu, x, obj.attr);
 		}
 	}
 }
@@ -603,6 +645,15 @@ write_obj_pixel(gpu_2d_engine *gpu, u32 x, u16 color, u32 attr)
 	if (attr < gpu->obj_attr[x]) {
 		gpu->obj_line[x] = color;
 		gpu->obj_attr[x] = attr;
+	}
+}
+
+static void
+write_mosaic_attr(gpu_2d_engine *gpu, u32 x, u32 attr)
+{
+	if (attr < gpu->obj_attr[x]) {
+		gpu->obj_attr[x] =
+				(gpu->obj_attr[x] & ~BIT(3)) | (attr & BIT(3));
 	}
 }
 
