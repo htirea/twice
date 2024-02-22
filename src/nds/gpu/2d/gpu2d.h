@@ -38,6 +38,8 @@ struct gpu_2d_engine {
 	u16 master_bright{};
 	s32 mosaic_countup{};
 	s32 mosaic_countdown{};
+	s32 obj_mosaic_countup{};
+	s32 obj_mosaic_countdown{};
 	bool display_capture{};
 	u32 dispcapcnt{};
 	bool window_y_in_range[2]{};
@@ -56,6 +58,7 @@ struct gpu_2d_engine {
 	 * 0		effect top
 	 * 1		force blend
 	 * 2		from 3d
+	 * 3		obj mosaic
 	 * 8		effect bottom
 	 * 12-15	alpha oam
 	 * 16-22	obj num

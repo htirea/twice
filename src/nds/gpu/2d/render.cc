@@ -42,6 +42,11 @@ check_internal_regs(gpu_2d_engine *gpu, u32 y)
 		gpu->mosaic_countdown = (gpu->mosaic >> 4 & 0xF) + 1;
 	}
 
+	if (y == 0 || gpu->obj_mosaic_countdown == 0) {
+		gpu->obj_mosaic_countup = 0;
+		gpu->obj_mosaic_countdown = (gpu->mosaic >> 12 & 0xF) + 1;
+	}
+
 	for (int i = 0; i < 2; i++) {
 		bool mosaic = gpu->bg_cnt[i + 2] & BIT(6);
 
@@ -72,6 +77,8 @@ update_internal_regs(gpu_2d_engine *gpu)
 {
 	gpu->mosaic_countup++;
 	gpu->mosaic_countdown--;
+	gpu->obj_mosaic_countup++;
+	gpu->obj_mosaic_countdown--;
 	gpu->bg_ref_x_nm[0] += (s16)gpu->bg_pb[0];
 	gpu->bg_ref_y_nm[0] += (s16)gpu->bg_pd[0];
 	gpu->bg_ref_x_nm[1] += (s16)gpu->bg_pb[1];

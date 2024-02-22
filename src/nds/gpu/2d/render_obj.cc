@@ -25,6 +25,7 @@ struct sprite {
 	u32 pc;
 	bool map_1d;
 	bool hflip;
+	bool mosaic;
 };
 
 static const u32 obj_widths[4][4] = {
@@ -40,6 +41,8 @@ static const u32 obj_heights[4][4] = {
 	{ 16, 32, 32, 64 },
 	{ 0, 0, 0, 0 },
 };
+
+static void apply_obj_mosaic(gpu_2d_engine *gpu);
 
 /* setup functions */
 FORCE_INLINE static void setup_sprite(sprite&);
@@ -114,6 +117,15 @@ render_obj_line(gpu_2d_engine *gpu, u32 y)
 			render_normal_sprite(gpu, obj, y);
 		}
 	}
+
+	apply_obj_mosaic(gpu);
+}
+
+static void
+apply_obj_mosaic(gpu_2d_engine *)
+{
+	/* TODO: need to check which attributes actually get written */
+	return;
 }
 
 static void
@@ -124,15 +136,21 @@ setup_sprite(sprite& obj)
 	obj.w = obj_widths[shape_bits][size_bits];
 	obj.h = obj_heights[shape_bits][size_bits];
 	obj.char_idx = obj.attrs[2] & 0x3FF;
+	obj.mosaic = obj.attrs[0] & BIT(12);
 }
 
 static int
-setup_sprite_bounds(gpu_2d_engine *, sprite& obj, u32 y, u32 box_w, u32 box_h)
+setup_sprite_bounds(
+		gpu_2d_engine *gpu, sprite& obj, u32 y, u32 box_w, u32 box_h)
 {
 	u32 ycoord = obj.attrs[0] & 0xFF;
 	obj.y = (y - ycoord) & 0xFF;
 	if (obj.y >= box_h)
 		return 1;
+
+	if (obj.mosaic) {
+		obj.y = std::max<s32>(0, (s32)obj.y - gpu->obj_mosaic_countup);
+	}
 
 	u32 xcoord = obj.attrs[1] & 0x1FF;
 	if (xcoord < 256) {
@@ -234,7 +252,7 @@ render_normal_sprite(gpu_2d_engine *gpu, sprite& obj, u32 y)
 	}
 
 	obj.attr = (u32)(obj.attrs[2] >> 10 & 3) << 28 | obj.id << 16 |
-	           (obj.mode == 1 ? BIT(1) : 0);
+	           (obj.mode == 1 ? BIT(1) : 0) | (obj.mosaic ? BIT(3) : 0);
 	u32 px = obj.hflip ? 7 - (obj.x & 7) : obj.x & 7;
 
 	if (color_256 && ext_palettes)
@@ -354,7 +372,8 @@ render_bitmap_sprite(gpu_2d_engine *gpu, sprite& obj, u32 y)
 	}
 
 	obj.attr = (u32)(obj.attrs[2] >> 10 & 3) << 28 | obj.id << 16 |
-	           BIT(1) | (obj.attrs[2] & 0xF000);
+	           BIT(1) | (obj.attrs[2] & 0xF000) |
+	           (obj.mosaic ? BIT(3) : 0);
 
 	for (u32 x = obj.x_start, end = obj.x_end; x < end; x++) {
 		u16 color = read_obj_data<u16>(gpu, offset);
@@ -376,7 +395,7 @@ render_affine_sprite(gpu_2d_engine *gpu, sprite& obj, u32 y)
 	bool ext_palettes = gpu->dispcnt & BIT(31);
 	obj.palette_num = obj.attrs[2] >> 12;
 	obj.attr = (u32)(obj.attrs[2] >> 10 & 3) << 28 | obj.id << 16 |
-	           (obj.mode == 1 ? BIT(1) : 0);
+	           (obj.mode == 1 ? BIT(1) : 0) | (obj.mosaic ? BIT(3) : 0);
 
 	if (color_256 && ext_palettes) {
 		for (u32 x = obj.x_start, end = obj.x_end; x != end;
@@ -487,7 +506,8 @@ render_affine_bitmap_sprite(gpu_2d_engine *gpu, sprite& obj, u32 y)
 	u32 width_2d_shift = 8 + (gpu->dispcnt >> 5 & 1);
 
 	obj.attr = (u32)(obj.attrs[2] >> 10 & 3) << 28 | obj.id << 16 |
-	           BIT(1) | (obj.attrs[2] & 0xF000);
+	           BIT(1) | (obj.attrs[2] & 0xF000) |
+	           (obj.mosaic ? BIT(3) : 0);
 
 	for (u32 x = obj.x_start, end = obj.x_end; x != end;
 			x++, affine_loop_step(obj)) {
