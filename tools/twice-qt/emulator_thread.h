@@ -38,6 +38,10 @@ class EmulatorThread : public QThread {
 	void process_event(const Event::FastForward& ev);
 	void process_event(const Event::Button& ev);
 	void process_event(const Event::Touch& ev);
+	void on_shutdown_maybe_changed();
+	void on_loaded_files_maybe_changed();
+	void on_savetype_maybe_changed();
+	void on_nds_instance_maybe_changed();
 
       signals:
 	void send_main_event(const Event::MainEvent& ev);

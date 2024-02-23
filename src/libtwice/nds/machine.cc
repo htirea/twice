@@ -485,13 +485,22 @@ nds_machine::boot(bool direct_boot)
 	m->nds = std::move(ctx);
 }
 
-void
-nds_machine::shutdown()
+int
+nds_machine::shutdown() noexcept
 {
-	sync_files();
+	int status = 0;
+
+	try {
+		sync_files();
+	} catch (const twice_exception&) {
+		status = 1;
+	}
+
 	if (m->nds) {
 		m->last_nds_ctx = std::move(m->nds);
 	}
+
+	return status;
 }
 
 void

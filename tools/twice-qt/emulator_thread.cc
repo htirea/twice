@@ -30,7 +30,7 @@ EmulatorThread::EmulatorThread(
 	};
 
 	nds = std::make_unique<nds_machine>(nds_cfg);
-	emit send_main_event(Event::File{ nds->get_loaded_files() });
+	on_loaded_files_maybe_changed();
 }
 
 EmulatorThread::~EmulatorThread(){};
@@ -63,18 +63,21 @@ EmulatorThread::run()
 		frametime_tmr.start();
 		process_events();
 
-		bool run_frame = !shutdown && !paused;
-
 		bufs->mb.read_fill_zero_locked((char *)mic_buffer, 548 * 2);
 
-		if (run_frame) {
-			nds->run_until_vblank(&exec_in, &exec_out);
-			shutdown = exec_out.sig_flags & nds_signal::SHUTDOWN;
-			emit send_main_event(Event::Shutdown{ shutdown });
+		if (!shutdown && !paused) {
+			try {
+				nds->run_until_vblank(&exec_in, &exec_out);
+			} catch (const twice_exception& err) {
+				nds->shutdown();
+				emit send_main_event(Event::Error{
+						tr(err.what()) });
+			}
+			on_shutdown_maybe_changed();
 		}
 
 		size_t audio_buf_size = 0;
-		if (run_frame && throttle) {
+		if (!shutdown && !paused && throttle) {
 			audio_buf_size = exec_out.audio_buf_len << 2;
 			bufs->ab.write_locked((char *)exec_out.audio_buf,
 					audio_buf_size);
@@ -83,7 +86,7 @@ EmulatorThread::run()
 			bufs->ab.fill_locked(0);
 		}
 
-		if (run_frame) {
+		if (!shutdown && !paused) {
 			std::memcpy(bufs->vb.get_write_buffer().data(),
 					exec_out.fb, NDS_FB_SZ_BYTES);
 			bufs->vb.swap_write_buffer();
@@ -122,11 +125,9 @@ EmulatorThread::process_event(const Event::LoadFile& ev)
 		emit send_main_event(Event::Error{ tr(err.what()) });
 	}
 
-	int loaded_files = nds->get_loaded_files();
-	emit send_main_event(Event::File{ loaded_files });
-
+	on_loaded_files_maybe_changed();
 	if (ev.type == nds_file::CART_ROM) {
-		emit send_main_event(Event::SaveType{ nds->get_savetype() });
+		on_savetype_maybe_changed();
 	}
 }
 
@@ -139,11 +140,9 @@ EmulatorThread::process_event(const Event::UnloadFile& ev)
 		emit send_main_event(Event::Error{ tr(err.what()) });
 	}
 
-	int loaded_files = nds->get_loaded_files();
-	emit send_main_event(Event::File{ loaded_files });
-
+	on_loaded_files_maybe_changed();
 	if (ev.type == nds_file::CART_ROM) {
-		emit send_main_event(Event::SaveType{ nds->get_savetype() });
+		on_savetype_maybe_changed();
 	}
 }
 
@@ -156,7 +155,7 @@ EmulatorThread::process_event(const Event::SaveType& ev)
 		emit send_main_event(Event::Error{ tr(err.what()) });
 	}
 
-	emit send_main_event(Event::SaveType{ nds->get_savetype() });
+	on_savetype_maybe_changed();
 }
 
 void
@@ -168,23 +167,16 @@ EmulatorThread::process_event(const Event::Reset& ev)
 		emit send_main_event(Event::Error{ tr(err.what()) });
 	}
 
-	shutdown = nds->is_shutdown();
-	emit send_main_event(Event::Shutdown{ shutdown });
-	emit send_main_event(Event::File{ nds->get_loaded_files() });
-	emit send_main_event(Event::SaveType{ nds->get_savetype() });
+	on_shutdown_maybe_changed();
+	on_loaded_files_maybe_changed();
+	on_savetype_maybe_changed();
 }
 
 void
 EmulatorThread::process_event(const Event::Shutdown&)
 {
-	try {
-		nds->shutdown();
-	} catch (const twice_exception& err) {
-		emit send_main_event(Event::Error{ tr(err.what()) });
-	}
-
-	shutdown = nds->is_shutdown();
-	emit send_main_event(Event::Shutdown{ shutdown });
+	nds->shutdown();
+	on_shutdown_maybe_changed();
 }
 
 void
@@ -224,4 +216,33 @@ void
 EmulatorThread::process_event(const Event::StopThread&)
 {
 	running = false;
+}
+
+void
+EmulatorThread::on_shutdown_maybe_changed()
+{
+	shutdown = nds->is_shutdown();
+	emit send_main_event(Event::Shutdown{ shutdown });
+}
+
+void
+EmulatorThread::on_loaded_files_maybe_changed()
+{
+	auto loaded_files = nds->get_loaded_files();
+	emit send_main_event(Event::File{ loaded_files });
+}
+
+void
+EmulatorThread::on_savetype_maybe_changed()
+{
+	auto savetype = nds->get_savetype();
+	emit send_main_event(Event::SaveType{ savetype });
+}
+
+void
+EmulatorThread::on_nds_instance_maybe_changed()
+{
+	on_shutdown_maybe_changed();
+	on_loaded_files_maybe_changed();
+	on_savetype_maybe_changed();
 }

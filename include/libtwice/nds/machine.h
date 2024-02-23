@@ -384,8 +384,13 @@ struct nds_machine {
 	 *
 	 * If the machine is already shut down, this function will do
 	 * nothing.
+	 *
+	 * This function will always shut down the machine, but errors may
+	 * occur during the shutdown process, e.g. the syncing of files.
+	 *
+	 * \returns 0 iff shutdown with no errors
 	 */
-	void shutdown();
+	int shutdown() noexcept;
 
 	/**
 	 * Reboot the machine.
