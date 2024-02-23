@@ -1,7 +1,14 @@
 #include "config_manager.h"
 
+#include "libtwice/exception.h"
+
+#include <QApplication>
+#include <QCommandLineParser>
 #include <QSettings>
 #include <QVariant>
+
+#include <map>
+#include <set>
 
 using namespace ConfigVariable;
 
@@ -58,7 +65,28 @@ static const std::map<int, QString> key_to_str = {
 	{ KEY_Y, "key_y" },
 };
 
-ConfigManager::ConfigManager(QObject *parent) : QObject(parent)
+static const QList<QCommandLineOption> parser_options = {
+	{ { "b", "boot" },
+			"Set the boot mode. Defaults to 'auto'.\n"
+			"(mode = 'auto' | 'never' | 'direct' | 'firmware')",
+			"mode", "auto" },
+};
+
+static const std::map<int, std::vector<QString>> parser_valid_values = {
+	{ CliArg::BOOT_MODE, { "auto", "never", "direct", "firmware" } },
+};
+
+void
+add_command_line_arguments(QCommandLineParser& parser, QApplication& app)
+{
+	parser.addHelpOption();
+	parser.addOptions(parser_options);
+	parser.addPositionalArgument("file", "The NDS file to open.");
+	parser.process(app);
+}
+
+ConfigManager::ConfigManager(QCommandLineParser *parser, QObject *parent)
+	: QObject(parent)
 {
 	QSettings settings;
 
@@ -67,6 +95,13 @@ ConfigManager::ConfigManager(QObject *parent) : QObject(parent)
 			cfg[key] = settings.value(s);
 		}
 	}
+
+	auto pos_args = parser->positionalArguments();
+	if (pos_args.size() > 0) {
+		args[CliArg::NDS_FILE] = pos_args[0];
+	}
+
+	check_and_add_parsed_arg(parser, CliArg::BOOT_MODE, "boot");
 }
 
 ConfigManager::~ConfigManager()
@@ -123,4 +158,32 @@ ConfigManager::set(int key, const QVariant& v)
 {
 	cfg[key] = v;
 	emit_key_set_signal(key, v);
+}
+
+const QVariant&
+ConfigManager::get_arg(int key)
+{
+	auto it = args.find(key);
+	if (it != args.end()) {
+		return it->second;
+	}
+
+	return default_value;
+}
+
+void
+ConfigManager::check_and_add_parsed_arg(
+		QCommandLineParser *parser, int key, const QString& name)
+{
+	auto& valid_values = parser_valid_values.at(key);
+	const auto& value = parser->value(name);
+
+	auto it = std::find(valid_values.begin(), valid_values.end(), value);
+	if (it == valid_values.end()) {
+		qCritical().nospace() << "Invalid value for option " << name
+				      << ": " << value;
+		throw twice::twice_error("Error while processing arguments.");
+	}
+
+	args[key] = (int)(it - valid_values.begin());
 }

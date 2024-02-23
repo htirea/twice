@@ -16,12 +16,13 @@ class SettingsDialog;
 class QCloseEvent;
 class QKeyEvent;
 class QMouseEvent;
+class QCommandLineParser;
 
 class MainWindow : public QMainWindow {
 	Q_OBJECT
 
       public:
-	MainWindow(QWidget *parent = nullptr);
+	MainWindow(QCommandLineParser *parser, QWidget *parent = nullptr);
 	~MainWindow();
 
       protected:

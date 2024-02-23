@@ -35,6 +35,26 @@ enum {
 }
 
 /*
+ * The possible command line arguments
+ */
+namespace CliArg {
+enum {
+	NDS_FILE,
+	BOOT_MODE,
+};
+
+enum {
+	BOOT_AUTO,
+	BOOT_NEVER,
+	BOOT_DIRECT,
+	BOOT_FIRMWARE,
+};
+} // namespace CliArg
+
+class QCommandLineParser;
+class QApplication;
+
+/*
  * The ConfigManager stores runtime configuration variables for the frontend.
  *
  * On construction, the variables are initialised from the configuration.
@@ -47,13 +67,18 @@ class ConfigManager : public QObject {
 	Q_OBJECT
 
       public:
-	ConfigManager(QObject *parent);
+	ConfigManager(QCommandLineParser *parser, QObject *parent);
 	~ConfigManager();
 	void emit_key_set_signal(int key, const QVariant& v);
 	void emit_all_signals();
 
 	const QVariant& get(int key);
 	void set(int key, const QVariant& v);
+	const QVariant& get_arg(int key);
+
+      private:
+	void check_and_add_parsed_arg(QCommandLineParser *parser, int key,
+			const QString& name);
 
       signals:
 	void key_set(int key, const QVariant& v);
@@ -62,6 +87,9 @@ class ConfigManager : public QObject {
 
       private:
 	std::map<int, QVariant> cfg;
+	std::map<int, QVariant> args;
 };
+
+void add_command_line_arguments(QCommandLineParser& parser, QApplication& app);
 
 #endif

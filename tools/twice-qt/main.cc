@@ -1,6 +1,11 @@
 #include "mainwindow.h"
 
+#include "config_manager.h"
+
+#include "libtwice/exception.h"
+
 #include <QApplication>
+#include <QCommandLineParser>
 #include <QPalette>
 #include <QSettings>
 #include <QStandardPaths>
@@ -8,10 +13,13 @@
 
 int
 main(int argc, char *argv[])
-{
+try {
 	QApplication app(argc, argv);
 	QCoreApplication::setOrganizationName("twice");
 	QCoreApplication::setApplicationName("twice-qt");
+
+	QCommandLineParser parser;
+	add_command_line_arguments(parser, app);
 
 	QSettings::setDefaultFormat(QSettings::IniFormat);
 
@@ -29,7 +37,10 @@ main(int argc, char *argv[])
 	format.setProfile(QSurfaceFormat::CoreProfile);
 	QSurfaceFormat::setDefaultFormat(format);
 
-	auto w = std::make_unique<MainWindow>();
+	auto w = std::make_unique<MainWindow>(&parser);
 	w->show();
 	return app.exec();
+} catch (const twice::twice_exception& err) {
+	qCritical() << err.what();
+	return 1;
 }

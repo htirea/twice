@@ -12,6 +12,7 @@
 #include "libtwice/nds/display.h"
 
 #include <QCloseEvent>
+#include <QCommandLineParser>
 #include <QFileDialog>
 #include <QGuiApplication>
 #include <QMenuBar>
@@ -24,9 +25,10 @@
 using namespace twice;
 using namespace MainWindowAction;
 
-MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
+MainWindow::MainWindow(QCommandLineParser *parser, QWidget *parent)
+	: QMainWindow(parent)
 {
-	cfg = new ConfigManager(this);
+	cfg = new ConfigManager(parser, this);
 	connect(cfg, &ConfigManager::key_set, this,
 			&MainWindow::config_var_set);
 
@@ -56,6 +58,25 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 	cfg->emit_all_signals();
 
 	emu_thread->start();
+
+	auto nds_file = cfg->get_arg(CliArg::NDS_FILE);
+	if (nds_file.isValid()) {
+		emu_thread->push_event(Event::LoadFile{
+				nds_file.toString(), nds_file::CART_ROM });
+	}
+
+	switch (cfg->get_arg(CliArg::BOOT_MODE).toInt()) {
+	case CliArg::BOOT_AUTO:
+		if (nds_file.isValid()) {
+			reset_to_rom();
+		}
+		break;
+	case CliArg::BOOT_DIRECT:
+		reset_to_rom();
+		break;
+	case CliArg::BOOT_FIRMWARE:
+		reset_to_firmware();
+	}
 }
 
 MainWindow::~MainWindow()
