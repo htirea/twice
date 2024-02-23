@@ -180,6 +180,18 @@ EmulatorThread::process_event(const Event::Shutdown&)
 }
 
 void
+EmulatorThread::process_event(const Event::Restore&)
+{
+	try {
+		nds->restore_last_instance(true);
+	} catch (const twice_exception& err) {
+		emit send_main_event(Event::Error{ tr(err.what()) });
+	}
+
+	on_nds_instance_maybe_changed();
+}
+
+void
 EmulatorThread::process_event(const Event::Pause& ev)
 {
 	paused = ev.paused;
@@ -223,6 +235,9 @@ EmulatorThread::on_shutdown_maybe_changed()
 {
 	shutdown = nds->is_shutdown();
 	emit send_main_event(Event::Shutdown{ shutdown });
+
+	bool restore_possible = !nds->is_last_instance_shutdown();
+	emit send_main_event(Event::Restore{ restore_possible });
 }
 
 void

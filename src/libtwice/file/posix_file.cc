@@ -71,6 +71,27 @@ file::truncate(std::streamoff length)
 	return ::ftruncate(internal->fd, length);
 }
 
+file
+file::dup()
+{
+	if (!*this) {
+		return file();
+	}
+
+	int fd = ::dup(internal->fd);
+	if (fd < 0) {
+		throw file_error(std::format(
+				"Could not copy file handle: {}, error: {}",
+				internal->pathname.string(), errno));
+	}
+
+	file f;
+	f.internal = std::make_unique<impl>();
+	f.internal->pathname = internal->pathname;
+	f.internal->fd = fd;
+	return f;
+}
+
 std::streamoff
 file::read_from_offset(std::streamoff offset, void *buf, size_t count)
 {

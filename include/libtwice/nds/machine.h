@@ -404,6 +404,16 @@ struct nds_machine {
 	void reboot(bool direct_boot);
 
 	/**
+	 * Restore the last saved instance.
+	 *
+	 * An instance is saved automatically on shutdown, and on restore if
+	 * the `save_current` parameter is set.
+	 *
+	 * \param save_current whether to save the current instance
+	 */
+	void restore_last_instance(bool save_current);
+
+	/**
 	 * Run the machine until VBLANK.
 	 *
 	 * \param in the execution config
@@ -418,6 +428,14 @@ struct nds_machine {
 	 *          false otherwise
 	 */
 	bool is_shutdown();
+
+	/**
+	 * Check whether the last saved instance is shut down.
+	 *
+	 * \returns true if the last instance is shut down
+	 *          false otherwise
+	 */
+	bool is_last_instance_shutdown();
 
 	/**
 	 * Update the state of a button.

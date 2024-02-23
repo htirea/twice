@@ -272,6 +272,14 @@ MainWindow::process_event(const Event::Shutdown& ev)
 }
 
 void
+MainWindow::process_event(const Event::Restore& ev)
+{
+	restore_possible = ev.restore;
+
+	actions[RESTORE_INSTANCE]->setEnabled(restore_possible);
+}
+
+void
 MainWindow::process_event(const Event::File& ev)
 {
 	using enum nds_file;
@@ -450,9 +458,13 @@ MainWindow::reset_emulation(bool direct)
 void
 MainWindow::shutdown_emulation()
 {
-	if (confirm_shutdown()) {
-		emu_thread->push_event(Event::Shutdown());
-	}
+	emu_thread->push_event(Event::Shutdown());
+}
+
+void
+MainWindow::restore_instance()
+{
+	emu_thread->push_event(Event::Restore());
 }
 
 void

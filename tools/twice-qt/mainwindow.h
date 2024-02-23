@@ -42,6 +42,7 @@ class MainWindow : public QMainWindow {
 	std::optional<std::pair<int, int>> get_nds_coords(QMouseEvent *ev);
 	void process_event(const Event::Error& ev);
 	void process_event(const Event::Shutdown& ev);
+	void process_event(const Event::Restore& ev);
 	void process_event(const Event::File& ev);
 	void process_event(const Event::SaveType& ev);
 	void process_event(const Event::EndFrame& ev);
@@ -62,6 +63,7 @@ class MainWindow : public QMainWindow {
 	void reset_to_firmware();
 	void reset_emulation(bool direct);
 	void shutdown_emulation();
+	void restore_instance();
 	void toggle_pause(bool checked);
 	void toggle_fastforward(bool checked);
 	void toggle_linear_filtering(bool checked);
@@ -85,6 +87,7 @@ class MainWindow : public QMainWindow {
 	double avg_usage[4]{};
 	SharedBuffers bufs;
 	bool shutdown{};
+	bool restore_possible{};
 	int loaded_files{};
 };
 

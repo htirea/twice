@@ -31,6 +31,10 @@ struct Shutdown {
 	bool shutdown;
 };
 
+struct Restore {
+	bool restore;
+};
+
 struct Pause {
 	bool paused;
 };
@@ -68,9 +72,10 @@ struct EndFrame {
 };
 
 using Event = std::variant<LoadFile, UnloadFile, SaveType, Reset, Shutdown,
-		Pause, FastForward, Button, Touch, StopThread>;
+		Restore, Pause, FastForward, Button, Touch, StopThread>;
 
-using MainEvent = std::variant<Error, Shutdown, File, SaveType, EndFrame>;
+using MainEvent = std::variant<Error, Shutdown, Restore, File, SaveType,
+		EndFrame>;
 
 } // namespace Event
 

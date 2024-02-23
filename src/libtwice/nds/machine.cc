@@ -15,20 +15,51 @@ using namespace fs;
 struct nds_machine::impl {
 	impl(const nds_config& config);
 
+	struct instance {
+		file arm9_bios;
+		file arm7_bios;
+		file firmware;
+		file cart;
+		file save;
+		nds_savetype savetype{ SAVETYPE_UNKNOWN };
+		u32 gamecode{};
+		std::unique_ptr<nds_ctx> nds;
+	} curr, last;
+
 	nds_config cfg;
-	file arm9_bios;
-	file arm7_bios;
-	file firmware;
-	file cart;
-	file save;
-	nds_savetype savetype{ SAVETYPE_UNKNOWN };
-	u32 gamecode{};
 	std::optional<nds_rtc_state> rtc_state;
-	std::unique_ptr<nds_ctx> nds;
-	std::unique_ptr<nds_ctx> last_nds_ctx;
+
+	int save_instance(instance& to, instance& from);
 };
 
 nds_machine::impl::impl(const nds_config& cfg) : cfg(cfg) {}
+
+int
+nds_machine::impl::save_instance(instance& to, instance& from)
+{
+	int status = 0;
+
+	try {
+		to.arm9_bios = from.arm9_bios.dup();
+		to.arm7_bios = from.arm7_bios.dup();
+		to.firmware = from.firmware.dup();
+		to.cart = from.cart.dup();
+		to.save = from.save.dup();
+	} catch (const twice_exception& err) {
+		to.arm9_bios = file();
+		to.arm7_bios = file();
+		to.firmware = file();
+		to.cart = file();
+		to.save = file();
+		status = 1;
+	}
+
+	to.savetype = from.savetype;
+	to.gamecode = from.gamecode;
+	to.nds = std::move(from.nds);
+
+	return status;
+}
 
 nds_machine::nds_machine(const nds_config& config)
 	: m(std::make_unique<impl>(config))
@@ -86,7 +117,7 @@ nds_machine::load_file(const std::filesystem::path& pathname, nds_file type)
 void
 nds_machine::unload_file(nds_file type)
 {
-	if (m->nds) {
+	if (m->curr.nds) {
 		throw twice_error("The file cannot be unloaded while the "
 				  "machine is running.");
 	}
@@ -96,16 +127,16 @@ nds_machine::unload_file(nds_file type)
 		eject_cartridge();
 		break;
 	case nds_file::SAVE:
-		m->save = file();
+		m->curr.save = file();
 		break;
 	case nds_file::ARM9_BIOS:
-		m->arm9_bios = file();
+		m->curr.arm9_bios = file();
 		break;
 	case nds_file::ARM7_BIOS:
-		m->arm7_bios = file();
+		m->curr.arm7_bios = file();
 		break;
 	case nds_file::FIRMWARE:
-		m->firmware = file();
+		m->curr.firmware = file();
 		break;
 	case nds_file::UNKNOWN:;
 	}
@@ -115,7 +146,7 @@ void
 nds_machine::load_system_file(
 		const std::filesystem::path& pathname, nds_file type)
 {
-	if (m->nds) {
+	if (m->curr.nds) {
 		/* TODO: handle loading files while running */
 		throw twice_error("The system file cannot be loaded while the "
 				  "machine is running.");
@@ -138,19 +169,19 @@ nds_machine::load_system_file(
 		if (size != ARM9_BIOS_SIZE) {
 			throw twice_error("Invalid ARM9 BIOS size.");
 		}
-		m->arm9_bios = std::move(f);
+		m->curr.arm9_bios = std::move(f);
 		break;
 	case nds_file::ARM7_BIOS:
 		if (size != ARM7_BIOS_SIZE) {
 			throw twice_error("Invalid ARM7 BIOS size.");
 		}
-		m->arm7_bios = std::move(f);
+		m->curr.arm7_bios = std::move(f);
 		break;
 	case nds_file::FIRMWARE:
 		if (size != FIRMWARE_SIZE) {
 			throw twice_error("Invalid NDS firmware size.");
 		}
-		m->firmware = std::move(f);
+		m->curr.firmware = std::move(f);
 		break;
 	default:;
 	}
@@ -159,7 +190,7 @@ nds_machine::load_system_file(
 void
 nds_machine::load_cartridge(const std::filesystem::path& pathname)
 {
-	if (m->nds) {
+	if (m->curr.nds) {
 		/* TODO: handle loading cartridge while running */
 		throw twice_error("The cartridge cannot be loaded while the "
 				  "machine is running.");
@@ -178,40 +209,40 @@ nds_machine::load_cartridge(const std::filesystem::path& pathname)
 		throw twice_error("Could not read cart gamecode.");
 	}
 
-	if (m->cart) {
+	if (m->curr.cart) {
 		eject_cartridge();
 	}
 
-	m->cart = std::move(f);
-	m->gamecode = (u32)buf[3] << 24 | (u32)buf[2] << 16 |
-	              (u32)buf[1] << 8 | (u32)buf[0];
+	m->curr.cart = std::move(f);
+	m->curr.gamecode = (u32)buf[3] << 24 | (u32)buf[2] << 16 |
+	                   (u32)buf[1] << 8 | (u32)buf[0];
 	LOG("loaded cartridge: %s, (0x%08X %c%c%c%c)\n", pathname.c_str(),
-			m->gamecode, buf[0], buf[1], buf[2], buf[3]);
+			m->curr.gamecode, buf[0], buf[1], buf[2], buf[3]);
 }
 
 void
 nds_machine::eject_cartridge()
 {
-	if (m->nds) {
+	if (m->curr.nds) {
 		/* TODO: handle ejecting cartridge while running */
 		throw twice_error("The cartridge cannot be ejected while the "
 				  "machine is running.");
 	}
 
-	m->cart = file();
-	m->save = file();
-	m->savetype = SAVETYPE_UNKNOWN;
+	m->curr.cart = file();
+	m->curr.save = file();
+	m->curr.savetype = SAVETYPE_UNKNOWN;
 }
 
 void
 nds_machine::load_savefile(const std::filesystem::path& pathname)
 {
-	if (m->nds) {
+	if (m->curr.nds) {
 		throw twice_error("The save file cannot be loaded while the "
 				  "machine is running.");
 	}
 
-	m->save = file(pathname, file::open_flags::READ_WRITE);
+	m->curr.save = file(pathname, file::open_flags::READ_WRITE);
 }
 
 void
@@ -227,8 +258,8 @@ nds_machine::create_savefile(
 		throw twice_error("Could not truncate file.");
 	}
 
-	m->save = std::move(f);
-	m->savetype = savetype;
+	m->curr.save = std::move(f);
+	m->curr.savetype = savetype;
 
 	LOG("created save file: %s\n", pathname.c_str());
 }
@@ -236,22 +267,22 @@ nds_machine::create_savefile(
 void
 nds_machine::autoload_savefile()
 {
-	if (!m->cart)
+	if (!m->curr.cart)
 		return;
 
-	auto pathname = m->cart.get_pathname().replace_extension(".sav");
+	auto pathname = m->curr.cart.get_pathname().replace_extension(".sav");
 	load_savefile(pathname);
 }
 
 void
 nds_machine::autocreate_savefile()
 {
-	if (!m->cart)
+	if (!m->curr.cart)
 		return;
 
-	auto pathname = m->cart.get_pathname().replace_extension(".sav");
-	auto from_db = nds_get_save_info(m->gamecode).type;
-	auto from_user = m->savetype;
+	auto pathname = m->curr.cart.get_pathname().replace_extension(".sav");
+	auto from_db = nds_get_save_info(m->curr.gamecode).type;
+	auto from_user = m->curr.savetype;
 	auto type_to_use = from_user != SAVETYPE_UNKNOWN ? from_user : from_db;
 
 	if (type_to_use == SAVETYPE_UNKNOWN) {
@@ -262,8 +293,8 @@ nds_machine::autocreate_savefile()
 	if (type_to_use != SAVETYPE_NONE) {
 		create_savefile(pathname, type_to_use);
 	} else {
-		m->save = file();
-		m->savetype = SAVETYPE_NONE;
+		m->curr.save = file();
+		m->curr.savetype = SAVETYPE_NONE;
 	}
 
 	int from = 0;
@@ -289,15 +320,15 @@ nds_machine::file_loaded(nds_file type)
 {
 	switch (type) {
 	case nds_file::CART_ROM:
-		return (bool)m->cart;
+		return (bool)m->curr.cart;
 	case nds_file::SAVE:
-		return (bool)m->save;
+		return (bool)m->curr.save;
 	case nds_file::ARM9_BIOS:
-		return (bool)m->arm9_bios;
+		return (bool)m->curr.arm9_bios;
 	case nds_file::ARM7_BIOS:
-		return (bool)m->arm7_bios;
+		return (bool)m->curr.arm7_bios;
 	case nds_file::FIRMWARE:
-		return (bool)m->firmware;
+		return (bool)m->curr.firmware;
 	default:
 		return false;
 	}
@@ -307,19 +338,19 @@ int
 nds_machine::get_loaded_files()
 {
 	int r = 0;
-	if ((bool)m->cart) {
+	if ((bool)m->curr.cart) {
 		r |= (int)nds_file::CART_ROM;
 	}
-	if ((bool)m->save) {
+	if ((bool)m->curr.save) {
 		r |= (int)nds_file::SAVE;
 	}
-	if ((bool)m->arm9_bios) {
+	if ((bool)m->curr.arm9_bios) {
 		r |= (int)nds_file::ARM9_BIOS;
 	}
-	if ((bool)m->arm7_bios) {
+	if ((bool)m->curr.arm7_bios) {
 		r |= (int)nds_file::ARM7_BIOS;
 	}
-	if ((bool)m->firmware) {
+	if ((bool)m->curr.firmware) {
 		r |= (int)nds_file::FIRMWARE;
 	}
 
@@ -329,8 +360,8 @@ nds_machine::get_loaded_files()
 void
 nds_machine::sync_files()
 {
-	if (m->nds) {
-		nds_sync_files(m->nds.get());
+	if (m->curr.nds) {
+		nds_sync_files(m->curr.nds.get());
 	}
 
 	/* TODO: sync files */
@@ -339,31 +370,31 @@ nds_machine::sync_files()
 nds_savetype
 nds_machine::get_savetype()
 {
-	return m->savetype;
+	return m->curr.savetype;
 }
 
 void
 nds_machine::set_savetype(nds_savetype savetype)
 {
-	if (m->nds) {
+	if (m->curr.nds) {
 		/* TODO: handle changing save type while running */
 		throw twice_error("The save type cannot be changed while the "
 				  "machine is running.");
 	}
 
-	m->savetype = savetype;
+	m->curr.savetype = savetype;
 }
 
 void
 nds_machine::check_savefile()
 {
-	if (!m->cart || !m->save)
+	if (!m->curr.cart || !m->curr.save)
 		return;
 
 	int from = 0;
-	auto from_db = nds_get_save_info(m->gamecode).type;
-	auto from_user = m->savetype;
-	auto from_save = nds_savetype_from_size(m->save.get_size());
+	auto from_db = nds_get_save_info(m->curr.gamecode).type;
+	auto from_user = m->curr.savetype;
+	auto from_save = nds_savetype_from_size(m->curr.save.get_size());
 	auto type_to_use = from_user != SAVETYPE_UNKNOWN ? from_user : from_db;
 
 	if (type_to_use == from_db) {
@@ -396,7 +427,7 @@ nds_machine::check_savefile()
 		throw twice_error("Invalid save file: unknown save type.");
 	}
 
-	m->savetype = type_to_use;
+	m->curr.savetype = type_to_use;
 
 	from = 0;
 	if (type_to_use == from_db) {
@@ -425,17 +456,17 @@ nds_machine::check_savefile()
 void
 nds_machine::prepare_savefile_for_execution()
 {
-	if (!m->cart)
+	if (!m->curr.cart)
 		return;
 
-	if (!m->save) {
+	if (!m->curr.save) {
 		try {
 			autoload_savefile();
 		} catch (const file_error& e) {
 		}
 	}
 
-	if (!m->save) {
+	if (!m->curr.save) {
 		autocreate_savefile();
 	} else {
 		check_savefile();
@@ -445,14 +476,14 @@ nds_machine::prepare_savefile_for_execution()
 void
 nds_machine::boot(bool direct_boot)
 {
-	if (m->nds)
+	if (m->curr.nds)
 		return;
 
-	if (!m->arm9_bios || !m->arm7_bios || !m->firmware) {
+	if (!m->curr.arm9_bios || !m->curr.arm7_bios || !m->curr.firmware) {
 		throw twice_error("The NDS system files must be loaded.");
 	}
 
-	if (direct_boot && !m->cart) {
+	if (direct_boot && !m->curr.cart) {
 		throw twice_error("Cartridge must be loaded for direct "
 				  "boot.");
 	}
@@ -461,15 +492,16 @@ nds_machine::boot(bool direct_boot)
 
 	/* TODO: revert state if exception occured? */
 
-	if (m->cart && m->savetype == SAVETYPE_UNKNOWN) {
+	if (m->curr.cart && m->curr.savetype == SAVETYPE_UNKNOWN) {
 		throw twice_error("Cannot boot machine: unknown save type.");
 	}
 
-	auto ctx = create_nds_ctx(m->arm9_bios.pmap(), m->arm7_bios.pmap(),
-			m->firmware.pmap(), m->cart.pmap(),
-			m->savetype != SAVETYPE_NONE ? m->save.smap()
-						     : file_view(),
-			m->savetype, &m->cfg);
+	auto ctx = create_nds_ctx(m->curr.arm9_bios.pmap(),
+			m->curr.arm7_bios.pmap(), m->curr.firmware.pmap(),
+			m->curr.cart.pmap(),
+			m->curr.savetype != SAVETYPE_NONE ? m->curr.save.smap()
+							  : file_view(),
+			m->curr.savetype, &m->cfg);
 	if (direct_boot) {
 		nds_direct_boot(ctx.get());
 	} else {
@@ -482,7 +514,7 @@ nds_machine::boot(bool direct_boot)
 	nds_set_rtc_state(ctx.get(), *m->rtc_state);
 	unset_rtc_state();
 
-	m->nds = std::move(ctx);
+	m->curr.nds = std::move(ctx);
 }
 
 int
@@ -496,8 +528,10 @@ nds_machine::shutdown() noexcept
 		status = 1;
 	}
 
-	if (m->nds) {
-		m->last_nds_ctx = std::move(m->nds);
+	if (m->curr.nds) {
+		if (m->save_instance(m->last, m->curr)) {
+			status = 2;
+		}
 	}
 
 	return status;
@@ -511,15 +545,25 @@ nds_machine::reboot(bool direct_boot)
 }
 
 void
+nds_machine::restore_last_instance(bool save_current)
+{
+	std::swap(m->curr, m->last);
+
+	if (!save_current) {
+		m->last = {};
+	}
+}
+
+void
 nds_machine::run_until_vblank(const nds_exec *in, nds_exec *out)
 {
-	if (!m->nds) {
+	if (!m->curr.nds) {
 		throw twice_error("The machine is not running.");
 	}
 
-	nds_run(m->nds.get(), run_mode::RUN_UNTIL_VBLANK, in, out);
+	nds_run(m->curr.nds.get(), run_mode::RUN_UNTIL_VBLANK, in, out);
 
-	if (m->nds->shutdown) {
+	if (m->curr.nds->shutdown) {
 		shutdown();
 	}
 }
@@ -527,13 +571,19 @@ nds_machine::run_until_vblank(const nds_exec *in, nds_exec *out)
 bool
 nds_machine::is_shutdown()
 {
-	return !m->nds || m->nds->shutdown;
+	return !m->curr.nds || m->curr.nds->shutdown;
+}
+
+bool
+nds_machine::is_last_instance_shutdown()
+{
+	return !m->last.nds || m->last.nds->shutdown;
 }
 
 void
 nds_machine::update_button_state(nds_button button, bool down)
 {
-	if (!m->nds)
+	if (!m->curr.nds)
 		return;
 
 	using enum nds_button;
@@ -550,23 +600,23 @@ nds_machine::update_button_state(nds_button button, bool down)
 	case R:
 	case L:
 		if (down) {
-			m->nds->keyinput &= ~BIT((int)button);
+			m->curr.nds->keyinput &= ~BIT((int)button);
 		} else {
-			m->nds->keyinput |= BIT((int)button);
+			m->curr.nds->keyinput |= BIT((int)button);
 		}
 		break;
 	case X:
 		if (down) {
-			m->nds->extkeyin &= ~BIT(0);
+			m->curr.nds->extkeyin &= ~BIT(0);
 		} else {
-			m->nds->extkeyin |= BIT(0);
+			m->curr.nds->extkeyin |= BIT(0);
 		}
 		break;
 	case Y:
 		if (down) {
-			m->nds->extkeyin &= ~BIT(1);
+			m->curr.nds->extkeyin &= ~BIT(1);
 		} else {
-			m->nds->extkeyin |= BIT(1);
+			m->curr.nds->extkeyin |= BIT(1);
 		}
 		break;
 	default:;
@@ -577,19 +627,20 @@ void
 nds_machine::update_touchscreen_state(
 		int x, int y, bool down, bool quicktap, bool moved)
 {
-	if (!m->nds)
+	if (!m->curr.nds)
 		return;
 
 	x = std::clamp(x, 0, 255);
 	y = std::clamp(y, 0, 191);
-	nds_set_touchscreen_state(m->nds.get(), x, y, down, quicktap, moved);
+	nds_set_touchscreen_state(
+			m->curr.nds.get(), x, y, down, quicktap, moved);
 }
 
 void
 nds_machine::set_rtc_state(const nds_rtc_state& s)
 {
-	if (m->nds) {
-		nds_set_rtc_state(m->nds.get(), s);
+	if (m->curr.nds) {
+		nds_set_rtc_state(m->curr.nds.get(), s);
 	} else {
 		m->rtc_state = s;
 	}
@@ -631,15 +682,16 @@ void
 nds_machine::set_use_16_bit_audio(bool use_16_bit_audio)
 {
 	m->cfg.use_16_bit_audio = use_16_bit_audio;
+	/* TODO: update in running instance */
 }
 
 void
 nds_machine::dump_profiler_report()
 {
-	if (!m->nds)
+	if (!m->curr.nds)
 		return;
 
-	nds_dump_prof(m->nds.get());
+	nds_dump_prof(m->curr.nds.get());
 }
 
 } // namespace twice

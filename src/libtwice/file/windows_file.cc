@@ -73,6 +73,31 @@ file::truncate(std::streamoff length)
 	return !SetEndOfFile(internal->fh);
 }
 
+file
+file::dup()
+{
+	if (!*this) {
+		return file();
+	}
+
+	HANDLE fh;
+
+	bool success = DuplicateHandle(GetCurrentProcess(), internal->fh,
+			GetCurrentProcess(), &fh, 0, TRUE,
+			DUPLICATE_SAME_ACCESS);
+	if (!success) {
+		throw file_error(std::format(
+				"Could not copy file handle: {}, error: {}",
+				internal->pathname.string(), -1));
+	}
+
+	file f;
+	f.internal = std::make_unique<impl>();
+	f.internal->pathname = internal->pathname;
+	f.internal->fh = fh;
+	return f;
+}
+
 std::streamoff
 file::read_from_offset(std::streamoff offset, void *buf, size_t count)
 {

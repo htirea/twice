@@ -34,6 +34,7 @@ class EmulatorThread : public QThread {
 	void process_event(const Event::StopThread& ev);
 	void process_event(const Event::Reset& ev);
 	void process_event(const Event::Shutdown& ev);
+	void process_event(const Event::Restore& ev);
 	void process_event(const Event::Pause& ev);
 	void process_event(const Event::FastForward& ev);
 	void process_event(const Event::Button& ev);

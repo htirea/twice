@@ -167,6 +167,11 @@ static const std::vector<ActionInfo> action_data = {
 	.tip = "Shutdown the virtual machine",
 },
 {
+	.id = RESTORE_INSTANCE,
+	.text = "Restore",
+	.tip = "Restore the last instance",
+},
+{
 	.id = TOGGLE_PAUSE,
 	.text = "Pause",
 	.tip = "Pause the emulation",
@@ -319,6 +324,7 @@ static const std::vector<MenuInfo> menu_data = {
 		Action{RESET_TO_ROM},
 		Action{RESET_TO_FIRMWARE},
 		Action{SHUTDOWN},
+		Action{RESTORE_INSTANCE},
 		Separator{},
 		Action{TOGGLE_PAUSE}, 
 		Action{TOGGLE_FASTFORWARD},
@@ -515,6 +521,7 @@ MainWindow::init_menus()
 		{ RESET_TO_ROM, &MainWindow::reset_to_rom },
 		{ RESET_TO_FIRMWARE, &MainWindow::reset_to_firmware },
 		{ SHUTDOWN, &MainWindow::shutdown_emulation },
+		{ RESTORE_INSTANCE, &MainWindow::restore_instance },
 		{ AUTO_RESIZE, &MainWindow::auto_resize_display },
 		{ OPEN_SETTINGS, &MainWindow::open_settings },
 	};

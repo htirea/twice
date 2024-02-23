@@ -28,7 +28,7 @@ struct file_view {
 	/**
 	 * Create a file view of a file.
 	 *
-	 * \param fh a file
+	 * \param fh a file handle
 	 */
 	file_view(const file& fh, int flags);
 
@@ -43,7 +43,7 @@ struct file_view {
 	 * `PRIVATE`: create a private mapping
 	 * `SHARED`: create a shared mapping
 	 *
-	 * \param fh a file
+	 * \param fh a file handle
 	 */
 	int map(const file& fh, int flags);
 

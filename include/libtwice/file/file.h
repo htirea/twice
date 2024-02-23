@@ -17,7 +17,7 @@ struct file_error : twice_exception {
 struct file_view;
 
 /**
- * A wrapper around a host file.
+ * A wrapper around a host file handle.
  *
  * The functions are heavily modelled around the POSIX syscalls.
  */
@@ -33,12 +33,12 @@ struct file {
 	};
 
 	/**
-	 * Create a file with no underlying file.
+	 * Create a file handle with no underlying file.
 	 */
 	file();
 
 	/**
-	 * Create a file.
+	 * Create a file handle.
 	 *
 	 * \param pathname the path to the file
 	 * \param flags the flags to use
@@ -72,6 +72,13 @@ struct file {
 	 * \returns 0 iff success
 	 */
 	int truncate(std::streamoff length);
+
+	/**
+	 * Duplicate the file handle.
+	 *
+	 * \returns the duplicated file handle.
+	 */
+	file dup();
 
 	/**
 	 * Read bytes from an offset into a file.
