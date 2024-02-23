@@ -599,8 +599,8 @@ cmd_normal(geometry_engine *ge)
 			/* TODO: check */
 			s64 spe = 0;
 			s64 spe_color = ge->_specular_color[j];
-			if (dif_dot <= 0 || spe_level < 0 || spe_dot < 0 ||
-					spe_color == 0 || l == 0) {
+			if (dif_dot <= 0 || spe_level < 0 || spe_color == 0 ||
+					l == 0) {
 				spe = 0;
 			} else {
 				spe = spe_color * l * spe_level;
