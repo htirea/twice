@@ -17,6 +17,7 @@ struct file_view {
 		enum {
 			PRIVATE = 0x1,
 			SHARED = 0x2,
+			COPY = 0x4,
 		};
 	};
 
@@ -30,7 +31,7 @@ struct file_view {
 	 *
 	 * \param fh a file handle
 	 */
-	file_view(const file& fh, int flags);
+	file_view(file& fh, int flags);
 
 	file_view(file_view&&);
 	file_view& operator=(file_view&&);
@@ -42,10 +43,11 @@ struct file_view {
 	 * The `flags` parameter can control the behaviour:
 	 * `PRIVATE`: create a private mapping
 	 * `SHARED`: create a shared mapping
+	 * `COPY`: create a view over a copy of the file
 	 *
 	 * \param fh a file handle
 	 */
-	int map(const file& fh, int flags);
+	int map(file& fh, int flags);
 
 	/**
 	 * Get a pointer to the first byte in the view.

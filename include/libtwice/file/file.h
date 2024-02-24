@@ -81,16 +81,76 @@ struct file {
 	file dup();
 
 	/**
-	 * Read bytes from an offset into a file.
+	 * Seek to a specified offset from the beginning of the file.
 	 *
-	 * \param offset the offset
-	 * \param buf the buffer to write data into
+	 * \returns the result offset on success
+	 *          -1 on failure
+	 */
+	std::streamoff seek(std::streamoff offset);
+
+	/**
+	 * Read bytes.
+	 *
+	 * \param buf the destination buffer
 	 * \param count the number of bytes
 	 *
 	 * \returns the number of bytes read, or -1 on error
 	 */
-	std::streamoff read_from_offset(
+	std::streamoff read(void *buf, size_t count);
+
+	/**
+	 * Read an exact amount of bytes.
+	 *
+	 * \param buf the destination buffer
+	 * \param count the number of bytes
+	 *
+	 * \returns the number of bytes read, or -1 on error
+	 */
+	std::streamoff read_exact(void *buf, size_t count);
+
+	/**
+	 * Read an exact amount of bytes from an offset.
+	 *
+	 * \param offset the offset
+	 * \param buf the destination buffer
+	 * \param count the number of bytes
+	 *
+	 * \returns the number of bytes read, or -1 on error
+	 */
+	std::streamoff read_exact_offset(
 			std::streamoff offset, void *buf, size_t count);
+
+	/**
+	 * Write bytes.
+	 *
+	 * \param buf the source buffer
+	 * \param count the number of bytes
+	 *
+	 * \returns the number of bytes written, or -1 on error
+	 */
+	std::streamoff write(const void *buf, size_t count);
+
+	/**
+	 * Write an exact amount of bytes.
+	 *
+	 * \param buf the source buffer
+	 * \param count the number of bytes
+	 *
+	 * \returns the number of bytes written, or -1 on error
+	 */
+	std::streamoff write_exact(const void *buf, size_t count);
+
+	/**
+	 * Write an exact amount of bytes to an offset.
+	 *
+	 * \param offset the offset
+	 * \param buf the source buffer
+	 * \param count the number of bytes
+	 *
+	 * \returns the number of bytes read, or -1 on error
+	 */
+	std::streamoff write_exact_offset(
+			std::streamoff offset, const void *buf, size_t count);
 
 	/**
 	 * Sync file to disk.
@@ -133,6 +193,13 @@ struct file {
 	 * \returns a shared file view
 	 */
 	file_view smap();
+
+	/**
+	 * Convenience function for getting a copy file view
+	 *
+	 * \returns a copy file view
+	 */
+	file_view cmap();
 
       private:
 	struct impl;

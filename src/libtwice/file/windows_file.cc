@@ -99,7 +99,7 @@ file::dup()
 }
 
 std::streamoff
-file::read_from_offset(std::streamoff offset, void *buf, size_t count)
+file::seek(std::streamoff offset)
 {
 	if (!*this) {
 		return -1;
@@ -107,7 +107,13 @@ file::read_from_offset(std::streamoff offset, void *buf, size_t count)
 
 	LARGE_INTEGER file_offset;
 	file_offset.QuadPart = offset;
-	if (!SetFilePointerEx(internal->fh, file_offset, NULL, FILE_BEGIN)) {
+	return !SetFilePointerEx(internal->fh, file_offset, NULL, FILE_BEGIN);
+}
+
+std::streamoff
+file::read(void *buf, size_t count)
+{
+	if (!*this) {
 		return -1;
 	}
 
@@ -118,6 +124,23 @@ file::read_from_offset(std::streamoff offset, void *buf, size_t count)
 	}
 
 	return bytes_read;
+}
+
+std::streamoff
+file::write(const void *buf, size_t count)
+{
+	if (!*this) {
+		return -1;
+	}
+
+	DWORD bytes_to_write = std::min<size_t>(count, 0x7FFFFFFF);
+	DWORD bytes_written = 0;
+	if (!WriteFile(internal->fh, buf, bytes_to_write, &bytes_written,
+			    NULL)) {
+		return -1;
+	}
+
+	return bytes_written;
 }
 
 int
@@ -152,18 +175,6 @@ file::get_size() const
 	}
 
 	return file_size.QuadPart;
-}
-
-file_view
-file::pmap()
-{
-	return file_view(*this, file_view::map_flags::PRIVATE);
-}
-
-file_view
-file::smap()
-{
-	return file_view(*this, file_view::map_flags::SHARED);
 }
 
 file::operator bool() const noexcept

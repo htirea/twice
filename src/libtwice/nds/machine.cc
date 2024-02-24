@@ -92,7 +92,10 @@ nds_machine::nds_machine(const nds_config& config)
 	}
 }
 
-nds_machine::~nds_machine() = default;
+nds_machine::~nds_machine()
+{
+	sync_files();
+}
 
 void
 nds_machine::load_file(const std::filesystem::path& pathname, nds_file type)
@@ -204,8 +207,7 @@ nds_machine::load_cartridge(const std::filesystem::path& pathname)
 	}
 
 	u8 buf[4]{};
-	auto count = f.read_from_offset(0xC, buf, 4);
-	if (count != 4) {
+	if (f.read_exact_offset(0xC, buf, 4) < 0) {
 		throw twice_error("Could not read cart gamecode.");
 	}
 
@@ -357,14 +359,20 @@ nds_machine::get_loaded_files()
 	return r;
 }
 
-void
-nds_machine::sync_files()
+int
+nds_machine::sync_files() noexcept
 {
-	if (m->curr.nds) {
-		nds_sync_files(m->curr.nds.get());
+	int status = 0;
+
+	try {
+		if (m->curr.nds) {
+			nds_sync_files(m->curr.nds.get(), true);
+		}
+	} catch (const twice_exception& err) {
+		status = 1;
 	}
 
-	/* TODO: sync files */
+	return status;
 }
 
 nds_savetype
@@ -499,8 +507,8 @@ nds_machine::boot(bool direct_boot)
 	auto ctx = create_nds_ctx(m->curr.arm9_bios.pmap(),
 			m->curr.arm7_bios.pmap(), m->curr.firmware.pmap(),
 			m->curr.cart.pmap(),
-			m->curr.savetype != SAVETYPE_NONE ? m->curr.save.smap()
-							  : file_view(),
+			m->curr.savetype != SAVETYPE_NONE ? m->curr.save.dup()
+							  : file(),
 			m->curr.savetype, &m->cfg);
 	if (direct_boot) {
 		nds_direct_boot(ctx.get());
@@ -520,13 +528,7 @@ nds_machine::boot(bool direct_boot)
 int
 nds_machine::shutdown() noexcept
 {
-	int status = 0;
-
-	try {
-		sync_files();
-	} catch (const twice_exception&) {
-		status = 1;
-	}
+	int status = sync_files();
 
 	if (m->curr.nds) {
 		if (m->save_instance(m->last, m->curr)) {
@@ -548,10 +550,11 @@ void
 nds_machine::restore_last_instance(bool save_current)
 {
 	std::swap(m->curr, m->last);
-
 	if (!save_current) {
 		m->last = {};
 	}
+
+	sync_files();
 }
 
 void

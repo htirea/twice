@@ -190,11 +190,12 @@ struct nds_ctx {
 	fs::file_view firmware_v;
 	fs::file_view cart_v;
 	fs::file_view save_v;
+	fs::file savefile;
 };
 
 std::unique_ptr<nds_ctx> create_nds_ctx(fs::file_view arm9_bios,
 		fs::file_view arm7_bios, fs::file_view firmware,
-		fs::file_view cart, fs::file_view save, nds_savetype savetype,
+		fs::file_view cart, fs::file savefile, nds_savetype savetype,
 		nds_config *config);
 void nds_firmware_boot(nds_ctx *nds);
 void nds_direct_boot(nds_ctx *nds);
@@ -202,7 +203,7 @@ void nds_run(nds_ctx *nds, run_mode mode, const nds_exec *in, nds_exec *out);
 void nds_set_rtc_state(nds_ctx *nds, const nds_rtc_state& s);
 void nds_set_touchscreen_state(nds_ctx *nds, int x, int y, bool down,
 		bool quicktap, bool moved);
-void nds_sync_files(nds_ctx *nds);
+void nds_sync_files(nds_ctx *nds, bool force);
 void nds_dump_prof(nds_ctx *nds);
 
 void event_execution_target_reached(nds_ctx *nds, intptr_t, timestamp late);

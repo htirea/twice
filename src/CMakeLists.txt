@@ -24,9 +24,10 @@ add_library(twice STATIC
 	common/logger.cc
 	common/profiler.cc
 	libtwice/config.cc
-	libtwice/nds//game_db.cc
-	libtwice/nds//machine.cc
-	libtwice/nds//display.cc
+	libtwice/file/common_file.cc
+	libtwice/nds/game_db.cc
+	libtwice/nds/machine.cc
+	libtwice/nds/display.cc
 	nds/arm/arm.cc
 	nds/arm/arm7.cc
 	nds/arm/arm9.cc

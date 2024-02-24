@@ -93,19 +93,36 @@ file::dup()
 }
 
 std::streamoff
-file::read_from_offset(std::streamoff offset, void *buf, size_t count)
+file::seek(std::streamoff offset)
 {
 	if (!*this) {
 		errno = -1;
 		return -1;
 	}
 
-	off_t err = ::lseek(internal->fd, offset, SEEK_SET);
-	if (err == -1) {
+	return ::lseek(internal->fd, offset, SEEK_SET);
+}
+
+std::streamoff
+file::read(void *buf, size_t count)
+{
+	if (!*this) {
+		errno = -1;
 		return -1;
 	}
 
 	return ::read(internal->fd, buf, count);
+}
+
+std::streamoff
+file::write(const void *buf, size_t count)
+{
+	if (!*this) {
+		errno = -1;
+		return -1;
+	}
+
+	return ::write(internal->fd, buf, count);
 }
 
 int
@@ -142,18 +159,6 @@ file::get_size() const
 	}
 
 	return s.st_size;
-}
-
-file_view
-file::pmap()
-{
-	return file_view(*this, file_view::map_flags::PRIVATE);
-}
-
-file_view
-file::smap()
-{
-	return file_view(*this, file_view::map_flags::SHARED);
 }
 
 file::operator bool() const noexcept

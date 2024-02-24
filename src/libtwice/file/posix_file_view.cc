@@ -1,6 +1,7 @@
 #include "libtwice/file/posix_internal.h"
 
 #include <cerrno>
+#include <cstring>
 #include <format>
 
 #include <sys/mman.h>
@@ -9,7 +10,7 @@ namespace twice::fs {
 
 file_view::file_view() = default;
 
-file_view::file_view(const file& fh, int flags)
+file_view::file_view(file& fh, int flags)
 {
 	int err = map(fh, flags);
 	if (err) {
@@ -24,7 +25,7 @@ file_view& file_view::operator=(file_view&&) = default;
 file_view::~file_view() = default;
 
 int
-file_view::map(const file& fh, int flags)
+file_view::map(file& fh, int flags)
 {
 	if (!fh) {
 		internal.reset();
@@ -36,6 +37,8 @@ file_view::map(const file& fh, int flags)
 		mflags |= MAP_PRIVATE;
 	} else if (flags & map_flags::SHARED) {
 		mflags |= MAP_SHARED;
+	} else if (flags & map_flags::COPY) {
+		mflags |= MAP_PRIVATE | MAP_ANONYMOUS;
 	} else {
 		errno = -2;
 		return -1;
@@ -52,9 +55,17 @@ file_view::map(const file& fh, int flags)
 		return -1;
 	}
 
+	if (flags & map_flags::COPY) {
+		if (fh.read_exact_offset(0, addr, map_size) < 0) {
+			::munmap(addr, map_size);
+			return -1;
+		}
+	}
+
 	internal = std::make_unique<impl>();
 	internal->addr = addr;
 	internal->size = map_size;
+
 	return 0;
 }
 

@@ -330,8 +330,12 @@ struct nds_machine {
 
 	/**
 	 * Sync files to disk.
+	 *
+	 * The whole file is synced to disk.
+	 *
+	 * \returns 0 iff success
 	 */
-	void sync_files();
+	int sync_files() noexcept;
 
 	/**
 	 * Get the currently set save type.
