@@ -60,7 +60,7 @@ struct gpu_2d_engine {
 	 * 2		from 3d
 	 * 3		obj mosaic
 	 * 8		effect bottom
-	 * 12-15	alpha oam
+	 * 12-15	obj alpha
 	 * 16-22	obj num
 	 * 24-25	bg num
 	 * 26		bg

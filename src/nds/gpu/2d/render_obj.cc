@@ -248,13 +248,10 @@ render_normal_sprite(gpu_2d_engine *gpu, sprite& obj, u32 y)
 
 	bool color_256 = obj.attrs[0] & BIT(13);
 	bool ext_palettes = gpu->dispcnt & BIT(31);
-
-	/* palette_num */
 	obj.palette_num = obj.attrs[2] >> 12;
-
-	/* tile offset */
 	u32 tx = obj.x >> 3;
 	u32 ty = obj.y >> 3;
+
 	if (obj.map_1d) {
 		obj.tile_offset = obj.char_idx << 5
 		                               << (gpu->dispcnt >> 20 & 3);

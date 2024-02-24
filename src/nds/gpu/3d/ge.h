@@ -24,12 +24,12 @@ struct geometry_engine {
 	u32 position_sp{};
 	u32 texture_sp{};
 
-	std::array<u8, 3> _vtx_color{};
-	std::array<u8, 3> _diffuse_color{};
-	std::array<u8, 3> _ambient_color{};
-	std::array<u8, 3> _specular_color{};
-	std::array<u8, 3> _emission_color{};
-	std::array<u8, 3> _light_color[4]{};
+	std::array<u8, 3> vtx_color{};
+	std::array<u8, 3> diffuse_color{};
+	std::array<u8, 3> ambient_color{};
+	std::array<u8, 3> specular_color{};
+	std::array<u8, 3> emission_color{};
+	std::array<u8, 3> light_color[4]{};
 	std::array<s32, 3> light_vec[4]{};
 	std::array<s32, 3> half_vec[4]{};
 	std::array<s32, 3> normal_vec{};

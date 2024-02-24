@@ -516,7 +516,7 @@ cmd_mtx_trans(geometry_engine *ge)
 static void
 cmd_color(geometry_engine *ge)
 {
-	unpack_bgr555(ge->cmd_params[0], ge->_vtx_color);
+	unpack_bgr555(ge->cmd_params[0], ge->vtx_color);
 }
 
 static void
@@ -534,53 +534,46 @@ cmd_normal(geometry_engine *ge)
 	s32 normal[3];
 	mtx_mult_vec3(normal, ge->vector_mtx, nx, ny, nz);
 
-	s64 color[3]{};
-	color[0] = ge->_emission_color[0] << 14;
-	color[1] = ge->_emission_color[1] << 14;
-	color[2] = ge->_emission_color[2] << 14;
+	s32 color[3]{};
+	color[0] = ge->emission_color[0] << 14;
+	color[1] = ge->emission_color[1] << 14;
+	color[2] = ge->emission_color[2] << 14;
 
 	for (u32 i = 0; i < 4; i++) {
 		if (!(ge->poly_attr & BIT(i)))
 			continue;
 
-		s64 dif_dot = 0;
-		dif_dot += -(s64)ge->light_vec[i][0] * normal[0] & ~0x1FF;
-		dif_dot += -(s64)ge->light_vec[i][1] * normal[1] & ~0x1FF;
-		dif_dot += -(s64)ge->light_vec[i][2] * normal[2] & ~0x1FF;
-		s64 dif_level = dif_dot >> 9;
+		s32 dif_dot = 0;
+		dif_dot += -ge->light_vec[i][0] * normal[0] >> 9;
+		dif_dot += -ge->light_vec[i][1] * normal[1] >> 9;
+		dif_dot += -ge->light_vec[i][2] * normal[2] >> 9;
+		s32 dif_level = dif_dot;
 
-		/* TODO: specular is probably the same as diffuse? */
-		s64 spe_dot = 0;
-		spe_dot += -(s64)ge->light_vec[i][0] * normal[0] & ~0x1FF;
-		spe_dot += -(s64)ge->light_vec[i][1] * normal[1] & ~0x1FF;
-		spe_dot += -(s64)ge->light_vec[i][2] * normal[2] & ~0x1FF;
-		spe_dot += normal[2] << 9;
-		spe_dot >>= 9;
-
+		s32 spe_dot = dif_dot + normal[2];
 		if (spe_dot >= 0x400) {
 			spe_dot = (0x400 - (spe_dot - 0x400)) & 0x3FF;
 		}
 
-		s64 spe_recip = ((s64)1 << 18) /
+		s32 spe_recip = ((s32)1 << 18) /
 		                (-ge->light_vec[i][2] + (1 << 9));
-		s64 spe_level = (spe_dot * spe_dot >> 10) * spe_recip >> 8;
+		s32 spe_level = (spe_dot * spe_dot >> 10) * spe_recip >> 8;
 		spe_level -= (1 << 9);
 
-		spe_level = SEXTL<14>(spe_level);
+		spe_level = SEXT<14>(spe_level);
 		if (spe_level >= 512) {
 			spe_level = 511;
 		}
 
 		if (ge->shiny_table_enabled) {
-			s64 idx = std::clamp<s64>(spe_level >> 2, 0, 127);
+			s32 idx = std::clamp<s32>(spe_level >> 2, 0, 127);
 			spe_level = ge->shiny_table[idx] << 1;
 		}
 
 		for (u32 j = 0; j < 3; j++) {
-			s64 l = ge->_light_color[i][j];
+			s32 l = ge->light_color[i][j];
 
-			s64 dif = 0;
-			s64 dif_color = ge->_diffuse_color[j];
+			s32 dif = 0;
+			s32 dif_color = ge->diffuse_color[j];
 			if (dif_level < 0 || dif_color == 0 || l == 0) {
 				dif = 0;
 			} else {
@@ -592,31 +585,28 @@ cmd_normal(geometry_engine *ge)
 				} else {
 					dif = dif_color * l * dif_level;
 				}
-				dif = std::clamp<s64>(dif, 0, (s64)31 << 14);
+				dif = std::clamp<s32>(dif, 0, (s32)31 << 14);
 			}
 			color[j] += dif;
 
-			/* TODO: check */
-			s64 spe = 0;
-			s64 spe_color = ge->_specular_color[j];
+			s32 spe = 0;
+			s32 spe_color = ge->specular_color[j];
 			if (dif_dot <= 0 || spe_level < 0 || spe_color == 0 ||
 					l == 0) {
 				spe = 0;
 			} else {
 				spe = spe_color * l * spe_level;
-				spe = std::clamp<s64>(spe, 0, (s64)31 << 14);
 			}
 			color[j] += spe;
 
-			/* TODO: check */
-			s64 amb = ge->_ambient_color[j] * l << 9;
+			s32 amb = ge->ambient_color[j] * l << 9;
 			color[j] += amb;
 		}
 	}
 
-	ge->_vtx_color[0] = std::clamp<s64>(color[0] >> 14, 0, 31);
-	ge->_vtx_color[1] = std::clamp<s64>(color[1] >> 14, 0, 31);
-	ge->_vtx_color[2] = std::clamp<s64>(color[2] >> 14, 0, 31);
+	ge->vtx_color[0] = std::clamp<s32>(color[0] >> 14, 0, 31);
+	ge->vtx_color[1] = std::clamp<s32>(color[1] >> 14, 0, 31);
+	ge->vtx_color[2] = std::clamp<s32>(color[2] >> 14, 0, 31);
 }
 
 static void
@@ -709,21 +699,21 @@ cmd_dif_amb(geometry_engine *ge)
 {
 	u32 param = ge->cmd_params[0];
 
-	unpack_bgr555(param, ge->_diffuse_color);
+	unpack_bgr555(param, ge->diffuse_color);
 
 	if (param & BIT(15)) {
-		ge->_vtx_color = ge->_diffuse_color;
+		ge->vtx_color = ge->diffuse_color;
 	}
 
-	unpack_bgr555(param >> 16, ge->_ambient_color);
+	unpack_bgr555(param >> 16, ge->ambient_color);
 }
 
 static void
 cmd_spe_emi(geometry_engine *ge)
 {
 	u32 param = ge->cmd_params[0];
-	unpack_bgr555(param, ge->_specular_color);
-	unpack_bgr555(param >> 16, ge->_emission_color);
+	unpack_bgr555(param, ge->specular_color);
+	unpack_bgr555(param >> 16, ge->emission_color);
 	ge->shiny_table_enabled = param & BIT(15);
 }
 
@@ -746,7 +736,7 @@ static void
 cmd_light_color(geometry_engine *ge)
 {
 	u32 l = ge->cmd_params[0] >> 30;
-	unpack_bgr555(ge->cmd_params[0], ge->_light_color[l]);
+	unpack_bgr555(ge->cmd_params[0], ge->light_color[l]);
 }
 
 static void
@@ -1151,9 +1141,9 @@ add_vertex(geometry_engine *ge)
 	mtx_mult_vec(v->pos, ge->clip_mtx,
 			std::array<s32, 4>{ ge->vx, ge->vy, ge->vz, 1 << 12 });
 
-	v->attr[0] = ((s32)ge->_vtx_color[0] << 1) + (ge->_vtx_color[0] != 0);
-	v->attr[1] = ((s32)ge->_vtx_color[1] << 1) + (ge->_vtx_color[1] != 0);
-	v->attr[2] = ((s32)ge->_vtx_color[2] << 1) + (ge->_vtx_color[2] != 0);
+	v->attr[0] = ((s32)ge->vtx_color[0] << 1) + (ge->vtx_color[0] != 0);
+	v->attr[1] = ((s32)ge->vtx_color[1] << 1) + (ge->vtx_color[1] != 0);
+	v->attr[2] = ((s32)ge->vtx_color[2] << 1) + (ge->vtx_color[2] != 0);
 	v->attr[0] <<= 3;
 	v->attr[1] <<= 3;
 	v->attr[2] <<= 3;
