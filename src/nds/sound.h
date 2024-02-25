@@ -38,6 +38,9 @@ struct sound_channel {
 		adpcm_state adpcm;
 		psg_state psg;
 	};
+
+	s32 sample{};
+	s32 prev_sample{};
 };
 
 struct sound_capture_channel {

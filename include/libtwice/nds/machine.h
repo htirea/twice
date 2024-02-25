@@ -22,6 +22,7 @@ struct nds_config {
 	std::filesystem::path arm7_bios_path;
 	std::filesystem::path firmware_path;
 	bool use_16_bit_audio{};
+	bool interpolate_audio{};
 };
 
 /**
@@ -489,6 +490,14 @@ struct nds_machine {
 	 *                         false to mix audio at 10 bits
 	 */
 	void set_use_16_bit_audio(bool use_16_bit_audio);
+
+	/**
+	 * Set whether to interpolate audio.
+	 *
+	 * \param interpolate_audio true to interpolate audio
+	 *                          false otherwise
+	 */
+	void set_interpolate_audio(bool interpolate_audio);
 
 	/**
 	 * Dump the collected profiler data.

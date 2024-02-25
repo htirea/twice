@@ -492,6 +492,12 @@ MainWindow::toggle_lock_aspect_ratio(bool checked)
 }
 
 void
+MainWindow::toggle_interpolate_audio(bool checked)
+{
+	cfg->set(ConfigVariable::INTERPOLATE_AUDIO, checked);
+}
+
+void
 MainWindow::update_title()
 {
 	double fps = 1 / avg_frametime;
@@ -525,5 +531,12 @@ MainWindow::config_var_set(int key, const QVariant& v)
 	case ConfigVariable::LINEAR_FILTERING:
 		actions[LINEAR_FILTERING]->setChecked(v.toBool());
 		break;
+	case ConfigVariable::INTERPOLATE_AUDIO:
+	{
+		bool interpolate_audio = v.toBool();
+		actions[LERP_AUDIO]->setChecked(interpolate_audio);
+		emu_thread->push_event(Event::Audio{ interpolate_audio });
+		break;
+	}
 	}
 }

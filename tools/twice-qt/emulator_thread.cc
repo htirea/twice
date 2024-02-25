@@ -225,6 +225,12 @@ EmulatorThread::process_event(const Event::Touch& ev)
 }
 
 void
+EmulatorThread::process_event(const Event::Audio& ev)
+{
+	nds->set_interpolate_audio(ev.interpolate_audio);
+}
+
+void
 EmulatorThread::process_event(const Event::StopThread&)
 {
 	running = false;

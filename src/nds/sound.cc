@@ -351,25 +351,18 @@ static void
 sample_channel(nds_ctx *nds, int ch_id, s64 *l_out, s64 *r_out)
 {
 	auto& ch = nds->sound_ch[ch_id];
+	u32 format = ch.cnt >> 29 & 3;
 
 	if (ch.start) {
 		start_channel(nds, ch_id);
 	}
 
 	/* sample is in 16.0 fixed point */
-	s64 sample = 0;
-	switch (ch.cnt >> 29 & 3) {
-	case 0:
-		sample = (s32)(s8)bus7_read<u8>(nds, ch.addr) << 8;
-		break;
-	case 1:
-		sample = (s16)bus7_read<u16>(nds, ch.addr);
-		break;
-	case 2:
-		sample = ch.adpcm.value;
-		break;
-	case 3:
-		sample = ch.psg.value;
+	s64 sample = ch.sample;
+
+	if (nds->config->interpolate_audio && format != 3) {
+		sample = ilerp(ch.prev_sample, ch.sample, ch.tmr_reload << 2,
+				0x10000 << 2, ch.tmr);
 	}
 
 	/* 16.4 fixed point */
@@ -392,6 +385,8 @@ start_channel(nds_ctx *nds, int ch_id)
 	ch.tmr = ch.tmr_reload << 2;
 	ch.addr = ch.sad;
 	ch.start = false;
+	ch.sample = 0;
+	ch.prev_sample = 0;
 
 	switch (ch.cnt >> 29 & 3) {
 	case 2:
@@ -533,6 +528,21 @@ step_channel(nds_ctx *nds, int ch_id)
 		case 2:
 			ch.cnt &= ~BIT(31);
 		}
+	}
+
+	ch.prev_sample = ch.sample;
+	switch (format) {
+	case 0:
+		ch.sample = (s32)(s8)bus7_read<u8>(nds, ch.addr) << 8;
+		break;
+	case 1:
+		ch.sample = (s16)bus7_read<u16>(nds, ch.addr);
+		break;
+	case 2:
+		ch.sample = ch.adpcm.value;
+		break;
+	case 3:
+		ch.sample = ch.psg.value;
 	}
 }
 

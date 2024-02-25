@@ -682,7 +682,12 @@ void
 nds_machine::set_use_16_bit_audio(bool use_16_bit_audio)
 {
 	m->cfg.use_16_bit_audio = use_16_bit_audio;
-	/* TODO: update in running instance */
+}
+
+void
+nds_machine::set_interpolate_audio(bool interpolate_audio)
+{
+	m->cfg.interpolate_audio = interpolate_audio;
 }
 
 void

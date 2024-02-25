@@ -55,6 +55,10 @@ struct Touch {
 	bool quicktap;
 };
 
+struct Audio {
+	bool interpolate_audio;
+};
+
 struct StopThread {};
 
 struct Error {
@@ -72,7 +76,7 @@ struct EndFrame {
 };
 
 using Event = std::variant<LoadFile, UnloadFile, SaveType, Reset, Shutdown,
-		Restore, Pause, FastForward, Button, Touch, StopThread>;
+		Restore, Pause, FastForward, Button, Touch, Audio, StopThread>;
 
 using MainEvent = std::variant<Error, Shutdown, Restore, File, SaveType,
 		EndFrame>;

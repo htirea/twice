@@ -271,6 +271,12 @@ static const std::vector<ActionInfo> action_data = {
 	.tip = "Resize the window to match the emulated aspect ratio",
 },
 {
+	.id = LERP_AUDIO,
+	.text = "Linear interpolation",
+	.tip = "Linearly interpolate audio samples",
+	.checkable = true,
+},
+{
 	.id = OPEN_SETTINGS,
 	.text = "Settings",
 	.tip = "Open the settings window",
@@ -281,6 +287,7 @@ static const std::vector<int> menubar_menus = {
 	FILE_MENU,
 	EMULATION_MENU,
 	VIDEO_MENU,
+	AUDIO_MENU,
 	TOOLS_MENU,
 };
 
@@ -341,6 +348,13 @@ static const std::vector<MenuInfo> menu_data = {
 		Separator{},
 		Action{LINEAR_FILTERING},
 		Action{LOCK_ASPECT_RATIO},
+	},
+},
+{
+	.id = AUDIO_MENU,
+	.title = "Audio",
+	.items = {
+		Action{LERP_AUDIO},
 	},
 },
 {
@@ -531,6 +545,7 @@ MainWindow::init_menus()
 		{ TOGGLE_FASTFORWARD, &MainWindow::toggle_fastforward },
 		{ LINEAR_FILTERING, &MainWindow::toggle_linear_filtering },
 		{ LOCK_ASPECT_RATIO, &MainWindow::toggle_lock_aspect_ratio },
+		{ LERP_AUDIO, &MainWindow::toggle_interpolate_audio }
 	};
 
 	std::vector<std::pair<int, F_int>> funcs_int = {
