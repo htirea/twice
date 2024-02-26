@@ -64,13 +64,22 @@ arm9_cpu::step()
 			u32 op1 = opcode >> 20 & 0xFF;
 			u32 op2 = opcode >> 4 & 0xF;
 			arm_inst_lut[op1 << 4 | op2](this);
-		} else if ((opcode & 0xFE000000) == 0xFA000000) {
-			bool H = opcode & BIT(24);
-			s32 offset = ((s32)(opcode << 8) >> 6) + (H << 1);
+		} else if (cond == 0xF) {
+			if ((opcode & 0xFE000000) == 0xFA000000) {
+				bool H = opcode & BIT(24);
+				s32 offset = ((s32)(opcode << 8) >> 6) +
+				             (H << 1);
 
-			gpr[14] = pc() - 4;
-			cpsr |= 0x20;
-			thumb_jump(pc() + offset);
+				gpr[14] = pc() - 4;
+				cpsr |= 0x20;
+				thumb_jump(pc() + offset);
+			} else if ((opcode & 0xFD700000) == 0xF5500000) {
+				throw twice_error("PLD");
+			} else if ((opcode & 0xFE000000) == 0xFC000000) {
+				throw twice_error("STC2 / LDC2");
+			} else if ((opcode & 0xFF000000) == 0xFE000000) {
+				throw twice_error("CDP2 / MCR2 / MRC2");
+			}
 		}
 	}
 
