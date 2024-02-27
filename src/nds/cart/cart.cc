@@ -1,6 +1,7 @@
 #include "nds/nds.h"
 
 #include "nds/arm/arm.h"
+#include "nds/cart/dldi.h"
 #include "nds/cart/key.h"
 #include "nds/mem/bus.h"
 
@@ -26,6 +27,7 @@ cartridge_init(nds_ctx *nds, int savetype)
 	cart.infrared = (cart.gamecode & 0xFF) == 'I';
 
 	cartridge_backup_init(nds, savetype);
+	dldi_init(nds);
 
 	for (u32 i = 0; i < 0x412; i++) {
 		cart.keybuf_s[i] = readarr<u32>(nds->arm7_bios, 0x30 + i * 4);

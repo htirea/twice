@@ -26,6 +26,7 @@ EmulatorThread::EmulatorThread(
 		.firmware_path = cfg->get(FIRMWARE_PATH)
 		                                 .toString()
 		                                 .toStdU16String(),
+		.image_path = cfg->get(IMAGE_PATH).toString().toStdU16String(),
 		.use_16_bit_audio = cfg->get(USE_16_BIT_AUDIO).toBool(),
 	};
 

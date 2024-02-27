@@ -24,7 +24,7 @@ nds_ctx::~nds_ctx() = default;
 
 std::unique_ptr<nds_ctx>
 create_nds_ctx(file_view arm9_bios, file_view arm7_bios, file_view firmware,
-		file_view cart, file save, nds_savetype savetype,
+		file_view cart, file save, nds_savetype savetype, file image,
 		nds_config *config)
 {
 	auto ctx = std::make_unique<nds_ctx>();
@@ -36,6 +36,8 @@ create_nds_ctx(file_view arm9_bios, file_view arm7_bios, file_view firmware,
 	nds->cart_v = std::move(cart);
 	nds->save_v = save.cmap();
 	nds->savefile = std::move(save);
+	nds->image_v = image.cmap();
+	nds->image = std::move(image);
 
 	nds->arm9_bios = nds->arm9_bios_v.data();
 	nds->arm7_bios = nds->arm7_bios_v.data();
@@ -142,6 +144,13 @@ nds_run(nds_ctx *nds, run_mode mode, const nds_exec *in, nds_exec *out)
 	nds_setup_run(nds, target, term_sigs, mic_buf, mic_buf_len, out);
 	run_loop(nds);
 	nds_sync_files(nds, false);
+}
+
+void
+nds_sync_files(nds_ctx *nds, bool sync_whole_file)
+{
+	sync_savefile(nds, sync_whole_file);
+	sync_image_file(nds, sync_whole_file);
 }
 
 void

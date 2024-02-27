@@ -55,6 +55,11 @@ static const std::vector<ActionInfo> action_data = {
 	.tip = "Load the system files",
 },
 {
+	.id = LOAD_IMAGE_FILE,
+	.text = "Load image file",
+	.tip = "Load an image file",
+},
+{
 	.id = INSERT_CART,
 	.text = "Insert cartridge",
 	.tip = "Insert a cartridge",
@@ -298,6 +303,7 @@ static const std::vector<MenuInfo> menu_data = {
 	.items = {
 		Action{OPEN_ROM},
 		Action{LOAD_SYSTEM_FILES},
+		Action{LOAD_IMAGE_FILE},
 		Separator{},
 		Action{INSERT_CART},
 		Action{EJECT_CART},
@@ -528,6 +534,7 @@ MainWindow::init_menus()
 	std::vector<std::pair<int, F>> funcs0 = {
 		{ OPEN_ROM, &MainWindow::open_rom },
 		{ LOAD_SYSTEM_FILES, &MainWindow::open_system_files },
+		{ LOAD_IMAGE_FILE, &MainWindow::load_image_file },
 		{ INSERT_CART, &MainWindow::insert_cart },
 		{ EJECT_CART, &MainWindow::eject_cart },
 		{ LOAD_SAVE_FILE, &MainWindow::load_save_file },

@@ -259,6 +259,7 @@ MainWindow::process_event(const Event::Shutdown& ev)
 	bool save = loaded_files & (int)SAVE;
 
 	actions[LOAD_SYSTEM_FILES]->setEnabled(shutdown);
+	actions[LOAD_IMAGE_FILE]->setEnabled(shutdown);
 	actions[INSERT_CART]->setEnabled(shutdown && !cart);
 	actions[EJECT_CART]->setEnabled(shutdown && cart);
 	actions[LOAD_SAVE_FILE]->setEnabled(shutdown);
@@ -371,6 +372,19 @@ MainWindow::open_system_files()
 		}
 
 		emu_thread->push_event(Event::LoadFile{ pathname, type });
+	}
+}
+
+void
+MainWindow::load_image_file()
+{
+	auto pathname = QFileDialog::getOpenFileName(this,
+			tr("Load image file"), "",
+			tr("Image files (*.bin *.img);;All files(*)"));
+	if (!pathname.isEmpty()) {
+		emu_thread->push_event(
+				Event::LoadFile{ pathname, nds_file::IMAGE });
+		cfg->set(ConfigVariable::IMAGE_PATH, pathname);
 	}
 }
 

@@ -7,6 +7,7 @@
 #include "libtwice/nds/machine.h"
 
 #include "nds/cart/cart.h"
+#include "nds/cart/dldi.h"
 #include "nds/dma.h"
 #include "nds/firmware.h"
 #include "nds/gpu/2d/gpu2d.h"
@@ -83,6 +84,7 @@ struct nds_ctx {
 	firmware fw;
 	touchscreen ts;
 	cartridge cart;
+	dldi_controller dldi;
 	powerman pwr;
 	sound_channel sound_ch[16];
 	sound_capture_channel sound_cap_ch[2];
@@ -191,12 +193,14 @@ struct nds_ctx {
 	fs::file_view cart_v;
 	fs::file_view save_v;
 	fs::file savefile;
+	fs::file image;
+	fs::file_view image_v;
 };
 
 std::unique_ptr<nds_ctx> create_nds_ctx(fs::file_view arm9_bios,
 		fs::file_view arm7_bios, fs::file_view firmware,
 		fs::file_view cart, fs::file savefile, nds_savetype savetype,
-		nds_config *config);
+		fs::file image, nds_config *config);
 void nds_firmware_boot(nds_ctx *nds);
 void nds_direct_boot(nds_ctx *nds);
 void nds_run(nds_ctx *nds, run_mode mode, const nds_exec *in, nds_exec *out);

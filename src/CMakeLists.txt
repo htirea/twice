@@ -34,7 +34,9 @@ add_library(twice STATIC
 	nds/arm/interpreter/lut.cc
 	nds/cart/backup.cc
 	nds/cart/cart.cc
+	nds/cart/dldi.cc
 	nds/cart/key.cc
+	nds/cart/write_queue.cc
 	nds/dma.cc
 	nds/firmware.cc
 	nds/gpu/2d/gpu2d.cc

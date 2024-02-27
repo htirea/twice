@@ -12,8 +12,6 @@ static void eeprom_common_transfer_byte(nds_ctx *, u8 value);
 static void flash_transfer_byte(nds_ctx *, u8 value);
 static void infrared_transfer_byte(nds_ctx *, u8 value);
 static void flash_common_transfer_byte(nds_ctx *, u8 value);
-static void update_dirty_region(nds_ctx *, u32 start, u32 end);
-static void flush_dirty_region(nds_ctx *);
 
 void
 cartridge_backup_init(nds_ctx *nds, int savetype)
@@ -116,9 +114,10 @@ auxspidata_write(nds_ctx *nds, int cpuid, u8 value)
 		break;
 	}
 
-	if (!keep_active && bk.write_in_progress) {
-		bk.write_in_progress = false;
-		update_dirty_region(nds, bk.write_start_addr, bk.addr);
+	if (!keep_active && bk.write_q.write_in_progress) {
+		bk.write_q.write_in_progress = false;
+		file_queue_add(&bk.write_q, bk.data, bk.size,
+				bk.write_start_addr, bk.addr);
 	}
 
 	bk.cs_active = keep_active;
@@ -134,18 +133,17 @@ event_auxspi_transfer_complete(nds_ctx *nds, intptr_t, timestamp)
 }
 
 void
-nds_sync_files(nds_ctx *nds, bool sync_whole_file)
+sync_savefile(nds_ctx *nds, bool sync_whole_file)
 {
 	if (!nds->savefile)
 		return;
 
 	auto& bk = nds->cart.backup;
 	if (sync_whole_file) {
-		LOG("force syncing entire save file\n");
-		update_dirty_region(nds, 0, bk.size);
+		file_queue_add(&bk.write_q, bk.data, bk.size, 0, bk.size);
 	}
 
-	flush_dirty_region(nds);
+	file_queue_flush(&bk.write_q, nds->savefile, bk.data);
 }
 
 static void
@@ -193,7 +191,7 @@ eeprom_512b_transfer_byte(nds_ctx *nds, u8 value)
 				bk.addr |= 0x100;
 			}
 			bk.write_start_addr = bk.addr;
-			bk.write_in_progress = true;
+			bk.write_q.write_in_progress = true;
 			break;
 		default:
 			writearr_checked<u8>(bk.data, bk.addr, value, bk.size);
@@ -244,7 +242,7 @@ eeprom_8k_transfer_byte(nds_ctx *nds, u8 value)
 		case 2:
 			bk.addr |= value;
 			bk.write_start_addr = bk.addr;
-			bk.write_in_progress = true;
+			bk.write_q.write_in_progress = true;
 			break;
 		default:
 			writearr_checked<u8>(bk.data, bk.addr, value, bk.size);
@@ -410,7 +408,7 @@ flash_common_transfer_byte(nds_ctx *nds, u8 value)
 		case 3:
 			bk.addr |= value;
 			bk.write_start_addr = bk.addr;
-			bk.write_in_progress = true;
+			bk.write_q.write_in_progress = true;
 			break;
 		default:
 			writearr_checked<u8>(bk.data, bk.addr, value, bk.size);
@@ -420,50 +418,6 @@ flash_common_transfer_byte(nds_ctx *nds, u8 value)
 	default:
 		LOG("unknown flash command %02X\n", bk.command);
 		throw twice_error("unknown flash command");
-	}
-}
-
-static void
-update_dirty_region(nds_ctx *nds, u32 start, u32 end)
-{
-	auto& bk = nds->cart.backup;
-
-	if (start == end || start >= bk.size)
-		return;
-
-	if (end > bk.size) {
-		end = bk.size;
-	}
-
-	auto [dirty_start, dirty_end] =
-			bk.dirty_interval.value_or(std::make_pair(start, end));
-	dirty_start = std::min(dirty_start, start);
-	dirty_end = std::max(dirty_end, end);
-	bk.dirty_interval = { dirty_start, dirty_end };
-}
-
-static void
-flush_dirty_region(nds_ctx *nds)
-{
-	auto& bk = nds->cart.backup;
-
-	if (bk.write_in_progress)
-		return;
-
-	if (!bk.dirty_interval)
-		return;
-
-	auto [start, end] = bk.dirty_interval.value();
-	bk.dirty_interval.reset();
-
-	auto count = end - start;
-	auto bytes_written = nds->savefile.write_exact_offset(
-			start, bk.data + start, count);
-	if (bytes_written != (std::streamoff)count) {
-		LOG("error while writing to save file\n");
-	} else {
-		LOGV("wrote to savefile: offset %u, count %ld\n", start,
-				bytes_written);
 	}
 }
 

@@ -52,6 +52,7 @@ class MainWindow : public QMainWindow {
 	void process_main_event(const Event::MainEvent& ev);
 	void open_rom();
 	void open_system_files();
+	void load_image_file();
 	void load_save_file();
 	void insert_cart();
 	void eject_cart();

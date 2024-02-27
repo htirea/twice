@@ -21,6 +21,7 @@ struct nds_machine::impl {
 		file firmware;
 		file cart;
 		file save;
+		file image;
 		nds_savetype savetype{ SAVETYPE_UNKNOWN };
 		u32 gamecode{};
 		std::unique_ptr<nds_ctx> nds;
@@ -45,12 +46,14 @@ nds_machine::impl::save_instance(instance& to, instance& from)
 		to.firmware = from.firmware.dup();
 		to.cart = from.cart.dup();
 		to.save = from.save.dup();
+		to.image = from.image.dup();
 	} catch (const twice_exception& err) {
 		to.arm9_bios = file();
 		to.arm7_bios = file();
 		to.firmware = file();
 		to.cart = file();
 		to.save = file();
+		to.image = file();
 		status = 1;
 	}
 
@@ -90,6 +93,15 @@ nds_machine::nds_machine(const nds_config& config)
 		load_system_file(pathname, nds_file::FIRMWARE);
 	} catch (const file_error& e) {
 	}
+
+	try {
+		auto pathname = config.image_path;
+		if (pathname.empty()) {
+			pathname = config.data_dir / "card.img";
+		}
+		load_image_file(pathname);
+	} catch (const file_error& e) {
+	}
 }
 
 nds_machine::~nds_machine()
@@ -111,6 +123,9 @@ nds_machine::load_file(const std::filesystem::path& pathname, nds_file type)
 	case nds_file::ARM7_BIOS:
 	case nds_file::FIRMWARE:
 		load_system_file(pathname, type);
+		break;
+	case nds_file::IMAGE:
+		load_image_file(pathname);
 		break;
 	case nds_file::UNKNOWN:
 		throw twice_error("The file type is unknown.");
@@ -140,6 +155,9 @@ nds_machine::unload_file(nds_file type)
 		break;
 	case nds_file::FIRMWARE:
 		m->curr.firmware = file();
+		break;
+	case nds_file::IMAGE:
+		m->curr.image = file();
 		break;
 	case nds_file::UNKNOWN:;
 	}
@@ -317,6 +335,17 @@ nds_machine::autocreate_savefile()
 	LOG("\n");
 }
 
+void
+nds_machine::load_image_file(const std::filesystem::path& pathname)
+{
+	if (m->curr.nds) {
+		throw twice_error("The image file cannot be loaded while the "
+				  "machine is running.");
+	}
+
+	m->curr.image = file(pathname, file::open_flags::READ_WRITE);
+}
+
 bool
 nds_machine::file_loaded(nds_file type)
 {
@@ -331,9 +360,13 @@ nds_machine::file_loaded(nds_file type)
 		return (bool)m->curr.arm7_bios;
 	case nds_file::FIRMWARE:
 		return (bool)m->curr.firmware;
-	default:
+	case nds_file::IMAGE:
+		return (bool)m->curr.image;
+	case nds_file::UNKNOWN:
 		return false;
 	}
+
+	return false;
 }
 
 int
@@ -354,6 +387,9 @@ nds_machine::get_loaded_files()
 	}
 	if ((bool)m->curr.firmware) {
 		r |= (int)nds_file::FIRMWARE;
+	}
+	if ((bool)m->curr.image) {
+		r |= (int)nds_file::IMAGE;
 	}
 
 	return r;
@@ -509,7 +545,7 @@ nds_machine::boot(bool direct_boot)
 			m->curr.cart.pmap(),
 			m->curr.savetype != SAVETYPE_NONE ? m->curr.save.dup()
 							  : file(),
-			m->curr.savetype, &m->cfg);
+			m->curr.savetype, m->curr.image.dup(), &m->cfg);
 	if (direct_boot) {
 		nds_direct_boot(ctx.get());
 	} else {

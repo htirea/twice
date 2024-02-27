@@ -14,10 +14,11 @@ using s8 = int8_t;
 using s16 = int16_t;
 using s32 = int32_t;
 using s64 = int64_t;
-using size_t = std::size_t;
-using intptr_t = std::intptr_t;
-using intmax_t = std::intmax_t;
-using uintmax_t = std::uintmax_t;
+using std::intmax_t;
+using std::intptr_t;
+using std::ptrdiff_t;
+using std::size_t;
+using std::uintmax_t;
 
 } // namespace twice
 

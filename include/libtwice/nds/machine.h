@@ -21,6 +21,7 @@ struct nds_config {
 	std::filesystem::path arm9_bios_path;
 	std::filesystem::path arm7_bios_path;
 	std::filesystem::path firmware_path;
+	std::filesystem::path image_path;
 	bool use_16_bit_audio{};
 	bool interpolate_audio{};
 };
@@ -54,6 +55,7 @@ enum class nds_file {
 	ARM9_BIOS = 0x8,
 	ARM7_BIOS = 0x10,
 	FIRMWARE = 0x20,
+	IMAGE = 0x40,
 };
 
 /**
@@ -312,6 +314,13 @@ struct nds_machine {
 	 *
 	 */
 	void autocreate_savefile();
+
+	/**
+	 * Load an image file into the machine.
+	 *
+	 * \param pathname the file to load
+	 */
+	void load_image_file(const std::filesystem::path& pathname);
 
 	/**
 	 * Query whether a file is loaded.

@@ -3,6 +3,8 @@
 
 #include "common/types.h"
 
+#include "nds/cart/write_queue.h"
+
 namespace twice {
 
 struct nds_ctx;
@@ -21,8 +23,7 @@ struct cartridge_backup {
 	u8 ir_command{};
 	u32 ir_count{};
 	u32 write_start_addr{};
-	bool write_in_progress{};
-	std::optional<std::pair<u32, u32>> dirty_interval;
+	file_write_queue write_q;
 };
 
 void cartridge_backup_init(nds_ctx *nds, int savetype);
@@ -31,7 +32,7 @@ void auxspicnt_write_h(nds_ctx *nds, int cpuid, u8 value);
 void auxspicnt_write(nds_ctx *nds, int cpuid, u16 value);
 void auxspidata_write(nds_ctx *nds, int cpuid, u8 value);
 void event_auxspi_transfer_complete(nds_ctx *nds, intptr_t, timestamp);
-void write_whole_savefile(nds_ctx *nds);
+void sync_savefile(nds_ctx *nds, bool whole_file);
 
 } // namespace twice
 

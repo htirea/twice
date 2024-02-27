@@ -6,6 +6,7 @@ namespace MainWindowAction {
 enum {
 	OPEN_ROM,
 	LOAD_SYSTEM_FILES,
+	LOAD_IMAGE_FILE,
 	INSERT_CART,
 	EJECT_CART,
 	LOAD_SAVE_FILE,
