@@ -24,7 +24,6 @@ struct AudioIO::impl {
 	impl(SharedBuffers *bufs) : bufs(bufs) {}
 
 	SharedBuffers *bufs{};
-	stopwatch tmr;
 	SDL_AudioDeviceID dev;
 	SDL_AudioDeviceID mic_dev;
 };
@@ -74,5 +73,4 @@ AudioIO::~AudioIO()
 	}
 
 	SDL_QuitSubSystem(SDL_INIT_AUDIO);
-	SDL_Quit();
 }
