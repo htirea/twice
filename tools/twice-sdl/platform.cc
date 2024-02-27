@@ -286,7 +286,7 @@ sdl_platform::loop()
 void
 sdl_platform::setup_default_binds()
 {
-	using enum nds_button;
+	using namespace nds_button;
 
 	key_map = {
 		{ SDLK_x, A },

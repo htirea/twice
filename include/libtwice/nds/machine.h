@@ -29,7 +29,8 @@ struct nds_config {
 /**
  * The buttons of the NDS machine.
  */
-enum class nds_button {
+namespace nds_button {
+enum {
 	A,
 	B,
 	SELECT,
@@ -43,6 +44,19 @@ enum class nds_button {
 	X,
 	Y,
 	NONE,
+};
+}
+
+/**
+ * Represents the state of the buttons of the NDS machine.
+ *
+ * The state of each button is represented with a single bit,
+ * with button A represented by the lowest significant bit.
+ *
+ * A bit is set to 1 if it is pressed down.
+ */
+struct nds_button_state {
+	unsigned bits{};
 };
 
 /**
@@ -458,7 +472,14 @@ struct nds_machine {
 	 * \param down true if the button is pressed,
 	 *             false if the button is released
 	 */
-	void update_button_state(nds_button button, bool down);
+	void update_button_state(int button, bool down);
+
+	/**
+	 * Set the button state.
+	 *
+	 * \param state the state
+	 */
+	void set_button_state(const nds_button_state& state);
 
 	/**
 	 * Update the current touchscreen state.

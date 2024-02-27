@@ -16,7 +16,8 @@ class InputManager : public QObject {
 			QObject *parent);
 	~InputManager();
 	void process_events();
-	twice::nds_button get_nds_button(int code, int which);
+	int get_nds_button(int code, int which);
+	void set_nds_button(int button, bool down);
 
       private:
 	void add_controller(int id);

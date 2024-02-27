@@ -51,6 +51,7 @@ EmulatorThread::run()
 	s16 mic_buffer[548]{};
 	nds_exec exec_in;
 	nds_exec exec_out;
+	nds_button_state button_state;
 
 	running = true;
 	throttle = true;
@@ -63,6 +64,8 @@ EmulatorThread::run()
 		tmr.start_frame();
 		frametime_tmr.start();
 		process_events();
+		button_state.bits = button_bits;
+		nds->set_button_state(button_state);
 
 		bufs->mb.read_fill_zero_locked((char *)mic_buffer, 548 * 2);
 
@@ -202,16 +205,6 @@ void
 EmulatorThread::process_event(const Event::FastForward& ev)
 {
 	throttle = !ev.fastforward;
-}
-
-void
-EmulatorThread::process_event(const Event::Button& ev)
-{
-	try {
-		nds->update_button_state(ev.button, ev.down);
-	} catch (const twice_exception& err) {
-		emit send_main_event(Event::Error{ tr(err.what()) });
-	}
 }
 
 void

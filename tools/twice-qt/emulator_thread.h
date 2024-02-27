@@ -3,6 +3,7 @@
 
 #include <QThread>
 
+#include <atomic>
 #include <filesystem>
 #include <memory>
 #include <variant>
@@ -37,7 +38,6 @@ class EmulatorThread : public QThread {
 	void process_event(const Event::Restore& ev);
 	void process_event(const Event::Pause& ev);
 	void process_event(const Event::FastForward& ev);
-	void process_event(const Event::Button& ev);
 	void process_event(const Event::Touch& ev);
 	void process_event(const Event::Audio& ev);
 	void on_shutdown_maybe_changed();
@@ -56,6 +56,9 @@ class EmulatorThread : public QThread {
 	std::unique_ptr<twice::nds_machine> nds;
 	twice::threaded_queue<Event::Event> event_q;
 	SharedBuffers *bufs{};
+
+      public:
+	std::atomic<unsigned> button_bits;
 };
 
 #endif

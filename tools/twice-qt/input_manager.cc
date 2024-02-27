@@ -13,7 +13,7 @@
 using namespace twice;
 
 /* clang-format off */
-static const std::map<nds_button, int> default_nds_to_code[2] = {
+static const std::map<int, int> default_nds_to_code[2] = {
 {
 	{ nds_button::A, Qt::Key_X },
 	{ nds_button::B, Qt::Key_Z },
@@ -47,8 +47,8 @@ static const std::map<nds_button, int> default_nds_to_code[2] = {
 /* clang-format on */
 
 struct InputManager::impl {
-	std::map<int, nds_button> code_to_nds_button[2];
-	std::map<nds_button, int> nds_button_to_code[2];
+	std::map<int, int> code_to_nds_button[2];
+	std::map<int, int> nds_button_to_code[2];
 	std::set<SDL_JoystickID> joysticks;
 };
 
@@ -112,26 +112,20 @@ InputManager::process_events()
 		case SDL_CONTROLLERBUTTONDOWN:
 		{
 			auto button = get_nds_button(ev.cbutton.button, 1);
-			if (button != nds_button::NONE) {
-				emu_thread->push_event(
-						Event::Button{ button, true });
-			}
+			set_nds_button(button, true);
 			break;
 		}
 		case SDL_CONTROLLERBUTTONUP:
 		{
 			auto button = get_nds_button(ev.cbutton.button, 1);
-			if (button != nds_button::NONE) {
-				emu_thread->push_event(Event::Button{
-						button, false });
-			}
+			set_nds_button(button, false);
 			break;
 		}
 		}
 	}
 }
 
-nds_button
+int
 InputManager::get_nds_button(int code, int which)
 {
 	auto it = m->code_to_nds_button[which].find(code);
@@ -140,6 +134,16 @@ InputManager::get_nds_button(int code, int which)
 	}
 
 	return it->second;
+}
+
+void
+InputManager::set_nds_button(int button, bool down)
+{
+	if (down) {
+		emu_thread->button_bits |= 1 << button;
+	} else {
+		emu_thread->button_bits &= ~(1 << button);
+	}
 }
 
 void
@@ -169,8 +173,7 @@ InputManager::rebind_nds_button(int key, const QVariant& v)
 	if (!v.isValid())
 		return;
 
-	auto button = (nds_button)((key - ConfigVariable::KEY_A) %
-				   (int)nds_button::NONE);
+	int button = (key - ConfigVariable::KEY_A) % nds_button::NONE;
 	int which = (key - ConfigVariable::KEY_A) / (int)nds_button::NONE;
 	if (which > 2)
 		return;

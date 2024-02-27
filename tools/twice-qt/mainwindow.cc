@@ -123,7 +123,7 @@ MainWindow::keyPressEvent(QKeyEvent *ev)
 		return;
 	}
 
-	emu_thread->push_event(Event::Button{ button, true });
+	input->set_nds_button(button, true);
 }
 
 void
@@ -140,7 +140,7 @@ MainWindow::keyReleaseEvent(QKeyEvent *ev)
 		return;
 	}
 
-	emu_thread->push_event(Event::Button{ button, false });
+	input->set_nds_button(button, false);
 }
 
 void

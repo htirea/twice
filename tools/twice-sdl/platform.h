@@ -64,8 +64,8 @@ class sdl_platform {
 	SDL_AudioSpec audio_spec;
 	u64 freq{};
 	std::unordered_set<SDL_JoystickID> controllers;
-	std::unordered_map<SDL_Keycode, nds_button> key_map;
-	std::unordered_map<int, nds_button> button_map;
+	std::unordered_map<SDL_Keycode, int> key_map;
+	std::unordered_map<int, int> button_map;
 	bool ctrl_down{};
 	bool running{};
 	bool throttle{};

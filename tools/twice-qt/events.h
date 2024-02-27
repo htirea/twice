@@ -43,11 +43,6 @@ struct FastForward {
 	bool fastforward;
 };
 
-struct Button {
-	twice::nds_button button;
-	bool down;
-};
-
 struct Touch {
 	int x;
 	int y;
@@ -76,7 +71,7 @@ struct EndFrame {
 };
 
 using Event = std::variant<LoadFile, UnloadFile, SaveType, Reset, Shutdown,
-		Restore, Pause, FastForward, Button, Touch, Audio, StopThread>;
+		Restore, Pause, FastForward, Touch, Audio, StopThread>;
 
 using MainEvent = std::variant<Error, Shutdown, Restore, File, SaveType,
 		EndFrame>;

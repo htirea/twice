@@ -620,38 +620,36 @@ nds_machine::is_last_instance_shutdown()
 }
 
 void
-nds_machine::update_button_state(nds_button button, bool down)
+nds_machine::update_button_state(int button, bool down)
 {
 	if (!m->curr.nds)
 		return;
 
-	using enum nds_button;
-
 	switch (button) {
-	case A:
-	case B:
-	case SELECT:
-	case START:
-	case RIGHT:
-	case LEFT:
-	case UP:
-	case DOWN:
-	case R:
-	case L:
+	case nds_button::A:
+	case nds_button::B:
+	case nds_button::SELECT:
+	case nds_button::START:
+	case nds_button::RIGHT:
+	case nds_button::LEFT:
+	case nds_button::UP:
+	case nds_button::DOWN:
+	case nds_button::R:
+	case nds_button::L:
 		if (down) {
 			m->curr.nds->keyinput &= ~BIT((int)button);
 		} else {
 			m->curr.nds->keyinput |= BIT((int)button);
 		}
 		break;
-	case X:
+	case nds_button::X:
 		if (down) {
 			m->curr.nds->extkeyin &= ~BIT(0);
 		} else {
 			m->curr.nds->extkeyin |= BIT(0);
 		}
 		break;
-	case Y:
+	case nds_button::Y:
 		if (down) {
 			m->curr.nds->extkeyin &= ~BIT(1);
 		} else {
@@ -660,6 +658,17 @@ nds_machine::update_button_state(nds_button button, bool down)
 		break;
 	default:;
 	}
+}
+
+void
+nds_machine::set_button_state(const nds_button_state& state)
+{
+	if (!m->curr.nds)
+		return;
+
+	m->curr.nds->keyinput = ~state.bits & 0x3FF;
+	m->curr.nds->extkeyin &= ~3;
+	m->curr.nds->extkeyin |= ~state.bits >> 10 & 3;
 }
 
 void
