@@ -183,6 +183,7 @@ struct nds_ctx {
 	double dma7_usage{};
 	unsigned long term_sigs{};
 	unsigned long raised_sigs{};
+	u64 frames{};
 
 	profiler prof;
 	nds_config *config{};

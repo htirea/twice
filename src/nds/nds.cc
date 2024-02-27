@@ -143,7 +143,6 @@ nds_run(nds_ctx *nds, run_mode mode, const nds_exec *in, nds_exec *out)
 
 	nds_setup_run(nds, target, term_sigs, mic_buf, mic_buf_len, out);
 	run_loop(nds);
-	nds_sync_files(nds, false);
 }
 
 void
@@ -318,6 +317,8 @@ check_lyc(nds_ctx *nds, int cpuid)
 static void
 nds_on_vblank(nds_ctx *nds)
 {
+	nds->frames++;
+
 	nds->dispstat[0] |= BIT(0);
 	nds->dispstat[1] |= BIT(0);
 
@@ -331,6 +332,7 @@ nds_on_vblank(nds_ctx *nds)
 
 	gpu3d_on_vblank(&nds->gpu3d);
 	dma_on_vblank(nds);
+	check_should_savefile_flush(nds);
 
 	if (nds->term_sigs & nds_signal::VBLANK) {
 		nds->raised_sigs |= nds_signal::VBLANK;

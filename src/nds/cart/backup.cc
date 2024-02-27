@@ -116,8 +116,10 @@ auxspidata_write(nds_ctx *nds, int cpuid, u8 value)
 
 	if (!keep_active && bk.write_q.write_in_progress) {
 		bk.write_q.write_in_progress = false;
+		bk.flush_countup = 1;
 		file_queue_add(&bk.write_q, bk.data, bk.size,
 				bk.write_start_addr, bk.addr);
+		LOGV("write to save file at frame: %lu\n", nds->frames);
 	}
 
 	bk.cs_active = keep_active;
@@ -132,18 +134,36 @@ event_auxspi_transfer_complete(nds_ctx *nds, intptr_t, timestamp)
 	nds->auxspicnt &= ~BIT(7);
 }
 
-void
+int
 sync_savefile(nds_ctx *nds, bool sync_whole_file)
 {
 	if (!nds->savefile)
-		return;
+		return -1;
 
 	auto& bk = nds->cart.backup;
 	if (sync_whole_file) {
 		file_queue_add(&bk.write_q, bk.data, bk.size, 0, bk.size);
 	}
 
-	file_queue_flush(&bk.write_q, nds->savefile, bk.data);
+	return file_queue_flush(&bk.write_q, nds->savefile, bk.data);
+}
+
+void
+check_should_savefile_flush(nds_ctx *nds)
+{
+	if (!nds->savefile)
+		return;
+
+	auto& bk = nds->cart.backup;
+	if (bk.flush_countup != 0) {
+		bk.flush_countup++;
+		if (bk.flush_countup >= 5) {
+			if (sync_savefile(nds, false) == 0) {
+				LOG("auto synced save file\n");
+				bk.flush_countup = 0;
+			}
+		}
+	}
 }
 
 static void

@@ -24,6 +24,7 @@ struct cartridge_backup {
 	u32 ir_count{};
 	u32 write_start_addr{};
 	file_write_queue write_q;
+	u64 flush_countup{};
 };
 
 void cartridge_backup_init(nds_ctx *nds, int savetype);
@@ -32,7 +33,8 @@ void auxspicnt_write_h(nds_ctx *nds, int cpuid, u8 value);
 void auxspicnt_write(nds_ctx *nds, int cpuid, u16 value);
 void auxspidata_write(nds_ctx *nds, int cpuid, u8 value);
 void event_auxspi_transfer_complete(nds_ctx *nds, intptr_t, timestamp);
-void sync_savefile(nds_ctx *nds, bool whole_file);
+int sync_savefile(nds_ctx *nds, bool whole_file);
+void check_should_savefile_flush(nds_ctx *nds);
 
 } // namespace twice
 

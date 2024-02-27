@@ -22,14 +22,14 @@ file_queue_add(file_write_queue *q, u8 *data, u32 size, u32 start, u32 end)
 	q->dirty_interval = { dirty_start, dirty_end };
 }
 
-void
+int
 file_queue_flush(file_write_queue *q, fs::file& f, u8 *data)
 {
 	if (q->write_in_progress)
-		return;
+		return 1;
 
 	if (!q->dirty_interval)
-		return;
+		return 2;
 
 	auto [start, end] = q->dirty_interval.value();
 	q->dirty_interval.reset();
@@ -42,5 +42,7 @@ file_queue_flush(file_write_queue *q, fs::file& f, u8 *data)
 		LOGV("wrote to file: offset %u, count %ld\n", start,
 				bytes_written);
 	}
+
+	return 0;
 }
 } // namespace twice
