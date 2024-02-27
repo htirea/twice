@@ -6,22 +6,30 @@
 #include <QObject>
 
 class ConfigManager;
+class EmulatorThread;
 
 class InputManager : public QObject {
 	Q_OBJECT
 
       public:
-	InputManager(ConfigManager *cfg, QObject *parent);
+	InputManager(ConfigManager *cfg, EmulatorThread *emu_thread,
+			QObject *parent);
 	~InputManager();
-	twice::nds_button get_nds_button(int key);
-
-      private slots:
-	void rebind_nds_key(int varkey, const QVariant& v);
+	void process_events();
+	twice::nds_button get_nds_button(int code, int which);
 
       private:
-	std::map<int, twice::nds_button> key_to_nds;
-	std::map<twice::nds_button, int> nds_to_key;
+	void add_controller(int id);
+	void remove_controller(int id);
+
+      private slots:
+	void rebind_nds_button(int key, const QVariant& v);
+
+      private:
+	struct impl;
+	std::unique_ptr<impl> m;
 	ConfigManager *cfg{};
+	EmulatorThread *emu_thread{};
 };
 
 #endif

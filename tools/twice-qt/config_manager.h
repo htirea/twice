@@ -32,6 +32,18 @@ enum {
 	KEY_L,
 	KEY_X,
 	KEY_Y,
+	GC_A,
+	GC_B,
+	GC_SELECT,
+	GC_START,
+	GC_RIGHT,
+	GC_LEFT,
+	GC_UP,
+	GC_DOWN,
+	GC_R,
+	GC_L,
+	GC_X,
+	GC_Y,
 	NUM_CONFIG_VARS,
 };
 }
@@ -84,7 +96,7 @@ class ConfigManager : public QObject {
 
       signals:
 	void key_set(int key, const QVariant& v);
-	void nds_key_set(int key, const QVariant& v);
+	void nds_bind_set(int key, const QVariant& v);
 	void display_key_set(int key, const QVariant& v);
 
       private:

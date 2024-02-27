@@ -36,7 +36,6 @@ MainWindow::MainWindow(QCommandLineParser *parser, QWidget *parent)
 	setCentralWidget(display);
 
 	audio_out = new AudioIO(&bufs, this);
-	input = new InputManager(cfg, this);
 
 	settings_dialog = new SettingsDialog(this);
 	auto input_settings = new InputSettings(cfg, nullptr);
@@ -51,6 +50,12 @@ MainWindow::MainWindow(QCommandLineParser *parser, QWidget *parent)
 	auto timer = new QTimer(this);
 	connect(timer, &QTimer::timeout, this, &MainWindow::update_title);
 	timer->start(1000);
+
+	input = new InputManager(cfg, emu_thread, this);
+	auto update_inputs_timer = new QTimer(this);
+	connect(update_inputs_timer, &QTimer::timeout, this,
+			&MainWindow::update_inputs);
+	update_inputs_timer->start(8);
 
 	init_actions();
 	init_menus();
@@ -112,7 +117,7 @@ MainWindow::keyPressEvent(QKeyEvent *ev)
 		return;
 	}
 
-	auto button = input->get_nds_button(ev->key());
+	auto button = input->get_nds_button(ev->key(), 0);
 	if (button == nds_button::NONE) {
 		ev->ignore();
 		return;
@@ -129,7 +134,7 @@ MainWindow::keyReleaseEvent(QKeyEvent *ev)
 		return;
 	}
 
-	auto button = input->get_nds_button(ev->key());
+	auto button = input->get_nds_button(ev->key(), 0);
 	if (button == nds_button::NONE) {
 		ev->ignore();
 		return;
@@ -521,6 +526,12 @@ MainWindow::update_title()
 	                             .arg(avg_usage[0], 0, 'f', 2)
 	                             .arg(avg_usage[1], 0, 'f', 2);
 	window()->setWindowTitle(title);
+}
+
+void
+MainWindow::update_inputs()
+{
+	input->process_events();
 }
 
 void

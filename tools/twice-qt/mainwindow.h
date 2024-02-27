@@ -71,6 +71,7 @@ class MainWindow : public QMainWindow {
 	void toggle_lock_aspect_ratio(bool checked);
 	void toggle_interpolate_audio(bool checked);
 	void update_title();
+	void update_inputs();
 	void open_settings();
 	void config_var_set(int key, const QVariant& v);
 

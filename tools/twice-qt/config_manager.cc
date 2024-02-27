@@ -30,18 +30,6 @@ static const std::map<int, QVariant> default_cfg = {
 	{ ARM7_BIOS_PATH, "" },
 	{ FIRMWARE_PATH, "" },
 	{ IMAGE_PATH, "" },
-	{ KEY_A, Qt::Key_X },
-	{ KEY_B, Qt::Key_Z },
-	{ KEY_SELECT, Qt::Key_2 },
-	{ KEY_START, Qt::Key_1 },
-	{ KEY_RIGHT, Qt::Key_Right },
-	{ KEY_LEFT, Qt::Key_Left },
-	{ KEY_UP, Qt::Key_Up },
-	{ KEY_DOWN, Qt::Key_Down },
-	{ KEY_R, Qt::Key_W },
-	{ KEY_L, Qt::Key_Q },
-	{ KEY_X, Qt::Key_S },
-	{ KEY_Y, Qt::Key_A },
 };
 
 static const std::map<int, QString> key_to_str = {
@@ -67,6 +55,18 @@ static const std::map<int, QString> key_to_str = {
 	{ KEY_L, "key_l" },
 	{ KEY_X, "key_x" },
 	{ KEY_Y, "key_y" },
+	{ GC_A, "gc_a" },
+	{ GC_B, "gc_b" },
+	{ GC_SELECT, "gc_select" },
+	{ GC_START, "gc_start" },
+	{ GC_RIGHT, "gc_right" },
+	{ GC_LEFT, "gc_left" },
+	{ GC_UP, "gc_up" },
+	{ GC_DOWN, "gc_down" },
+	{ GC_R, "gc_r" },
+	{ GC_L, "gc_l" },
+	{ GC_X, "gc_x" },
+	{ GC_Y, "gc_y" },
 };
 
 static const QList<QCommandLineOption> parser_options = {
@@ -128,8 +128,8 @@ ConfigManager::emit_key_set_signal(int key, const QVariant& v)
 		emit display_key_set(key, v);
 	}
 
-	if (KEY_A <= key && key <= KEY_Y) {
-		emit nds_key_set(key, v);
+	if (KEY_A <= key && key <= GC_Y) {
+		emit nds_bind_set(key, v);
 	}
 }
 
