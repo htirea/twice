@@ -478,6 +478,7 @@ MainWindow::init_actions()
 		}
 
 		actions.push_back(action);
+		addAction(action);
 	}
 
 	for (int id = 0; id < NUM_GROUPS; id++) {
