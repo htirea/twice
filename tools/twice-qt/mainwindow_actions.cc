@@ -276,6 +276,12 @@ static const std::vector<ActionInfo> action_data = {
 	.tip = "Resize the window to match the emulated aspect ratio",
 },
 {
+	.id = TOGGLE_FULLSCREEN,
+	.text = "Toggle fullscreen",
+	.tip = "Toggle fullscreen mode",
+	.std_key = QKeySequence::FullScreen,
+},
+{
 	.id = LERP_AUDIO,
 	.text = "Linear interpolation",
 	.tip = "Linearly interpolate audio samples",
@@ -347,6 +353,7 @@ static const std::vector<MenuInfo> menu_data = {
 	.id = VIDEO_MENU,
 	.title = "Video",
 	.items = {
+		Action{TOGGLE_FULLSCREEN},
 		Action{AUTO_RESIZE},
 		Menu{SCALE_MENU},
 		Menu{ROTATION_MENU},
@@ -523,8 +530,10 @@ MainWindow::init_menus()
 	}
 
 	auto menubar = menuBar();
+	context_menu = new QMenu(this);
 	for (int id : menubar_menus) {
 		menubar->addMenu(menus.at(id));
+		context_menu->addMenu(menus.at(id));
 	}
 
 	typedef void (MainWindow::*F)();
@@ -544,6 +553,7 @@ MainWindow::init_menus()
 		{ SHUTDOWN, &MainWindow::shutdown_emulation },
 		{ RESTORE_INSTANCE, &MainWindow::restore_instance },
 		{ AUTO_RESIZE, &MainWindow::auto_resize_display },
+		{ TOGGLE_FULLSCREEN, &MainWindow::toggle_fullscreen },
 		{ OPEN_SETTINGS, &MainWindow::open_settings },
 	};
 

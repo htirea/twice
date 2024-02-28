@@ -32,6 +32,8 @@ class MainWindow : public QMainWindow {
 	void mousePressEvent(QMouseEvent *ev) override;
 	void mouseMoveEvent(QMouseEvent *ev) override;
 	void mouseReleaseEvent(QMouseEvent *ev) override;
+	void changeEvent(QEvent *ev) override;
+	void contextMenuEvent(QContextMenuEvent *ev) override;
 
       private:
 	void init_actions();
@@ -69,6 +71,7 @@ class MainWindow : public QMainWindow {
 	void toggle_fastforward(bool checked);
 	void toggle_linear_filtering(bool checked);
 	void toggle_lock_aspect_ratio(bool checked);
+	void toggle_fullscreen();
 	void toggle_interpolate_audio(bool checked);
 	void update_title();
 	void update_inputs();
@@ -85,6 +88,7 @@ class MainWindow : public QMainWindow {
 	std::vector<QAction *> actions;
 	std::vector<QActionGroup *> action_groups;
 	std::vector<QMenu *> menus;
+	QMenu *context_menu{};
 
 	double avg_frametime{ 0.16 };
 	double avg_usage[4]{};

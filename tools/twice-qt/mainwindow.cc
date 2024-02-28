@@ -187,6 +187,43 @@ MainWindow::mouseReleaseEvent(QMouseEvent *ev)
 }
 
 void
+MainWindow::changeEvent(QEvent *ev)
+{
+	switch (ev->type()) {
+	case QEvent::WindowStateChange:
+	{
+		if (windowState() & Qt::WindowFullScreen) {
+			menuBar()->hide();
+		} else {
+			menuBar()->show();
+		}
+		break;
+	}
+	default:;
+	}
+}
+
+void
+MainWindow::contextMenuEvent(QContextMenuEvent *ev)
+{
+	auto pos = display->mapFromParent(mapFromGlobal(ev->globalPos()));
+	auto size = display->size();
+
+	double w = size.width();
+	double h = size.height();
+	double x = pos.x();
+	double y = pos.y();
+
+	if (!window_coords_to_screen_coords(w, h, x, y,
+			    display->lock_aspect_ratio, display->orientation,
+			    0)) {
+		context_menu->exec(ev->globalPos());
+	} else {
+		ev->ignore();
+	}
+}
+
+void
 MainWindow::init_default_values()
 {
 	actions[SET_SAVETYPE_AUTO]->trigger();
@@ -508,6 +545,12 @@ void
 MainWindow::toggle_lock_aspect_ratio(bool checked)
 {
 	cfg->set(ConfigVariable::LOCK_ASPECT_RATIO, checked);
+}
+
+void
+MainWindow::toggle_fullscreen()
+{
+	setWindowState(windowState() ^ Qt::WindowFullScreen);
 }
 
 void
