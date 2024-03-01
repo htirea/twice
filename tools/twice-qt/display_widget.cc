@@ -1,6 +1,9 @@
 #include "display_widget.h"
 
 #include "config_manager.h"
+#include "shaders/lcd1x_nds.h"
+#include "shaders/nds_color.h"
+#include "shaders/none.h"
 
 #include "libtwice/exception.h"
 #include "libtwice/nds/defs.h"
@@ -8,36 +11,6 @@
 #include "libtwice/util/matrix.h"
 
 using namespace twice;
-
-static const char *vtx_shader_src = R"___(
-#version 330 core
-layout (location = 0) in vec3 pos;
-layout (location = 1) in vec2 uv_in;
-
-uniform mat4 proj_mtx;
-
-out vec2 uv;
-
-void main()
-{
-	gl_Position = proj_mtx * vec4(pos, 1.0);
-	uv = uv_in;
-}
-)___";
-
-static const char *fragment_shader_src = R"___(
-#version 330 core
-out vec4 FragColor;
-
-in vec2 uv;
-
-uniform sampler2D texture0;
-
-void main()
-{
-	FragColor = texture(texture0, uv);
-}
-)___";
 
 DisplayWidget::DisplayWidget(SharedBuffers::video_buffer *fb,
 		ConfigManager *cfg, QWidget *parent)
@@ -57,7 +30,9 @@ DisplayWidget::~DisplayWidget()
 	glDeleteBuffers(1, &ebo);
 	glDeleteBuffers(1, &vbo);
 	glDeleteVertexArrays(1, &vao);
-	glDeleteProgram(shader_program);
+	for (GLuint shader_program : shader_programs) {
+		glDeleteProgram(shader_program);
+	}
 }
 
 void
@@ -65,7 +40,12 @@ DisplayWidget::initializeGL()
 {
 	initializeOpenGLFunctions();
 
-	shader_program = make_program(vtx_shader_src, fragment_shader_src);
+	shader_programs[Shader::NONE] =
+			make_program(vtx_shader_src, fragment_shader_src);
+	shader_programs[Shader::LCD1X_NDS_COLOR] =
+			make_program(vtx_shader_src, lcd1x_nds_frag_src);
+	shader_programs[Shader::NDS_COLOR] =
+			make_program(vtx_shader_src, nds_color_frag_src);
 
 	float vertices[] = {
 		1.0f, 1.0f, 0.0f, 1.0f, 0.0f,   // top right
@@ -107,10 +87,11 @@ DisplayWidget::initializeGL()
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, NDS_FB_W, NDS_FB_H, 0, GL_RGBA,
 			GL_UNSIGNED_BYTE, fb->get_read_buffer().data());
-	glUseProgram(shader_program);
-	GLuint proj_mtx_loc = glGetUniformLocation(shader_program, "proj_mtx");
+	GLuint program = shader_programs[shader];
+	glUseProgram(program);
+	GLuint proj_mtx_loc = glGetUniformLocation(program, "proj_mtx");
 	glUniformMatrix4fv(proj_mtx_loc, 1, GL_FALSE, proj_mtx.data());
-	glUniform1i(glGetUniformLocation(shader_program, "texture0"), 0);
+	glUniform1i(glGetUniformLocation(program, "texture0"), 0);
 
 	glGenSamplers(1, &sampler);
 	glSamplerParameteri(sampler, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
@@ -149,8 +130,9 @@ DisplayWidget::paintGL()
 	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, NDS_FB_W, NDS_FB_H, GL_RGBA,
 			GL_UNSIGNED_BYTE, fb->get_read_buffer().data());
 
-	glUseProgram(shader_program);
-	GLuint proj_mtx_loc = glGetUniformLocation(shader_program, "proj_mtx");
+	GLuint program = shader_programs[shader];
+	glUseProgram(program);
+	GLuint proj_mtx_loc = glGetUniformLocation(program, "proj_mtx");
 	glUniformMatrix4fv(proj_mtx_loc, 1, GL_FALSE, proj_mtx.data());
 	glBindVertexArray(vao);
 	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
@@ -283,5 +265,7 @@ DisplayWidget::display_var_set(int key, const QVariant& v)
 	case LINEAR_FILTERING:
 		linear_filtering = v.toBool();
 		break;
+	case SHADER:
+		shader = v.toInt();
 	}
 }

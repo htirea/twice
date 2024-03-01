@@ -494,6 +494,12 @@ MainWindow::set_orientation(int orientation)
 }
 
 void
+MainWindow::set_shader(int shader)
+{
+	cfg->set(ConfigVariable::SHADER, shader);
+}
+
+void
 MainWindow::reset_to_rom()
 {
 	reset_emulation(true);
@@ -598,6 +604,9 @@ MainWindow::config_var_set(int key, const QVariant& v)
 		break;
 	case ConfigVariable::LINEAR_FILTERING:
 		actions[LINEAR_FILTERING]->setChecked(v.toBool());
+		break;
+	case ConfigVariable::SHADER:
+		actions[SET_SHADER_NONE + v.toInt()]->setChecked(true);
 		break;
 	case ConfigVariable::INTERPOLATE_AUDIO:
 	{

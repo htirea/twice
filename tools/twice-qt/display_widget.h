@@ -9,6 +9,7 @@
 #include <array>
 
 #include "buffers.h"
+#include "shaders/shaders.h"
 
 class ConfigManager;
 
@@ -43,11 +44,12 @@ class DisplayWidget : public QOpenGLWidget,
 	int orientation{};
 	bool lock_aspect_ratio{};
 	bool linear_filtering{};
+	int shader{};
 	std::array<float, 16> proj_mtx{};
 	SharedBuffers::video_buffer *fb{};
 
 	/* OpenGL stuff */
-	GLuint shader_program{};
+	GLuint shader_programs[Shader::NUM_SHADERS];
 	GLuint vao{};
 	GLuint vbo{};
 	GLuint ebo{};

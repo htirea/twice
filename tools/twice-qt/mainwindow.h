@@ -62,6 +62,7 @@ class MainWindow : public QMainWindow {
 	void set_savetype(int type);
 	void set_scale(int scale);
 	void set_orientation(int orientation);
+	void set_shader(int shader);
 	void reset_to_rom();
 	void reset_to_firmware();
 	void reset_emulation(bool direct);

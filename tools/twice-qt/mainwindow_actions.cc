@@ -1,5 +1,6 @@
 #include "mainwindow_actions.h"
 #include "mainwindow.h"
+#include "shaders/shaders.h"
 
 #include "libtwice/exception.h"
 #include "libtwice/nds/game_db.h"
@@ -282,6 +283,27 @@ static const std::vector<ActionInfo> action_data = {
 	.std_key = QKeySequence::FullScreen,
 },
 {
+	.id = SET_SHADER_NONE,
+	.text = "None",
+	.tip = "Don't use any shader",
+	.checkable = true,
+	.val = Shader::NONE,
+},
+{
+	.id = SET_SHADER_LCD1X_NDS,
+	.text = "LCD1X / NDS color",
+	.tip = "Use the LCD1X / NDS color shader",
+	.checkable = true,
+	.val = Shader::LCD1X_NDS_COLOR,
+},
+{
+	.id = SET_SHADER_NDS_COLOR,
+	.text = "NDS color",
+	.tip = "Use the NDS color shader",
+	.checkable = true,
+	.val = Shader::NDS_COLOR,
+},
+{
 	.id = LERP_AUDIO,
 	.text = "Linear interpolation",
 	.tip = "Linearly interpolate audio samples",
@@ -359,6 +381,7 @@ static const std::vector<MenuInfo> menu_data = {
 		Menu{ROTATION_MENU},
 		Menu{ORIENTATION_MENU},
 		Separator{},
+		Menu{SHADER_MENU},
 		Action{LINEAR_FILTERING},
 		Action{LOCK_ASPECT_RATIO},
 	},
@@ -397,6 +420,15 @@ static const std::vector<MenuInfo> menu_data = {
 		Action{ORIENTATION_1},
 		Action{ORIENTATION_2},
 		Action{ORIENTATION_3},
+	},
+},
+{
+	.id = SHADER_MENU,
+	.title = "Video filter",
+	.items = {
+		Action{SET_SHADER_NONE},
+		Action{SET_SHADER_LCD1X_NDS},
+		Action{SET_SHADER_NDS_COLOR},
 	},
 },
 {
@@ -449,6 +481,14 @@ static const std::vector<GroupInfo> group_data = {
 		ORIENTATION_1,
 		ORIENTATION_2,
 		ORIENTATION_3,
+	},
+},
+{
+	.id = SHADER_GROUP,
+	.actions = {
+		SET_SHADER_NONE,
+		SET_SHADER_LCD1X_NDS,
+		SET_SHADER_NDS_COLOR,
 	},
 },
 };
@@ -571,6 +611,7 @@ MainWindow::init_menus()
 		{ SCALE_GROUP, &MainWindow::set_scale },
 		{ ROTATION_GROUP, &MainWindow::set_orientation },
 		{ ORIENTATION_GROUP, &MainWindow::set_orientation },
+		{ SHADER_GROUP, &MainWindow::set_shader },
 	};
 
 	for (const auto& [id, f] : funcs0) {

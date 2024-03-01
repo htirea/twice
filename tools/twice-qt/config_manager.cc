@@ -1,4 +1,5 @@
 #include "config_manager.h"
+#include "shaders/shaders.h"
 
 #include "libtwice/exception.h"
 
@@ -23,6 +24,7 @@ static const std::map<int, QVariant> default_cfg = {
 	{ ORIENTATION, 0 },
 	{ LOCK_ASPECT_RATIO, true },
 	{ LINEAR_FILTERING, false },
+	{ SHADER, Shader::NONE },
 	{ USE_16_BIT_AUDIO, true },
 	{ INTERPOLATE_AUDIO, false },
 	{ DATA_DIR, "" },
@@ -36,6 +38,7 @@ static const std::map<int, QString> key_to_str = {
 	{ ORIENTATION, "orientation" },
 	{ LOCK_ASPECT_RATIO, "lock_aspect_ratio" },
 	{ LINEAR_FILTERING, "linear_filtering" },
+	{ SHADER, "shader" },
 	{ USE_16_BIT_AUDIO, "use_16_bit_audio" },
 	{ INTERPOLATE_AUDIO, "interpolate_audio" },
 	{ DATA_DIR, "data_dir" },
@@ -124,7 +127,7 @@ ConfigManager::emit_key_set_signal(int key, const QVariant& v)
 	emit key_set(key, v);
 
 	if (key == ORIENTATION || key == LOCK_ASPECT_RATIO ||
-			key == LINEAR_FILTERING) {
+			key == LINEAR_FILTERING || key == SHADER) {
 		emit display_key_set(key, v);
 	}
 
