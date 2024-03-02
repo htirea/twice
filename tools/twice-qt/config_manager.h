@@ -90,6 +90,7 @@ class ConfigManager : public QObject {
 	const QVariant& get(int key);
 	void set(int key, const QVariant& v);
 	const QVariant& get_arg(int key);
+	bool is_valid(int key, const QVariant& v);
 
       private:
 	void check_and_add_parsed_arg(QCommandLineParser *parser, int key,

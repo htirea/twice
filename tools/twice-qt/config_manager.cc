@@ -99,7 +99,10 @@ ConfigManager::ConfigManager(QCommandLineParser *parser, QObject *parent)
 
 	for (const auto& [key, s] : key_to_str) {
 		if (settings.contains(s)) {
-			cfg[key] = settings.value(s);
+			auto v = settings.value(s);
+			if (is_valid(key, v)) {
+				cfg[key] = v;
+			}
 		}
 	}
 
@@ -176,6 +179,27 @@ ConfigManager::get_arg(int key)
 	}
 
 	return default_value;
+}
+
+bool
+ConfigManager::is_valid(int key, const QVariant& v)
+{
+	switch (key) {
+	case ORIENTATION:
+	{
+		int orientation = v.toInt();
+		return 0 <= orientation && orientation <= 3;
+		break;
+	}
+	case SHADER:
+	{
+		int shader = v.toInt();
+		return 0 <= shader && shader < Shader::NUM_SHADERS;
+		break;
+	}
+	}
+
+	return true;
 }
 
 void
