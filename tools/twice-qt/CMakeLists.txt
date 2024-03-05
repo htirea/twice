@@ -25,16 +25,12 @@ qt_add_executable(twice-qt
 	settings/input_settings.h
 )
 
-target_include_directories(twice-qt PRIVATE
-	${SDL_INCLUDE_DIR}
-)
-
 target_link_libraries(twice-qt PRIVATE
 	Qt6::Core
 	Qt6::Widgets
 	Qt6::OpenGLWidgets
 	Qt6::Multimedia
-	${TWICE_SDL_LIBRARIES}
+	${TWICE_SDL_LIBS}
 	twice
 )
 

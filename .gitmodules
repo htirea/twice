@@ -1,12 +1,6 @@
 [submodule "third-party/nds-db"]
 	path = third-party/nds-db
 	url = https://github.com/htirea/nds-db.git
-[submodule "third-party/libpng"]
-	path = third-party/libpng
-	url = https://github.com/glennrp/libpng
 [submodule "third-party/SDL"]
 	path = third-party/SDL
 	url = https://github.com/libsdl-org/SDL.git
-[submodule "third-party/zlib"]
-	path = third-party/zlib
-	url = https://github.com/htirea/zlib.git

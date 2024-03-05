@@ -3,16 +3,20 @@
 #include <cerrno>
 #include <cstdio>
 #include <iostream>
-#include <png.h>
 
 #include "libtwice/nds/defs.h"
 #include "libtwice/types.h"
+
+#ifdef TWICE_HAVE_PNG
+#  include <png.h>
+#endif
 
 namespace twice {
 
 static int
 write_png(void *fb, FILE *fp)
 {
+#ifdef TWICE_HAVE_PNG
 	png_structp png_ptr = png_create_write_struct(
 			PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
 	if (!png_ptr) {
@@ -49,6 +53,9 @@ write_png(void *fb, FILE *fp)
 	png_destroy_write_struct(&png_ptr, &info_ptr);
 
 	return 0;
+#else
+	return 1;
+#endif
 }
 
 int

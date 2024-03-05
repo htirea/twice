@@ -16,6 +16,8 @@ elseif(TWICE_WINDOWS)
 		libtwice/file/windows_file.cc
 		libtwice/file/windows_file_view.cc
 	)
+else()
+	message(FATAL_ERROR "Unsupported platform")
 endif()
 
 add_library(twice STATIC
