@@ -40,8 +40,8 @@ out vec4 FragColor;
 in vec2 uv;
 uniform sampler2D texture0;
 
-#define BRIGHTEN_SCANLINES 16.0
-#define BRIGHTEN_LCD 4.0
+#define BRIGHTEN_SCANLINES 32.0
+#define BRIGHTEN_LCD 32.0
 #define PI 3.141592654
 #define TARGET_GAMMA 1.91
 const float INV_DISPLAY_GAMMA = 1.0 / 1.91;
