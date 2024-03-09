@@ -2,20 +2,14 @@
 #define TWICE_ARM9_H
 
 #include "nds/arm/arm.h"
+#include "nds/mem/bus.h"
 
 namespace twice {
 
 struct arm9_cpu final : arm_cpu {
-	enum : u32 {
-		PAGE_SHIFT = 12,
-		PAGE_SIZE = (u32)1 << PAGE_SHIFT,
-		PAGE_MASK = PAGE_SIZE - 1,
-		PAGE_TABLE_SIZE = (u32)1 << (32 - PAGE_SHIFT),
-	};
-
-	u8 *fetch_pt[PAGE_TABLE_SIZE]{};
-	u8 *load_pt[PAGE_TABLE_SIZE]{};
-	u8 *store_pt[PAGE_TABLE_SIZE]{};
+	u8 *fetch_pt[BUS9_PAGE_TABLE_SIZE]{};
+	u8 *load_pt[BUS9_PAGE_TABLE_SIZE]{};
+	u8 *store_pt[BUS9_PAGE_TABLE_SIZE]{};
 
 	enum {
 		ITCM_SIZE = 32_KiB,
@@ -69,9 +63,9 @@ struct arm9_cpu final : arm_cpu {
 };
 
 void arm9_direct_boot(arm9_cpu *gpu, u32 entry_addr);
-void update_arm9_page_tables(arm9_cpu *cpu);
 u32 cp15_read(arm9_cpu *cpu, u32 reg);
 void cp15_write(arm9_cpu *cpu, u32 reg, u32 value);
+void update_arm9_page_tables(arm9_cpu *cpu, u64 start, u64 end);
 
 } // namespace twice
 

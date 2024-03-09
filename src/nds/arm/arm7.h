@@ -6,14 +6,8 @@
 namespace twice {
 
 struct arm7_cpu final : arm_cpu {
-	enum : u32 {
-		PAGE_SHIFT = 14,
-		PAGE_SIZE = (u32)1 << PAGE_SHIFT,
-		PAGE_MASK = PAGE_SIZE - 1,
-		PAGE_TABLE_SIZE = (u32)1 << (32 - PAGE_SHIFT),
-	};
-
-	u8 *pt[PAGE_TABLE_SIZE]{};
+	u8 **read_pt{};
+	u8 **write_pt{};
 
 	void run() override;
 	void step() override;
@@ -42,7 +36,7 @@ struct arm7_cpu final : arm_cpu {
 };
 
 void arm7_direct_boot(arm7_cpu *cpu, u32 entry_addr);
-void update_arm7_page_tables(arm7_cpu *cpu);
+void arm7_init_page_tables(arm7_cpu *cpu);
 
 } // namespace twice
 

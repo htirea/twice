@@ -1,23 +1,10 @@
 #include "nds/arm/arm7.h"
 #include "nds/arm/interpreter/lut.h"
-#include "nds/mem/bus.h"
+#include "nds/nds.h"
 
 #include "libtwice/exception.h"
 
 namespace twice {
-
-void
-arm7_direct_boot(arm7_cpu *cpu, u32 entry_addr)
-{
-	cpu->gpr[12] = entry_addr;
-	cpu->gpr[13] = 0x0380FD80;
-	cpu->gpr[14] = entry_addr;
-	cpu->bankedr[arm_cpu::MODE_IRQ][0] = 0x0380FF80;
-	cpu->bankedr[arm_cpu::MODE_SVC][0] = 0x0380FFC0;
-
-	update_arm7_page_tables(cpu);
-	cpu->arm_jump(entry_addr);
-}
 
 void
 arm7_cpu::run()
@@ -36,8 +23,6 @@ arm7_cpu::run()
 	}
 }
 
-static bool check_cond(u32 cond, u32 cpsr);
-
 void
 arm7_cpu::step()
 {
@@ -54,7 +39,8 @@ arm7_cpu::step()
 		pipeline[1] = fetch32(pc());
 
 		u32 cond = opcode >> 28;
-		if (cond == 0xE || check_cond(cond, cpsr)) {
+		if (cond == 0xE ||
+				arm_cond_table[cond] & (1 << (cpsr >> 28))) {
 			u32 op1 = opcode >> 20 & 0xFF;
 			u32 op2 = opcode >> 4 & 0xF;
 			arm_inst_lut[op1 << 4 | op2](this);
@@ -67,12 +53,6 @@ arm7_cpu::step()
 
 	*cycles += 1;
 	cycles_executed += 1;
-}
-
-static bool
-check_cond(u32 cond, u32 cpsr)
-{
-	return arm_cond_table[cond] & (1 << (cpsr >> 28));
 }
 
 void
@@ -108,37 +88,37 @@ template <typename T>
 static T
 fetch(arm7_cpu *cpu, u32 addr)
 {
-	u8 *p = cpu->pt[addr >> arm7_cpu::PAGE_SHIFT];
+	u8 *p = cpu->read_pt[addr >> BUS7_PAGE_SHIFT];
 	if (p) {
-		return readarr<T>(p, addr & arm7_cpu::PAGE_MASK);
+		return readarr<T>(p, addr & BUS7_PAGE_MASK);
 	}
 
-	return bus7_read<T>(cpu->nds, addr);
+	return bus7_read_slow<T>(cpu->nds, addr);
 }
 
 template <typename T>
 static T
 load(arm7_cpu *cpu, u32 addr)
 {
-	u8 *p = cpu->pt[addr >> arm7_cpu::PAGE_SHIFT];
+	u8 *p = cpu->read_pt[addr >> BUS7_PAGE_SHIFT];
 	if (p) {
-		return readarr<T>(p, addr & arm7_cpu::PAGE_MASK);
+		return readarr<T>(p, addr & BUS7_PAGE_MASK);
 	}
 
-	return bus7_read<T>(cpu->nds, addr);
+	return bus7_read_slow<T>(cpu->nds, addr);
 }
 
 template <typename T>
 static void
 store(arm7_cpu *cpu, u32 addr, T value)
 {
-	u8 *p = cpu->pt[addr >> arm7_cpu::PAGE_SHIFT];
+	u8 *p = cpu->write_pt[addr >> BUS7_PAGE_SHIFT];
 	if (p) {
-		writearr<T>(p, addr & arm7_cpu::PAGE_MASK, value);
+		writearr<T>(p, addr & BUS7_PAGE_MASK, value);
 		return;
 	}
 
-	bus7_write<T>(cpu->nds, addr, value);
+	bus7_write_slow<T>(cpu->nds, addr, value);
 }
 
 u32
@@ -205,35 +185,22 @@ arm7_cpu::ldrsh(u32 addr)
 	}
 }
 
-static void
-update_arm7_page_table(nds_ctx *nds, u8 **pt, u64 start, u64 end)
+void
+arm7_direct_boot(arm7_cpu *cpu, u32 entry_addr)
 {
-	for (u64 addr = start; addr < end; addr += arm7_cpu::PAGE_SIZE) {
-		u64 page = addr >> arm7_cpu::PAGE_SHIFT;
-		switch (addr >> 23) {
-		case 0x20 >> 3:
-		case 0x28 >> 3:
-			pt[page] = &nds->main_ram[addr & MAIN_RAM_MASK];
-			break;
-		case 0x30 >> 3:
-		{
-			u8 *p = nds->shared_wram_p[1];
-			pt[page] = &p[addr & nds->shared_wram_mask[1]];
-			break;
-		}
-		case 0x38 >> 3:
-			pt[page] = &nds->arm7_wram[addr & ARM7_WRAM_MASK];
-			break;
-		default:
-			pt[page] = nullptr;
-		}
-	}
+	cpu->gpr[12] = entry_addr;
+	cpu->gpr[13] = 0x0380FD80;
+	cpu->gpr[14] = entry_addr;
+	cpu->bankedr[arm_cpu::MODE_IRQ][0] = 0x0380FF80;
+	cpu->bankedr[arm_cpu::MODE_SVC][0] = 0x0380FFC0;
+	cpu->arm_jump(entry_addr);
 }
 
 void
-update_arm7_page_tables(arm7_cpu *cpu)
+arm7_init_page_tables(arm7_cpu *cpu)
 {
-	update_arm7_page_table(cpu->nds, cpu->pt, 0, 0x100000000);
+	cpu->read_pt = cpu->nds->bus7_read_pt;
+	cpu->write_pt = cpu->nds->bus7_write_pt;
 }
 
 } // namespace twice

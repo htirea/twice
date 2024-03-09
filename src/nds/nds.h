@@ -14,6 +14,7 @@
 #include "nds/gpu/3d/gpu3d.h"
 #include "nds/gpu/vram.h"
 #include "nds/ipc.h"
+#include "nds/mem/bus.h"
 #include "nds/powerman.h"
 #include "nds/rtc.h"
 #include "nds/scheduler.h"
@@ -52,8 +53,14 @@ enum : u32 {
 	FIRMWARE_MASK = 256_KiB - 1,
 	WIFI_REGION_SIZE = 32_KiB,
 	WIFI_REGION_MASK = 32_KiB - 1,
+	GBA_ROM_OPEN_BUS_SIZE = 128_KiB,
+	GBA_ROM_OPEN_BUS_MASK = 128_KiB - 1,
 	MIN_CART_SIZE = 0x160,
 	MAX_CART_SIZE = 512_MiB,
+};
+
+enum : u32 {
+	PAGE_SHIFT,
 };
 
 struct arm_cpu;
@@ -115,6 +122,12 @@ struct nds_ctx {
 	u32 audio_buf_idx{};
 	std::array<s16, 4096> mic_buf{};
 	u32 mic_buf_idx{};
+
+	u8 zero_page[std::max(BUS9_PAGE_TABLE_SIZE, BUS7_PAGE_TABLE_SIZE)]{};
+	u8 *bus9_read_pt[BUS9_PAGE_TABLE_SIZE]{};
+	u8 *bus9_write_pt[BUS9_PAGE_TABLE_SIZE]{};
+	u8 *bus7_read_pt[BUS7_PAGE_TABLE_SIZE]{};
+	u8 *bus7_write_pt[BUS7_PAGE_TABLE_SIZE]{};
 
 	/*
 	 * IO

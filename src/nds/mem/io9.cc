@@ -41,8 +41,8 @@ wramcnt_write(nds_ctx *nds, u8 value)
 	}
 
 	if (changed) {
-		update_arm9_page_tables(nds->arm9.get());
-		update_arm7_page_tables(nds->arm7.get());
+		update_bus9_page_tables(nds, 0x3000000, 0x4000000);
+		update_bus7_page_tables(nds, 0x3000000, 0x3800000);
 	}
 }
 

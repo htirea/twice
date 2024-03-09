@@ -54,6 +54,7 @@ create_nds_ctx(file_view arm9_bios, file_view arm7_bios, file_view firmware,
 	dma_controller_init(nds, 0);
 	dma_controller_init(nds, 1);
 	scheduler_init(nds);
+	page_tables_init(nds);
 
 	/* need these for side effects */
 	wramcnt_write(nds, 0x0);
@@ -70,8 +71,6 @@ nds_firmware_boot(nds_ctx *nds)
 {
 	nds->soundbias = 0x200;
 	encrypt_secure_area(&nds->cart);
-	update_arm9_page_tables(nds->arm9.get());
-	update_arm7_page_tables(nds->arm7.get());
 	nds->arm9->arm_jump(0xFFFF0000);
 	nds->arm7->arm_jump(0x0);
 }

@@ -52,6 +52,7 @@ add_library(twice STATIC
 	nds/gpu/vram.cc
 	nds/ipc.cc
 	nds/math.cc
+	nds/mem/bus.cc
 	nds/mem/io.cc
 	nds/mem/io7.cc
 	nds/mem/io9.cc
