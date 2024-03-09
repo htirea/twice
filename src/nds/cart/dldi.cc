@@ -127,8 +127,8 @@ dldi_reg_read(nds_ctx *nds)
 	case 4:
 		dldi.cmd = 0;
 		dldi.write_q.write_in_progress = false;
-		file_queue_add(&dldi.write_q, dldi.data, dldi.size,
-				dldi.write_start_addr, dldi.addr);
+		file_queue_add(&dldi.write_q, dldi.size, dldi.write_start_addr,
+				dldi.addr);
 		return dldi.error;
 	}
 
@@ -207,8 +207,7 @@ sync_image_file(nds_ctx *nds, bool sync_whole_file)
 
 	auto& dldi = nds->dldi;
 	if (sync_whole_file) {
-		file_queue_add(&dldi.write_q, dldi.data, dldi.size, 0,
-				dldi.size);
+		file_queue_add(&dldi.write_q, dldi.size, 0, dldi.size);
 	}
 
 	file_queue_flush(&dldi.write_q, nds->image, dldi.data);

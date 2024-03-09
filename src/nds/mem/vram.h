@@ -17,18 +17,6 @@
 
 namespace twice {
 
-inline u8 *
-vram_get_page(nds_ctx *nds, u32 addr)
-{
-	return nullptr;
-}
-
-inline u8 *
-vram_arm7_get_page(nds_ctx *nds, u32 addr)
-{
-	return nullptr;
-}
-
 template <typename T>
 T
 vram_read_abg(nds_ctx *nds, u32 offset)

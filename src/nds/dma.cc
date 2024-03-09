@@ -71,7 +71,7 @@ dma_on_scanline_start(nds_ctx *nds)
 }
 
 void
-event_start_immediate_dmas(nds_ctx *nds, intptr_t cpuid, timestamp late)
+event_start_immediate_dmas(nds_ctx *nds, intptr_t cpuid, timestamp)
 {
 	auto& dma = nds->dma[cpuid];
 

@@ -205,7 +205,7 @@ sound_capture_write_cnt(nds_ctx *nds, int ch_id, u8 value)
 }
 
 void
-event_sample_audio(nds_ctx *nds, intptr_t, timestamp late)
+sample_audio(nds_ctx *nds)
 {
 	bool mixer_enabled = nds->soundcnt & BIT(15);
 	bool amp_enabled = nds->pwr.ctrl & BIT(0);

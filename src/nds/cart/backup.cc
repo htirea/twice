@@ -117,8 +117,8 @@ auxspidata_write(nds_ctx *nds, int cpuid, u8 value)
 	if (!keep_active && bk.write_q.write_in_progress) {
 		bk.write_q.write_in_progress = false;
 		bk.flush_countup = 1;
-		file_queue_add(&bk.write_q, bk.data, bk.size,
-				bk.write_start_addr, bk.addr);
+		file_queue_add(&bk.write_q, bk.size, bk.write_start_addr,
+				bk.addr);
 		LOGV("write to save file at frame: %lu\n", nds->frames);
 	}
 
@@ -142,7 +142,7 @@ sync_savefile(nds_ctx *nds, bool sync_whole_file)
 
 	auto& bk = nds->cart.backup;
 	if (sync_whole_file) {
-		file_queue_add(&bk.write_q, bk.data, bk.size, 0, bk.size);
+		file_queue_add(&bk.write_q, bk.size, 0, bk.size);
 	}
 
 	return file_queue_flush(&bk.write_q, nds->savefile, bk.data);

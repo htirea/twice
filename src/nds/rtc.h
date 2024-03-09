@@ -36,7 +36,7 @@ struct real_time_clock {
 
 u8 rtc_io_read(nds_ctx *nds);
 void rtc_io_write(nds_ctx *nds, u8 value);
-void rtc_tick_32k(nds_ctx *nds, timestamp late);
+void rtc_tick_32k(nds_ctx *nds);
 
 } // namespace twice
 

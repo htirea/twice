@@ -14,8 +14,7 @@ struct file_write_queue {
 	std::optional<std::pair<u32, u32>> dirty_interval;
 };
 
-void file_queue_add(
-		file_write_queue *q, u8 *data, u32 size, u32 start, u32 end);
+void file_queue_add(file_write_queue *q, u32 size, u32 start, u32 end);
 int file_queue_flush(file_write_queue *q, fs::file& f, u8 *data);
 
 } // namespace twice

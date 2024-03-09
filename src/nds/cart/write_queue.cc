@@ -6,7 +6,7 @@
 namespace twice {
 
 void
-file_queue_add(file_write_queue *q, u8 *data, u32 size, u32 start, u32 end)
+file_queue_add(file_write_queue *q, u32 size, u32 start, u32 end)
 {
 	if (start == end || start >= size)
 		return;

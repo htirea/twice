@@ -118,7 +118,7 @@ read_cart_bus_data(nds_ctx *nds, int cpuid)
 }
 
 void
-event_advance_rom_transfer(nds_ctx *nds, intptr_t, timestamp late)
+event_advance_rom_transfer(nds_ctx *nds, intptr_t, timestamp)
 {
 	auto& cart = nds->cart;
 	auto& t = nds->cart.transfer;

@@ -45,12 +45,12 @@ static void weekday_write(nds_ctx *nds, u8 value);
 static void hour_write(nds_ctx *nds, u8 value);
 static void minute_write(nds_ctx *nds, u8 value);
 static void second_write(nds_ctx *nds, u8 value);
-static void tick_second(nds_ctx *nds, timestamp late);
-static void tick_minute(nds_ctx *nds, timestamp late);
-static void tick_hour(nds_ctx *nds, timestamp late);
-static void tick_day(nds_ctx *nds, timestamp late);
-static void tick_month(nds_ctx *nds, timestamp late);
-static void rtc_year(nds_ctx *nds, timestamp late);
+static void tick_second(nds_ctx *nds);
+static void tick_minute(nds_ctx *nds);
+static void tick_hour(nds_ctx *nds);
+static void tick_day(nds_ctx *nds);
+static void tick_month(nds_ctx *nds);
+static void rtc_year(nds_ctx *nds);
 static void rtc_reset(nds_ctx *nds);
 static void set_irq_out(nds_ctx *nds, int id, bool value);
 static void output_bits_msb_first(nds_ctx *nds, u8 value);
@@ -101,12 +101,12 @@ rtc_io_write(nds_ctx *nds, u8 value)
 }
 
 void
-rtc_tick_32k(nds_ctx *nds, timestamp late)
+rtc_tick_32k(nds_ctx *nds)
 {
 	auto& rtc = nds->rtc;
 
 	if ((nds->timer_32k_ticks & 32767) == 0) {
-		tick_second(nds, late);
+		tick_second(nds);
 	}
 
 	if (rtc.interrupt_mode == INT_USERFREQ) {
@@ -467,9 +467,8 @@ alarm_read(nds_ctx *nds, int id)
 }
 
 static void
-alarm_write(nds_ctx *nds, int id, u8 p0, u8 p1, u8 p2)
+alarm_write(nds_ctx *, int id, u8 p0, u8 p1, u8 p2)
 {
-	auto& rtc = nds->rtc;
 	LOG("[rtc] alarm write %d, %02X %02X %02X\n", id, p0, p1, p2);
 }
 
@@ -511,7 +510,7 @@ day_write(nds_ctx *nds, u8 value)
 		if (day > get_days_in_month(from_bcd(rtc.month),
 					  2000 + from_bcd(rtc.year))) {
 			rtc.day = 0x01;
-			tick_month(nds, 0);
+			tick_month(nds);
 		} else {
 			rtc.day = value;
 		}
@@ -581,7 +580,7 @@ second_write(nds_ctx *nds, u8 value)
 }
 
 static void
-tick_second(nds_ctx *nds, timestamp late)
+tick_second(nds_ctx *nds)
 {
 	auto& rtc = nds->rtc;
 	rtc.second += 0x01;
@@ -592,12 +591,12 @@ tick_second(nds_ctx *nds, timestamp late)
 
 	if (rtc.second == 0x60) {
 		rtc.second = 0x00;
-		tick_minute(nds, late);
+		tick_minute(nds);
 	}
 }
 
 static void
-tick_minute(nds_ctx *nds, timestamp late)
+tick_minute(nds_ctx *nds)
 {
 	auto& rtc = nds->rtc;
 	rtc.minute += 0x01;
@@ -608,12 +607,12 @@ tick_minute(nds_ctx *nds, timestamp late)
 
 	if (rtc.minute == 0x60) {
 		rtc.minute = 0x00;
-		tick_hour(nds, late);
+		tick_hour(nds);
 	}
 }
 
 static void
-tick_hour(nds_ctx *nds, timestamp late)
+tick_hour(nds_ctx *nds)
 {
 	auto& rtc = nds->rtc;
 	rtc.hour += 0x01;
@@ -627,13 +626,13 @@ tick_hour(nds_ctx *nds, timestamp late)
 			rtc.hour = 0x40;
 		} else if ((rtc.hour & 0x3F) == 0x24) {
 			rtc.hour = 0x00;
-			tick_day(nds, late);
+			tick_day(nds);
 		}
 	} else {
 		if ((rtc.hour & 0x3F) == 0x12) {
 			if (rtc.hour & BIT(6)) {
 				rtc.hour = 0x00;
-				tick_day(nds, late);
+				tick_day(nds);
 			} else {
 				rtc.hour = 0x40;
 			}
@@ -642,7 +641,7 @@ tick_hour(nds_ctx *nds, timestamp late)
 }
 
 static void
-tick_day(nds_ctx *nds, timestamp late)
+tick_day(nds_ctx *nds)
 {
 	auto& rtc = nds->rtc;
 	rtc.weekday = (rtc.weekday + 1) & 7;
@@ -655,12 +654,12 @@ tick_day(nds_ctx *nds, timestamp late)
 	if (from_bcd(rtc.day) > get_days_in_month(from_bcd(rtc.month),
 						2000 + from_bcd(rtc.year))) {
 		rtc.day = 0x01;
-		tick_month(nds, late);
+		tick_month(nds);
 	}
 }
 
 static void
-tick_month(nds_ctx *nds, timestamp late)
+tick_month(nds_ctx *nds)
 {
 	auto& rtc = nds->rtc;
 	rtc.month += 0x01;
@@ -671,12 +670,12 @@ tick_month(nds_ctx *nds, timestamp late)
 
 	if (rtc.month == 0x13) {
 		rtc.month = 0x01;
-		rtc_year(nds, late);
+		rtc_year(nds);
 	}
 }
 
 static void
-rtc_year(nds_ctx *nds, timestamp late)
+rtc_year(nds_ctx *nds)
 {
 	auto& rtc = nds->rtc;
 	rtc.year += 0x01;

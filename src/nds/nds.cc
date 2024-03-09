@@ -158,7 +158,7 @@ nds_dump_prof(nds_ctx *nds)
 }
 
 void
-event_execution_target_reached(nds_ctx *nds, intptr_t, timestamp late)
+event_execution_target_reached(nds_ctx *nds, intptr_t, timestamp)
 {
 	nds->execution_finished = true;
 }
@@ -211,12 +211,12 @@ event_hblank_end(nds_ctx *nds, intptr_t, timestamp late)
 }
 
 void
-event_32khz_tick(nds_ctx *nds, intptr_t data, timestamp late)
+event_32khz_tick(nds_ctx *nds, intptr_t, timestamp late)
 {
 	nds->timer_32k_ticks++;
 	touchscreen_tick_32k(nds);
-	rtc_tick_32k(nds, late);
-	event_sample_audio(nds, data, late);
+	rtc_tick_32k(nds);
+	sample_audio(nds);
 	nds->mic_buf_idx++;
 	schedule_32k_tick_event(nds, late);
 }

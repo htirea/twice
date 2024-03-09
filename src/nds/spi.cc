@@ -58,7 +58,7 @@ spicnt_write(nds_ctx *nds, u16 value)
 }
 
 void
-event_spi_transfer_complete(nds_ctx *nds, intptr_t data, timestamp late)
+event_spi_transfer_complete(nds_ctx *nds, intptr_t, timestamp)
 {
 	nds->spicnt &= ~BIT(7);
 	if (nds->spicnt & BIT(14)) {

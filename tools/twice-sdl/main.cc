@@ -19,7 +19,8 @@
 
 twice::arg_parser twice::parser;
 
-std::u8string char_to_u8_string(const std::string& s)
+std::u8string
+char_to_u8_string(const std::string& s)
 {
 	const char *p = s.data();
 	std::u8string r{ (const char8_t *)p, s.size() };
@@ -162,10 +163,11 @@ try {
 		std::cerr << "data dir: " << data_dir << '\n';
 	}
 
-	twice::nds_config config{ char_to_u8_string(data_dir) };
+	twice::nds_config config;
+	config.data_dir = char_to_u8_string(data_dir);
 	twice::nds_machine nds(config);
 	if (!cartridge_pathname.empty()) {
-		nds.load_cartridge( char_to_u8_string(cartridge_pathname));
+		nds.load_cartridge(char_to_u8_string(cartridge_pathname));
 	}
 	if (save_info.type != twice::SAVETYPE_UNKNOWN) {
 		nds.set_savetype(save_info.type);

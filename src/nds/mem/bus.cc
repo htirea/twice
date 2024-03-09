@@ -273,12 +273,6 @@ update_bus9_page_tables(nds_ctx *nds, u64 start, u64 end)
 			pt_w[page] = pt_r[page];
 			break;
 		}
-		case 0x6:
-		{
-			pt_r[page] = vram_get_page(nds, addr);
-			pt_w[page] = nullptr;
-			break;
-		}
 		case 0xFF:
 			if (addr < 0xFFFF0000) {
 				pt_r[page] = nullptr;
@@ -323,11 +317,6 @@ update_bus7_page_tables(nds_ctx *nds, u64 start, u64 end)
 		}
 		case 0x38 >> 3:
 			pt_r[page] = &nds->arm7_wram[addr & ARM7_WRAM_MASK];
-			pt_w[page] = pt_r[page];
-			break;
-		case 0x60 >> 3:
-		case 0x68 >> 3:
-			pt_r[page] = vram_arm7_get_page(nds, addr);
 			pt_w[page] = pt_r[page];
 			break;
 		default:
