@@ -27,16 +27,16 @@ static event_state initial_state[scheduler::NUM_EVENTS] = {
 	{ .cb = event_auxspi_transfer_complete },
 	{ .cb = event_execution_target_reached },
 
-	{ .cb = event_timer_overflow, .data = 0 },
-	{ .cb = event_timer_overflow, .data = 1 },
-	{ .cb = event_timer_overflow, .data = 2 },
-	{ .cb = event_timer_overflow, .data = 3 },
+	{ .cb = event_timer_update, .data = 0 },
+	{ .cb = event_timer_update, .data = 1 },
+	{ .cb = event_timer_update, .data = 2 },
+	{ .cb = event_timer_update, .data = 3 },
 	{ .cb = event_start_immediate_dmas, .data = 0 },
 
-	{ .cb = event_timer_overflow, .data = 4 },
-	{ .cb = event_timer_overflow, .data = 5 },
-	{ .cb = event_timer_overflow, .data = 6 },
-	{ .cb = event_timer_overflow, .data = 7 },
+	{ .cb = event_timer_update, .data = 4 },
+	{ .cb = event_timer_update, .data = 5 },
+	{ .cb = event_timer_update, .data = 6 },
+	{ .cb = event_timer_update, .data = 7 },
 	{ .cb = event_start_immediate_dmas, .data = 1 },
 	{ .cb = event_spi_transfer_complete },
 };
@@ -142,10 +142,10 @@ run_cpu_events(nds_ctx *nds, int cpuid)
 }
 
 int
-get_timer_overflow_event_id(int cpuid, int timer_id)
+get_timer_update_event_id(int cpuid, int timer_id)
 {
-	int id = cpuid == 0 ? scheduler::ARM9_TIMER0_OVERFLOW
-	                    : scheduler::ARM7_TIMER0_OVERFLOW;
+	int id = cpuid == 0 ? scheduler::ARM9_TIMER0_UPDATE
+	                    : scheduler::ARM7_TIMER0_UPDATE;
 	return id + timer_id;
 }
 

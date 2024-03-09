@@ -5,6 +5,7 @@
 
 namespace twice {
 
+static void run_timer(nds_ctx *, int cpuid, int timer_id);
 static void update_timer_counter(nds_ctx *, int cpuid, int timer_id);
 static void update_cascade_counter(nds_ctx *, int cpuid, int timer_id);
 static void stop_timer(nds_ctx *, int cpuid, int timer_id);
@@ -73,14 +74,44 @@ on_timer_overflow(nds_ctx *nds, int cpuid, int timer_id)
 }
 
 void
-event_timer_overflow(nds_ctx *nds, intptr_t data, timestamp late)
+event_timer_update(nds_ctx *nds, intptr_t data, timestamp)
 {
 	int cpuid = data >> 2;
 	int timer_id = data & 3;
 
-	/* TODO: handle if event fired late */
+	run_timer(nds, cpuid, timer_id);
+}
 
-	on_timer_overflow(nds, cpuid, timer_id);
+static void
+run_timer(nds_ctx *nds, int cpuid, int timer_id)
+{
+	auto& t = nds->tmr[cpuid][timer_id];
+	bool enabled = t.ctrl & BIT(7);
+	bool cascade = t.ctrl & BIT(2);
+
+	if (!enabled || cascade)
+		return;
+
+	timestamp current_time = nds->arm_cycles[cpuid];
+	timestamp cycles = current_time - t.last_update;
+	if (cpuid == 0) {
+		cycles >>= 1;
+	}
+
+	while (cycles != 0) {
+		u32 elapsed = cycles;
+		t.counter += cycles << t.shift;
+
+		if (t.counter >= (u32)0x10000 << 10) {
+			elapsed -= t.counter - ((u32)0x10000 << 10);
+			on_timer_overflow(nds, cpuid, timer_id);
+		}
+
+		cycles -= elapsed;
+	}
+
+	t.last_update = current_time;
+	schedule_timer_overflow(nds, cpuid, timer_id);
 }
 
 static void
@@ -90,16 +121,17 @@ update_timer_counter(nds_ctx *nds, int cpuid, int timer_id)
 	bool enabled = t.ctrl & BIT(7);
 	bool cascade = t.ctrl & BIT(2);
 
-	if (enabled && !cascade) {
-		timestamp current_time = nds->arm_cycles[cpuid];
-		timestamp elapsed = current_time - t.last_update;
-		if (cpuid == 0) {
-			elapsed >>= 1;
-		}
+	if (!enabled || cascade)
+		return;
 
-		t.counter += elapsed << t.shift;
-		t.last_update = current_time;
+	timestamp current_time = nds->arm_cycles[cpuid];
+	timestamp cycles = current_time - t.last_update;
+	if (cpuid == 0) {
+		cycles >>= 1;
 	}
+
+	t.counter += cycles << t.shift;
+	t.last_update = current_time;
 }
 
 static void
@@ -121,7 +153,7 @@ update_cascade_counter(nds_ctx *nds, int cpuid, int timer_id)
 static void
 stop_timer(nds_ctx *nds, int cpuid, int timer_id)
 {
-	cancel_event(nds, get_timer_overflow_event_id(cpuid, timer_id));
+	cancel_event(nds, get_timer_update_event_id(cpuid, timer_id));
 }
 
 static void
@@ -136,11 +168,10 @@ static void
 schedule_timer_overflow(nds_ctx *nds, int cpuid, int timer_id)
 {
 	auto& t = nds->tmr[cpuid][timer_id];
-	timestamp dt = (((u32)0x10000 << 10) - (t.counter & MASK(26))) >>
-	               t.shift;
+	timestamp dt = (((u32)0x10000 << 10) - t.counter) >> t.shift;
 
 	schedule_event_after(nds, cpuid,
-			get_timer_overflow_event_id(cpuid, timer_id), dt << 1);
+			get_timer_update_event_id(cpuid, timer_id), dt << 1);
 }
 
 } // namespace twice

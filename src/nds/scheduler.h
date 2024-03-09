@@ -22,18 +22,18 @@ struct scheduler {
 
 		/* arm9 */
 		ARM9_EVENTS,
-		ARM9_TIMER0_OVERFLOW = ARM9_EVENTS,
-		ARM9_TIMER1_OVERFLOW,
-		ARM9_TIMER2_OVERFLOW,
-		ARM9_TIMER3_OVERFLOW,
+		ARM9_TIMER0_UPDATE = ARM9_EVENTS,
+		ARM9_TIMER1_UPDATE,
+		ARM9_TIMER2_UPDATE,
+		ARM9_TIMER3_UPDATE,
 		ARM9_IMMEDIATE_DMA,
 
 		/* arm 7 */
 		ARM7_EVENTS,
-		ARM7_TIMER0_OVERFLOW = ARM7_EVENTS,
-		ARM7_TIMER1_OVERFLOW,
-		ARM7_TIMER2_OVERFLOW,
-		ARM7_TIMER3_OVERFLOW,
+		ARM7_TIMER0_UPDATE = ARM7_EVENTS,
+		ARM7_TIMER1_UPDATE,
+		ARM7_TIMER2_UPDATE,
+		ARM7_TIMER3_UPDATE,
 		ARM7_IMMEDIATE_DMA,
 		ARM7_SPI_TRANSFER,
 
@@ -54,7 +54,7 @@ void schedule_event_after(nds_ctx *nds, int cpuid, int id, timestamp dt);
 void cancel_event(nds_ctx *nds, int id);
 void run_cpu_events(nds_ctx *nds, int cpuid);
 void run_system_events(nds_ctx *nds);
-int get_timer_overflow_event_id(int cpuid, int timer_id);
+int get_timer_update_event_id(int cpuid, int timer_id);
 
 } // namespace twice
 
