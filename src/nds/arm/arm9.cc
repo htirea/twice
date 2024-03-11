@@ -9,8 +9,14 @@
 namespace twice {
 
 static void ctrl_reg_write(arm9_cpu *cpu, u32 value);
-static void map_dtcm_pages(arm9_cpu *cpu, u8 **pt, u64 start, u64 end);
-static void map_itcm_pages(arm9_cpu *cpu, u8 **pt, u64 end);
+static void set_dtcm_params(arm9_cpu *cpu, u32 base, u32 mask);
+static void set_itcm_params(arm9_cpu *cpu, u32 mask);
+static void remap_fetch_pt(arm9_cpu *cpu, u64 unmap_start, u64 unmap_end);
+static void remap_load_pt(arm9_cpu *cpu, u64 unmap_start, u64 unmap_end);
+static void remap_store_pt(arm9_cpu *cpu, u64 unmap_start, u64 unmap_end);
+static void unmap_tcm_pages(u8 **pt, u8 **src_pt, u64 start, u64 end);
+static void map_dtcm_pages(arm9_cpu *cpu, u8 **pt);
+static void map_itcm_pages(arm9_cpu *cpu, u8 **pt);
 
 void
 arm9_cpu::run()
@@ -257,8 +263,6 @@ cp15_read(arm9_cpu *cpu, u32 reg)
 void
 cp15_write(arm9_cpu *cpu, u32 reg, u32 value)
 {
-	bool tcm_changed = false;
-
 	switch (reg) {
 	case 0x100:
 		ctrl_reg_write(cpu, value);
@@ -267,21 +271,16 @@ cp15_write(arm9_cpu *cpu, u32 reg, u32 value)
 	{
 		u32 shift = std::clamp<u32>(value >> 1 & 0x1F, 3, 23);
 		u32 mask = ((u64)512 << shift) - 1;
-		cpu->dtcm_base = value & ~mask;
-		cpu->dtcm_addr_mask = ~mask;
-		cpu->dtcm_array_mask = mask & arm9_cpu::DTCM_MASK;
+		set_dtcm_params(cpu, value & ~mask, mask);
 		cpu->dtcm_reg = value & 0xFFFFF03E;
-		tcm_changed = true;
 		break;
 	}
 	case 0x911:
 	{
 		u32 shift = std::clamp<u32>(value >> 1 & 0x1F, 3, 23);
 		u32 mask = ((u64)512 << shift) - 1;
-		cpu->itcm_addr_mask = ~mask;
-		cpu->itcm_array_mask = mask & arm9_cpu::ITCM_MASK;
+		set_itcm_params(cpu, mask);
 		cpu->itcm_reg = value & 0x3E;
-		tcm_changed = true;
 		break;
 	}
 	case 0x704:
@@ -340,43 +339,16 @@ cp15_write(arm9_cpu *cpu, u32 reg, u32 value)
 	default:
 		LOG("unhandled cp15 write to %03X\n", reg);
 	}
-
-	if (tcm_changed) {
-		update_arm9_page_tables(cpu, 0, 4_GiB);
-	}
 }
 
 void
-update_arm9_page_tables(arm9_cpu *cpu, u64, u64)
+update_arm9_page_tables(arm9_cpu *cpu, u64 start, u64 end)
 {
-	// TODO: smarter updating
+	LOG("remapping %09lX %09lX\n", start, end);
 
-	for (u64 addr = 0; addr < 4_GiB; addr += BUS9_PAGE_SIZE) {
-		u32 page = addr >> BUS9_PAGE_SHIFT;
-		cpu->fetch_pt[page] = cpu->nds->bus9_read_pt[page];
-		cpu->load_pt[page] = cpu->fetch_pt[page];
-		cpu->store_pt[page] = cpu->nds->bus9_write_pt[page];
-	}
-
-	u64 dtcm_end = cpu->dtcm_base + (u64)~cpu->dtcm_addr_mask + 1;
-	u64 itcm_end = (u64)~cpu->itcm_addr_mask + 1;
-
-	if (cpu->read_dtcm) {
-		map_dtcm_pages(cpu, cpu->load_pt, cpu->dtcm_base, dtcm_end);
-	}
-
-	if (cpu->read_itcm) {
-		map_itcm_pages(cpu, cpu->load_pt, itcm_end);
-		map_itcm_pages(cpu, cpu->fetch_pt, itcm_end);
-	}
-
-	if (cpu->write_dtcm) {
-		map_dtcm_pages(cpu, cpu->store_pt, cpu->dtcm_base, dtcm_end);
-	}
-
-	if (cpu->write_itcm) {
-		map_itcm_pages(cpu, cpu->store_pt, itcm_end);
-	}
+	remap_fetch_pt(cpu, start, end);
+	remap_load_pt(cpu, start, end);
+	remap_store_pt(cpu, start, end);
 }
 
 static void
@@ -413,18 +385,104 @@ ctrl_reg_write(arm9_cpu *cpu, u32 value)
 }
 
 static void
-map_dtcm_pages(arm9_cpu *cpu, u8 **pt, u64 start, u64 end)
+set_dtcm_params(arm9_cpu *cpu, u32 dtcm_base, u32 mask)
+{
+	u64 old_dtcm_base = cpu->dtcm_base;
+	u64 old_dtcm_end = cpu->dtcm_end;
+	cpu->dtcm_base = dtcm_base;
+	cpu->dtcm_end = dtcm_base + (u64)mask + 1;
+	cpu->dtcm_array_mask = mask & arm9_cpu::DTCM_MASK;
+
+	if (cpu->read_dtcm) {
+		remap_load_pt(cpu, old_dtcm_base, old_dtcm_end);
+	}
+
+	if (cpu->write_dtcm) {
+		remap_store_pt(cpu, old_dtcm_base, old_dtcm_end);
+	}
+}
+
+static void
+set_itcm_params(arm9_cpu *cpu, u32 mask)
+{
+	u64 old_itcm_end = (u64)cpu->itcm_end;
+	cpu->itcm_end = (u64)mask + 1;
+	cpu->itcm_array_mask = mask & arm9_cpu::ITCM_MASK;
+
+	if (cpu->read_itcm) {
+		remap_load_pt(cpu, 0, old_itcm_end);
+		remap_fetch_pt(cpu, 0, old_itcm_end);
+	}
+
+	if (cpu->write_itcm) {
+		remap_store_pt(cpu, 0, old_itcm_end);
+	}
+}
+
+static void
+remap_fetch_pt(arm9_cpu *cpu, u64 unmap_start, u64 unmap_end)
+{
+	unmap_tcm_pages(cpu->fetch_pt, cpu->nds->bus9_read_pt, unmap_start,
+			unmap_end);
+
+	if (cpu->read_itcm) {
+		map_itcm_pages(cpu, cpu->fetch_pt);
+	}
+}
+
+static void
+remap_load_pt(arm9_cpu *cpu, u64 unmap_start, u64 unmap_end)
+{
+	unmap_tcm_pages(cpu->load_pt, cpu->nds->bus9_read_pt, unmap_start,
+			unmap_end);
+
+	if (cpu->read_dtcm) {
+		map_dtcm_pages(cpu, cpu->load_pt);
+	}
+
+	if (cpu->read_itcm) {
+		map_itcm_pages(cpu, cpu->load_pt);
+	}
+}
+
+static void
+remap_store_pt(arm9_cpu *cpu, u64 unmap_start, u64 unmap_end)
+{
+	unmap_tcm_pages(cpu->store_pt, cpu->nds->bus9_write_pt, unmap_start,
+			unmap_end);
+
+	if (cpu->write_dtcm) {
+		map_dtcm_pages(cpu, cpu->store_pt);
+	}
+
+	if (cpu->write_itcm) {
+		map_itcm_pages(cpu, cpu->store_pt);
+	}
+}
+
+static void
+unmap_tcm_pages(u8 **pt, u8 **src, u64 start, u64 end)
 {
 	for (u64 addr = start; addr < end; addr += BUS9_PAGE_SIZE) {
+		u32 page = addr >> BUS9_PAGE_SHIFT;
+		pt[page] = src[page];
+	}
+}
+
+static void
+map_dtcm_pages(arm9_cpu *cpu, u8 **pt)
+{
+	for (u64 addr = cpu->dtcm_base; addr < cpu->dtcm_end;
+			addr += BUS9_PAGE_SIZE) {
 		u32 page = addr >> BUS9_PAGE_SHIFT;
 		pt[page] = &cpu->dtcm[addr & cpu->dtcm_array_mask];
 	}
 }
 
 static void
-map_itcm_pages(arm9_cpu *cpu, u8 **pt, u64 end)
+map_itcm_pages(arm9_cpu *cpu, u8 **pt)
 {
-	for (u64 addr = 0; addr < end; addr += BUS9_PAGE_SIZE) {
+	for (u64 addr = 0; addr < cpu->itcm_end; addr += BUS9_PAGE_SIZE) {
 		u32 page = addr >> BUS9_PAGE_SHIFT;
 		pt[page] = &cpu->itcm[addr & cpu->itcm_array_mask];
 	}

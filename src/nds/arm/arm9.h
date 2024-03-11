@@ -21,10 +21,10 @@ struct arm9_cpu final : arm_cpu {
 	u8 itcm[ITCM_SIZE]{};
 	u8 dtcm[DTCM_SIZE]{};
 
-	u32 itcm_addr_mask{};
+	u64 itcm_end{};
 	u32 itcm_array_mask{};
 	u32 dtcm_base{};
-	u32 dtcm_addr_mask{};
+	u64 dtcm_end{};
 	u32 dtcm_array_mask{};
 
 	bool read_itcm{};
