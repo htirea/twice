@@ -232,6 +232,8 @@ arm_alu(arm_cpu *cpu)
 		break;
 	}
 
+	cpu->add_code_cycles(MODE == 2);
+
 	if (OP == TST || OP == TEQ || OP == CMP || OP == CMN) {
 		if (S && rd == 15) {
 			cpu->cpsr = cpu->spsr();

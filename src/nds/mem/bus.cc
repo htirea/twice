@@ -7,9 +7,13 @@
 
 namespace twice {
 
+static const u8 gba_slot_nseq_timings[4] = { 10, 8, 6, 18 };
+static const u8 gba_slot_seq_timings[2] = { 6, 4 };
+
 static bool gpu_2d_memory_access_disabled(nds_ctx *nds, u32 addr);
 template <typename T>
 static T read_gba_rom_open_bus(u32 addr);
+static void get_gba_slot_timings(u16 exmem, u8 *t);
 
 template <typename T>
 T
@@ -239,10 +243,11 @@ bus7_write_slow(nds_ctx *nds, u32 addr, T value)
 }
 
 void
-page_tables_init(nds_ctx *nds)
+bus_tables_init(nds_ctx *nds)
 {
-	arm7_init_page_tables(nds->arm7.get());
+	arm7_init_tables(nds->arm7.get());
 	reset_page_tables(nds);
+	reset_timing_tables(nds);
 }
 
 void
@@ -250,6 +255,13 @@ reset_page_tables(nds_ctx *nds)
 {
 	update_bus9_page_tables(nds, 0, 4_GiB);
 	update_bus7_page_tables(nds, 0, 4_GiB);
+}
+
+void
+reset_timing_tables(nds_ctx *nds)
+{
+	update_bus9_timing_tables(nds, 0, 4_GiB);
+	update_bus7_timing_tables(nds, 0, 4_GiB);
 }
 
 void
@@ -294,6 +306,70 @@ update_bus9_page_tables(nds_ctx *nds, u64 start, u64 end)
 }
 
 void
+update_bus9_timing_tables(nds_ctx *nds, u64 start, u64 end)
+{
+	std::array<u8, 4> code_timing{};
+	std::array<u8, 4> data_timing{};
+	std::array<u8, 4> cpu_data_timing{};
+
+	for (u64 addr = start; addr < end; addr += BUS_TIMING_SIZE) {
+		u32 page = addr >> BUS_TIMING_SHIFT;
+		bool def = false;
+
+		switch (addr >> 24) {
+		case 0x2: /* TODO: cache */
+			code_timing = { 1 };
+			data_timing = { 18, 4, 16, 2 };
+			cpu_data_timing = { 1, 1, 1, 1 };
+			break;
+		case 0x5:
+		case 0x6: /* TODO: VRAM unmapped timings? */
+			code_timing = { 10 };
+			data_timing = { 4, 4, 2, 2 };
+			cpu_data_timing = { 10, 4, 8, 2 };
+			break;
+		case 0x8:
+		case 0x9:
+			if (nds->gba_slot_cpu == 0) {
+				get_gba_slot_timings(nds->exmem[0],
+						data_timing.data());
+				code_timing = { (u8)(data_timing[0] + 3) };
+				cpu_data_timing = data_timing;
+				cpu_data_timing[0] += 3;
+				cpu_data_timing[2] += 3;
+
+				for (u32 i = 0; i < 4; i++) {
+					code_timing[i] <<= 1;
+					data_timing[i] <<= 1;
+					cpu_data_timing[i] <<= 1;
+				}
+			} else {
+				def = true;
+			}
+			break;
+		case 0x3:
+		case 0x4:
+		case 0x7:
+		case 0xFF:
+		default:
+			def = true;
+		}
+
+		if (def) {
+			code_timing = { 8 };
+			data_timing = { 2, 2, 2, 2 };
+			cpu_data_timing = { 8, 2, 8, 2 };
+		}
+
+		nds->arm9_code_timings[page] = code_timing;
+		nds->arm9_data_timings[page] = cpu_data_timing;
+		nds->bus9_data_timings[page] = data_timing;
+	}
+
+	update_arm9_page_tables(nds->arm9.get(), start, end);
+}
+
+void
 update_bus7_page_tables(nds_ctx *nds, u64 start, u64 end)
 {
 	auto& pt_r = nds->bus7_read_pt;
@@ -326,6 +402,58 @@ update_bus7_page_tables(nds_ctx *nds, u64 start, u64 end)
 	}
 }
 
+void
+update_bus7_timing_tables(nds_ctx *nds, u64 start, u64 end)
+{
+	std::array<u8, 4> code_timing{};
+	std::array<u8, 4> data_timing{};
+	std::array<u8, 4> cpu_data_timing{};
+
+	for (u64 addr = start; addr < end; addr += BUS_TIMING_SIZE) {
+		u32 page = addr >> BUS_TIMING_SHIFT;
+		bool def = false;
+
+		switch (addr >> 24) {
+		case 0x2:
+			code_timing = { 9, 2, 8, 1 };
+			data_timing = { 9, 2, 8, 1 };
+			cpu_data_timing = { 10, 2, 9, 1 };
+			break;
+		case 0x5:
+		case 0x6:
+			code_timing = { 2, 2, 1, 1 };
+			data_timing = { 2, 2, 1, 1 };
+			cpu_data_timing = { 1, 2, 1, 1 }; /* TODO: check */
+			break;
+		case 0x8:
+		case 0x9:
+			if (nds->gba_slot_cpu == 1) {
+				get_gba_slot_timings(nds->exmem[1],
+						data_timing.data());
+				code_timing = data_timing;
+				cpu_data_timing = data_timing;
+				cpu_data_timing[0] -= 1;
+				cpu_data_timing[2] -= 1;
+			} else {
+				def = true;
+			}
+			break;
+		default:
+			def = true;
+		}
+
+		if (def) {
+			code_timing = { 1, 1, 1, 1 };
+			data_timing = { 1, 1, 1, 1 };
+			cpu_data_timing = { 1, 1, 1, 1 };
+		}
+
+		nds->arm7_code_timings[page] = code_timing;
+		nds->arm7_data_timings[page] = cpu_data_timing;
+		nds->arm7_code_timings[page] = data_timing;
+	}
+}
+
 static bool
 gpu_2d_memory_access_disabled(nds_ctx *nds, u32 addr)
 {
@@ -345,6 +473,17 @@ read_gba_rom_open_bus(u32 addr)
 		u16 lo = addr >> 1;
 		return (u32)(lo + 1) << 16 | lo;
 	}
+}
+
+static void
+get_gba_slot_timings(u16 exmem, u8 *t)
+{
+	u8 nseq16 = gba_slot_nseq_timings[exmem >> 2 & 3];
+	u8 seq16 = gba_slot_seq_timings[exmem >> 4 & 1];
+	t[0] = nseq16 + seq16;
+	t[1] = seq16 + seq16;
+	t[2] = nseq16;
+	t[3] = seq16;
 }
 
 template u8 bus9_read<u8>(nds_ctx *nds, u32 addr);

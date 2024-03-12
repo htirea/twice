@@ -10,7 +10,8 @@ void
 thumb_ldm_stm(arm_cpu *cpu)
 {
 	u8 register_list = cpu->opcode & 0xFF;
-	u32 offset = 4 * std::popcount(register_list);
+	int count = std::popcount(register_list);
+	u32 offset = 4 * count;
 
 	u32 addr;
 	u32 writeback_value;
@@ -25,11 +26,7 @@ thumb_ldm_stm(arm_cpu *cpu)
 	addr &= ~3;
 
 	if (L == 1) {
-		TWICE_ARM_LDM_(0, 7, cpu->gpr, 0);
-
-		if (is_arm7(cpu) && register_list == 0) {
-			cpu->thumb_jump(cpu->load32(addr) & ~1);
-		}
+		cpu->thumb_ldm(addr, register_list, count);
 
 		/* If rn is included in register list:
 		 * ARMv4 / ARMv5: no writeback
@@ -50,12 +47,7 @@ thumb_ldm_stm(arm_cpu *cpu)
 			cpu->gpr[RN] = writeback_value;
 		}
 
-		TWICE_ARM_STM_(0, 7, cpu->gpr, 0);
-
-		if (is_arm7(cpu) && register_list == 0) {
-			cpu->store32(addr, cpu->pc() + 2);
-		}
-
+		cpu->thumb_stm(addr, register_list, count);
 		cpu->gpr[RN] = writeback_value;
 	}
 }
@@ -64,32 +56,41 @@ template <int L, int R>
 void
 thumb_push_pop(arm_cpu *cpu)
 {
-	u8 register_list = cpu->opcode & 0xFF;
-	u32 offset = 4 * (R + std::popcount(register_list));
+	u16 register_list = cpu->opcode & 0xFF;
+	int count = R + std::popcount(register_list);
+	u32 offset = 4 * count;
+	u32 values[9]{};
+	u32 *p = values;
 
 	if (L == 1) {
 		u32 addr = cpu->gpr[13] & ~3;
-		TWICE_ARM_LDM_(0, 7, cpu->gpr, 0);
+		cpu->gpr[13] += offset;
+
+		cpu->load_multiple(addr, count, values);
+
+		p = arm::interpreter::ldm_loop(register_list, 8, p, cpu->gpr);
+
+		cpu->add_ldr_cycles();
 
 		if (R == 1) {
-			u32 value = cpu->load32(addr);
 			if (is_arm9(cpu)) {
-				thumb_do_bx(cpu, value);
+				thumb_do_bx(cpu, *p);
 			} else {
-				cpu->thumb_jump(value & ~1);
+				cpu->thumb_jump(*p & ~1);
 			}
 		}
 
-		cpu->gpr[13] += offset;
 	} else {
 		u32 addr = (cpu->gpr[13] & ~3) - offset;
-		TWICE_ARM_STM_(0, 7, cpu->gpr, 0);
+		cpu->gpr[13] -= offset;
 
+		p = stm_loop(register_list, 8, cpu->gpr, p);
 		if (R == 1) {
-			cpu->store32(addr, cpu->gpr[14]);
+			*p++ = cpu->gpr[14];
 		}
 
-		cpu->gpr[13] -= offset;
+		cpu->store_multiple(addr, count, values);
+		cpu->add_str_cycles();
 	}
 }
 

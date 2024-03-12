@@ -48,6 +48,8 @@ struct arm_cpu {
 	timestamp *cycles{};
 	timestamp *target_cycles{};
 	u32 cycles_executed{};
+	u8 code_cycles{};
+	u8 data_cycles{};
 
 	u32& pc() { return gpr[15]; }
 
@@ -55,21 +57,40 @@ struct arm_cpu {
 
 	bool stopped() { return halted & (CPU_STOP | CPU_GXFIFO_HALT); }
 
+	void add_code_cycles(u32 extra = 0)
+	{
+		u32 x = code_cycles + extra;
+		*cycles += x;
+		cycles_executed += x;
+	}
+
+	virtual void add_ldr_cycles();
+	virtual void add_str_cycles(u32 extra = 0);
+
 	virtual void run() = 0;
 	virtual void step() = 0;
 	virtual void arm_jump(u32 addr) = 0;
 	virtual void thumb_jump(u32 addr) = 0;
 	virtual void jump_cpsr(u32 addr) = 0;
-	virtual u32 fetch32(u32 addr) = 0;
-	virtual u16 fetch16(u32 addr) = 0;
-	virtual u32 load32(u32 addr) = 0;
-	virtual u16 load16(u32 addr) = 0;
-	virtual u8 load8(u32 addr) = 0;
-	virtual void store32(u32 addr, u32 value) = 0;
-	virtual void store16(u32 addr, u16 value) = 0;
-	virtual void store8(u32 addr, u8 value) = 0;
+	virtual u32 load32n(u32 addr) = 0;
+	virtual u32 load32s(u32 addr) = 0;
+	virtual u16 load16n(u32 addr) = 0;
+	virtual u8 load8n(u32 addr) = 0;
+	virtual void store32n(u32 addr, u32 value) = 0;
+	virtual void store32s(u32 addr, u32 value) = 0;
+	virtual void store16n(u32 addr, u16 value) = 0;
+	virtual void store8n(u32 addr, u8 value) = 0;
+	virtual void load_multiple(u32 addr, int count, u32 *values) = 0;
+	virtual void store_multiple(u32 addr, int count, u32 *values) = 0;
 	virtual u16 ldrh(u32 addr) = 0;
 	virtual s16 ldrsh(u32 addr) = 0;
+	virtual void ldm(u32 addr, u16 register_list, int count) = 0;
+	virtual void ldm_user(u32 addr, u16 register_list, int count) = 0;
+	virtual void ldm_cpsr(u32 addr, u16 register_list, int count) = 0;
+	virtual void stm(u32 addr, u16 register_list, int count) = 0;
+	virtual void stm_user(u32 addr, u16 register_list, int count) = 0;
+	virtual void thumb_ldm(u32 addr, u16 register_list, int count) = 0;
+	virtual void thumb_stm(u32 addr, u16 register_list, int count) = 0;
 	virtual bool check_halted() = 0;
 };
 

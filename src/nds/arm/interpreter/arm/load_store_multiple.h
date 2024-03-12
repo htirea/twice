@@ -11,7 +11,8 @@ arm_block_dt(arm_cpu *cpu)
 {
 	u32 rn = cpu->opcode >> 16 & 0xF;
 	u16 register_list = cpu->opcode & 0xFFFF;
-	u32 offset = 4 * std::popcount(register_list);
+	int count = std::popcount(register_list);
+	u32 offset = 4 * count;
 
 	u32 addr;
 	u32 writeback_value;
@@ -45,48 +46,11 @@ arm_block_dt(arm_cpu *cpu)
 		bool cpsr_written = false;
 
 		if (S == 0) {
-			TWICE_ARM_LDM_(0, 14, cpu->gpr, 0);
-
-			if (register_list >> 15) {
-				u32 value = cpu->load32(addr);
-				if (!is_arm7(cpu)) {
-					arm_do_bx(cpu, value);
-				} else {
-					cpu->arm_jump(value & ~3);
-				}
-			}
-
-			if (is_arm7(cpu) && register_list == 0) {
-				cpu->arm_jump(cpu->load32(addr) & ~3);
-			}
+			cpu->ldm(addr, register_list, count);
 		} else if (!(register_list >> 15)) {
-			TWICE_ARM_LDM_(0, 7, cpu->gpr, 0);
-
-			if (in_fiq_mode(cpu)) {
-				TWICE_ARM_LDM_(8, 12, cpu->fiqr, -8);
-			} else {
-				TWICE_ARM_LDM_(8, 12, cpu->gpr, 0);
-			}
-
-			if (in_sys_or_usr_mode(cpu)) {
-				TWICE_ARM_LDM_(13, 14, cpu->gpr, 0);
-			} else {
-				TWICE_ARM_LDM_(13, 14, cpu->bankedr[0], -13);
-			}
-
-			if (is_arm7(cpu) && register_list == 0) {
-				cpu->arm_jump(cpu->load32(addr) & ~3);
-			}
+			cpu->ldm_user(addr, register_list, count);
 		} else {
-			TWICE_ARM_LDM_(0, 14, cpu->gpr, 0);
-
-			u32 value = cpu->load32(addr);
-			cpu->cpsr = cpu->spsr();
-			if (cpu->cpsr & 0x20) {
-				cpu->thumb_jump(value & ~1);
-			} else {
-				cpu->arm_jump(value & ~3);
-			}
+			cpu->ldm_cpsr(addr, register_list, count);
 			cpsr_written = true;
 		}
 
@@ -126,29 +90,9 @@ arm_block_dt(arm_cpu *cpu)
 		}
 
 		if (S == 0) {
-			TWICE_ARM_STM_(0, 14, cpu->gpr, 0);
+			cpu->stm(addr, register_list, count);
 		} else {
-			TWICE_ARM_STM_(0, 7, cpu->gpr, 0);
-
-			if (in_fiq_mode(cpu)) {
-				TWICE_ARM_STM_(8, 12, cpu->fiqr, -8);
-			} else {
-				TWICE_ARM_STM_(8, 12, cpu->gpr, 0);
-			}
-
-			if (in_sys_or_usr_mode(cpu)) {
-				TWICE_ARM_STM_(13, 14, cpu->gpr, 0);
-			} else {
-				TWICE_ARM_STM_(13, 14, cpu->bankedr[0], -13);
-			}
-		}
-
-		if (register_list >> 15) {
-			cpu->store32(addr, cpu->pc() + 4);
-		}
-
-		if (is_arm7(cpu) && register_list == 0) {
-			cpu->store32(addr, cpu->pc() + 4);
+			cpu->stm_user(addr, register_list, count);
 		}
 
 		if (writeback) {

@@ -37,8 +37,7 @@ void
 arm_sat_add_sub(arm_cpu *cpu)
 {
 	if (is_arm7(cpu)) {
-		arm_undefined(cpu);
-		return;
+		return arm_undefined(cpu);
 	}
 
 	u32 rn = cpu->opcode >> 16 & 0xF;
@@ -65,6 +64,8 @@ arm_sat_add_sub(arm_cpu *cpu)
 		break;
 	}
 	}
+
+	cpu->add_code_cycles();
 }
 
 inline u32
@@ -84,7 +85,7 @@ void
 arm_dsp_multiply(arm_cpu *cpu)
 {
 	if (is_arm7(cpu)) {
-		return;
+		return arm_noop(cpu);
 	}
 
 	u32 rd = cpu->opcode >> 16 & 0xF;
@@ -123,6 +124,8 @@ arm_dsp_multiply(arm_cpu *cpu)
 		cpu->gpr[rd] = a * b;
 		break;
 	}
+
+	cpu->add_code_cycles(OP == 2);
 }
 } // namespace twice::arm::interpreter
 

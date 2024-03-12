@@ -54,11 +54,22 @@ create_nds_ctx(file_view arm9_bios, file_view arm7_bios, file_view firmware,
 	dma_controller_init(nds, 0);
 	dma_controller_init(nds, 1);
 	scheduler_init(nds);
-	page_tables_init(nds);
+	bus_tables_init(nds);
 
 	/* need these for side effects */
 	wramcnt_write(nds, 0x0);
 	powcnt1_write(nds, 0x0);
+	exmem_write(nds, 0, 0x6000);
+	exmem_write(nds, 1, 0x6000);
+	vramcnt_a_write(nds, 0);
+	vramcnt_b_write(nds, 0);
+	vramcnt_c_write(nds, 0);
+	vramcnt_d_write(nds, 0);
+	vramcnt_e_write(nds, 0);
+	vramcnt_f_write(nds, 0);
+	vramcnt_g_write(nds, 0);
+	vramcnt_h_write(nds, 0);
+	vramcnt_i_write(nds, 0);
 	schedule_event_after(nds, scheduler::HBLANK_START, 3072);
 	schedule_event_after(nds, scheduler::HBLANK_END, 4260);
 	schedule_32k_tick_event(nds, 0);

@@ -10,14 +10,14 @@ inline void
 arm_clz(arm_cpu *cpu)
 {
 	if (is_arm7(cpu)) {
-		arm_undefined(cpu);
-		return;
+		return arm_undefined(cpu);
 	}
 
 	u32 rd = cpu->opcode >> 12 & 0xF;
 	u32 rm = cpu->opcode & 0xF;
-
 	cpu->gpr[rd] = std::countl_zero(cpu->gpr[rm]);
+
+	cpu->add_code_cycles();
 }
 
 } // namespace twice::arm::interpreter

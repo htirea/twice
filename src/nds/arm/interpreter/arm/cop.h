@@ -19,7 +19,7 @@ arm_cop_reg(arm_cpu *cpu)
 	if (L == 0) {
 		if (is_arm7(cpu)) {
 			LOG("arm7 mcr\n");
-			return;
+			return arm_noop(cpu);
 		}
 
 		if (cp_num != 15) {
@@ -36,22 +36,23 @@ arm_cop_reg(arm_cpu *cpu)
 			value += 4;
 		}
 		cp15_write((arm9_cpu *)cpu, reg, value);
+
+		/* TODO: MCR timings? */
+		cpu->add_code_cycles(1 + 1);
 	} else {
 		u32 value;
 
 		if (is_arm7(cpu)) {
 			if (cp_num != 14) {
 				LOG("arm7 mrc with cp_num %u\n", cp_num);
-				arm_undefined(cpu);
-				return;
+				return arm_undefined(cpu);
 			}
 
 			value = cpu->pipeline[1];
 		} else {
 			if (cp_num != 15) {
 				LOG("arm9 mrc with cp_num %u\n", cp_num);
-				arm_undefined(cpu);
-				return;
+				return arm_undefined(cpu);
 			}
 
 			if (OP1 != 0) {
@@ -73,6 +74,9 @@ arm_cop_reg(arm_cpu *cpu)
 		} else {
 			cpu->gpr[rd] = value;
 		}
+
+		/* TODO: MRC cycles ? */
+		cpu->add_code_cycles(3);
 	}
 }
 

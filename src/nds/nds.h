@@ -129,6 +129,14 @@ struct nds_ctx {
 	u8 *bus7_read_pt[BUS7_PAGE_TABLE_SIZE]{};
 	u8 *bus7_write_pt[BUS7_PAGE_TABLE_SIZE]{};
 
+	/* NSEQ32 / SEQ32 / NSEQ16 / SEQ16 */
+	std::array<u8, 4> arm9_code_timings[BUS_TIMING_TABLE_SIZE]{};
+	std::array<u8, 4> arm9_data_timings[BUS_TIMING_TABLE_SIZE]{};
+	std::array<u8, 4> bus9_data_timings[BUS_TIMING_TABLE_SIZE]{};
+	std::array<u8, 4> arm7_code_timings[BUS_TIMING_TABLE_SIZE]{};
+	std::array<u8, 4> arm7_data_timings[BUS_TIMING_TABLE_SIZE]{};
+	std::array<u8, 4> bus7_data_timings[BUS_TIMING_TABLE_SIZE]{};
+
 	/*
 	 * IO
 	 */

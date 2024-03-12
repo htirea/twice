@@ -79,6 +79,8 @@ arm_sdt(arm_cpu *cpu)
 			value = arm_do_ldr(cpu, address);
 		}
 
+		cpu->add_ldr_cycles();
+
 		if (rd == 15) {
 			if (is_arm9(cpu)) {
 				arm_do_bx(cpu, value);
@@ -103,6 +105,8 @@ arm_sdt(arm_cpu *cpu)
 		if (writeback) {
 			cpu->gpr[rn] += offset;
 		}
+
+		cpu->add_str_cycles();
 	}
 }
 } // namespace twice::arm::interpreter

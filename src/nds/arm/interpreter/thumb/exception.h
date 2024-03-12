@@ -9,14 +9,14 @@ inline void
 thumb_undefined(arm_cpu *cpu)
 {
 	u32 old_cpsr = cpu->cpsr;
-
 	cpu->cpsr &= ~0xBF;
 	cpu->cpsr |= 0x9B;
 	arm_switch_mode(cpu, arm_cpu::MODE_SVC);
 	cpu->interrupt = false;
-
 	cpu->gpr[14] = cpu->pc() - 2;
 	cpu->spsr() = old_cpsr;
+
+	cpu->add_code_cycles();
 	cpu->arm_jump(cpu->exception_base + 0x4);
 }
 
@@ -24,14 +24,14 @@ inline void
 thumb_swi(arm_cpu *cpu)
 {
 	u32 old_cpsr = cpu->cpsr;
-
 	cpu->cpsr &= ~0xBF;
 	cpu->cpsr |= 0x93;
 	arm_switch_mode(cpu, arm_cpu::MODE_SVC);
 	cpu->interrupt = false;
-
 	cpu->gpr[14] = cpu->pc() - 2;
 	cpu->spsr() = old_cpsr;
+
+	cpu->add_code_cycles();
 	cpu->arm_jump(cpu->exception_base + 0x8);
 }
 

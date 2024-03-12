@@ -1,6 +1,7 @@
 #include "nds/arm/arm9.h"
 
 #include "nds/arm/interpreter/lut.h"
+#include "nds/arm/interpreter/util.h"
 #include "nds/nds.h"
 
 #include "common/logger.h"
@@ -14,9 +15,9 @@ static void set_itcm_params(arm9_cpu *cpu, u32 mask);
 static void remap_fetch_pt(arm9_cpu *cpu, u64 unmap_start, u64 unmap_end);
 static void remap_load_pt(arm9_cpu *cpu, u64 unmap_start, u64 unmap_end);
 static void remap_store_pt(arm9_cpu *cpu, u64 unmap_start, u64 unmap_end);
-static void unmap_tcm_pages(u8 **pt, u8 **src_pt, u64 start, u64 end);
-static void map_dtcm_pages(arm9_cpu *cpu, u8 **pt);
-static void map_itcm_pages(arm9_cpu *cpu, u8 **pt);
+static void unmap_tcm_pages(arm9_cpu *cpu, int table, u64 start, u64 end);
+static void map_dtcm_pages(arm9_cpu *cpu, int table);
+static void map_itcm_pages(arm9_cpu *cpu, int table);
 
 void
 arm9_cpu::run()
@@ -42,13 +43,18 @@ arm9_cpu::step()
 		pc() += 2;
 		opcode = pipeline[0];
 		pipeline[0] = pipeline[1];
-		pipeline[1] = fetch16(pc());
+		if (pc() & 2) {
+			pipeline[1] >>= 16;
+			code_cycles = 0;
+		} else {
+			code_cycles = fetch32n(pc(), &pipeline[1]);
+		}
 		thumb_inst_lut[opcode >> 6 & 0x3FF](this);
 	} else {
 		pc() += 4;
 		opcode = pipeline[0];
 		pipeline[0] = pipeline[1];
-		pipeline[1] = fetch32(pc());
+		code_cycles = fetch32n(pc(), &pipeline[1]);
 
 		u32 cond = opcode >> 28;
 		if (cond == 0xE ||
@@ -58,6 +64,8 @@ arm9_cpu::step()
 			arm_inst_lut[op1 << 4 | op2](this);
 		} else if (cond == 0xF) {
 			if ((opcode & 0xFE000000) == 0xFA000000) {
+				add_code_cycles();
+
 				bool H = opcode & BIT(24);
 				s32 offset = ((s32)(opcode << 8) >> 6) +
 				             (H << 1);
@@ -72,31 +80,36 @@ arm9_cpu::step()
 			} else if ((opcode & 0xFF000000) == 0xFE000000) {
 				throw twice_error("CDP2 / MCR2 / MRC2");
 			}
+		} else {
+			add_code_cycles();
 		}
 	}
 
 	if (interrupt) {
 		arm_do_irq(this);
 	}
-
-	*cycles += 1;
-	cycles_executed += 1;
 }
 
 void
 arm9_cpu::arm_jump(u32 addr)
 {
 	pc() = addr + 4;
-	pipeline[0] = fetch32(addr);
-	pipeline[1] = fetch32(addr + 4);
+	*cycles += fetch32n(addr, &pipeline[0]);
+	*cycles += fetch32n(addr + 4, &pipeline[1]);
 }
 
 void
 arm9_cpu::thumb_jump(u32 addr)
 {
 	pc() = addr + 2;
-	pipeline[0] = fetch16(addr);
-	pipeline[1] = fetch16(addr + 2);
+	if (addr & 2) {
+		*cycles += fetch32n(addr - 2, &pipeline[0]);
+		pipeline[0] >>= 16;
+		*cycles += fetch32n(addr + 2, &pipeline[1]);
+	} else {
+		*cycles += fetch32n(addr, &pipeline[0]);
+		pipeline[1] = pipeline[0] >> 16;
+	}
 }
 
 void
@@ -113,22 +126,24 @@ arm9_cpu::jump_cpsr(u32 addr)
 }
 
 template <typename T>
-static T
-fetch(arm9_cpu *cpu, u32 addr)
+static u8
+fetch(arm9_cpu *cpu, u32 addr, T *result)
 {
-	u8 *p = cpu->fetch_pt[addr >> BUS9_PAGE_SHIFT];
+	u8 *p = cpu->pages[arm9_cpu::FETCH][addr >> BUS9_PAGE_SHIFT];
 	if (p) {
-		return readarr<T>(p, addr & BUS9_PAGE_MASK);
+		*result = readarr<T>(p, addr & BUS9_PAGE_MASK);
+	} else {
+		*result = bus9_read_slow<T>(cpu->nds, addr);
 	}
 
-	return bus9_read_slow<T>(cpu->nds, addr);
+	return cpu->timings[arm9_cpu::FETCH][addr >> BUS9_PAGE_SHIFT][0];
 }
 
 template <typename T>
 static T
 load(arm9_cpu *cpu, u32 addr)
 {
-	u8 *p = cpu->load_pt[addr >> BUS9_PAGE_SHIFT];
+	u8 *p = cpu->pages[arm9_cpu::LOAD][addr >> BUS9_PAGE_SHIFT];
 	if (p) {
 		return readarr<T>(p, addr & BUS9_PAGE_MASK);
 	}
@@ -140,7 +155,7 @@ template <typename T>
 static void
 store(arm9_cpu *cpu, u32 addr, T value)
 {
-	u8 *p = cpu->store_pt[addr >> BUS9_PAGE_SHIFT];
+	u8 *p = cpu->pages[arm9_cpu::STORE][addr >> BUS9_PAGE_SHIFT];
 	if (p) {
 		writearr<T>(p, addr & BUS9_PAGE_MASK, value);
 		return;
@@ -149,64 +164,288 @@ store(arm9_cpu *cpu, u32 addr, T value)
 	bus9_write_slow<T>(cpu->nds, addr, value);
 }
 
-u32
-arm9_cpu::fetch32(u32 addr)
+static u32 *
+load_multiple_from_page(
+		arm9_cpu *cpu, u32 page, u32 addr, int count, u32 *values)
 {
-	return fetch<u32>(this, addr);
+	u8 *p = cpu->pages[arm9_cpu::LOAD][page];
+	if (p) {
+		for (; count--; addr += 4) {
+			*values++ = readarr<u32>(p, addr & BUS9_PAGE_MASK);
+		}
+	} else {
+		for (; count--; addr += 4) {
+			*values++ = bus9_read_slow<u32>(cpu->nds, addr);
+		}
+	}
+
+	return values;
 }
 
-u16
-arm9_cpu::fetch16(u32 addr)
+static u32 *
+store_multiple_to_page(
+		arm9_cpu *cpu, u32 page, u32 addr, int count, u32 *values)
 {
-	return fetch<u16>(this, addr);
+	u8 *p = cpu->pages[arm9_cpu::STORE][page];
+	if (p) {
+		for (; count--; addr += 4) {
+			writearr<u32>(p, addr & BUS9_PAGE_MASK, *values++);
+		}
+	} else {
+		for (; count--; addr += 4) {
+			bus9_write_slow<u32>(cpu->nds, addr, *values++);
+		}
+	}
+
+	return values;
+}
+
+template <int Table>
+static u32
+load_store_multiple(arm9_cpu *cpu, u32 addr, int count, u32 *values)
+{
+	if (count == 0) {
+		return 0;
+	}
+
+	u32 start_page = addr >> BUS9_PAGE_SHIFT;
+	u32 end_page = (addr + 4 * (count - 1)) >> BUS9_PAGE_SHIFT;
+
+	if (start_page == end_page) {
+		if (Table == arm9_cpu::LOAD) {
+			load_multiple_from_page(
+					cpu, start_page, addr, count, values);
+		} else {
+			store_multiple_to_page(
+					cpu, start_page, addr, count, values);
+		}
+
+		auto& t = cpu->timings[Table][addr >> BUS9_PAGE_SHIFT];
+		return t[0] + (count - 1) * t[1];
+	} else {
+		u32 end_addr = end_page << BUS9_PAGE_SHIFT;
+		int count1 = (end_addr - addr) >> 2;
+
+		if (Table == arm9_cpu::LOAD) {
+			values = load_multiple_from_page(
+					cpu, start_page, addr, count1, values);
+			load_multiple_from_page(cpu, end_page, 0,
+					count - count1, values);
+		} else {
+			values = store_multiple_to_page(
+					cpu, start_page, addr, count1, values);
+			store_multiple_to_page(cpu, end_page, 0,
+					count - count1, values);
+		}
+
+		auto& t1 = cpu->timings[Table][addr >> BUS9_PAGE_SHIFT];
+		auto& t2 = cpu->timings[Table][end_addr >> BUS9_PAGE_SHIFT];
+		return t1[0] + (count1 - 1) * t1[1] + (count - count1) * t2[1];
+	}
+}
+
+u8
+arm9_cpu::fetch32n(u32 addr, u32 *result)
+{
+	return fetch<u32>(this, addr, result);
 }
 
 u32
-arm9_cpu::load32(u32 addr)
+arm9_cpu::load32n(u32 addr)
 {
+	data_cycles = timings[LOAD][addr >> BUS9_PAGE_SHIFT][0];
+	return load<u32>(this, addr);
+}
+
+u32
+arm9_cpu::load32s(u32 addr)
+{
+	data_cycles += timings[LOAD][addr >> BUS9_PAGE_SHIFT][1];
 	return load<u32>(this, addr);
 }
 
 u16
-arm9_cpu::load16(u32 addr)
+arm9_cpu::load16n(u32 addr)
 {
+	data_cycles = timings[LOAD][addr >> BUS9_PAGE_SHIFT][2];
 	return load<u16>(this, addr);
 }
 
 u8
-arm9_cpu::load8(u32 addr)
+arm9_cpu::load8n(u32 addr)
 {
+	data_cycles = timings[LOAD][addr >> BUS9_PAGE_SHIFT][2];
 	return load<u8>(this, addr);
 }
 
 void
-arm9_cpu::store32(u32 addr, u32 value)
+arm9_cpu::store32n(u32 addr, u32 value)
 {
+	data_cycles = timings[STORE][addr >> BUS9_PAGE_SHIFT][0];
 	store<u32>(this, addr, value);
 }
 
 void
-arm9_cpu::store16(u32 addr, u16 value)
+arm9_cpu::store32s(u32 addr, u32 value)
 {
+	data_cycles = timings[STORE][addr >> BUS9_PAGE_SHIFT][1];
+	store<u32>(this, addr, value);
+}
+
+void
+arm9_cpu::store16n(u32 addr, u16 value)
+{
+	data_cycles = timings[STORE][addr >> BUS9_PAGE_SHIFT][2];
 	store<u16>(this, addr, value);
 }
 
 void
-arm9_cpu::store8(u32 addr, u8 value)
+arm9_cpu::store8n(u32 addr, u8 value)
 {
+	data_cycles = timings[STORE][addr >> BUS9_PAGE_SHIFT][2];
 	store<u8>(this, addr, value);
+}
+
+void
+arm9_cpu::load_multiple(u32 addr, int count, u32 *values)
+{
+	data_cycles = load_store_multiple<LOAD>(this, addr, count, values);
+}
+
+void
+arm9_cpu::store_multiple(u32 addr, int count, u32 *values)
+{
+	data_cycles = load_store_multiple<STORE>(this, addr, count, values);
 }
 
 u16
 arm9_cpu::ldrh(u32 addr)
 {
-	return load16(addr & ~1);
+	return load16n(addr & ~1);
 }
 
 s16
 arm9_cpu::ldrsh(u32 addr)
 {
-	return load16(addr & ~1);
+	return load16n(addr & ~1);
+}
+
+void
+arm9_cpu::ldm(u32 addr, u16 register_list, int count)
+{
+	u32 values[16]{};
+	load_multiple(addr, count, values);
+
+	u32 *p = values;
+	p = arm::interpreter::ldm_loop(register_list, 15, p, gpr);
+
+	add_ldr_cycles();
+
+	if (register_list & 1) {
+		arm::interpreter::arm_do_bx(this, *p);
+	}
+}
+
+void
+arm9_cpu::ldm_user(u32 addr, u16 register_list, int count)
+{
+	if (mode == MODE_SYS || mode == MODE_USR) {
+		return ldm(addr, register_list, count);
+	}
+
+	u32 values[16]{};
+	load_multiple(addr, count, values);
+
+	u32 *p = values;
+	p = arm::interpreter::ldm_loop(
+			register_list, mode == MODE_FIQ ? 8 : 13, p, gpr);
+	if (mode == MODE_FIQ) {
+		p = arm::interpreter::ldm_loop(register_list, 5, p, fiqr);
+	}
+	p = arm::interpreter::ldm_loop(register_list, 2, p, bankedr[0]);
+
+	add_ldr_cycles();
+}
+
+void
+arm9_cpu::ldm_cpsr(u32 addr, u16 register_list, int count)
+{
+	u32 values[16]{};
+	load_multiple(addr, count, values);
+
+	u32 *p = values;
+	p = arm::interpreter::ldm_loop(register_list, 15, p, gpr);
+
+	add_ldr_cycles();
+
+	cpsr = spsr();
+	if (cpsr & 0x20) {
+		thumb_jump(*p & ~1);
+	} else {
+		arm_jump(*p & ~3);
+	}
+}
+
+void
+arm9_cpu::stm(u32 addr, u16 register_list, int count)
+{
+	u32 values[16]{};
+
+	u32 *p = values;
+	p = arm::interpreter::stm_loop(register_list, 15, gpr, p);
+	if (register_list & 1) {
+		*p++ = pc() + 4;
+	}
+
+	store_multiple(addr, count, values);
+	add_str_cycles();
+}
+
+void
+arm9_cpu::stm_user(u32 addr, u16 register_list, int count)
+{
+	if (mode == MODE_SYS || mode == MODE_USR)
+		return stm(addr, register_list, count);
+
+	u32 values[16]{};
+
+	u32 *p = values;
+	p = arm::interpreter::stm_loop(
+			register_list, mode == MODE_FIQ ? 8 : 13, gpr, p);
+	if (mode == MODE_FIQ) {
+		p = arm::interpreter::stm_loop(register_list, 5, fiqr, p);
+	}
+	p = arm::interpreter::stm_loop(register_list, 2, bankedr[0], p);
+	if (register_list & 1) {
+		*p++ = pc() + 4;
+	}
+
+	store_multiple(addr, count, values);
+	add_str_cycles();
+}
+
+void
+arm9_cpu::thumb_ldm(u32 addr, u16 register_list, int count)
+{
+	u32 values[8]{};
+	load_multiple(addr, count, values);
+
+	u32 *p = values;
+	arm::interpreter::ldm_loop(register_list, 8, p, gpr);
+
+	add_ldr_cycles();
+}
+
+void
+arm9_cpu::thumb_stm(u32 addr, u16 register_list, int count)
+{
+	u32 values[8]{};
+
+	u32 *p = values;
+	p = arm::interpreter::stm_loop(register_list, 8, gpr, p);
+
+	store_multiple(addr, count, values);
+	add_str_cycles();
 }
 
 void
@@ -351,6 +590,11 @@ update_arm9_page_tables(arm9_cpu *cpu, u64 start, u64 end)
 	remap_store_pt(cpu, start, end);
 }
 
+void
+update_arm9_timing_tables(arm9_cpu *cpu, u64 start, u64 end)
+{
+}
+
 static void
 ctrl_reg_write(arm9_cpu *cpu, u32 value)
 {
@@ -422,69 +666,83 @@ set_itcm_params(arm9_cpu *cpu, u32 mask)
 static void
 remap_fetch_pt(arm9_cpu *cpu, u64 unmap_start, u64 unmap_end)
 {
-	unmap_tcm_pages(cpu->fetch_pt, cpu->nds->bus9_read_pt, unmap_start,
-			unmap_end);
+	unmap_tcm_pages(cpu, arm9_cpu::FETCH, unmap_start, unmap_end);
 
 	if (cpu->read_itcm) {
-		map_itcm_pages(cpu, cpu->fetch_pt);
+		map_itcm_pages(cpu, arm9_cpu::FETCH);
 	}
 }
 
 static void
 remap_load_pt(arm9_cpu *cpu, u64 unmap_start, u64 unmap_end)
 {
-	unmap_tcm_pages(cpu->load_pt, cpu->nds->bus9_read_pt, unmap_start,
-			unmap_end);
+	unmap_tcm_pages(cpu, arm9_cpu::LOAD, unmap_start, unmap_end);
 
 	if (cpu->read_dtcm) {
-		map_dtcm_pages(cpu, cpu->load_pt);
+		map_dtcm_pages(cpu, arm9_cpu::LOAD);
 	}
 
 	if (cpu->read_itcm) {
-		map_itcm_pages(cpu, cpu->load_pt);
+		map_itcm_pages(cpu, arm9_cpu::LOAD);
 	}
 }
 
 static void
 remap_store_pt(arm9_cpu *cpu, u64 unmap_start, u64 unmap_end)
 {
-	unmap_tcm_pages(cpu->store_pt, cpu->nds->bus9_write_pt, unmap_start,
-			unmap_end);
+	unmap_tcm_pages(cpu, arm9_cpu::STORE, unmap_start, unmap_end);
 
 	if (cpu->write_dtcm) {
-		map_dtcm_pages(cpu, cpu->store_pt);
+		map_dtcm_pages(cpu, arm9_cpu::STORE);
 	}
 
 	if (cpu->write_itcm) {
-		map_itcm_pages(cpu, cpu->store_pt);
+		map_itcm_pages(cpu, arm9_cpu::STORE);
 	}
 }
 
 static void
-unmap_tcm_pages(u8 **pt, u8 **src, u64 start, u64 end)
+unmap_tcm_pages(arm9_cpu *cpu, int table, u64 start, u64 end)
 {
+	auto& pt = cpu->pages[table];
+	auto& pt_src = table == arm9_cpu::STORE ? cpu->nds->bus9_write_pt
+	                                        : cpu->nds->bus9_read_pt;
+	auto& tt = cpu->timings[table];
+	auto& tt_src = table == arm9_cpu::FETCH ? cpu->nds->arm9_code_timings
+	                                        : cpu->nds->arm9_data_timings;
+
 	for (u64 addr = start; addr < end; addr += BUS9_PAGE_SIZE) {
 		u32 page = addr >> BUS9_PAGE_SHIFT;
-		pt[page] = src[page];
+		u32 tt_src_page = addr >> BUS_TIMING_SHIFT;
+		pt[page] = pt_src[page];
+		tt[page] = tt_src[tt_src_page];
 	}
 }
 
 static void
-map_dtcm_pages(arm9_cpu *cpu, u8 **pt)
+map_dtcm_pages(arm9_cpu *cpu, int table)
 {
+	auto& pt = cpu->pages[table];
+	auto& tt = cpu->timings[table];
+
 	for (u64 addr = cpu->dtcm_base; addr < cpu->dtcm_end;
 			addr += BUS9_PAGE_SIZE) {
 		u32 page = addr >> BUS9_PAGE_SHIFT;
 		pt[page] = &cpu->dtcm[addr & cpu->dtcm_array_mask];
+		tt[page] = { 1, 1, 1, 1 };
 	}
 }
 
 static void
-map_itcm_pages(arm9_cpu *cpu, u8 **pt)
+map_itcm_pages(arm9_cpu *cpu, int table)
 {
+	auto& pt = cpu->pages[table];
+	auto& tt = cpu->timings[table];
+
 	for (u64 addr = 0; addr < cpu->itcm_end; addr += BUS9_PAGE_SIZE) {
 		u32 page = addr >> BUS9_PAGE_SHIFT;
 		pt[page] = &cpu->itcm[addr & cpu->itcm_array_mask];
+		tt[page] = { 1, 1, 1, 1 };
 	}
 }
 

@@ -6,17 +6,23 @@
 namespace twice::arm::interpreter {
 
 inline void
+arm_noop(arm_cpu *cpu)
+{
+	cpu->add_code_cycles();
+}
+
+inline void
 arm_undefined(arm_cpu *cpu)
 {
 	u32 old_cpsr = cpu->cpsr;
-
 	cpu->cpsr &= ~0xBF;
 	cpu->cpsr |= 0x9B;
 	arm_switch_mode(cpu, arm_cpu::MODE_UND);
 	cpu->interrupt = false;
-
 	cpu->gpr[14] = cpu->pc() - 4;
 	cpu->spsr() = old_cpsr;
+
+	cpu->add_code_cycles();
 	cpu->arm_jump(cpu->exception_base + 0x4);
 }
 
@@ -24,14 +30,14 @@ inline void
 arm_swi(arm_cpu *cpu)
 {
 	u32 old_cpsr = cpu->cpsr;
-
 	cpu->cpsr &= ~0xBF;
 	cpu->cpsr |= 0x93;
 	arm_switch_mode(cpu, arm_cpu::MODE_SVC);
 	cpu->interrupt = false;
-
 	cpu->gpr[14] = cpu->pc() - 4;
 	cpu->spsr() = old_cpsr;
+
+	cpu->add_code_cycles();
 	cpu->arm_jump(cpu->exception_base + 0x8);
 }
 

@@ -109,58 +109,81 @@ thumb_do_bx(arm_cpu *cpu, u32 addr)
 inline u32
 arm_do_ldr(arm_cpu *cpu, u32 addr)
 {
-	return std::rotr(cpu->load32(addr & ~3), (addr & 3) << 3);
+	return std::rotr(cpu->load32n(addr & ~3), (addr & 3) << 3);
 }
 
 inline void
 arm_do_str(arm_cpu *cpu, u32 addr, u32 value)
 {
-	cpu->store32(addr & ~3, value);
+	cpu->store32n(addr & ~3, value);
 }
 
 inline void
 arm_do_strh(arm_cpu *cpu, u32 addr, u16 value)
 {
-	cpu->store16(addr & ~1, value);
+	cpu->store16n(addr & ~1, value);
 }
 
 inline u8
 arm_do_ldrb(arm_cpu *cpu, u32 addr)
 {
-	return cpu->load8(addr);
+	return cpu->load8n(addr);
 }
 
 inline void
 arm_do_strb(arm_cpu *cpu, u32 addr, u8 value)
 {
-	cpu->store8(addr, value);
+	cpu->store8n(addr, value);
 }
 
 inline s8
 arm_do_ldrsb(arm_cpu *cpu, u32 addr)
 {
-	return cpu->load8(addr);
+	return cpu->load8n(addr);
 }
 
-#define TWICE_ARM_LDM_(start_, end_, arr_, off_)                              \
-	do {                                                                  \
-		for (int i = (start_); i <= (end_); i++) {                    \
-			if (register_list & BIT(i)) {                         \
-				(arr_)[i + (off_)] = cpu->load32(addr);       \
-				addr += 4;                                    \
-			}                                                     \
-		}                                                             \
-	} while (0)
+inline u32 *
+ldm_loop(u16& register_list, int count, u32 *src, u32 *dest)
+{
+	while (count--) {
+		if (register_list & 1) {
+			*dest = *src++;
+		}
+		register_list >>= 1;
+		dest++;
+	}
 
-#define TWICE_ARM_STM_(start_, end_, arr_, off_)                              \
-	do {                                                                  \
-		for (int i = (start_); i <= (end_); i++) {                    \
-			if (register_list & BIT(i)) {                         \
-				cpu->store32(addr, (arr_)[i + (off_)]);       \
-				addr += 4;                                    \
-			}                                                     \
-		}                                                             \
-	} while (0)
+	return src;
+}
+
+inline u32 *
+stm_loop(u16& register_list, int count, u32 *src, u32 *dest)
+{
+	while (count--) {
+		if (register_list & 1) {
+			*dest++ = *src;
+		}
+		register_list >>= 1;
+		src++;
+	}
+
+	return dest;
+}
+
+inline u32
+get_mul_cycles(u32 rs)
+{
+	int leading = std::countl_zero(rs);
+	if (leading < 8) {
+		return 4;
+	} else if (leading < 16) {
+		return 3;
+	} else if (leading < 24) {
+		return 2;
+	} else {
+		return 1;
+	}
+}
 
 #define SUB_FLAGS_(a_, b_)                                                    \
 	do {                                                                  \
