@@ -76,6 +76,11 @@ get_next_event_time(nds_ctx *nds)
 	}
 
 	if (target <= curr) {
+		for (int i = 0; i < scheduler::NUM_EVENTS; i++) {
+			if (sc.enabled[i] && sc.expiry[i] == target) {
+				LOG("%d\n", i);
+			}
+		}
 		throw twice_error("target timestamp <= curr");
 	}
 

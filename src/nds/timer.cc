@@ -98,7 +98,6 @@ run_timer(nds_ctx *nds, int cpuid, int timer_id)
 	if (cpuid == 0) {
 		cycles >>= 1;
 	}
-	cycles <<= t.shift;
 
 	while (cycles != 0) {
 		u32 elapsed = cycles;

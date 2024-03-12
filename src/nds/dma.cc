@@ -13,6 +13,7 @@ static void load_dmacnt_l(nds_ctx *nds, int cpuid, int ch);
 static void load_dad(nds_ctx *nds, int cpuid, int ch);
 template <int cpuid>
 static void run_dma(nds_ctx *nds);
+static u32 get_dma_cycles(nds_ctx *nds, int cpuid, int ch);
 static void dma9_dmacnt_h_write(nds_ctx *nds, int ch, u16 value);
 static void dma7_dmacnt_h_write(nds_ctx *nds, int ch, u16 value);
 static void set_addr_step_and_width(nds_ctx *nds, int cpuid, int ch);
@@ -189,11 +190,13 @@ run_dma(nds_ctx *nds)
 			bus_write<cpuid, u16>(nds, t.dad, value);
 		}
 
+		u32 x = get_dma_cycles(nds, cpuid, ch);
+		*dma.cycles += x;
+		dma.cycles_executed += x;
+
 		t.count += 1;
 		t.sad += t.sad_step;
 		t.dad += t.dad_step;
-		*dma.cycles += 2;
-		dma.cycles_executed += 2;
 	}
 
 	if (t.count == t.word_count) {
@@ -213,6 +216,44 @@ run_dma(nds_ctx *nds)
 		t.count = 0;
 		dma.active &= ~BIT(ch);
 	}
+}
+
+static u32
+get_dma_cycles(nds_ctx *nds, int cpuid, int ch)
+{
+	auto& dma = nds->dma[cpuid];
+	auto& t = dma.transfers[ch];
+
+	u32 src_page = t.sad >> BUS_TIMING_SHIFT;
+	u32 dst_page = t.sad >> BUS_TIMING_SHIFT;
+
+	auto& src_timings = cpuid == 0 ? nds->bus9_data_timings[src_page]
+	                               : nds->bus7_data_timings[src_page];
+	auto& dst_timings = cpuid == 0 ? nds->bus9_data_timings[dst_page]
+	                               : nds->bus7_data_timings[dst_page];
+
+	u32 idx = 0;
+	if (t.word_width == 2) {
+		idx |= 2;
+	}
+	if (t.count != 0) {
+		idx |= 1;
+	}
+
+	u32 src_region = t.sad >> 24;
+	u32 dst_region = t.dad >> 24;
+	if (src_region == 0x2 && dst_region == 0x2) {
+		idx &= ~1;
+	}
+
+	u8 src_cycles = src_timings[idx];
+	u8 dst_cycles = dst_timings[idx];
+
+	if (src_region == 0x2 || dst_region == 0x2) {
+		return std::max<u32>(src_cycles, dst_cycles);
+	}
+
+	return src_cycles + dst_cycles;
 }
 
 static void
