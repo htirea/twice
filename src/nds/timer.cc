@@ -94,13 +94,14 @@ run_timer(nds_ctx *nds, int cpuid, int timer_id)
 
 	timestamp current_time = nds->arm_cycles[cpuid];
 	timestamp cycles = current_time - t.last_update;
+	cycles <<= t.shift;
 	if (cpuid == 0) {
 		cycles >>= 1;
 	}
 
 	while (cycles != 0) {
 		u32 elapsed = cycles;
-		t.counter += cycles << t.shift;
+		t.counter += cycles;
 
 		if (t.counter >= (u32)0x10000 << 10) {
 			elapsed -= t.counter - ((u32)0x10000 << 10);
@@ -126,11 +127,12 @@ update_timer_counter(nds_ctx *nds, int cpuid, int timer_id)
 
 	timestamp current_time = nds->arm_cycles[cpuid];
 	timestamp cycles = current_time - t.last_update;
+	cycles <<= t.shift;
 	if (cpuid == 0) {
 		cycles >>= 1;
 	}
 
-	t.counter += cycles << t.shift;
+	t.counter += cycles;
 	t.last_update = current_time;
 }
 
@@ -168,10 +170,10 @@ static void
 schedule_timer_overflow(nds_ctx *nds, int cpuid, int timer_id)
 {
 	auto& t = nds->tmr[cpuid][timer_id];
-	timestamp dt = (((u32)0x10000 << 10) - t.counter) >> t.shift;
+	timestamp dt = (((u32)0x10000 << 10) - t.counter) << 1 >> t.shift;
 
 	schedule_event_after(nds, cpuid,
-			get_timer_update_event_id(cpuid, timer_id), dt << 1);
+			get_timer_update_event_id(cpuid, timer_id), dt);
 }
 
 } // namespace twice
