@@ -15,7 +15,7 @@ struct arm7_cpu final : arm_cpu {
 	{
 		u32 x = code_cycles + data_cycles + 1;
 		*cycles += x;
-		*cycles += x;
+		cycles_executed += x;
 	}
 
 	void add_str_cycles(u32 extra = 0) override
