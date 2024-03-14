@@ -7,26 +7,29 @@ namespace twice {
 
 struct nds_ctx;
 
+struct sound_fifo {
+	u32 buf[8]{};
+	u32 addr{};
+	u32 end_addr{};
+	u32 read_idx{};
+	u32 write_idx{};
+	u32 size{};
+};
+
 struct sound_channel {
 	u32 cnt{};
 	u32 sad{};
 	u32 tmr_reload{};
 	u32 pnt{};
 	u32 len{};
-	bool start{};
 	u32 tmr{};
 	s32 count{};
 	s32 loop_start{};
 	s32 loop_end{};
-
-	struct sound_fifo {
-		u32 buf[8]{};
-		u32 addr{};
-		u32 end_addr{};
-		u32 read_idx{};
-		u32 write_idx{};
-		u32 size{};
-	} fifo;
+	s32 sample{};
+	s32 prev_sample{};
+	sound_fifo fifo;
+	bool start{};
 
 	struct adpcm_state {
 		u32 header;
@@ -48,18 +51,16 @@ struct sound_channel {
 		adpcm_state adpcm;
 		psg_state psg;
 	};
-
-	s32 sample{};
-	s32 prev_sample{};
 };
 
 struct sound_capture_channel {
 	u8 cnt;
 	u32 dad;
 	u32 len;
-	u32 addr{};
 	u32 tmr_reload{};
 	u32 tmr{};
+	sound_fifo fifo;
+	bool start{};
 };
 
 u8 sound_read8(nds_ctx *nds, u8 addr);

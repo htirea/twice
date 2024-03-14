@@ -57,9 +57,12 @@ static void send_audio_samples(nds_ctx *nds, s16 left, s16 right);
 static void write_tmr_reload(nds_ctx *nds, int ch_id, u16 value);
 
 /* sound fifo */
-static u8 sound_fifo_read8(nds_ctx *nds, int ch_id);
-static u16 sound_fifo_read16(nds_ctx *nds, int ch_id);
+template <typename T>
+static T sound_fifo_read(nds_ctx *nds, int ch_id);
 static void sound_fifo_fill(nds_ctx *nds, int ch_id);
+template <typename T>
+static void sound_fifo_write(nds_ctx *nds, int ch_id, T value);
+static void sound_fifo_drain(nds_ctx *nds, int ch_id);
 
 u8
 sound_read8(nds_ctx *nds, u8 addr)
@@ -204,13 +207,8 @@ void
 sound_capture_write_cnt(nds_ctx *nds, int ch_id, u8 value)
 {
 	auto& ch = nds->sound_cap_ch[ch_id];
-	bool start = ~ch.cnt & value & 0x80;
-
+	ch.start = ~ch.cnt & value & 0x80;
 	ch.cnt = value & 0x8F;
-	/* TODO: start when ready? */
-	if (start) {
-		start_capture_channel(nds, ch_id);
-	}
 }
 
 void
@@ -387,17 +385,17 @@ static void
 start_channel(nds_ctx *nds, int ch_id)
 {
 	auto& ch = nds->sound_ch[ch_id];
-	u32 format = ch.cnt >> 29 & 3;
-
+	ch.start = false;
 	ch.tmr = ch.tmr_reload << 2;
 	ch.fifo.addr = ch.sad;
 	ch.fifo.end_addr = ch.sad + (ch.pnt << 2) + (ch.len << 2);
 	ch.fifo.read_idx = 0;
 	ch.fifo.write_idx = 0;
 	ch.fifo.size = 0;
-	ch.start = false;
 	ch.sample = 0;
 	ch.prev_sample = 0;
+
+	u32 format = ch.cnt >> 29 & 3;
 
 	switch (format) {
 	case 0:
@@ -522,7 +520,7 @@ step_pcm8_channel(nds_ctx *nds, int ch_id)
 {
 	auto& ch = nds->sound_ch[ch_id];
 
-	ch.sample = (s32)(s8)sound_fifo_read8(nds, ch_id) << 8;
+	ch.sample = (s32)(s8)sound_fifo_read<u8>(nds, ch_id) << 8;
 }
 
 static void
@@ -530,7 +528,7 @@ step_pcm16_channel(nds_ctx *nds, int ch_id)
 {
 	auto& ch = nds->sound_ch[ch_id];
 
-	ch.sample = (s16)sound_fifo_read16(nds, ch_id);
+	ch.sample = (s16)sound_fifo_read<u16>(nds, ch_id);
 }
 
 static void
@@ -540,7 +538,7 @@ step_adpcm_channel(nds_ctx *nds, int ch_id)
 	bool even = !(ch.count & 1);
 
 	if (even) {
-		ch.adpcm.data = sound_fifo_read8(nds, ch_id);
+		ch.adpcm.data = sound_fifo_read<u8>(nds, ch_id);
 	}
 
 	if (ch.count < 8) {
@@ -619,14 +617,23 @@ static void
 start_capture_channel(nds_ctx *nds, int ch_id)
 {
 	auto& ch = nds->sound_cap_ch[ch_id];
+	ch.start = false;
 	ch.tmr = ch.tmr_reload << 2;
-	ch.addr = ch.dad;
+	ch.fifo.addr = ch.dad;
+	ch.fifo.end_addr = ch.len == 0 ? ch.dad + 4 : ch.dad + (ch.len << 2);
+	ch.fifo.read_idx = 0;
+	ch.fifo.write_idx = 0;
+	ch.fifo.size = 0;
 }
 
 static void
 run_capture_channel(nds_ctx *nds, int ch_id, u32 cycles, s16 value)
 {
 	auto& ch = nds->sound_cap_ch[ch_id];
+
+	if (ch.start) {
+		start_capture_channel(nds, ch_id);
+	}
 
 	while (cycles != 0) {
 		u32 elapsed = cycles;
@@ -650,23 +657,19 @@ step_capture_channel(nds_ctx *nds, int ch_id, s16 value)
 	bool one_shot = ch.cnt & BIT(2);
 
 	if (pcm8) {
-		bus7_write<u8>(nds, ch.addr, value >> 8);
-		ch.addr += 1;
+		sound_fifo_write<u8>(nds, ch_id, value >> 8);
 	} else {
-		bus7_write<u16>(nds, ch.addr, value);
-		ch.addr += 2;
+		sound_fifo_write<u16>(nds, ch_id, value);
 	}
 
-	u32 len_bytes = ch.len * 4;
-	if (len_bytes == 0) {
-		len_bytes = 4;
-	}
-
-	if (ch.addr == ch.dad + len_bytes) {
+	if (ch.fifo.addr == ch.fifo.end_addr) {
 		if (one_shot) {
 			ch.cnt &= ~BIT(7);
 		} else {
-			ch.addr = ch.dad;
+			ch.fifo.addr = ch.dad;
+			ch.fifo.read_idx = 0;
+			ch.fifo.write_idx = 0;
+			ch.fifo.size = 0;
 		}
 	}
 }
@@ -691,36 +694,16 @@ write_tmr_reload(nds_ctx *nds, int ch_id, u16 value)
 	}
 }
 
-static u8
-sound_fifo_read8(nds_ctx *nds, int ch_id)
+template <typename T>
+static T
+sound_fifo_read(nds_ctx *nds, int ch_id)
 {
 	auto& ch = nds->sound_ch[ch_id];
 	auto& fifo = ch.fifo;
 
-	u8 data = fifo.buf[fifo.read_idx >> 2 & 7] >>
-	          ((fifo.read_idx & 3) << 3);
-	fifo.read_idx += 1;
-
-	if ((fifo.read_idx & 0x3) == 0) {
-		fifo.size--;
-
-		if (fifo.size < 4) {
-			sound_fifo_fill(nds, ch_id);
-		}
-	}
-
-	return data;
-}
-
-static u16
-sound_fifo_read16(nds_ctx *nds, int ch_id)
-{
-	auto& ch = nds->sound_ch[ch_id];
-	auto& fifo = ch.fifo;
-
-	u16 data = fifo.buf[fifo.read_idx >> 2 & 7] >>
-	           ((fifo.read_idx & 3) << 3);
-	fifo.read_idx += 2;
+	T data = fifo.buf[fifo.read_idx >> 2 & 7] >>
+	         ((fifo.read_idx & 3) << 3);
+	fifo.read_idx += sizeof(T);
 
 	if ((fifo.read_idx & 0x3) == 0) {
 		fifo.size--;
@@ -746,6 +729,46 @@ sound_fifo_fill(nds_ctx *nds, int ch_id)
 		fifo.addr += 4;
 		fifo.write_idx += 4;
 		fifo.size++;
+	}
+}
+
+template <typename T>
+static void
+sound_fifo_write(nds_ctx *nds, int ch_id, T value)
+{
+	auto& ch = nds->sound_cap_ch[ch_id];
+	auto& fifo = ch.fifo;
+
+	if ((fifo.write_idx & 3) == 0) {
+		fifo.buf[fifo.write_idx >> 2 & 3] = 0;
+	}
+
+	fifo.buf[fifo.write_idx >> 2 & 3] |= (u32)value
+	                                     << ((fifo.write_idx & 3) << 3);
+	fifo.write_idx += sizeof(T);
+
+	if ((fifo.write_idx & 3) == 0) {
+		fifo.size++;
+
+		if (fifo.size == 4) {
+			sound_fifo_drain(nds, ch_id);
+		}
+	}
+}
+
+static void
+sound_fifo_drain(nds_ctx *nds, int ch_id)
+{
+	auto& ch = nds->sound_cap_ch[ch_id];
+	auto& fifo = ch.fifo;
+
+	u32 num_words = std::min<u32>(4, (fifo.end_addr - fifo.addr) >> 2);
+	while (num_words--) {
+		bus7_write<u32>(nds, fifo.addr,
+				fifo.buf[fifo.read_idx >> 2 & 3]);
+		fifo.addr += 4;
+		fifo.read_idx += 4;
+		fifo.size--;
 	}
 }
 
