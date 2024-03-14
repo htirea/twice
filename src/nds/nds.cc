@@ -70,8 +70,8 @@ create_nds_ctx(file_view arm9_bios, file_view arm7_bios, file_view firmware,
 	vramcnt_g_write(nds, 0);
 	vramcnt_h_write(nds, 0);
 	vramcnt_i_write(nds, 0);
-	schedule_event_after(nds, scheduler::HBLANK_START, 3072);
-	schedule_event_after(nds, scheduler::HBLANK_END, 4260);
+	schedule_event(nds, scheduler::HBLANK_START, 3072);
+	schedule_event(nds, scheduler::HBLANK_END, 4260);
 	schedule_32k_tick_event(nds, 0);
 
 	return ctx;
@@ -175,7 +175,7 @@ event_execution_target_reached(nds_ctx *nds, intptr_t, timestamp)
 }
 
 void
-event_hblank_start(nds_ctx *nds, intptr_t, timestamp late)
+event_hblank_start(nds_ctx *nds, intptr_t, timestamp)
 {
 	nds->dispstat[0] |= BIT(1);
 	nds->dispstat[1] |= BIT(1);
@@ -190,11 +190,11 @@ event_hblank_start(nds_ctx *nds, intptr_t, timestamp late)
 
 	dma_on_hblank_start(nds);
 
-	schedule_event_after(nds, scheduler::HBLANK_START, 4260 - late);
+	reschedule_event_after(nds, scheduler::HBLANK_START, 4260);
 }
 
 void
-event_hblank_end(nds_ctx *nds, intptr_t, timestamp late)
+event_hblank_end(nds_ctx *nds, intptr_t, timestamp)
 {
 	nds->vcount += 1;
 	if (nds->vcount == 263) {
@@ -218,7 +218,7 @@ event_hblank_end(nds_ctx *nds, intptr_t, timestamp late)
 		nds->dispstat[1] &= ~BIT(0);
 	}
 
-	schedule_event_after(nds, scheduler::HBLANK_END, 4260 - late);
+	reschedule_event_after(nds, scheduler::HBLANK_END, 4260);
 }
 
 void
@@ -351,15 +351,15 @@ nds_on_vblank(nds_ctx *nds)
 }
 
 static void
-schedule_32k_tick_event(nds_ctx *nds, timestamp late)
+schedule_32k_tick_event(nds_ctx *nds, timestamp)
 {
 	u32 numer = NDS_ARM9_CLK_RATE + nds->timer_32k_last_err;
 	u32 denom = 32768;
 	nds->timer_32k_last_period = numer / denom;
 	nds->timer_32k_last_err = numer % denom;
 
-	schedule_event_after(nds, scheduler::TICK_32KHZ,
-			nds->timer_32k_last_period - late);
+	reschedule_event_after(nds, scheduler::TICK_32KHZ,
+			nds->timer_32k_last_period);
 }
 
 } // namespace twice

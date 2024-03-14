@@ -49,7 +49,7 @@ struct scheduler {
 void scheduler_init(nds_ctx *nds);
 timestamp get_next_event_time(nds_ctx *nds);
 void schedule_event(nds_ctx *nds, int id, timestamp t);
-void schedule_event_after(nds_ctx *nds, int id, timestamp dt);
+void reschedule_event_after(nds_ctx *nds, int id, timestamp dt);
 void schedule_event_after(nds_ctx *nds, int cpuid, int id, timestamp dt);
 void cancel_event(nds_ctx *nds, int id);
 void run_cpu_events(nds_ctx *nds, int cpuid);

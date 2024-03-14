@@ -96,7 +96,7 @@ schedule_event(nds_ctx *nds, int id, timestamp t)
 }
 
 void
-schedule_event_after(nds_ctx *nds, int id, timestamp dt)
+reschedule_event_after(nds_ctx *nds, int id, timestamp dt)
 {
 	auto& sc = nds->sc;
 	sc.expiry[id] += dt;
