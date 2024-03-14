@@ -46,11 +46,20 @@ static void sample_channel(nds_ctx *, int ch_id, s64 *l_out, s64 *r_out);
 static void start_channel(nds_ctx *nds, int ch_id);
 static void run_channel(nds_ctx *nds, int ch_id, u32 cycles);
 static void step_channel(nds_ctx *nds, int ch_id);
+static void step_pcm8_channel(nds_ctx *nds, int ch_id);
+static void step_pcm16_channel(nds_ctx *nds, int ch_id);
+static void step_adpcm_channel(nds_ctx *nds, int ch_id);
+static void step_psg_channel(nds_ctx *nds, int ch_id);
 static void start_capture_channel(nds_ctx *nds, int ch_id);
 static void run_capture_channel(nds_ctx *, int ch_id, u32 cycles, s16 sample);
 static void step_capture_channel(nds_ctx *nds, int ch_id, s16 sample);
 static void send_audio_samples(nds_ctx *nds, s16 left, s16 right);
 static void write_tmr_reload(nds_ctx *nds, int ch_id, u16 value);
+
+/* sound fifo */
+static u8 sound_fifo_read8(nds_ctx *nds, int ch_id);
+static u16 sound_fifo_read16(nds_ctx *nds, int ch_id);
+static void sound_fifo_fill(nds_ctx *nds, int ch_id);
 
 u8
 sound_read8(nds_ctx *nds, u8 addr)
@@ -306,8 +315,8 @@ sample_audio_channels(
 		if (!enabled)
 			continue;
 
-		sample_channel(nds, ch_id, &ch_l[ch_id], &ch_r[ch_id]);
 		run_channel(nds, ch_id, nds->timer_32k_last_period);
+		sample_channel(nds, ch_id, &ch_l[ch_id], &ch_r[ch_id]);
 
 		if (ch_id == 1 && !ch1_to_mixer)
 			continue;
@@ -353,10 +362,6 @@ sample_channel(nds_ctx *nds, int ch_id, s64 *l_out, s64 *r_out)
 	auto& ch = nds->sound_ch[ch_id];
 	u32 format = ch.cnt >> 29 & 3;
 
-	if (ch.start) {
-		start_channel(nds, ch_id);
-	}
-
 	/* sample is in 16.0 fixed point */
 	s64 sample = ch.sample;
 
@@ -382,21 +387,41 @@ static void
 start_channel(nds_ctx *nds, int ch_id)
 {
 	auto& ch = nds->sound_ch[ch_id];
+	u32 format = ch.cnt >> 29 & 3;
+
 	ch.tmr = ch.tmr_reload << 2;
-	ch.addr = ch.sad;
+	ch.fifo.addr = ch.sad;
+	ch.fifo.end_addr = ch.sad + (ch.pnt << 2) + (ch.len << 2);
+	ch.fifo.read_idx = 0;
+	ch.fifo.write_idx = 0;
+	ch.fifo.size = 0;
 	ch.start = false;
 	ch.sample = 0;
 	ch.prev_sample = 0;
 
-	switch (ch.cnt >> 29 & 3) {
+	switch (format) {
+	case 0:
+		ch.count = -3;
+		ch.loop_start = ch.pnt << 2;
+		ch.loop_end = ch.loop_start + (ch.len << 2);
+		break;
+	case 1:
+		ch.count = -3;
+		ch.loop_start = ch.pnt << 1;
+		ch.loop_end = ch.loop_start + (ch.len << 1);
+		break;
 	case 2:
-		ch.adpcm.header = bus7_read<u32>(nds, ch.addr);
-		ch.adpcm.value = (s16)ch.adpcm.header;
-		ch.adpcm.index = ch.adpcm.header >> 16 & 0x7F;
-		ch.adpcm.first = true;
-		ch.addr += 4;
+		ch.count = -3;
+		ch.loop_start = ch.pnt << 3;
+		ch.loop_end = ch.loop_start + (ch.len << 3);
+
+		ch.adpcm.header = 0;
 		break;
 	case 3:
+		ch.count = -1;
+		ch.loop_start = -2;
+		ch.loop_end = -2;
+
 		if (8 <= ch_id && ch_id <= 13) {
 			ch.psg.mode = PSG_WAVE;
 			ch.psg.wave_pos = 0;
@@ -408,12 +433,21 @@ start_channel(nds_ctx *nds, int ch_id)
 		}
 		ch.psg.value = 0;
 	}
+
+	if (format != 3) {
+		sound_fifo_fill(nds, ch_id);
+		sound_fifo_fill(nds, ch_id);
+	}
 }
 
 static void
 run_channel(nds_ctx *nds, int ch_id, u32 cycles)
 {
 	auto& ch = nds->sound_ch[ch_id];
+
+	if (ch.start) {
+		start_channel(nds, ch_id);
+	}
 
 	while (cycles != 0) {
 		u32 elapsed = cycles;
@@ -435,115 +469,150 @@ step_channel(nds_ctx *nds, int ch_id)
 	auto& ch = nds->sound_ch[ch_id];
 	u32 format = ch.cnt >> 29 & 3;
 
-	switch (format) {
-	case 0:
-		ch.addr += 1;
-		break;
-	case 1:
-		ch.addr += 2;
-		break;
-	case 2:
-	{
-		if (ch.adpcm.first && ch.addr == ch.sad + ch.pnt * 4) {
-			ch.adpcm.value_s = ch.adpcm.value;
-			ch.adpcm.index_s = ch.adpcm.index;
-		}
-
-		if (ch.adpcm.first) {
-			ch.adpcm.data = bus7_read<u8>(nds, ch.addr);
-		} else {
-			ch.adpcm.data >>= 4;
-			ch.addr += 1;
-		}
-
-		s32 diff = adpcm_table[ch.adpcm.index] >> 3;
-		if (ch.adpcm.data & 1)
-			diff += adpcm_table[ch.adpcm.index] >> 2;
-		if (ch.adpcm.data & 2)
-			diff += adpcm_table[ch.adpcm.index] >> 1;
-		if (ch.adpcm.data & 4)
-			diff += adpcm_table[ch.adpcm.index];
-
-		if ((ch.adpcm.data & 8) == 0) {
-			ch.adpcm.value = std::min(
-					ch.adpcm.value + diff, 0x7FFF);
-		} else {
-			ch.adpcm.value = std::max(
-					ch.adpcm.value - diff, -0x7FFF);
-		}
-
-		ch.adpcm.index += adpcm_index_table[ch.adpcm.data & 7];
-		ch.adpcm.index = std::clamp(ch.adpcm.index, 0, 88);
-		ch.adpcm.first ^= 1;
-		break;
-	}
-	case 3:
-	{
-		switch (ch.psg.mode) {
-		case PSG_WAVE:
-		{
-			u32 duty = ch.cnt >> 24 & 7;
-			u32 idx = ch.psg.wave_pos++ & 7;
-			ch.psg.value = psg_wave_duty_table[duty][idx]
-			                               ? 0x7FFF
-			                               : -0x7FFF;
-			break;
-		}
-		case PSG_NOISE:
-		{
-			bool carry = ch.psg.lfsr & 1;
-			ch.psg.lfsr >>= 1;
-			if (carry) {
-				ch.psg.lfsr ^= 0x6000;
-				ch.psg.value = -0x7FFF;
-			} else {
-				ch.psg.value = 0x7FFF;
-			}
-		}
-		}
-	}
-	}
-
-	if (ch.addr == ch.sad + 4 * ch.pnt + 4 * ch.len) {
-		switch (ch.cnt >> 27 & 3) {
-		case 1:
-		case 3:
-			ch.addr = ch.sad + 4 * ch.pnt;
-			switch (format) {
-			case 2:
-				ch.adpcm.value = ch.adpcm.value_s;
-				ch.adpcm.index = ch.adpcm.index_s;
-				ch.adpcm.first = true;
-				break;
-			case 3:
-				switch (ch.psg.mode) {
-				case PSG_WAVE:
-					ch.psg.wave_pos = 0;
-					break;
-				case PSG_NOISE:
-					ch.psg.lfsr = 0x7FFF;
-				}
-			}
-			break;
-		case 2:
-			ch.cnt &= ~BIT(31);
-		}
+	if (ch.count < 0) {
+		ch.count++;
+		return;
 	}
 
 	ch.prev_sample = ch.sample;
+
 	switch (format) {
 	case 0:
-		ch.sample = (s32)(s8)bus7_read<u8>(nds, ch.addr) << 8;
+		step_pcm8_channel(nds, ch_id);
 		break;
 	case 1:
-		ch.sample = (s16)bus7_read<u16>(nds, ch.addr);
+		step_pcm16_channel(nds, ch_id);
 		break;
 	case 2:
-		ch.sample = ch.adpcm.value;
+		step_adpcm_channel(nds, ch_id);
 		break;
 	case 3:
-		ch.sample = ch.psg.value;
+		step_psg_channel(nds, ch_id);
+		return;
 	}
+
+	if (++ch.count == ch.loop_end) {
+		switch (ch.cnt >> 27 & 3) {
+		case 1:
+		case 3:
+			ch.count = ch.loop_start;
+			ch.fifo.addr = ch.sad + 4 * ch.pnt;
+			ch.fifo.read_idx = 0;
+			ch.fifo.write_idx = 0;
+			ch.fifo.size = 0;
+			sound_fifo_fill(nds, ch_id);
+			sound_fifo_fill(nds, ch_id);
+
+			if (format == 2) {
+				ch.adpcm.value = ch.adpcm.value_s;
+				ch.adpcm.index = ch.adpcm.index_s;
+			}
+
+			break;
+		case 2:
+			ch.cnt &= ~BIT(31);
+			ch.prev_sample = 0;
+			ch.sample = 0;
+		}
+	}
+}
+
+static void
+step_pcm8_channel(nds_ctx *nds, int ch_id)
+{
+	auto& ch = nds->sound_ch[ch_id];
+
+	ch.sample = (s32)(s8)sound_fifo_read8(nds, ch_id) << 8;
+}
+
+static void
+step_pcm16_channel(nds_ctx *nds, int ch_id)
+{
+	auto& ch = nds->sound_ch[ch_id];
+
+	ch.sample = (s16)sound_fifo_read16(nds, ch_id);
+}
+
+static void
+step_adpcm_channel(nds_ctx *nds, int ch_id)
+{
+	auto& ch = nds->sound_ch[ch_id];
+	bool even = !(ch.count & 1);
+
+	if (even) {
+		ch.adpcm.data = sound_fifo_read8(nds, ch_id);
+	}
+
+	if (ch.count < 8) {
+		if (even) {
+			ch.adpcm.header |= (u32)ch.adpcm.data
+			                   << (ch.count << 2);
+		}
+		return;
+	}
+
+	if (ch.count == 8) {
+		ch.adpcm.value = (s16)ch.adpcm.header;
+		ch.adpcm.index = ch.adpcm.header >> 16 & 0x7F;
+	}
+
+	if (ch.count == ch.loop_start) {
+		ch.adpcm.value_s = ch.adpcm.value;
+		ch.adpcm.index_s = ch.adpcm.index;
+	}
+
+	ch.sample = ch.adpcm.value;
+
+	if (!even) {
+		ch.adpcm.data >>= 4;
+	}
+
+	s32 diff = adpcm_table[ch.adpcm.index] >> 3;
+	if (ch.adpcm.data & 1)
+		diff += adpcm_table[ch.adpcm.index] >> 2;
+	if (ch.adpcm.data & 2)
+		diff += adpcm_table[ch.adpcm.index] >> 1;
+	if (ch.adpcm.data & 4)
+		diff += adpcm_table[ch.adpcm.index];
+
+	if ((ch.adpcm.data & 8) == 0) {
+		ch.adpcm.value = std::min(ch.adpcm.value + diff, 0x7FFF);
+	} else {
+		ch.adpcm.value = std::max(ch.adpcm.value - diff, -0x7FFF);
+	}
+
+	ch.adpcm.index += adpcm_index_table[ch.adpcm.data & 7];
+	ch.adpcm.index = std::clamp(ch.adpcm.index, 0, 88);
+}
+
+static void
+step_psg_channel(nds_ctx *nds, int ch_id)
+{
+	auto& ch = nds->sound_ch[ch_id];
+
+	switch (ch.psg.mode) {
+	case PSG_WAVE:
+	{
+		u32 duty = ch.cnt >> 24 & 7;
+		u32 idx = ch.psg.wave_pos++ & 7;
+		ch.psg.value = psg_wave_duty_table[duty][idx] ? 0x7FFF
+		                                              : -0x7FFF;
+		break;
+	}
+	case PSG_NOISE:
+	{
+		bool carry = ch.psg.lfsr & 1;
+		ch.psg.lfsr >>= 1;
+		if (carry) {
+			ch.psg.lfsr ^= 0x6000;
+			ch.psg.value = -0x7FFF;
+		} else {
+			ch.psg.value = 0x7FFF;
+		}
+	}
+	}
+
+	ch.sample = ch.psg.value;
 }
 
 static void
@@ -619,6 +688,64 @@ write_tmr_reload(nds_ctx *nds, int ch_id, u16 value)
 	nds->sound_ch[ch_id].tmr_reload = value;
 	if (ch_id == 1 || ch_id == 3) {
 		nds->sound_cap_ch[ch_id >> 1].tmr_reload = value;
+	}
+}
+
+static u8
+sound_fifo_read8(nds_ctx *nds, int ch_id)
+{
+	auto& ch = nds->sound_ch[ch_id];
+	auto& fifo = ch.fifo;
+
+	u8 data = fifo.buf[fifo.read_idx >> 2 & 7] >>
+	          ((fifo.read_idx & 3) << 3);
+	fifo.read_idx += 1;
+
+	if ((fifo.read_idx & 0x3) == 0) {
+		fifo.size--;
+
+		if (fifo.size < 4) {
+			sound_fifo_fill(nds, ch_id);
+		}
+	}
+
+	return data;
+}
+
+static u16
+sound_fifo_read16(nds_ctx *nds, int ch_id)
+{
+	auto& ch = nds->sound_ch[ch_id];
+	auto& fifo = ch.fifo;
+
+	u16 data = fifo.buf[fifo.read_idx >> 2 & 7] >>
+	           ((fifo.read_idx & 3) << 3);
+	fifo.read_idx += 2;
+
+	if ((fifo.read_idx & 0x3) == 0) {
+		fifo.size--;
+
+		if (fifo.size < 4) {
+			sound_fifo_fill(nds, ch_id);
+		}
+	}
+
+	return data;
+}
+
+static void
+sound_fifo_fill(nds_ctx *nds, int ch_id)
+{
+	auto& ch = nds->sound_ch[ch_id];
+	auto& fifo = ch.fifo;
+
+	u32 num_words = std::min<u32>(4, (fifo.end_addr - fifo.addr) >> 2);
+	while (num_words--) {
+		fifo.buf[fifo.write_idx >> 2 & 7] =
+				bus7_read<u32>(nds, fifo.addr);
+		fifo.addr += 4;
+		fifo.write_idx += 4;
+		fifo.size++;
 	}
 }
 

@@ -15,11 +15,21 @@ struct sound_channel {
 	u32 len{};
 	bool start{};
 	u32 tmr{};
-	u32 addr{};
+	s32 count{};
+	s32 loop_start{};
+	s32 loop_end{};
+
+	struct sound_fifo {
+		u32 buf[8]{};
+		u32 addr{};
+		u32 end_addr{};
+		u32 read_idx{};
+		u32 write_idx{};
+		u32 size{};
+	} fifo;
 
 	struct adpcm_state {
 		u32 header;
-		bool first;
 		s32 value;
 		s32 index;
 		s32 value_s;
