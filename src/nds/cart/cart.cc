@@ -245,9 +245,15 @@ start_cartridge_command(nds_ctx *nds, int cpuid)
 		}
 	}
 
+	u32 count = 8;
+	count += nds->romctrl & 0x1FFF;
+	if (t.length >= 0x200) {
+		count += nds->romctrl >> 16 & 0x3F;
+	}
+
 	u32 cycles_per_byte = (nds->romctrl & BIT(27) ? 8 : 5) << 1;
 	schedule_event_after(nds, cpuid, scheduler::CART_TRANSFER,
-			cycles_per_byte * 8);
+			cycles_per_byte * count);
 	nds->romctrl |= BIT(31);
 	nds->romctrl &= ~BIT(23);
 }
