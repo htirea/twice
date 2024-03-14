@@ -108,7 +108,6 @@ bus9_read_slow(nds_ctx *nds, u32 addr)
 				addr >> 24);
 		return 0;
 	default:
-		LOG("undefined nds9 read at %08X\n", addr);
 		return 0;
 	}
 }
