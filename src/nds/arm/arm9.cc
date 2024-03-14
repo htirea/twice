@@ -229,12 +229,12 @@ load_store_multiple(arm9_cpu *cpu, u32 addr, int count, u32 *values)
 		if (Table == arm9_cpu::LOAD) {
 			values = load_multiple_from_page(
 					cpu, start_page, addr, count1, values);
-			load_multiple_from_page(cpu, end_page, 0,
+			load_multiple_from_page(cpu, end_page, end_addr,
 					count - count1, values);
 		} else {
 			values = store_multiple_to_page(
 					cpu, start_page, addr, count1, values);
-			store_multiple_to_page(cpu, end_page, 0,
+			store_multiple_to_page(cpu, end_page, end_addr,
 					count - count1, values);
 		}
 
