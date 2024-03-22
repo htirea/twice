@@ -70,7 +70,7 @@ static void draw_opaque_pixel(rendering_engine *re, poly_render_data& r_data,
 		color4 color, u32 x, u32 y, s32 z, bool layer, u32 attr);
 static void draw_translucent_pixel(rendering_engine *re,
 		poly_render_data& r_data, color4 color, u32 x, u32 y, s32 z,
-		bool layer, u32 attr);
+		bool layer, bool shadow, u32 attr);
 
 /* effects */
 static void apply_effects_scanline(rendering_engine *re, s32 y);
@@ -745,7 +745,7 @@ render_shadow_mask_polygon_pixel(rendering_engine *re,
 	bool wbuffering = r_data.p->p->wbuffering;
 
 	if (!depth_test(re, z, x, y, 0, attr, wbuffering)) {
-		re->stencil_buf[y][x] |= 1;
+		re->stencil_buf[y][x] = 1;
 	}
 
 	if (re->attr_buf[0][y][x] & 1) {
@@ -780,17 +780,11 @@ render_normal_polygon_pixel(rendering_engine *re, poly_render_data& r_data,
 			return;
 
 		layer = 1;
-		if (!depth_test(re, z, x, y, 1, attr, p->p->wbuffering))
+
+		if (shadow && !(re->stencil_buf[y][x] & 2))
 			return;
-	}
 
-	if (shadow) {
-		u32 attr_dest = re->attr_buf[layer][y][x];
-		if (!(attr_dest & BIT(1))) {
-			attr_dest <<= 8;
-		}
-
-		if (attr >> 24 == attr_dest >> 24)
+		if (!depth_test(re, z, x, y, 1, attr, p->p->wbuffering))
 			return;
 	}
 
@@ -801,22 +795,27 @@ render_normal_polygon_pixel(rendering_engine *re, poly_render_data& r_data,
 	if (px_color.a <= r_data.alpha_test_ref)
 		return;
 
-	if (layer == 0) {
-		re->color_buf[1][y][x] = re->color_buf[0][y][x];
-		re->depth_buf[1][y][x] = re->depth_buf[0][y][x];
-		re->attr_buf[1][y][x] = re->attr_buf[0][y][x];
-	}
-
 	if (px_color.a == 31) {
 		if ((attr & 1) && r_data.antialiasing && layer == 0) {
 			s32 cov = ilerp(r_data.cov_y0, r_data.cov_y1,
 					r_data.cov_x0, r_data.cov_x1, x);
 			attr = (attr & ~0x1F00) | (cov >> 5 << 8);
 		}
+
+		if (layer == 0) {
+			re->color_buf[1][y][x] = re->color_buf[0][y][x];
+			re->depth_buf[1][y][x] = re->depth_buf[0][y][x];
+			re->attr_buf[1][y][x] = re->attr_buf[0][y][x];
+		}
+
 		draw_opaque_pixel(re, r_data, px_color, x, y, z, layer, attr);
 	} else {
-		draw_translucent_pixel(
-				re, r_data, px_color, x, y, z, layer, attr);
+		draw_translucent_pixel(re, r_data, px_color, x, y, z, layer,
+				shadow, attr);
+		if (layer == 0) {
+			draw_translucent_pixel(re, r_data, px_color, x, y, z,
+					1, shadow, attr);
+		}
 	}
 }
 
@@ -1144,11 +1143,15 @@ draw_opaque_pixel(rendering_engine *re, poly_render_data&, color4 color, u32 x,
 
 static void
 draw_translucent_pixel(rendering_engine *re, poly_render_data& r_data,
-		color4 color, u32 x, u32 y, s32 z, bool layer, u32 attr)
+		color4 color, u32 x, u32 y, s32 z, bool layer, bool shadow,
+		u32 attr)
 {
 	u32 attr_dest = re->attr_buf[layer][y][x];
 	if (!(attr_dest & BIT(1))) {
 		if (attr >> 24 == attr_dest << 8 >> 24)
+			return;
+	} else if (shadow) {
+		if (attr >> 24 == attr_dest >> 24)
 			return;
 	}
 
