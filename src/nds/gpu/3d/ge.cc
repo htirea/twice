@@ -1146,12 +1146,10 @@ add_vertex(geometry_engine *ge)
 	mtx_mult_vec(v->pos, ge->clip_mtx,
 			std::array<s32, 4>{ ge->vx, ge->vy, ge->vz, 1 << 12 });
 
-	v->attr[0] = ((s32)ge->vtx_color[0] << 1) + (ge->vtx_color[0] != 0);
-	v->attr[1] = ((s32)ge->vtx_color[1] << 1) + (ge->vtx_color[1] != 0);
-	v->attr[2] = ((s32)ge->vtx_color[2] << 1) + (ge->vtx_color[2] != 0);
-	v->attr[0] <<= 3;
-	v->attr[1] <<= 3;
-	v->attr[2] <<= 3;
+	for (u32 i = 0; i < 3; i++) {
+		s32 c = ge->vtx_color[i];
+		v->attr[i] = (c << 4) + (c ? 0xF : 0);
+	}
 
 	if (ge->teximage_param >> 30 == 3) {
 		texcoord_transform_3(ge, ge->vx, ge->vy, ge->vz);
