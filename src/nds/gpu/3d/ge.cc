@@ -769,12 +769,17 @@ cmd_swap_buffers(geometry_engine *ge)
 static void
 cmd_viewport(geometry_engine *ge)
 {
-	ge->viewport_x[0] = ge->cmd_params[0];
-	ge->viewport_y[0] = ge->cmd_params[0] >> 8;
-	ge->viewport_x[1] = ge->cmd_params[0] >> 16;
-	ge->viewport_y[1] = ge->cmd_params[0] >> 24;
-	ge->viewport_w = ge->viewport_x[1] - ge->viewport_x[0] + 1;
-	ge->viewport_h = ge->viewport_y[1] - ge->viewport_y[0] + 1;
+	u8 x0 = ge->cmd_params[0];
+	u8 y0 = ge->cmd_params[0] >> 8;
+	u8 x1 = ge->cmd_params[0] >> 16;
+	u8 y1 = ge->cmd_params[0] >> 24;
+
+	ge->viewport_x[0] = x0;
+	ge->viewport_y[0] = 191 - y1;
+	ge->viewport_x[1] = x1;
+	ge->viewport_y[1] = 191 - y0;
+	ge->viewport_w = (ge->viewport_x[1] - ge->viewport_x[0] + 1) & 0x1FF;
+	ge->viewport_h = (ge->viewport_y[1] - ge->viewport_y[0] + 1) & 0xFF;
 }
 
 static void
