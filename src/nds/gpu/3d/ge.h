@@ -61,6 +61,7 @@ struct geometry_engine {
 	std::array<s32, 4> pos_test_result{};
 	std::array<s32, 3> vec_test_result{};
 
+	bool enabled{};
 	vertex_ram *vtx_ram{};
 	polygon_ram *poly_ram{};
 	gpu_3d_engine *gpu{};

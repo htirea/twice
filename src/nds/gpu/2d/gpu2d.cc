@@ -103,7 +103,9 @@ gpu_2d_read32(gpu_2d_engine *gpu, u8 offset)
 void
 gpu_2d_write8(gpu_2d_engine *gpu, u8 offset, u8 value)
 {
-	/* TODO: check if disabled */
+	if (!gpu->enabled) {
+		return;
+	}
 
 	switch (offset) {
 	case 0x40:

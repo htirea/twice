@@ -60,6 +60,8 @@ powcnt1_write(nds_ctx *nds, u16 value)
 	/* TODO: check what bit 0 does */
 	nds->gpu2d[0].enabled = value & BIT(1);
 	nds->gpu2d[1].enabled = value & BIT(9);
+	nds->gpu3d.re.enabled = value & BIT(2);
+	nds->gpu3d.ge.enabled = value & BIT(3);
 
 	/* TODO: disable writes / reads if disabled */
 

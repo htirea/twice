@@ -99,6 +99,9 @@ static void interp_update_attrs(
 void
 re_render_frame(rendering_engine *re)
 {
+	if (!re->enabled)
+		return;
+
 	setup_fast_texture_vram(re->gpu->nds);
 	clear_buffers(re);
 	setup_polygons(re);

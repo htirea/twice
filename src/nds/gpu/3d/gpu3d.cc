@@ -140,6 +140,14 @@ gpu_3d_read32(gpu_3d_engine *gpu, u16 offset)
 void
 gpu_3d_write8(gpu_3d_engine *gpu, u16 offset, u8 value)
 {
+	if (!gpu->re.enabled && 0x320 <= offset && offset < 0x400) {
+		return;
+	}
+
+	if (!gpu->ge.enabled && 0x400 <= offset && offset < 0x700) {
+		return;
+	}
+
 	switch (offset) {
 	case 0x603:
 		gxstat_write_byte_3(gpu, value);
@@ -152,6 +160,14 @@ gpu_3d_write8(gpu_3d_engine *gpu, u16 offset, u8 value)
 void
 gpu_3d_write16(gpu_3d_engine *gpu, u16 offset, u16 value)
 {
+	if (!gpu->re.enabled && 0x320 <= offset && offset < 0x400) {
+		return;
+	}
+
+	if (!gpu->ge.enabled && 0x400 <= offset && offset < 0x700) {
+		return;
+	}
+
 	if (0x330 <= offset && offset < 0x340) {
 		gpu->re.r_s._edge_color[offset >> 1 & 7] = value;
 		return;
@@ -187,6 +203,14 @@ gpu_3d_write16(gpu_3d_engine *gpu, u16 offset, u16 value)
 void
 gpu_3d_write32(gpu_3d_engine *gpu, u16 offset, u32 value)
 {
+	if (!gpu->re.enabled && 0x320 <= offset && offset < 0x400) {
+		return;
+	}
+
+	if (!gpu->ge.enabled && 0x400 <= offset && offset < 0x700) {
+		return;
+	}
+
 	if (0x330 <= offset && offset < 0x340) {
 		u32 idx = offset >> 1 & 7;
 		gpu->re.r_s._edge_color[idx] = value;
@@ -242,20 +266,30 @@ gpu_3d_write32(gpu_3d_engine *gpu, u16 offset, u32 value)
 void
 gpu3d_on_vblank(gpu_3d_engine *gpu)
 {
+	if (!gpu->ge.enabled)
+		return;
+
+	bool render_frame = false;
+
 	if (gpu->halted) {
 		execute_swap_buffers(gpu);
-		gpu->render_frame = true;
+		render_frame = true;
 	}
 
-	if (gpu->re.manual_sort != (bool)(gpu->ge.swap_bits & 1) ||
-			gpu->re.r != gpu->re.r_s ||
-			gpu->nds->vram.texture_changed ||
-			gpu->nds->vram.texture_palette_changed) {
-		gpu->render_frame = true;
+	if (gpu->re.enabled) {
+		if (gpu->re.manual_sort != (bool)(gpu->ge.swap_bits & 1) ||
+				gpu->re.r != gpu->re.r_s ||
+				gpu->nds->vram.texture_changed ||
+				gpu->nds->vram.texture_palette_changed) {
+			render_frame = true;
+		}
+
+		gpu->re.manual_sort = gpu->ge.swap_bits & 1;
+		gpu->re.r = gpu->re.r_s;
+
+		gpu->render_frame = render_frame;
 	}
 
-	gpu->re.manual_sort = gpu->ge.swap_bits & 1;
-	gpu->re.r = gpu->re.r_s;
 	fifo_pipe_process_commands(gpu);
 }
 

@@ -49,6 +49,7 @@ struct rendering_engine {
 	std::array<std::array<u32, 256>, 192> attr_buf[2]{};
 	std::array<std::array<u8, 256>, 192> stencil_buf{};
 
+	bool enabled{};
 	vertex_ram *vtx_ram{};
 	polygon_ram *poly_ram{};
 	std::array<re_polygon, 2048> polys{};
