@@ -99,7 +99,6 @@ void arm9_direct_boot(arm9_cpu *gpu, u32 entry_addr);
 u32 cp15_read(arm9_cpu *cpu, u32 reg);
 void cp15_write(arm9_cpu *cpu, u32 reg, u32 value);
 void update_arm9_page_tables(arm9_cpu *cpu, u64 start, u64 end);
-void update_arm9_timing_tables(arm9_cpu *cpu, u64 start, u64 end);
 
 } // namespace twice
 

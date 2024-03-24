@@ -590,11 +590,6 @@ update_arm9_page_tables(arm9_cpu *cpu, u64 start, u64 end)
 	remap_store_pt(cpu, start, end);
 }
 
-void
-update_arm9_timing_tables(arm9_cpu *cpu, u64 start, u64 end)
-{
-}
-
 static void
 ctrl_reg_write(arm9_cpu *cpu, u32 value)
 {
