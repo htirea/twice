@@ -64,9 +64,8 @@ struct arm_cpu {
 		cycles_executed += x;
 	}
 
-	virtual void add_ldr_cycles();
-	virtual void add_str_cycles(u32 extra = 0);
-
+	virtual void add_ldr_cycles() = 0;
+	virtual void add_str_cycles(u32 extra = 0) = 0;
 	virtual void run() = 0;
 	virtual void step() = 0;
 	virtual void arm_jump(u32 addr) = 0;
