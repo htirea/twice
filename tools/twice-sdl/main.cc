@@ -22,9 +22,7 @@ twice::arg_parser twice::parser;
 std::u8string
 char_to_u8_string(const std::string& s)
 {
-	const char *p = s.data();
-	std::u8string r{ (const char8_t *)p, s.size() };
-	return r;
+	return { s.begin(), s.end() };
 }
 
 static std::string cartridge_pathname;
