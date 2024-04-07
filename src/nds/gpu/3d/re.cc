@@ -209,23 +209,19 @@ static void
 find_polygon_start_end_sortkey(polygon *p, bool manual_sort)
 {
 	u32 start_vtx = 0;
-	s32 start_x = p->vtxs[0]->sx;
 	s32 start_y = p->vtxs[0]->sy;
 
 	u32 end_vtx = 0;
-	s32 end_x = p->vtxs[0]->sx;
 	s32 end_y = p->vtxs[0]->sy;
 
 	for (u32 i = 1; i < p->num_vtxs; i++) {
 		vertex *v = p->vtxs[i];
-		if (v->sy < start_y || (v->sy == start_y && v->sx < start_x)) {
+		if (v->sy < start_y) {
 			start_vtx = i;
-			start_x = v->sx;
 			start_y = v->sy;
 		}
-		if (v->sy > end_y || (v->sy == end_y && v->sx >= end_x)) {
+		if (v->sy > end_y) {
 			end_vtx = i;
-			end_x = v->sx;
 			end_y = v->sy;
 		}
 	}
