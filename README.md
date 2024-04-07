@@ -22,4 +22,4 @@ You should have received a copy of the GNU General Public License along with
 this program. If not, see <https://www.gnu.org/licenses/>.
 
 ***
-Copyright 2023 Azusa
+Copyright 2023-2024 htirea
