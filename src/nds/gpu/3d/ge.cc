@@ -1271,9 +1271,30 @@ add_polygon(geometry_engine *ge)
 
 	s64 face_dir = get_poly_face_dir(
 			vertices[0], vertices[1], vertices[2]);
-	if ((!(ge->poly_attr & BIT(6)) && face_dir < 0) ||
-			(!(ge->poly_attr & BIT(7)) && face_dir > 0)) {
-		return;
+	bool cull_back = !(ge->poly_attr & BIT(6));
+	bool cull_front = !(ge->poly_attr & BIT(7));
+
+	if (face_dir < 0) {
+		if (cull_back) {
+			return;
+		}
+	} else if (face_dir > 0) {
+		if (cull_front) {
+			return;
+		}
+	} else {
+		if (cull_back && cull_front) {
+			auto& v0 = vertices[0]->pos;
+			auto& v1 = vertices[1]->pos;
+			auto& v2 = vertices[2]->pos;
+
+			bool v0_eq_v2 = v0[0] == v2[0] && v0[1] == v2[1];
+			bool v1_eq_v2 = v1[0] == v2[0] && v1[1] == v2[1];
+
+			if (!v0_eq_v2 && !v1_eq_v2) {
+				return;
+			}
+		}
 	}
 
 	std::vector<vertex> clipped_vertices = clip_polygon(
