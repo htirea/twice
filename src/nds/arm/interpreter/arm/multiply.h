@@ -5,9 +5,9 @@
 
 namespace twice::arm::interpreter {
 
-template <int A, int S>
+template <typename CPUT, int A, int S>
 void
-arm_multiply(arm_cpu *cpu)
+arm_multiply(CPUT *cpu)
 {
 	u32 rd = cpu->opcode >> 16 & 0xF;
 	u32 rs = cpu->opcode >> 8 & 0xF;
@@ -37,9 +37,9 @@ arm_multiply(arm_cpu *cpu)
 	cpu->add_code_cycles(icycles);
 }
 
-template <int U, int A, int S>
+template <typename CPUT, int U, int A, int S>
 void
-arm_multiply_long(arm_cpu *cpu)
+arm_multiply_long(CPUT *cpu)
 {
 	u32 rdhi = cpu->opcode >> 16 & 0xF;
 	u32 rdlo = cpu->opcode >> 12 & 0xF;

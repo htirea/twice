@@ -6,9 +6,9 @@
 
 namespace twice::arm::interpreter {
 
-template <int L>
+template <typename CPUT, int L>
 void
-arm_b(arm_cpu *cpu)
+arm_b(CPUT *cpu)
 {
 	if (L) {
 		cpu->gpr[14] = cpu->pc() - 4;
@@ -20,8 +20,9 @@ arm_b(arm_cpu *cpu)
 	cpu->arm_jump(cpu->pc() + offset);
 }
 
-inline void
-arm_blx2(arm_cpu *cpu)
+template <typename CPUT>
+void
+arm_blx2(CPUT *cpu)
 {
 	if (is_arm7(cpu)) {
 		arm_undefined(cpu);
@@ -35,8 +36,9 @@ arm_blx2(arm_cpu *cpu)
 	arm_do_bx(cpu, addr);
 }
 
-inline void
-arm_bx(arm_cpu *cpu)
+template <typename CPUT>
+void
+arm_bx(CPUT *cpu)
 {
 	u32 addr = cpu->gpr[cpu->opcode & 0xF];
 

@@ -5,9 +5,9 @@
 
 namespace twice::arm::interpreter {
 
-template <int OP, int S, int SHIFT, int MODE>
+template <typename CPUT, int OP, int S, int SHIFT, int MODE>
 void
-arm_alu(arm_cpu *cpu)
+arm_alu(CPUT *cpu)
 {
 	u32 operand;
 	bool carry;

@@ -7,9 +7,9 @@
 
 namespace twice::arm::interpreter {
 
-template <int OP1, int L, int OP2>
+template <typename CPUT, int OP1, int L, int OP2>
 void
-arm_cop_reg(arm_cpu *cpu)
+arm_cop_reg(CPUT *cpu)
 {
 	u32 cn = cpu->opcode >> 16 & 0xF;
 	u32 rd = cpu->opcode >> 12 & 0xF;
@@ -80,32 +80,37 @@ arm_cop_reg(arm_cpu *cpu)
 	}
 }
 
-inline void
-arm_cdp(arm_cpu *)
+template <typename CPUT>
+void
+arm_cdp(CPUT *)
 {
 	throw twice_error("arm cdp");
 }
 
-inline void
-arm_ldc(arm_cpu *)
+template <typename CPUT>
+void
+arm_ldc(CPUT *)
 {
 	throw twice_error("arm ldc");
 }
 
-inline void
-arm_stc(arm_cpu *)
+template <typename CPUT>
+void
+arm_stc(CPUT *)
 {
 	throw twice_error("arm stc");
 }
 
-inline void
-arm_mcrr(arm_cpu *)
+template <typename CPUT>
+void
+arm_mcrr(CPUT *)
 {
 	throw twice_error("arm mcrr");
 }
 
-inline void
-arm_mrrc(arm_cpu *)
+template <typename CPUT>
+void
+arm_mrrc(CPUT *)
 {
 	throw twice_error("arm mrrc");
 }

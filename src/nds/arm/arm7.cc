@@ -1,11 +1,18 @@
 #include "nds/arm/arm7.h"
-#include "nds/arm/interpreter/lut.h"
+#include "nds/arm/interpreter/lut_gen_tables.h"
 #include "nds/arm/interpreter/util.h"
 #include "nds/nds.h"
 
 #include "libtwice/exception.h"
 
 namespace twice {
+
+const auto arm7_inst_lut =
+		arm::interpreter::gen::gen_array<void (*)(arm7_cpu *), 4096>(
+				arm::interpreter::gen::gen_arm_lut<arm7_cpu>);
+const auto thumb7_inst_lut = arm::interpreter::gen::gen_array<
+		void (*)(arm7_cpu *), 1024>(
+		arm::interpreter::gen::gen_thumb_lut<arm7_cpu>);
 
 void
 arm7_cpu::run()
@@ -32,7 +39,7 @@ arm7_cpu::step()
 		opcode = pipeline[0];
 		pipeline[0] = pipeline[1];
 		code_cycles = fetch16s(pc(), &pipeline[1]);
-		thumb_inst_lut[opcode >> 6 & 0x3FF](this);
+		thumb7_inst_lut[opcode >> 6 & 0x3FF](this);
 	} else {
 		pc() += 4;
 		opcode = pipeline[0];
@@ -44,7 +51,7 @@ arm7_cpu::step()
 				arm_cond_table[cond] & (1 << (cpsr >> 28))) {
 			u32 op1 = opcode >> 20 & 0xFF;
 			u32 op2 = opcode >> 4 & 0xF;
-			arm_inst_lut[op1 << 4 | op2](this);
+			arm7_inst_lut[op1 << 4 | op2](this);
 		} else {
 			add_code_cycles();
 		}

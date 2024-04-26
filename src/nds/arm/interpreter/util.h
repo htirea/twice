@@ -2,6 +2,7 @@
 #define TWICE_INTERPRETER_UTIL_H
 
 #include "nds/arm/arm.h"
+#include "nds/arm/arm9.h"
 
 #include "common/logger.h"
 #include "libtwice/exception.h"
@@ -72,16 +73,26 @@ set_nzcv(arm_cpu *cpu, bool n, bool z, bool c, bool v)
 	cpu->cpsr |= v << 28;
 }
 
-inline bool
-is_arm7(arm_cpu *cpu)
+template <typename CPUT>
+constexpr bool
+is_arm7(CPUT *)
 {
-	return cpu->cpuid;
+	if constexpr (std::is_same_v<CPUT, arm9_cpu>) {
+		return false;
+	} else {
+		return true;
+	}
 }
 
-inline bool
-is_arm9(arm_cpu *cpu)
+template <typename CPUT>
+constexpr bool
+is_arm9(CPUT *)
 {
-	return !is_arm7(cpu);
+	if constexpr (std::is_same_v<CPUT, arm9_cpu>) {
+		return true;
+	} else {
+		return false;
+	}
 }
 
 inline void

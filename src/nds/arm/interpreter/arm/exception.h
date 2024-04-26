@@ -5,14 +5,16 @@
 
 namespace twice::arm::interpreter {
 
-inline void
-arm_noop(arm_cpu *cpu)
+template <typename CPUT>
+void
+arm_noop(CPUT *cpu)
 {
 	cpu->add_code_cycles();
 }
 
-inline void
-arm_undefined(arm_cpu *cpu)
+template <typename CPUT>
+void
+arm_undefined(CPUT *cpu)
 {
 	u32 old_cpsr = cpu->cpsr;
 	cpu->cpsr &= ~0xBF;
@@ -26,8 +28,9 @@ arm_undefined(arm_cpu *cpu)
 	cpu->arm_jump(cpu->exception_base + 0x4);
 }
 
-inline void
-arm_swi(arm_cpu *cpu)
+template <typename CPUT>
+void
+arm_swi(CPUT *cpu)
 {
 	u32 old_cpsr = cpu->cpsr;
 	cpu->cpsr &= ~0xBF;
@@ -41,8 +44,9 @@ arm_swi(arm_cpu *cpu)
 	cpu->arm_jump(cpu->exception_base + 0x8);
 }
 
-inline void
-arm_bkpt(arm_cpu *)
+template <typename CPUT>
+void
+arm_bkpt(CPUT *)
 {
 	throw twice_error("arm bkpt not implemented");
 }

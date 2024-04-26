@@ -7,9 +7,9 @@
 
 namespace twice::arm::interpreter {
 
-template <int P, int U, int I, int W, int L, int S, int H>
+template <typename CPUT, int P, int U, int I, int W, int L, int S, int H>
 void
-arm_misc_dt(arm_cpu *cpu)
+arm_misc_dt(CPUT *cpu)
 {
 	u32 rn = cpu->opcode >> 16 & 0xF;
 	u32 rd = cpu->opcode >> 12 & 0xF;

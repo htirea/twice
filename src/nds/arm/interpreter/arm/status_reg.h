@@ -5,9 +5,9 @@
 
 namespace twice::arm::interpreter {
 
-template <int R>
+template <typename CPUT, int R>
 void
-arm_mrs(arm_cpu *cpu)
+arm_mrs(CPUT *cpu)
 {
 	u32 rd = cpu->opcode >> 12 & 0xF;
 
@@ -20,9 +20,9 @@ arm_mrs(arm_cpu *cpu)
 	cpu->add_code_cycles();
 }
 
-template <int I, int R>
+template <typename CPUT, int I, int R>
 void
-arm_msr(arm_cpu *cpu)
+arm_msr(CPUT *cpu)
 {
 	u32 operand;
 	if (I) {

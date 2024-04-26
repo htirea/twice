@@ -5,8 +5,9 @@
 
 namespace twice::arm::interpreter {
 
-inline void
-thumb_undefined(arm_cpu *cpu)
+template <typename CPUT>
+void
+thumb_undefined(CPUT *cpu)
 {
 	u32 old_cpsr = cpu->cpsr;
 	cpu->cpsr &= ~0xBF;
@@ -20,8 +21,9 @@ thumb_undefined(arm_cpu *cpu)
 	cpu->arm_jump(cpu->exception_base + 0x4);
 }
 
-inline void
-thumb_swi(arm_cpu *cpu)
+template <typename CPUT>
+void
+thumb_swi(CPUT *cpu)
 {
 	u32 old_cpsr = cpu->cpsr;
 	cpu->cpsr &= ~0xBF;
@@ -35,8 +37,9 @@ thumb_swi(arm_cpu *cpu)
 	cpu->arm_jump(cpu->exception_base + 0x8);
 }
 
-inline void
-thumb_bkpt(arm_cpu *)
+template <typename CPUT>
+void
+thumb_bkpt(CPUT *)
 {
 	throw twice_error("thumb bkpt not implemented");
 }

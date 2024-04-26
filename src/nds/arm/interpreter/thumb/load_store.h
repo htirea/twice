@@ -5,9 +5,9 @@
 
 namespace twice::arm::interpreter {
 
-template <int OP, int OFFSET>
+template <typename CPUT, int OP, int OFFSET>
 void
-thumb_load_store_imm(arm_cpu *cpu)
+thumb_load_store_imm(CPUT *cpu)
 {
 	u32 rn = cpu->opcode >> 3 & 0x7;
 	u32 rd = cpu->opcode & 0x7;
@@ -51,9 +51,9 @@ thumb_load_store_imm(arm_cpu *cpu)
 	}
 }
 
-template <int OP, int RM>
+template <typename CPUT, int OP, int RM>
 void
-thumb_load_store_reg(arm_cpu *cpu)
+thumb_load_store_reg(CPUT *cpu)
 {
 	u32 rn = cpu->opcode >> 3 & 0x7;
 	u32 rd = cpu->opcode & 0x7;
@@ -99,18 +99,18 @@ thumb_load_store_reg(arm_cpu *cpu)
 	}
 }
 
-template <int RD>
+template <typename CPUT, int RD>
 void
-thumb_load_pc_relative(arm_cpu *cpu)
+thumb_load_pc_relative(CPUT *cpu)
 {
 	u32 addr = (cpu->pc() & ~3) + ((cpu->opcode & 0xFF) << 2);
 	cpu->gpr[RD] = cpu->load32n(addr);
 	cpu->add_ldr_cycles();
 }
 
-template <int L, int RD>
+template <typename CPUT, int L, int RD>
 void
-thumb_load_store_sp_relative(arm_cpu *cpu)
+thumb_load_store_sp_relative(CPUT *cpu)
 {
 	u32 addr = cpu->gpr[13] + ((cpu->opcode & 0xFF) << 2);
 

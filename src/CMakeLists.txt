@@ -1,11 +1,3 @@
-add_executable(generate-lut
-	nds/arm/interpreter/lut_generator.cc)
-
-add_custom_command(
-	OUTPUT arm_lut.cc thumb_lut.cc
-	COMMAND generate-lut "${CMAKE_CURRENT_BINARY_DIR}/arm_lut.cc" "${CMAKE_CURRENT_BINARY_DIR}/thumb_lut.cc"
-	DEPENDS generate-lut)
-
 if(TWICE_LINUX)
 	set(FILE_SOURCES
 		libtwice/file/posix_file.cc
@@ -65,8 +57,6 @@ add_library(twice STATIC
 	nds/timer.cc
 	nds/touchscreen.cc
 	nds/wifi.cc
-	"${CMAKE_CURRENT_BINARY_DIR}/arm_lut.cc"
-	"${CMAKE_CURRENT_BINARY_DIR}/thumb_lut.cc"
 )
 
 target_include_directories(twice

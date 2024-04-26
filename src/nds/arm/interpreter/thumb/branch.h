@@ -6,9 +6,9 @@
 
 namespace twice::arm::interpreter {
 
-template <int COND>
+template <typename CPUT, int COND>
 void
-thumb_b1(arm_cpu *cpu)
+thumb_b1(CPUT *cpu)
 {
 	bool N = cpu->cpsr & BIT(31);
 	bool Z = cpu->cpsr & BIT(30);
@@ -75,8 +75,9 @@ thumb_b1(arm_cpu *cpu)
 	}
 }
 
-inline void
-thumb_b2(arm_cpu *cpu)
+template <typename CPUT>
+void
+thumb_b2(CPUT *cpu)
 {
 	u32 offset = (s16)(cpu->opcode << 5) >> 4;
 
@@ -84,9 +85,9 @@ thumb_b2(arm_cpu *cpu)
 	cpu->thumb_jump(cpu->pc() + offset);
 }
 
-template <int H>
+template <typename CPUT, int H>
 void
-thumb_b_pair(arm_cpu *cpu)
+thumb_b_pair(CPUT *cpu)
 {
 	cpu->add_code_cycles();
 
@@ -112,8 +113,9 @@ thumb_b_pair(arm_cpu *cpu)
 	}
 }
 
-inline void
-thumb_bx(arm_cpu *cpu)
+template <typename CPUT>
+void
+thumb_bx(CPUT *cpu)
 {
 	u32 addr = cpu->gpr[cpu->opcode >> 3 & 0xF];
 
@@ -121,8 +123,9 @@ thumb_bx(arm_cpu *cpu)
 	thumb_do_bx(cpu, addr);
 }
 
-inline void
-thumb_blx2(arm_cpu *cpu)
+template <typename CPUT>
+void
+thumb_blx2(CPUT *cpu)
 {
 	if (is_arm7(cpu)) {
 		return thumb_undefined(cpu);

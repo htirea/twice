@@ -5,9 +5,9 @@
 
 namespace twice::arm::interpreter {
 
-template <int L, int RN>
+template <typename CPUT, int L, int RN>
 void
-thumb_ldm_stm(arm_cpu *cpu)
+thumb_ldm_stm(CPUT *cpu)
 {
 	u8 register_list = cpu->opcode & 0xFF;
 	int count = std::popcount(register_list);
@@ -52,9 +52,9 @@ thumb_ldm_stm(arm_cpu *cpu)
 	}
 }
 
-template <int L, int R>
+template <typename CPUT, int L, int R>
 void
-thumb_push_pop(arm_cpu *cpu)
+thumb_push_pop(CPUT *cpu)
 {
 	u16 register_list = cpu->opcode & 0xFF;
 	int count = R + std::popcount(register_list);

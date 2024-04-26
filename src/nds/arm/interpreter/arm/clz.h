@@ -6,8 +6,9 @@
 
 namespace twice::arm::interpreter {
 
-inline void
-arm_clz(arm_cpu *cpu)
+template <typename CPUT>
+void
+arm_clz(CPUT *cpu)
 {
 	if (is_arm7(cpu)) {
 		return arm_undefined(cpu);

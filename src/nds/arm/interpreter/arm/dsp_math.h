@@ -32,9 +32,9 @@ saturated_sub(arm_cpu *cpu, u32 a, u32 b)
 	return r;
 }
 
-template <int OP>
+template <typename CPUT, int OP>
 void
-arm_sat_add_sub(arm_cpu *cpu)
+arm_sat_add_sub(CPUT *cpu)
 {
 	if (is_arm7(cpu)) {
 		return arm_undefined(cpu);
@@ -80,9 +80,9 @@ sticky_add(arm_cpu *cpu, u32 a, u32 b)
 	return r;
 }
 
-template <int OP, int Y, int X>
+template <typename CPUT, int OP, int Y, int X>
 void
-arm_dsp_multiply(arm_cpu *cpu)
+arm_dsp_multiply(CPUT *cpu)
 {
 	if (is_arm7(cpu)) {
 		return arm_noop(cpu);

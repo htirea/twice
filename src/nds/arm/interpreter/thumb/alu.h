@@ -5,9 +5,9 @@
 
 namespace twice::arm::interpreter {
 
-template <int OP, int IMM>
+template <typename CPUT, int OP, int IMM>
 void
-thumb_alu1_2(arm_cpu *cpu)
+thumb_alu1_2(CPUT *cpu)
 {
 	u32 rn = cpu->gpr[cpu->opcode >> 3 & 0x7];
 	u32 rd = cpu->opcode & 0x7;
@@ -37,9 +37,9 @@ thumb_alu1_2(arm_cpu *cpu)
 	cpu->add_code_cycles();
 }
 
-template <int OP, int RD>
+template <typename CPUT, int OP, int RD>
 void
-thumb_alu3(arm_cpu *cpu)
+thumb_alu3(CPUT *cpu)
 {
 	u32 rn = cpu->gpr[RD];
 	u32 imm = cpu->opcode & 0xFF;
@@ -70,9 +70,9 @@ thumb_alu3(arm_cpu *cpu)
 	cpu->add_code_cycles();
 }
 
-template <int OP, int IMM>
+template <typename CPUT, int OP, int IMM>
 void
-thumb_alu4(arm_cpu *cpu)
+thumb_alu4(CPUT *cpu)
 {
 	u32 rm = cpu->gpr[cpu->opcode >> 3 & 0x7];
 	u32 rd = cpu->opcode & 0x7;
@@ -121,9 +121,9 @@ thumb_alu4(arm_cpu *cpu)
 	cpu->add_code_cycles();
 }
 
-template <int OP>
+template <typename CPUT, int OP>
 void
-thumb_alu5(arm_cpu *cpu)
+thumb_alu5(CPUT *cpu)
 {
 	enum {
 		AND,
@@ -308,9 +308,9 @@ thumb_alu5(arm_cpu *cpu)
 	cpu->add_code_cycles(icycles);
 }
 
-template <int R, int RD>
+template <typename CPUT, int R, int RD>
 void
-thumb_alu6(arm_cpu *cpu)
+thumb_alu6(CPUT *cpu)
 {
 	if (R == 0) {
 		cpu->gpr[RD] = (cpu->pc() & ~3) + ((cpu->opcode & 0xFF) << 2);
@@ -321,9 +321,9 @@ thumb_alu6(arm_cpu *cpu)
 	cpu->add_code_cycles();
 }
 
-template <int OP>
+template <typename CPUT, int OP>
 void
-thumb_alu7(arm_cpu *cpu)
+thumb_alu7(CPUT *cpu)
 {
 	if (OP == 0) {
 		cpu->gpr[13] += (cpu->opcode & 0x7F) << 2;
@@ -334,9 +334,9 @@ thumb_alu7(arm_cpu *cpu)
 	cpu->add_code_cycles();
 }
 
-template <int OP>
+template <typename CPUT, int OP>
 void
-thumb_alu8(arm_cpu *cpu)
+thumb_alu8(CPUT *cpu)
 {
 	bool H1 = cpu->opcode >> 7 & 1;
 	u32 rm = cpu->gpr[cpu->opcode >> 3 & 0xF];
