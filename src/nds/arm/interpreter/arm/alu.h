@@ -173,35 +173,35 @@ arm_alu(CPUT *cpu)
 		break;
 	case SUB:
 		r = rn - operand;
-		SUB_FLAGS_(rn, operand);
+		std::tie(carry, overflow) = set_sub_flags(rn, operand, r);
 		break;
 	case RSB:
 		r = operand - rn;
-		SUB_FLAGS_(operand, rn);
+		std::tie(carry, overflow) = set_sub_flags(operand, rn, r);
 		break;
 	case ADD:
 		r = rn + operand;
-		ADD_FLAGS_(rn, operand);
+		std::tie(carry, overflow) = set_add_flags(rn, operand, r);
 		break;
 	case ADC:
 	{
 		u64 r64 = (u64)rn + operand + get_c(cpu);
 		r = r64;
-		ADC_FLAGS_(rn, operand);
+		std::tie(carry, overflow) = set_adc_flags(rn, operand, r, r64);
 		break;
 	}
 	case SBC:
 	{
 		s64 r64 = (s64)rn - operand - !get_c(cpu);
 		r = r64;
-		SBC_FLAGS_(rn, operand);
+		std::tie(carry, overflow) = set_sbc_flags(rn, operand, r, r64);
 		break;
 	}
 	case RSC:
 	{
 		s64 r64 = (s64)operand - rn - !get_c(cpu);
 		r = r64;
-		SBC_FLAGS_(operand, rn);
+		std::tie(carry, overflow) = set_sbc_flags(operand, rn, r, r64);
 		break;
 	}
 	case TST:
@@ -212,11 +212,11 @@ arm_alu(CPUT *cpu)
 		break;
 	case CMP:
 		r = rn - operand;
-		SUB_FLAGS_(rn, operand);
+		std::tie(carry, overflow) = set_sub_flags(rn, operand, r);
 		break;
 	case CMN:
 		r = rn + operand;
-		ADD_FLAGS_(rn, operand);
+		std::tie(carry, overflow) = set_add_flags(rn, operand, r);
 		break;
 	case ORR:
 		r = rn | operand;

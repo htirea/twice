@@ -19,16 +19,16 @@ thumb_alu1_2(CPUT *cpu)
 
 	if (OP == 0) {
 		r = rn + rm;
-		ADD_FLAGS_(rn, rm);
+		std::tie(carry, overflow) = set_add_flags(rn, rm, r);
 	} else if (OP == 1) {
 		r = rn - rm;
-		SUB_FLAGS_(rn, rm);
+		std::tie(carry, overflow) = set_sub_flags(rn, rm, r);
 	} else if (OP == 2) {
 		r = rn + IMM;
-		ADD_FLAGS_(rn, IMM);
+		std::tie(carry, overflow) = set_add_flags(rn, IMM, r);
 	} else {
 		r = rn - IMM;
-		SUB_FLAGS_(rn, IMM);
+		std::tie(carry, overflow) = set_sub_flags(rn, IMM, r);
 	}
 
 	cpu->gpr[rd] = r;
@@ -52,13 +52,13 @@ thumb_alu3(CPUT *cpu)
 		cpu->gpr[RD] = r = imm;
 	} else if (OP == 1) {
 		r = rn - imm;
-		SUB_FLAGS_(rn, imm);
+		std::tie(carry, overflow) = set_sub_flags(rn, imm, r);
 	} else if (OP == 2) {
 		cpu->gpr[RD] = r = rn + imm;
-		ADD_FLAGS_(rn, imm);
+		std::tie(carry, overflow) = set_add_flags(rn, imm, r);
 	} else if (OP == 3) {
 		cpu->gpr[RD] = r = rn - imm;
-		SUB_FLAGS_(rn, imm);
+		std::tie(carry, overflow) = set_sub_flags(rn, imm, r);
 	}
 
 	if (OP == 0) {
@@ -221,7 +221,7 @@ thumb_alu5(CPUT *cpu)
 	{
 		u64 r64 = (u64)operand + rm + get_c(cpu);
 		r = cpu->gpr[rd] = r64;
-		ADC_FLAGS_(operand, rm);
+		std::tie(carry, overflow) = set_adc_flags(operand, rm, r, r64);
 		set_nzcv(cpu, r >> 31, r == 0, carry, overflow);
 		break;
 	}
@@ -229,7 +229,7 @@ thumb_alu5(CPUT *cpu)
 	{
 		s64 r64 = (s64)operand - rm - !get_c(cpu);
 		r = cpu->gpr[rd] = r64;
-		SBC_FLAGS_(operand, rm);
+		std::tie(carry, overflow) = set_sbc_flags(operand, rm, r, r64);
 		set_nzcv(cpu, r >> 31, r == 0, carry, overflow);
 		break;
 	}
@@ -254,17 +254,17 @@ thumb_alu5(CPUT *cpu)
 		break;
 	case NEG:
 		r = cpu->gpr[rd] = -rm;
-		SUB_FLAGS_(0, rm);
+		std::tie(carry, overflow) = set_sub_flags(0, rm, r);
 		set_nzcv(cpu, r >> 31, r == 0, carry, overflow);
 		break;
 	case CMP:
 		r = operand - rm;
-		SUB_FLAGS_(operand, rm);
+		std::tie(carry, overflow) = set_sub_flags(operand, rm, r);
 		set_nzcv(cpu, r >> 31, r == 0, carry, overflow);
 		break;
 	case CMN:
 		r = operand + rm;
-		ADD_FLAGS_(operand, rm);
+		std::tie(carry, overflow) = set_add_flags(operand, rm, r);
 		set_nzcv(cpu, r >> 31, r == 0, carry, overflow);
 		break;
 	case ORR:
@@ -356,7 +356,7 @@ thumb_alu8(CPUT *cpu)
 		u32 r = rn - rm;
 		bool carry;
 		bool overflow;
-		SUB_FLAGS_(rn, rm);
+		std::tie(carry, overflow) = set_sub_flags(rn, rm, r);
 		set_nzcv(cpu, r >> 31, r == 0, carry, overflow);
 	} else {
 		if (rd == 15) {

@@ -196,29 +196,38 @@ get_mul_cycles(u32 rs)
 	}
 }
 
-#define SUB_FLAGS_(a_, b_)                                                    \
-	do {                                                                  \
-		carry = !((a_) < (b_));                                       \
-		overflow = (((a_) ^ (b_)) & ((a_) ^ r)) >> 31;                \
-	} while (0)
+inline std::pair<bool, bool>
+set_sub_flags(u32 a, u32 b, u32 r)
+{
+	bool C = !((a) < (b));
+	bool V = (((a) ^ (b)) & ((a) ^ r)) >> 31;
+	return { C, V };
+}
 
-#define SBC_FLAGS_(a_, b_)                                                    \
-	do {                                                                  \
-		carry = !(r64 < 0);                                           \
-		overflow = (((a_) ^ (b_)) & ((a_) ^ r)) >> 31;                \
-	} while (0)
+inline std::pair<bool, bool>
+set_sbc_flags(u32 a, u32 b, u32 r, s64 r64)
+{
 
-#define ADD_FLAGS_(a_, b_)                                                    \
-	do {                                                                  \
-		carry = r < (a_);                                             \
-		overflow = (((a_) ^ r) & ((b_) ^ r)) >> 31;                   \
-	} while (0)
+	bool C = !(r64 < 0);
+	bool V = (((a) ^ (b)) & ((a) ^ r)) >> 31;
+	return { C, V };
+}
 
-#define ADC_FLAGS_(a_, b_)                                                    \
-	do {                                                                  \
-		carry = r64 >> 32;                                            \
-		overflow = (((a_) ^ r) & ((b_) ^ r)) >> 31;                   \
-	} while (0)
+inline std::pair<bool, bool>
+set_add_flags(u32 a, u32 b, u32 r)
+{
+	bool C = r < (a);
+	bool V = (((a) ^ r) & ((b) ^ r)) >> 31;
+	return { C, V };
+}
+
+inline std::pair<bool, bool>
+set_adc_flags(u32 a, u32 b, u32 r, u64 r64)
+{
+	bool C = r64 >> 32;
+	bool V = (((a) ^ r) & ((b) ^ r)) >> 31;
+	return { C, V };
+}
 
 } // namespace twice::arm::interpreter
 
