@@ -812,14 +812,7 @@ vram_read_texture_slow(nds_ctx *nds, u32 offset)
 {
 	u32 index = offset >> 17 & 3;
 	u16 mask = nds->vram.texture_bank[index];
-	T value = 0;
-
-	VRAM_READ_FROM_MASK(VRAM_A);
-	VRAM_READ_FROM_MASK(VRAM_B);
-	VRAM_READ_FROM_MASK(VRAM_C);
-	VRAM_READ_FROM_MASK(VRAM_D);
-
-	return value;
+	return vram_read_banks<T>(nds, offset, mask);
 }
 
 static void
@@ -855,13 +848,7 @@ vram_read_texture_palette_slow(nds_ctx *nds, u32 offset)
 {
 	u32 index = offset >> 14 & 7;
 	u16 mask = nds->vram.texture_palette_bank[index];
-	T value = 0;
-
-	VRAM_READ_FROM_MASK(VRAM_E);
-	VRAM_READ_FROM_MASK(VRAM_F);
-	VRAM_READ_FROM_MASK(VRAM_G);
-
-	return value;
+	return vram_read_banks<T>(nds, offset, mask);
 }
 
 static void

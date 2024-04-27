@@ -5,17 +5,33 @@
 
 #include "common/util.h"
 
-#define VRAM_READ_FROM_MASK(bank_)                                            \
-	if (mask & BIT(bank_)) {                                              \
-		value |= vram_bank_read<T, bank_>(&nds->vram, offset);        \
-	}
-
-#define VRAM_WRITE_FROM_MASK(bank_)                                           \
-	if (mask & BIT(bank_)) {                                              \
-		vram_bank_write<T, bank_>(&nds->vram, offset, value);         \
-	}
-
 namespace twice {
+
+template <typename T>
+T
+vram_read_banks(nds_ctx *nds, u32 offset, u16 banks)
+{
+	T value = 0;
+
+	for (int i = 0; i < VRAM_NUM_BANKS; i++) {
+		if (banks & BIT(i)) {
+			value |= vram_bank_read<T>(&nds->vram, offset, i);
+		}
+	}
+
+	return value;
+}
+
+template <typename T>
+void
+vram_write_banks(nds_ctx *nds, u32 offset, T value, u16 banks)
+{
+	for (int i = 0; i < VRAM_NUM_BANKS; i++) {
+		if (banks & BIT(i)) {
+			vram_bank_write<T>(&nds->vram, offset, value, i);
+		}
+	}
+}
 
 template <typename T>
 T
@@ -27,17 +43,7 @@ vram_read_abg(nds_ctx *nds, u32 offset)
 		return readarr<T>(p, offset & 0x3FFF);
 	} else {
 		u16 mask = nds->vram.abg_bank[index];
-		T value = 0;
-
-		VRAM_READ_FROM_MASK(VRAM_A);
-		VRAM_READ_FROM_MASK(VRAM_B);
-		VRAM_READ_FROM_MASK(VRAM_C);
-		VRAM_READ_FROM_MASK(VRAM_D);
-		VRAM_READ_FROM_MASK(VRAM_E);
-		VRAM_READ_FROM_MASK(VRAM_F);
-		VRAM_READ_FROM_MASK(VRAM_G);
-
-		return value;
+		return vram_read_banks<T>(nds, offset, mask);
 	}
 }
 
@@ -51,13 +57,7 @@ vram_write_abg(nds_ctx *nds, u32 offset, T value)
 		writearr<T>(p, offset & 0x3FFF, value);
 	} else {
 		u16 mask = nds->vram.abg_bank[index];
-		VRAM_WRITE_FROM_MASK(VRAM_A);
-		VRAM_WRITE_FROM_MASK(VRAM_B);
-		VRAM_WRITE_FROM_MASK(VRAM_C);
-		VRAM_WRITE_FROM_MASK(VRAM_D);
-		VRAM_WRITE_FROM_MASK(VRAM_E);
-		VRAM_WRITE_FROM_MASK(VRAM_F);
-		VRAM_WRITE_FROM_MASK(VRAM_G);
+		vram_write_banks<T>(nds, offset, value, mask);
 	}
 }
 
@@ -71,13 +71,7 @@ vram_read_bbg(nds_ctx *nds, u32 offset)
 		return readarr<T>(p, offset & 0x3FFF);
 	} else {
 		u16 mask = nds->vram.bbg_bank[index >> 1];
-		T value = 0;
-
-		VRAM_READ_FROM_MASK(VRAM_C);
-		VRAM_READ_FROM_MASK(VRAM_H);
-		VRAM_READ_FROM_MASK(VRAM_I);
-
-		return value;
+		return vram_read_banks<T>(nds, offset, mask);
 	}
 }
 
@@ -91,9 +85,7 @@ vram_write_bbg(nds_ctx *nds, u32 offset, T value)
 		writearr<T>(p, offset & 0x3FFF, value);
 	} else {
 		u16 mask = nds->vram.bbg_bank[index >> 1];
-		VRAM_WRITE_FROM_MASK(VRAM_C);
-		VRAM_WRITE_FROM_MASK(VRAM_H);
-		VRAM_WRITE_FROM_MASK(VRAM_I);
+		vram_write_banks<T>(nds, offset, value, mask);
 	}
 }
 
@@ -107,15 +99,7 @@ vram_read_aobj(nds_ctx *nds, u32 offset)
 		return readarr<T>(p, offset & 0x3FFF);
 	} else {
 		u16 mask = nds->vram.aobj_bank[index];
-		T value = 0;
-
-		VRAM_READ_FROM_MASK(VRAM_A);
-		VRAM_READ_FROM_MASK(VRAM_B);
-		VRAM_READ_FROM_MASK(VRAM_E);
-		VRAM_READ_FROM_MASK(VRAM_F);
-		VRAM_READ_FROM_MASK(VRAM_G);
-
-		return value;
+		return vram_read_banks<T>(nds, offset, mask);
 	}
 }
 
@@ -129,11 +113,7 @@ vram_write_aobj(nds_ctx *nds, u32 offset, T value)
 		writearr<T>(p, offset & 0x3FFF, value);
 	} else {
 		u16 mask = nds->vram.aobj_bank[index];
-		VRAM_WRITE_FROM_MASK(VRAM_A);
-		VRAM_WRITE_FROM_MASK(VRAM_B);
-		VRAM_WRITE_FROM_MASK(VRAM_E);
-		VRAM_WRITE_FROM_MASK(VRAM_F);
-		VRAM_WRITE_FROM_MASK(VRAM_G);
+		vram_write_banks<T>(nds, offset, value, mask);
 	}
 }
 
@@ -147,12 +127,7 @@ vram_read_bobj(nds_ctx *nds, u32 offset)
 		return readarr<T>(p, offset & 0x3FFF);
 	} else {
 		u16 mask = nds->vram.bobj_bank;
-		T value = 0;
-
-		VRAM_READ_FROM_MASK(VRAM_D);
-		VRAM_READ_FROM_MASK(VRAM_I);
-
-		return value;
+		return vram_read_banks<T>(nds, offset, mask);
 	}
 }
 
@@ -166,8 +141,7 @@ vram_write_bobj(nds_ctx *nds, u32 offset, T value)
 		writearr<T>(p, offset & 0x3FFF, value);
 	} else {
 		u16 mask = nds->vram.bobj_bank;
-		VRAM_WRITE_FROM_MASK(VRAM_D);
-		VRAM_WRITE_FROM_MASK(VRAM_I);
+		vram_write_banks<T>(nds, offset, value, mask);
 	}
 }
 
@@ -205,13 +179,7 @@ vram_read_abg_palette(nds_ctx *nds, u32 offset)
 		return readarr<T>(p, offset & 0x3FFF);
 	} else {
 		u16 mask = nds->vram.abg_palette_bank[index];
-		T value = 0;
-
-		VRAM_READ_FROM_MASK(VRAM_E);
-		VRAM_READ_FROM_MASK(VRAM_F);
-		VRAM_READ_FROM_MASK(VRAM_G);
-
-		return value;
+		return vram_read_banks<T>(nds, offset, mask);
 	}
 }
 
@@ -236,12 +204,7 @@ vram_read_aobj_palette(nds_ctx *nds, u32 offset)
 		return readarr<T>(p, offset & 0x1FFF);
 	} else {
 		u16 mask = nds->vram.aobj_palette_bank;
-		T value = 0;
-
-		VRAM_READ_FROM_MASK(VRAM_F);
-		VRAM_READ_FROM_MASK(VRAM_G);
-
-		return value;
+		return vram_read_banks<T>(nds, offset, mask);
 	}
 }
 
@@ -324,12 +287,8 @@ vram_arm7_read(nds_ctx *nds, u32 offset)
 	if (p) {
 		return readarr<T>(p, offset & 0x1FFFF);
 	} else {
-		T value = 0;
 		u16 mask = nds->vram.arm7_bank[index];
-		VRAM_READ_FROM_MASK(VRAM_C);
-		VRAM_READ_FROM_MASK(VRAM_D);
-
-		return value;
+		return vram_read_banks<T>(nds, offset, mask);
 	}
 }
 
@@ -343,8 +302,7 @@ vram_arm7_write(nds_ctx *nds, u32 offset, T value)
 		writearr<T>(p, offset & 0x1FFFF, value);
 	} else {
 		u16 mask = nds->vram.arm7_bank[index];
-		VRAM_WRITE_FROM_MASK(VRAM_C);
-		VRAM_WRITE_FROM_MASK(VRAM_D);
+		vram_write_banks<T>(nds, offset, value, mask);
 	}
 }
 

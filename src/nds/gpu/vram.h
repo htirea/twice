@@ -97,9 +97,9 @@ struct gpu_vram {
 	u8 vramcnt[VRAM_NUM_BANKS]{};
 };
 
-template <typename T, int bank>
+template <typename T>
 T
-vram_bank_read(gpu_vram *vram, u32 offset)
+vram_bank_read(gpu_vram *vram, u32 offset, int bank)
 {
 	switch (bank) {
 	case VRAM_A:
@@ -120,12 +120,14 @@ vram_bank_read(gpu_vram *vram, u32 offset)
 		return readarr<T>(vram->vram_h, offset & VRAM_H_MASK);
 	case VRAM_I:
 		return readarr<T>(vram->vram_i, offset & VRAM_I_MASK);
+	default:
+		return 0;
 	}
 }
 
-template <typename T, int bank>
+template <typename T>
 void
-vram_bank_write(gpu_vram *vram, u32 offset, T value)
+vram_bank_write(gpu_vram *vram, u32 offset, T value, int bank)
 {
 	switch (bank) {
 	case VRAM_A:
