@@ -93,6 +93,7 @@ class ConfigManager : public QObject {
 	bool is_valid(int key, const QVariant& v);
 
       private:
+	void set_defaults();
 	void check_and_add_parsed_arg(QCommandLineParser *parser, int key,
 			const QString& name);
 

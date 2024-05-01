@@ -6,10 +6,10 @@
 #include <QApplication>
 #include <QCommandLineParser>
 #include <QSettings>
+#include <QStandardPaths>
 #include <QVariant>
 
 #include <map>
-#include <set>
 
 using namespace ConfigVariable;
 
@@ -20,7 +20,7 @@ struct config_data {
 
 static const QVariant default_value;
 
-static const std::map<int, QVariant> default_cfg = {
+static std::map<int, QVariant> default_cfg = {
 	{ ORIENTATION, 0 },
 	{ LOCK_ASPECT_RATIO, true },
 	{ LINEAR_FILTERING, false },
@@ -95,6 +95,8 @@ add_command_line_arguments(QCommandLineParser& parser, QApplication& app)
 ConfigManager::ConfigManager(QCommandLineParser *parser, QObject *parent)
 	: QObject(parent)
 {
+	set_defaults();
+
 	QSettings settings;
 
 	for (const auto& [key, s] : key_to_str) {
@@ -200,6 +202,25 @@ ConfigManager::is_valid(int key, const QVariant& v)
 	}
 
 	return true;
+}
+
+void
+ConfigManager::set_defaults()
+{
+	auto data_dirs = QStandardPaths::standardLocations(
+			QStandardPaths::AppDataLocation);
+	if (!data_dirs.empty()) {
+		default_cfg[DATA_DIR] = data_dirs[0];
+	}
+
+	default_cfg[ARM9_BIOS_PATH] = QStandardPaths::locate(
+			QStandardPaths::AppDataLocation, "bios9.bin");
+	default_cfg[ARM7_BIOS_PATH] = QStandardPaths::locate(
+			QStandardPaths::AppDataLocation, "bios7.bin");
+	default_cfg[FIRMWARE_PATH] = QStandardPaths::locate(
+			QStandardPaths::AppDataLocation, "firmware.bin");
+	default_cfg[IMAGE_PATH] = QStandardPaths::locate(
+			QStandardPaths::AppDataLocation, "card.img");
 }
 
 void
