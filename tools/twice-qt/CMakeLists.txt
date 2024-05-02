@@ -1,6 +1,6 @@
 set(CMAKE_AUTOMOC ON)
 
-find_package(Qt6 REQUIRED COMPONENTS Core Widgets OpenGLWidgets Multimedia)
+find_package(Qt6 REQUIRED COMPONENTS Core Widgets OpenGLWidgets)
 
 qt_add_executable(twice-qt
 	MANUAL_FINALIZATION
@@ -29,7 +29,6 @@ target_link_libraries(twice-qt PRIVATE
 	Qt6::Core
 	Qt6::Widgets
 	Qt6::OpenGLWidgets
-	Qt6::Multimedia
 	${TWICE_SDL_LIBS}
 	twice
 )
